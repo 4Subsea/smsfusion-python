@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "smsfusion"
+authors = [
+  { name="4Subsea", email="python@4subsea.com" },
+]
+description = "Sensor fusion algorithms and utilities for SMS Motion"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dynamic = ["version"]
+
+[project.urls]
+"Homepage" = "https://github.com/4Subsea/smsfusion-python"
+"Bug Tracker" = "https://github.com/4Subsea/smsfusion-python/issues"
+
+[tool.hatch.version]
+path = "src/smsfusion/__about__.py"
