@@ -29,3 +29,49 @@ dependencies = [
 
 [tool.hatch.version]
 path = "src/smsfusion/__about__.py"
+
+[tool.hatch.envs.test]
+python = "3.10"
+dependencies = [
+  "black",
+  "coverage[toml]",
+  "isort",
+  "pytest",
+  "pytest-cov"
+]
+
+[tool.hatch.envs.test.scripts]
+run = [
+  "black --check .",
+  "isort --check . --profile black",
+  "pytest --cov-config=pyproject.toml --cov --cov-report html"
+  ]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests"
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src/smsfusion"]
+
+[tool.coverage.report]
+ignore_errors = false
+show_missing = true
+omit = ["src/smsfusion/__about__.py"]
+exclude_lines = [
+  # Have to re-enable the standard pragma
+  "pragma: no cover",
+  # Don't complain if tests don't hit defensive assertion code:
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "AbstractMethodError",
+  # Don't complain if non-runnable code isn't run:
+  "if 0:",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
+
+[tool.coverage.html]
+directory = "coverage_html_report"
