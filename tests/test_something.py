@@ -1,2 +1,6 @@
+import smsfusion
+
+
 def test_something():
-    assert 1 == 1
+    out = smsfusion.something(1)
+    assert out == 3
