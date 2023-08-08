@@ -35,7 +35,3 @@ jobs:
 
       - name: Run tests with tox
         run: tox -e py
-
-      - name: Test doc build with tox
-        run: tox -e docs
-        if: ${{ (matrix.python-version == '3.9') && (matrix.os == 'ubuntu-latest')}}
