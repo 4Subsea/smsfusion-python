@@ -18,6 +18,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dynamic = ["version"]
+dependencies = [
+  "numpy",
+]
+
 
 [project.urls]
 "Homepage" = "https://github.com/4Subsea/smsfusion-python"
