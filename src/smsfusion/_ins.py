@@ -1,9 +1,6 @@
 import numpy as np
 
-from ._transforms import (
-    _angular_matrix_from_euler,
-    _rot_matrix_from_euler,
-)
+from ._transforms import _angular_matrix_from_euler, _rot_matrix_from_euler
 
 
 def gravity(lat=None, degrees=True):

@@ -2,10 +2,7 @@ import numpy as np
 import pytest
 
 from smsfusion._ins import StrapdownINS, gravity
-from smsfusion._transforms import (
-    _angular_matrix_from_euler,
-    _rot_matrix_from_euler,
-)
+from smsfusion._transforms import _angular_matrix_from_euler, _rot_matrix_from_euler
 
 
 @pytest.mark.parametrize(
@@ -101,9 +98,9 @@ class Test_StrapdownINS:
         x1_out = ins.x
 
         x0_expect = np.zeros((9, 1))
-        x1_expect = np.array([0.005, 0.01, 0.015, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]).reshape(
-            -1, 1
-        )
+        x1_expect = np.array(
+            [0.005, 0.01, 0.015, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+        ).reshape(-1, 1)
 
         np.testing.assert_array_almost_equal(x0_out, x0_expect)
         np.testing.assert_array_almost_equal(x1_out, x1_expect)
@@ -161,7 +158,9 @@ class Test_StrapdownINS:
         T0_expect = np.eye(3)
         a0_expect = R0_expect @ f_imu + g
         x1_expect = np.zeros((9, 1))
-        x1_expect[0:3] = x0_expect[0:3] + dt * x0_expect[3:6] + 0.5 * dt ** 2 * a0_expect
+        x1_expect[0:3] = (
+            x0_expect[0:3] + dt * x0_expect[3:6] + 0.5 * dt**2 * a0_expect
+        )
         x1_expect[3:6] = x0_expect[3:6] + dt * a0_expect
         x1_expect[6:9] = x0_expect[6:9] + dt * T0_expect @ w_imu
 
@@ -170,7 +169,9 @@ class Test_StrapdownINS:
         T1_expect = _angular_matrix_from_euler(x1_expect[6:9].flatten())
         a1_expect = R1_expect @ f_imu + g
         x2_expect = np.zeros((9, 1))
-        x2_expect[0:3] = x1_expect[0:3] + dt * x1_expect[3:6] + 0.5 * dt ** 2 * a1_expect
+        x2_expect[0:3] = (
+            x1_expect[0:3] + dt * x1_expect[3:6] + 0.5 * dt**2 * a1_expect
+        )
         x2_expect[3:6] = x1_expect[3:6] + dt * a1_expect
         x2_expect[6:9] = x1_expect[6:9] + dt * T1_expect @ w_imu
 
@@ -185,7 +186,7 @@ class Test_StrapdownINS:
         g = ins._g
         f_imu = np.array([1.0, 2.0, 3.0]).reshape(-1, 1) - g
         w_imu = np.array([4.0, 5.0, 6.0])
-        ins.update(h, f_imu, w_imu, theta_ext=(0., 0., 0.))
+        ins.update(h, f_imu, w_imu, theta_ext=(0.0, 0.0, 0.0))
 
         x_out = ins.x
         x_expect = np.array([0.005, 0.01, 0.015, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]).reshape(
@@ -193,7 +194,7 @@ class Test_StrapdownINS:
         )
         np.testing.assert_array_almost_equal(x_out, x_expect)
 
-        ins.update(h, f_imu, w_imu, theta_ext=(0., 0., 0.))
+        ins.update(h, f_imu, w_imu, theta_ext=(0.0, 0.0, 0.0))
 
         x_out = ins.x
         x_expect = np.array([0.02, 0.04, 0.06, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]).reshape(

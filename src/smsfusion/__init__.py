@@ -1,7 +1,3 @@
-from ._ins import gravity, StrapdownINS
+from ._ins import StrapdownINS, gravity
 
-
-__all__ = [
-    "gravity",
-    "StrapdownINS"
-]
+__all__ = ["gravity", "StrapdownINS"]
