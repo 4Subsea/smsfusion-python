@@ -28,5 +28,5 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install black isort pytest hatch
 
-      - name: Run style checks and tests
+      - name: Run style checks (black + isort) and tests
         run: hatch run test:run
