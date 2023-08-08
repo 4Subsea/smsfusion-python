@@ -82,7 +82,7 @@ class StrapdownINS:
     def __init__(self, x0, lat=None):
         self._x0 = np.asarray_chkfinite(x0).reshape(9, 1).copy()
         self._x = self._x0.copy()
-        self._g = np.array([0, 0, gravity(lat)]).reshape(3, 1)  # gravity vector
+        self._g = np.array([0, 0, gravity(lat)]).reshape(3, 1)  # gravity vector in NED
 
     @property
     def _p(self):
