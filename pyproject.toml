@@ -31,7 +31,6 @@ dependencies = [
 path = "src/smsfusion/__about__.py"
 
 [tool.hatch.envs.test]
-python = "3.10"
 dependencies = [
   "black",
   "coverage[toml]",
