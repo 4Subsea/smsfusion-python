@@ -85,3 +85,7 @@ exclude_lines = [
 
 [tool.coverage.html]
 directory = "coverage_html_report"
+
+[tool.mypy]
+files = ["src/smsfusion"]
+strict = true
