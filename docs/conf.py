@@ -6,7 +6,6 @@
 from datetime import date
 from importlib import metadata
 
-
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -37,7 +36,7 @@ intersphinx_mapping = {
 }
 
 templates_path = ["_templates", "_templates/autosummary"]
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 
 # -- Options for HTML output -------------------------------------------------
