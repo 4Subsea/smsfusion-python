@@ -1,9 +1,12 @@
 from warnings import warn
 
 import numpy as np
+from numpy.typing import NDArray
 
 
-def _angular_matrix_from_euler(alpha_beta_gamma):
+def _angular_matrix_from_euler(
+    alpha_beta_gamma: NDArray[np.float_],
+) -> NDArray[np.float_]:
     """
     Estimate angular velocity transformation matrix from Euler angles.
 
@@ -52,7 +55,7 @@ def _angular_matrix_from_euler(alpha_beta_gamma):
     return t.reshape(-1, 3, 3)
 
 
-def _rot_matrix_from_euler(alpha_beta_gamma):
+def _rot_matrix_from_euler(alpha_beta_gamma: NDArray[np.float_]) -> NDArray[np.float_]:
     """
     Rotation matrix defined from Euler angles. The rotation matrix describes
     rigid body rotation from-body-to-origin, according to xyz convention. That
