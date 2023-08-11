@@ -88,6 +88,10 @@ jobs:
     needs: build
     env:
       VERSION_NUMBER: ${{ needs.build.outputs.version_number }}
+      name: pypi
+      url: https://pypi.org/p/<your-pypi-project-name>
+    permissions:
+      id-token: write
 
     steps:
       - name: Clean up artifacts directory
@@ -102,9 +106,7 @@ jobs:
       - name: Publish package to TestPyPi
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          user: __token__
-          password: ${{ secrets.PYPI_TEST_API_KEY }}
-          repository_url: https://test.pypi.org/legacy/
+          repository-url: https://test.pypi.org/legacy/
         
       - name: Upload documentation to TEST blob storage
         uses: azure/CLI@v1
@@ -130,6 +132,10 @@ jobs:
     needs: build
     env:
       VERSION_NUMBER: ${{ needs.build.outputs.version_number }}
+      name: pypi
+      url: https://pypi.org/p/<your-pypi-project-name>
+    permissions:
+      id-token: write
 
     steps:
       - name: Clean up artifacts directory
@@ -143,9 +149,6 @@ jobs:
 
       - name: Publish package to PyPi
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_PROD_API_KEY }}
 
       - name: Upload documentation to PROD blob storage
         uses: azure/CLI@v1
