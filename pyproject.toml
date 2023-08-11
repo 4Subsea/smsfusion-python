@@ -40,11 +40,15 @@ dependencies = [
 ]
 
 [tool.hatch.envs.test.scripts]
-run = [
+style = [
   "black --check .",
-  "isort --check . --profile black",
-  "pytest --cov-config=pyproject.toml --cov --cov-report html"
-  ]
+  "isort --check . --profile black"
+]
+unit = "pytest --cov-config=pyproject.toml --cov --cov-report html"
+complete = [
+  "style",
+  "unit"
+]
 
 [tool.hatch.envs.docs]
 dependencies = [
