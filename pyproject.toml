@@ -35,6 +35,7 @@ dependencies = [
   "black",
   "coverage[toml]",
   "isort",
+  "mypy",
   "pytest",
   "pytest-cov"
 ]
@@ -45,9 +46,11 @@ style = [
   "isort --check . --profile black"
 ]
 unit = "pytest --cov-config=pyproject.toml --cov --cov-report html"
+type = "mypy"
 complete = [
   "style",
-  "unit"
+  "type",
+  "unit",
 ]
 
 [tool.hatch.envs.docs]
