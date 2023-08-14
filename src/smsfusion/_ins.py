@@ -6,11 +6,6 @@ from numpy.typing import ArrayLike, NDArray
 from ._transforms import _angular_matrix_from_euler, _rot_matrix_from_euler
 
 
-def sine_values(data: ArrayLike) -> float:
-    """Apply the sine function to data"""
-    return np.sin(1.0)  # type: ignore
-
-
 def gravity(lat: float | None = None, degrees: bool = True) -> float:
     """
     Calculates the gravitational acceleration based on the World Geodetic System
