@@ -1,9 +1,10 @@
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 
 from ._transforms import _angular_matrix_from_euler, _rot_matrix_from_euler
 
 
-def gravity(lat=None, degrees=True):
+def gravity(lat: float | None = None, degrees: bool = True) -> float:
     """
     Calculates the gravitational acceleration based on the World Geodetic System
     (1984) Ellipsoidal Gravity Formula (WGS-84).
@@ -46,8 +47,7 @@ def gravity(lat=None, degrees=True):
         lat = (np.pi / 180.0) * lat
 
     g = g_e * (1.0 + k * np.sin(lat) ** 2.0) / np.sqrt(1.0 - e_2 * np.sin(lat) ** 2.0)
-
-    return g
+    return g  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
 
 
 class StrapdownINS:
@@ -76,37 +76,37 @@ class StrapdownINS:
     and ``alpha``, ``beta`` and ``gamma`` are Euler angles (given in radians).
     """
 
-    def __init__(self, x0, lat=None):
+    def __init__(self, x0: ArrayLike, lat: float | None = None) -> None:
         self._x0 = np.asarray_chkfinite(x0).reshape(9, 1).copy()
         self._x = self._x0.copy()
         self._g = np.array([0, 0, gravity(lat)]).reshape(3, 1)  # gravity vector in NED
 
     @property
-    def _p(self):
+    def _p(self) -> NDArray[np.float64]:
         return self._x[0:3]
 
     @_p.setter
-    def _p(self, p):
+    def _p(self, p: ArrayLike) -> None:
         self._x[0:3] = p
 
     @property
-    def _v(self):
+    def _v(self) -> NDArray[np.float64]:
         return self._x[3:6]
 
     @_v.setter
-    def _v(self, v):
+    def _v(self, v: ArrayLike) -> None:
         self._x[3:6] = v
 
     @property
-    def _theta(self):
+    def _theta(self) -> NDArray[np.float64]:
         return self._x[6:9]
 
     @_theta.setter
-    def _theta(self, theta):
+    def _theta(self, theta: ArrayLike) -> None:
         self._x[6:9] = theta
 
     @property
-    def x(self):
+    def x(self) -> NDArray[np.float64]:
         """
         Current state vector estimate.
 
@@ -126,7 +126,7 @@ class StrapdownINS:
         """
         return self._x.copy()
 
-    def position(self):
+    def position(self) -> NDArray[np.float64]:
         """
         Current position vector estimate.
 
@@ -144,7 +144,7 @@ class StrapdownINS:
         """
         return self._p.copy()
 
-    def velocity(self):
+    def velocity(self) -> NDArray[np.float64]:
         """
         Current velocity vector estimate.
 
@@ -162,7 +162,7 @@ class StrapdownINS:
         """
         return self._v.copy()
 
-    def attitude(self, degrees=False):
+    def attitude(self, degrees: bool = False) -> NDArray[np.float64]:
         """
         Current attitude estimate as vector of Euler angles (i.e., roll, pitch and yaw).
 
@@ -184,7 +184,7 @@ class StrapdownINS:
 
         return theta
 
-    def reset(self, x_new):
+    def reset(self, x_new: ArrayLike) -> None:
         """
         Reset state.
 
@@ -206,7 +206,14 @@ class StrapdownINS:
         """
         self._x = np.asarray_chkfinite(x_new).reshape(9, 1).copy()
 
-    def update(self, dt, f_imu, w_imu, degrees=False, theta_ext=None):
+    def update(
+        self,
+        dt: float,
+        f_imu: ArrayLike,
+        w_imu: ArrayLike,
+        degrees: bool = False,
+        theta_ext: ArrayLike | None = None,
+    ) -> None:
         """
         Update the INS states by integrating the 'strapdown navigation equations'.
 
