@@ -18,9 +18,9 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
-  "numpy",
+  "numba",
+  "numpy"
 ]
-
 
 [project.urls]
 "Homepage" = "https://github.com/4Subsea/smsfusion-python"
