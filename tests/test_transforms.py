@@ -221,12 +221,15 @@ def test__euler_from_quaternion(angle, axis, euler):
     np.testing.assert_array_almost_equal(alpha_beta_gamma, euler, decimal=16)
 
 
-@pytest.mark.parametrize("euler", [
-    np.array([10., 0.0, 0.0]),  # pure roll
-    np.array([0.0, 10.0, 0.0]),  # pure pitch
-    np.array([0.0, 0.0, 10.0]),  # pure yaw
-    np.array([10.0, -10.0, 10.0]),  # mixed
-])
+@pytest.mark.parametrize(
+    "euler",
+    [
+        np.array([10.0, 0.0, 0.0]),  # pure roll
+        np.array([0.0, 10.0, 0.0]),  # pure pitch
+        np.array([0.0, 0.0, 10.0]),  # pure yaw
+        np.array([10.0, -10.0, 10.0]),  # mixed
+    ],
+)
 def test__rot_matrix_from_euler(euler):
     """
     The Numba optimized implementaiton uses from-origin-to-body (zyx) convention,

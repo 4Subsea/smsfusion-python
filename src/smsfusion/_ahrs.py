@@ -3,7 +3,13 @@ from warnings import warn
 import numpy as np
 from numba import njit
 
-from . import numba_optimized as nob
+from smsfusion._transforms import (
+    _angular_matrix_from_quaternion,
+    _euler_from_quaternion,
+    _gamma_from_quaternion,
+    _rot_matrix_from_quaternion,
+)
+from smsfusion._vectorops import _cross, _normalize
 
 
 class AHRS:
@@ -96,8 +102,8 @@ class AHRS:
 
         omega = omega - bias + Kp * omega_corr
 
-        q = q + (nob._angular_matrix_from_quaternion(q) @ omega) * dt
-        q = nob._normalize(q)
+        q = q + (_angular_matrix_from_quaternion(q) @ omega) * dt
+        q = _normalize(q)
         return q, bias, omega_corr
 
     def update(self, meas, degrees=True):
@@ -148,19 +154,17 @@ class AHRS:
         bias_update = np.zeros((n, 3))
         error_update = np.zeros((n, 3))
         for i in range(n):
-            delta_i = head[i] - nob._gamma_from_quaternion(q_prev)
+            delta_i = head[i] - _gamma_from_quaternion(q_prev)
 
-            v1_meas_i = nob._normalize(acc[i])
-            v1_est_i = nob._rot_matrix_from_quaternion(q_prev) @ v01
+            v1_meas_i = _normalize(acc[i])
+            v1_est_i = _rot_matrix_from_quaternion(q_prev) @ v01
 
             # postpone rotation to after cross product
             v2_meas_o_i = np.array([np.cos(delta_i), -np.sin(delta_i), 0.0])
 
-            omega_meas_i = nob._cross(
-                v1_meas_i, v1_est_i
-            ) + nob._rot_matrix_from_quaternion(q_prev) @ nob._cross(
-                v2_meas_o_i, v2_est_o
-            )
+            omega_meas_i = _cross(v1_meas_i, v1_est_i) + _rot_matrix_from_quaternion(
+                q_prev
+            ) @ _cross(v2_meas_o_i, v2_est_o)
 
             q_update[i], bias_update[i], error_update[i] = self._update(
                 self._dt, q_prev, bias_prev, omega[i], omega_meas_i, self._Kp, self._Ki
@@ -193,7 +197,7 @@ class AHRS:
         """
         attitude = np.zeros((len(self._q), 3))
         for i, q_i in enumerate(self._q):
-            attitude[i] = nob._euler_from_quaternion(q_i)
+            attitude[i] = _euler_from_quaternion(q_i)
         return attitude
 
     @property
