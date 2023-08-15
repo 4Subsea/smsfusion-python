@@ -91,3 +91,4 @@ directory = "coverage_html_report"
 [tool.mypy]
 files = ["src/smsfusion"]
 strict = true
+ignore_missing_imports = true

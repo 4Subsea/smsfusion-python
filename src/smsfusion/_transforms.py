@@ -56,8 +56,8 @@ def _angular_matrix_from_euler(
     return t.reshape(-1, 3, 3)
 
 
-@njit
-def _rot_matrix_from_quaternion(q):
+@njit  # type: ignore[misc]
+def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Convert quaternion to rotation matrix.
     """
@@ -99,8 +99,8 @@ def _rot_matrix_from_quaternion(q):
     return rot
 
 
-@njit
-def _euler_from_quaternion(q):
+@njit  # type: ignore[misc]
+def _euler_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Convert quaternion to Euler angles (ZYX convention).
     """
@@ -135,8 +135,8 @@ def _euler_from_quaternion(q):
     return np.array([alpha, beta, gamma])
 
 
-@njit
-def _gamma_from_quaternion(q):
+@njit  # type: ignore[misc]
+def _gamma_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Get yaw from quaternion (ZYX convention).
     """
@@ -154,11 +154,11 @@ def _gamma_from_quaternion(q):
     rot_01 = _2q1q2 + _2q0q3
 
     yaw = np.arctan2(rot_01, rot_00)
-    return yaw
+    return yaw  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
 
 
-@njit
-def _angular_matrix_from_quaternion(q):
+@njit  # type: ignore[misc]
+def _angular_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Angular transformation matrix, such that dq/dt = T(q) * omega.
     """
@@ -172,8 +172,8 @@ def _angular_matrix_from_quaternion(q):
     )
 
 
-@njit
-def _rot_matrix_from_euler(euler):
+@njit  # type: ignore[misc]
+def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Rotation matrix defined from Euler angles (ZYX convention). Note that the rotation
     matrix describes the rigid body rotation from-origin-to-body, according to ZYX convention.
