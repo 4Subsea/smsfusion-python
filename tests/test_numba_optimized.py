@@ -1,15 +1,22 @@
+"""
+IMPORTANT
+---------
+
+SciPy Rotation implementation is used as reference in tests. However, SciPy
+operates with active rotations, whereas passive rotations are considered here. Keep in
+mind that passive rotations is simply the inverse active rotations and vice versa.
+"""
+
 import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
-from smsfusion import _transforms as transform
 from smsfusion.numba_optimized import (
     _angular_matrix_from_quaternion,
     _cross,
     _euler_from_quaternion,
     _gamma_from_quaternion,
     _normalize,
-#     _quaternion_from_rot_matrix,
     _rot_matrix_from_euler,
     _rot_matrix_from_quaternion,
 )
@@ -37,173 +44,103 @@ def test__cross():
     np.testing.assert_array_equal(out, expected)
 
 
-@pytest.mark.parametrize("q", [
-    np.array([0.96591925, -0.25882081, 0.0, 0.0], dtype=float),  # about x-axis
-    np.array([0.96591925, 0.0, -0.25882081, 0.0], dtype=float),  # about y-axis
-    np.array([0.96591925, 0.0, 0.0, -0.25882081], dtype=float),  # about z-axis
-    ]
-    )
+@pytest.mark.parametrize(
+    "q",
+    [
+        np.array([0.96591925, -0.25882081, 0.0, 0.0], dtype=float),  # about x-axis
+        np.array([0.96591925, 0.0, -0.25882081, 0.0], dtype=float),  # about y-axis
+        np.array([0.96591925, 0.0, 0.0, -0.25882081], dtype=float),  # about z-axis
+    ],
+)
 def test_rot_matrix_from_quaternion(q):
     rot_matrix = _rot_matrix_from_quaternion(q)
     rot_matrix_expect = Rotation.from_quat(q[[1, 2, 3, 0]]).inv().as_matrix()
     np.testing.assert_array_almost_equal(rot_matrix, rot_matrix_expect, decimal=3)
 
 
-def test__gamma_from_quaternion():
-    q = np.array([0.96591925, 0.0, 0.0, -0.25882081], dtype=float)
+@pytest.mark.parametrize(
+    "q",
+    [
+        np.array([0.96591925, 0.0, 0.0, -0.25882081], dtype=float),  # pure about z-axis
+        np.array([0.93511153, 0.0, 0.25056579, -0.25056579], dtype=float),  # mixed
+    ],
+)
+def test__gamma_from_quaternion(q):
     gamma = _gamma_from_quaternion(q)
-    gamma_expect = -np.radians(30.0)
+    gamma_expect = Rotation.from_quat(q[[1, 2, 3, 0]]).as_euler("ZYX", degrees=False)[0]
     np.testing.assert_almost_equal(gamma, gamma_expect, decimal=3)
 
 
 def test__angular_matrix_from_quaternion():
-    q = np.array([1.0, 2.0, 3.0, 4.0]) / np.sqrt(30)
+    q = np.array([1.0, 2.0, 3.0, 4.0]) / np.sqrt(30.0)
 
-    T_expect = np.array(
-        [[-1.0, -1.5, -2.0], [0.5, -2.0, 1.5], [2.0, 0.5, -1.0], [-1.5, 1.0, 0.5]]
-    ) / np.sqrt(30)
+    T_expect = (
+        np.array(
+            [
+                [-q[1], -q[2], -q[3]],
+                [q[0], -q[3], q[2]],
+                [q[3], q[0], -q[1]],
+                [-q[2], q[1], q[0]],
+            ]
+        )
+        / 2.0
+    )
 
     T = _angular_matrix_from_quaternion(q)
 
     np.testing.assert_almost_equal(T, T_expect)
 
 
+@pytest.mark.parametrize(
+    "angle, axis, euler",
+    [
+        (
+            np.radians(10.0),
+            np.array([0.0, 0.0, 1.0]),
+            np.array([0.0, 0.0, np.radians(10.0)]),
+        ),  # pure yaw
+        (
+            np.radians(10.0),
+            np.array([0.0, 1.0, 0.0]),
+            np.array([0.0, np.radians(10.0), 0.0]),
+        ),  # pure pitch
+        (
+            np.radians(10.0),
+            np.array([1.0, 0.0, 0.0]),
+            np.array([np.radians(10.0), 0.0, 0.0]),
+        ),  # pure roll
+        (
+            np.radians(10.0),
+            np.array([1.0 / np.sqrt(3.0), 1.0 / np.sqrt(3.0), 1.0 / np.sqrt(3.0)]),
+            np.array([0.1059987325729154, 0.0953360919950474, 0.1059987325729154]),
+        ),  # mixed
+    ],
+)
+def test__euler_from_quaternion(angle, axis, euler):
+    q = np.array(
+        [
+            np.cos(angle / 2),
+            np.sin(angle / 2) * axis[0],
+            np.sin(angle / 2) * axis[1],
+            np.sin(angle / 2) * axis[2],
+        ]
+    )
 
-class Test__euler_from_quaternion:
-    def test_pure_yaw(self):
-        angle = np.radians(10.0)
-        axis = np.array([0.0, 0.0, 1.0])
-
-        q = np.array(
-            [
-                np.cos(angle / 2),
-                np.sin(angle / 2) * axis[0],
-                np.sin(angle / 2) * axis[1],
-                np.sin(angle / 2) * axis[2],
-            ]
-        )
-
-        alpha, beta, gamma = _euler_from_quaternion(q)
-        assert alpha == 0.0
-        assert beta == 0.0
-        np.testing.assert_array_almost_equal(gamma, angle, decimal=16)
-
-    def test_pure_pitch(self):
-        angle = np.radians(10.0)
-        axis = np.array([0.0, 1.0, 0.0])
-
-        q = np.array(
-            [
-                np.cos(angle / 2),
-                np.sin(angle / 2) * axis[0],
-                np.sin(angle / 2) * axis[1],
-                np.sin(angle / 2) * axis[2],
-            ]
-        )
-
-        alpha, beta, gamma = _euler_from_quaternion(q)
-        assert alpha == 0.0
-        np.testing.assert_array_almost_equal(beta, angle, decimal=16)
-        assert gamma == 0.0
-
-    def test_pure_roll(self):
-        angle = np.radians(10.0)
-        axis = np.array([1.0, 0.0, 0.0])
-
-        q = np.array(
-            [
-                np.cos(angle / 2),
-                np.sin(angle / 2) * axis[0],
-                np.sin(angle / 2) * axis[1],
-                np.sin(angle / 2) * axis[2],
-            ]
-        )
-
-        alpha, beta, gamma = _euler_from_quaternion(q)
-        np.testing.assert_array_almost_equal(alpha, angle, decimal=16)
-        assert beta == 0.0
-        assert gamma == 0.0
+    alpha_beta_gamma = _euler_from_quaternion(q)
+    np.testing.assert_array_almost_equal(alpha_beta_gamma, euler, decimal=16)
 
 
-class Test__rotation_matrix_from_euler:
+@pytest.mark.parametrize("euler", [
+    np.array([10., 0.0, 0.0]),  # pure roll
+    np.array([0.0, 10.0, 0.0]),  # pure pitch
+    np.array([0.0, 0.0, 10.0]),  # pure yaw
+    np.array([10.0, -10.0, 10.0]),  # mixed
+])
+def test__rot_matrix_from_euler(euler):
     """
-    The tests compare to sensor_4s.fusion.transform._rot_matrix_from_euler. However,
-    the Numba optimized implementaiton uses from-origin-to-body (zyx) convention.
+    The Numba optimized implementaiton uses from-origin-to-body (zyx) convention,
+    where also the resulting rotation matrix is from-origin-to-body.
     """
-
-    def test_pure_alpha(self):
-        out = _rot_matrix_from_euler(10.0, 0.0, 0.0)
-        expected = transform._rot_matrix_from_euler(np.array([10.0, 0.0, 0.0]))[0].T
-        np.testing.assert_array_equal(out, expected)
-
-    def test_pure_beta(self):
-        out = _rot_matrix_from_euler(0.0, 10.0, 0.0)
-        expected = transform._rot_matrix_from_euler(np.array([0.0, 10.0, 0.0]))[0].T
-        np.testing.assert_array_equal(out, expected)
-
-    def test_pure_gamma(self):
-        out = _rot_matrix_from_euler(0.0, 0.0, 10.0)
-        expected = transform._rot_matrix_from_euler(np.array([0.0, 0.0, 10.0]))[0].T
-        np.testing.assert_array_equal(out, expected)
-
-    def test_all(self):
-        out = _rot_matrix_from_euler(10.0, -10.0, 10.0)
-        expected = transform._rot_matrix_from_euler(np.array([10.0, -10.0, 10.0]))[0].T
-        np.testing.assert_array_equal(out, expected)
-
-
-# class Test__quaternion_from_rot_matrix:
-#     def test_pure_yaw(self):
-#         angle = np.radians(10.0)
-#         axis = np.array([0.0, 0.0, 1.0])
-
-#         q_expected = np.array(
-#             [
-#                 np.cos(angle / 2),
-#                 np.sin(angle / 2) * axis[0],
-#                 np.sin(angle / 2) * axis[1],
-#                 np.sin(angle / 2) * axis[2],
-#             ]
-#         )
-
-#         rot_matrix = Rotation.from_euler("ZYX", [10., 0., 0.], degrees=True).inv().as_matrix()
-#         q = _quaternion_from_rot_matrix(rot_matrix)
-
-#         np.testing.assert_array_almost_equal(q, q_expected, decimal=12)
-
-#     def test_pure_pitch(self):
-#         angle = np.radians(10.0)
-#         axis = np.array([0.0, 1.0, 0.0])
-
-#         q_expected = np.array(
-#             [
-#                 np.cos(angle / 2),
-#                 np.sin(angle / 2) * axis[0],
-#                 np.sin(angle / 2) * axis[1],
-#                 np.sin(angle / 2) * axis[2],
-#             ]
-#         )
-
-#         rot_matrix = Rotation.from_euler("ZYX", [0., 10., 0.], degrees=True).inv().as_matrix()
-#         q = _quaternion_from_rot_matrix(rot_matrix)
-
-#         np.testing.assert_array_almost_equal(q, q_expected, decimal=16)
-
-#     def test_pure_roll(self):
-#         angle = np.radians(10.0)
-#         axis = np.array([1.0, 0.0, 0.0])
-
-#         q_expected = np.array(
-#             [
-#                 np.cos(angle / 2),
-#                 np.sin(angle / 2) * axis[0],
-#                 np.sin(angle / 2) * axis[1],
-#                 np.sin(angle / 2) * axis[2],
-#             ]
-#         )
-
-#         rot_matrix = Rotation.from_euler("ZYX", [0., 0., 10.], degrees=True).inv().as_matrix()
-#         q = _quaternion_from_rot_matrix(rot_matrix)
-
-#         np.testing.assert_array_almost_equal(q, q_expected, decimal=16)
-
+    out = _rot_matrix_from_euler(*euler)
+    expected = Rotation.from_euler("ZYX", euler[::-1]).inv().as_matrix()
+    np.testing.assert_array_almost_equal(out, expected)
