@@ -141,6 +141,6 @@ def test__rot_matrix_from_euler(euler):
     The Numba optimized implementaiton uses from-origin-to-body (zyx) convention,
     where also the resulting rotation matrix is from-origin-to-body.
     """
-    out = _rot_matrix_from_euler(*euler)
+    out = _rot_matrix_from_euler(euler)
     expected = Rotation.from_euler("ZYX", euler[::-1]).inv().as_matrix()
     np.testing.assert_array_almost_equal(out, expected)

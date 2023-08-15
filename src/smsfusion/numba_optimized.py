@@ -7,11 +7,11 @@ and inteded to be used where NumPy vectorization is not possible.
 """
 
 import numpy as np
-from numba import jit
+from numba import njit
 from numpy.typing import NDArray
 
 
-@jit(nopython=True)
+@njit
 def _normalize(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     L2 normalization of a vector.
@@ -19,7 +19,7 @@ def _normalize(q: NDArray[np.float64]) -> NDArray[np.float64]:
     return q / np.sqrt((q * q).sum())
 
 
-@jit(nopython=True)
+@njit
 def _cross(a, b):
     """
     Cross product of two vectors.
@@ -33,10 +33,10 @@ def _cross(a, b):
     )
 
 
-@jit(nopython=True)
+@njit
 def _rot_matrix_from_quaternion(q):
     """
-    Convert quaternion to rotation matrix. From origin-to-body (ZYX convention).
+    Convert quaternion to rotation matrix.
     """
     q0, q1, q2, q3 = q
 
@@ -76,10 +76,10 @@ def _rot_matrix_from_quaternion(q):
     return rot
 
 
-@jit(nopython=True)
+@njit
 def _euler_from_quaternion(q):
     """
-    Convert quaternion to rotation matrix. From origin-to-body (ZYX convention).
+    Convert quaternion to Euler angles (ZYX convention).
     """
     q0, q1, q2, q3 = q
 
@@ -109,13 +109,13 @@ def _euler_from_quaternion(q):
     beta = -np.arcsin(rot_02)
     alpha = np.arctan2(rot_12, rot_22)
 
-    return alpha, beta, gamma
+    return np.array([alpha, beta, gamma])
 
 
-@jit(nopython=False)
+@njit
 def _gamma_from_quaternion(q):
     """
-    Calculate yaw from quaternion. From origin-to-body (ZYX convention).
+    Get yaw from quaternion (ZYX convention).
     """
     q0, q1, q2, q3 = q
 
@@ -134,7 +134,7 @@ def _gamma_from_quaternion(q):
     return yaw
 
 
-@jit(nopython=True)
+@njit
 def _angular_matrix_from_quaternion(q):
     """
     Angular transformation matrix, such that dq/dt = T(q) * omega.
@@ -149,28 +149,26 @@ def _angular_matrix_from_quaternion(q):
     )
 
 
-def _rot_matrix_from_euler(alpha, beta, gamma):
+@njit
+def _rot_matrix_from_euler(euler):
     """
-    Rotation matrix defined from Euler angles. The rotation matrix describes
-    rigid body rotation from-origin-to-body, according to ZYX convention. That
-    is, first rotate about the z-axis (gamma - yaw), then about the y-axis
-    (beta - pitch), and lastly about the x-axis (alpha - roll).
+    Rotation matrix defined from Euler angles (ZYX convention). Note that the rotation
+    matrix describes the rigid body rotation from-origin-to-body, according to ZYX convention.
+
 
     Parameters
     ----------
-    alpha : float
-        Euler angle about x-axis (alpha-roll) in radians.
-    beta : float
-        Euler angle about y-axis (beta-pitch) in radians.
-    gamma : float
-        Euler angle about z-axis (gamma-yaw) in radians.
+    euler : 1D array (3,)
+        Euler angle in radians given as (roll, pitch, yaw) but rotaions are applied
+        according to the ZYX convention. That is, **yaw -> pitch -> roll**.
 
     Return
     ------
-    rot : array (3x3)
-        3D rotation matrix.
+    rot : ndarray (3, 3)
+        Rotation matrix.
 
     """
+    alpha, beta, gamma = euler
     cos_gamma = np.cos(gamma)
     sin_gamma = np.sin(gamma)
     cos_beta = np.cos(beta)
