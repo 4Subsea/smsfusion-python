@@ -1,11 +1,3 @@
-"""
-Collection of elemantary functions that are Numba compiled for performance.
-
-General rule of thumb, it that every function in this module should have a public
-counterpart in ``sensor_4s``. These functions are private performance optimized
-and inteded to be used where NumPy vectorization is not possible.
-"""
-
 import numpy as np
 from numba import njit
 from numpy.typing import NDArray
