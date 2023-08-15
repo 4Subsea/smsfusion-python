@@ -48,7 +48,7 @@ class AHRS:
 
         self._q = self._q_init(q_init)
         self._bias = self._bias_init(bias_init)
-        self._error = np.array([0.0, 0.0, 0.0], dtype=float).reshape(1, 3)
+        self._error = np.array([0.0, 0.0, 0.0], dtype=float)
 
     @staticmethod
     def _q_init(q_init: ArrayLike | None) -> NDArray[np.float64]:
@@ -60,7 +60,7 @@ class AHRS:
             q_init /= q_abs
         else:
             q_init = np.array([1.0, 0.0, 0.0, 0.0], dtype=float)
-        return q_init.reshape(1, 4)
+        return q_init
 
     @staticmethod
     def _bias_init(bias_init: ArrayLike | None) -> NDArray[np.float64]:
@@ -68,7 +68,7 @@ class AHRS:
             bias_init = np.asarray_chkfinite(bias_init, dtype=float)
         else:
             bias_init = np.array([0.0, 0.0, 0.0], dtype=float)
-        return bias_init.reshape(1, 3)
+        return bias_init
 
     @staticmethod
     @njit  # type: ignore[misc]
@@ -152,11 +152,10 @@ class AHRS:
               z-axis.
 
         """
-        meas = np.asarray_chkfinite(meas, dtype=float).copy().reshape(-1, 7)
-        acc = meas[:, 0:3]
-        omega = meas[:, 3:6]
-        head = meas[:, 6]
-        n = meas.shape[0]
+        meas = np.asarray_chkfinite(meas, dtype=float)
+        acc = meas[0:3]
+        omega = meas[3:6]
+        head = meas[6]
 
         v01 = np.array([0.0, 0.0, 1.0], dtype=float)  # inertial direction of gravity
         v2_est_o = np.array([1.0, 0.0, 0.0], dtype=float)
@@ -165,58 +164,22 @@ class AHRS:
             omega = np.radians(omega)
             head = np.radians(head)
 
-        q_prev = self._q[-1]
-        bias_prev = self._bias[-1]
+        delta = head - _gamma_from_quaternion(self._q)
 
-        q_update = np.zeros((n, 4))
-        bias_update = np.zeros((n, 3))
-        error_update = np.zeros((n, 3))
-        for i in range(n):
-            delta_i = head[i] - _gamma_from_quaternion(q_prev)
+        v1_meas_i = _normalize(acc)
+        v1_est_i = _rot_matrix_from_quaternion(self._q) @ v01
 
-            v1_meas_i = _normalize(acc[i])
-            v1_est_i = _rot_matrix_from_quaternion(q_prev) @ v01
+        # postpone rotation to after cross product
+        v2_meas_o_i = np.array([np.cos(delta), -np.sin(delta), 0.0])
 
-            # postpone rotation to after cross product
-            v2_meas_o_i = np.array([np.cos(delta_i), -np.sin(delta_i), 0.0])
+        omega_meas_i = _cross(v1_meas_i, v1_est_i) + _rot_matrix_from_quaternion(
+            self._q
+        ) @ _cross(v2_meas_o_i, v2_est_o)
 
-            omega_meas_i = _cross(v1_meas_i, v1_est_i) + _rot_matrix_from_quaternion(
-                q_prev
-            ) @ _cross(v2_meas_o_i, v2_est_o)
-
-            q_update[i], bias_update[i], error_update[i] = self._update(
-                self._dt, q_prev, bias_prev, omega[i], omega_meas_i, self._Kp, self._Ki
-            )
-
-            q_prev = q_update[i]
-            bias_prev = bias_update[i]
-
-        self._q = q_update
-        self._bias = bias_update
-        self._error = error_update
-
+        self._q, self._bias, self._error = self._update(
+            self._dt, self._q, self._bias, omega, omega_meas_i, self._Kp, self._Ki
+        )
         return
-
-    def _attitude_rad(self) -> NDArray[np.float64]:
-        """
-        Get current attitude (Euler angles) estimate.
-
-        Parameters
-        ----------
-        degrees : bool
-            If True (default), the angles are in degrees. Otherwise in radians.
-
-        Return
-        ------
-        alpha_beta_gamma : ndarray
-            Euler angle about x-axis (alpha-roll), y-axis (beta-pitch), and z-axis
-            (gamma-yaw).
-
-        """
-        attitude = np.zeros((len(self._q), 3))
-        for i, q_i in enumerate(self._q):
-            attitude[i] = _euler_from_quaternion(q_i)
-        return attitude
 
     def attitude(self, degrees=True):
         """
@@ -235,10 +198,7 @@ class AHRS:
             and yaw Euler angles (in that order).
 
         """
-        attitude = np.zeros((len(self._q), 3))
-        for i, q_i in enumerate(self._q):
-            attitude[i] = _euler_from_quaternion(q_i)
-
+        attitude = _euler_from_quaternion(self._q)
         if degrees:
             attitude = np.degrees(attitude)
         return attitude
