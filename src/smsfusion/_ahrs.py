@@ -179,7 +179,7 @@ class AHRS:
         self._q, self._bias, self._error = self._update(
             self._dt, self._q, self._bias, omega, omega_meas_i, self._Kp, self._Ki
         )
-        return
+        return self
 
     def attitude(self, degrees=True):
         """
