@@ -40,6 +40,7 @@ class AHRS:
         q_init: ArrayLike | None = None,
         bias_init: ArrayLike | None = None,
     ) -> None:
+        self._fs = fs
         self._dt = 1.0 / fs
 
         self._Kp = Kp
@@ -215,6 +216,31 @@ class AHRS:
         attitude = np.zeros((len(self._q), 3))
         for i, q_i in enumerate(self._q):
             attitude[i] = _euler_from_quaternion(q_i)
+        return attitude
+
+    def attitude(self, degrees=True):
+        """
+        Current attitude estimate as Euler angles (i.e., roll, pitch and yaw).
+
+        Parameters
+        ----------
+        degrees : bool
+            Whether to return the attitude in degrees (default) or radians.
+
+        Returns
+        -------
+        attitude : ndarray
+            Attitude as array of shape (N, 3), where N is the number of samples
+            given in the update call. The colums of the array represent roll, pitch
+            and yaw Euler angles (in that order).
+
+        """
+        attitude = np.zeros((len(self._q), 3))
+        for i, q_i in enumerate(self._q):
+            attitude[i] = _euler_from_quaternion(q_i)
+
+        if degrees:
+            attitude = np.degrees(attitude)
         return attitude
 
     @property

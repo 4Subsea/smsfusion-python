@@ -36,7 +36,8 @@ dependencies = [
   "isort",
   "mypy",
   "pytest",
-  "pytest-cov"
+  "pytest-cov",
+  "scipy"  # used as reference implementation for rotations
 ]
 
 [tool.hatch.envs.test.scripts]
