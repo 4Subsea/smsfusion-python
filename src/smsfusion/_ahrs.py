@@ -2,6 +2,7 @@ from warnings import warn
 
 import numpy as np
 from numba import njit
+from numpy.typing import ArrayLike, NDArray
 
 from smsfusion._transforms import (
     _angular_matrix_from_quaternion,
@@ -31,7 +32,14 @@ class AHRS:
 
     """
 
-    def __init__(self, fs, Kp, Ki, q_init=None, bias_init=None):
+    def __init__(
+        self,
+        fs: float,
+        Kp: float,
+        Ki: float,
+        q_init: ArrayLike | None = None,
+        bias_init: ArrayLike | None = None,
+    ) -> None:
         self._dt = 1.0 / fs
 
         self._Kp = Kp
@@ -42,7 +50,7 @@ class AHRS:
         self._error = np.array([0.0, 0.0, 0.0], dtype=float).reshape(1, 3)
 
     @staticmethod
-    def _q_init(self, q_init):
+    def _q_init(q_init: ArrayLike | None) -> NDArray[np.float64]:
         if q_init is not None:
             q_init = np.asarray_chkfinite(q_init, dtype=float)
             q_abs = np.sqrt(np.dot(q_init, q_init))
@@ -53,16 +61,25 @@ class AHRS:
             q_init = np.array([1.0, 0.0, 0.0, 0.0], dtype=float)
         return q_init.reshape(1, 4)
 
-    def _bias_init(self, bias_init):
+    @staticmethod
+    def _bias_init(bias_init: ArrayLike | None) -> NDArray[np.float64]:
         if bias_init is not None:
-            self._bias = np.asarray_chkfinite(bias_init, dtype=float)
+            bias_init = np.asarray_chkfinite(bias_init, dtype=float)
         else:
             bias_init = np.array([0.0, 0.0, 0.0], dtype=float)
         return bias_init.reshape(1, 3)
 
     @staticmethod
-    @njit
-    def _update(dt, q, bias, omega, omega_corr, Kp, Ki):
+    @njit  # type: ignore[misc]
+    def _update(
+        dt: float,
+        q: NDArray[np.float64],
+        bias: NDArray[np.float64],
+        omega: NDArray[np.float64],
+        omega_corr: NDArray[np.float64],
+        Kp: float,
+        Ki: float,
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
         """
         Attitude (quaternion) update.
 
@@ -106,7 +123,7 @@ class AHRS:
         q = _normalize(q)
         return q, bias, omega_corr
 
-    def update(self, meas, degrees=True):
+    def update(self, meas: ArrayLike, degrees: bool = True) -> None:
         """
         Update the attitude estimate with new measurements from the IMU and compass.
 
@@ -179,7 +196,7 @@ class AHRS:
 
         return
 
-    def _attitude_rad(self):
+    def _attitude_rad(self) -> NDArray[np.float64]:
         """
         Get current attitude (Euler angles) estimate.
 
@@ -201,21 +218,21 @@ class AHRS:
         return attitude
 
     @property
-    def q(self):
+    def q(self) -> NDArray[np.float64]:
         """
         Get current attitude (quaternion) estimate.
         """
         return self._q.copy()
 
     @property
-    def error(self):
+    def error(self) -> NDArray[np.float64]:
         """
         Get current error estimate.
         """
         return self._error.copy()
 
     @property
-    def bias(self):
+    def bias(self) -> NDArray[np.float64]:
         """
         Get current bias estimate.
         """
