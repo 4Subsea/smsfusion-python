@@ -8,14 +8,15 @@ and inteded to be used where NumPy vectorization is not possible.
 
 import numpy as np
 from numba import jit
+from numpy.typing import NDArray
 
 
 @jit(nopython=True)
-def _normalize(q):
+def _normalize(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     L2 normalization of a vector.
     """
-    return q / np.sqrt(np.dot(q, q))
+    return q / np.sqrt((q * q).sum())
 
 
 @jit(nopython=True)
@@ -146,69 +147,6 @@ def _angular_matrix_from_quaternion(q):
             [-q[2], q[1], q[0]],
         ]
     )
-
-
-@jit(nopython=True)
-def _quaternion_from_rot_matrix(rot_matrix):
-    """
-    Quaternion from rotation matrix.
-
-    Note: Rotation matrix is origin-to-body (ZYX convention).
-
-    Parameters
-    ----------
-    rot_matrix : 3x3 array
-        Rotation matrix.
-
-    Return
-    ------
-    q : 1D array
-        Quaternion given as array.
-    """
-    rot_00 = rot_matrix[0, 0]
-    rot_01 = rot_matrix[0, 1]
-    rot_02 = rot_matrix[0, 2]
-    rot_10 = rot_matrix[1, 0]
-    rot_11 = rot_matrix[1, 1]
-    rot_12 = rot_matrix[1, 2]
-    rot_20 = rot_matrix[2, 0]
-    rot_21 = rot_matrix[2, 1]
-    rot_22 = rot_matrix[2, 2]
-
-    trace = rot_00 + rot_11 + rot_22
-
-    if trace > 0:
-        s = 0.5 / np.sqrt(trace + 1.0)
-
-        q0 = 0.25 / s
-        q1 = (rot_12 - rot_21) * s
-        q2 = (rot_20 - rot_02) * s
-        q3 = (rot_01 - rot_10) * s
-
-    elif rot_00 > rot_11 and rot_00 > rot_22:
-        s = 2.0 * np.sqrt(1.0 + rot_00 - rot_11 - rot_22)
-
-        q0 = (rot_12 - rot_21) / s
-        q1 = 0.25 * s
-        q2 = (rot_10 + rot_01) / s
-        q3 = (rot_20 + rot_02) / s
-
-    elif rot_11 > rot_22:
-        s = 2.0 * np.sqrt(1.0 + rot_11 - rot_00 - rot_22)
-
-        q0 = (rot_20 - rot_02) / s
-        q1 = (rot_10 + rot_01) / s
-        q2 = 0.25 * s
-        q3 = (rot_21 + rot_12) / s
-
-    else:
-        s = 2.0 * np.sqrt(1.0 + rot_22 - rot_00 - rot_11)
-
-        q0 = (rot_01 - rot_10) / s
-        q1 = (rot_20 + rot_02) / s
-        q2 = (rot_21 + rot_12) / s
-        q3 = 0.25 * s
-    return np.array([q0, q1, q2, q3])
 
 
 def _rot_matrix_from_euler(alpha, beta, gamma):
