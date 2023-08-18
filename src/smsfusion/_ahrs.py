@@ -15,7 +15,8 @@ from smsfusion._vectorops import _cross, _normalize
 
 class AHRS:
     """
-    Base class for AHRS algorithms based on Mahony et. al
+    AHRS algorithm using accelerometer and gyroscope (IMU), and compass heading
+    based on the non-linear observer filter by Mahony et. al.
 
     Parameters
     ----------
@@ -29,7 +30,6 @@ class AHRS:
         Quaternion initial value. If None (default), q = [1., 0., 0., 0.] is used.
     bias_init : 1D array
         Bias initial value. If None (default), bias= [0., 0., 0.] is used.
-
     """
 
     def __init__(
@@ -52,6 +52,7 @@ class AHRS:
 
     @staticmethod
     def _q_init(q_init: ArrayLike | None) -> NDArray[np.float64]:
+        """Initiate quaternion."""
         if q_init is not None:
             q_init = np.asarray_chkfinite(q_init, dtype=float)
             q_abs = np.sqrt(np.dot(q_init, q_init))
@@ -64,6 +65,7 @@ class AHRS:
 
     @staticmethod
     def _bias_init(bias_init: ArrayLike | None) -> NDArray[np.float64]:
+        """Initiate bias."""
         if bias_init is not None:
             bias_init = np.asarray_chkfinite(bias_init, dtype=float)
         else:
@@ -124,66 +126,69 @@ class AHRS:
         q = _normalize(q)
         return q, bias, omega_corr
 
-    def update(self, meas: ArrayLike, degrees: bool = True) -> None:
+    def update(
+        self,
+        f_imu: ArrayLike,
+        w_imu: ArrayLike,
+        head: float,
+        degrees: bool = True,
+        head_degrees: bool = True,
+    ) -> None:
         """
         Update the attitude estimate with new measurements from the IMU and compass.
 
         Parameters
         ----------
-        meas : ndarray
-            Measurements as array of shape (N, 7), where N is the number of measurement
-            samples. Each measurement sample should include Ax, Ay, Az, Gx, Gy, Gz
-            and head (in that order) (see Notes).
+        f_imu : array-like (3,)
+            IMU specific force measurements (i.e., accelerations + gravity). Given as
+            ``[f_x, f_y, f_z]^T`` where ``f_x``, ``f_y`` and ``f_z`` are
+            acceleration measurements in x-, y-, and z-direction, respectively. See Notes.
+        w_imu : array-like (3,)
+            IMU rotation rate measurements. Given as ``[w_x, w_y, w_z]^T`` where
+            ``w_x``, ``w_y`` and ``w_z`` are rotation rates about the x-, y-,
+            and z-axis, respectively. Unit determined with ``degrees`` keyword argument.
+            See Notes.
+        head : float
+            Compass heading measurement. Assumes right hand-rule about the NED
+              z-axis. Thus, the commonly used clockwise compass heading.
         degrees : bool
-            If True (default), the rotation rates are assumed to be in
+            If ``True`` (default), the rotation rates are assumed to be in
             degrees/s. Otherwise in radians/s.
-
-        Notes
-        -----
-        The following measurements are needed to do an update of the filter:
-
-            * Ax: Accelerations along the x-axis. (Unit not important)
-            * Ay: Accelerations along the y-axis. (Unit not important)
-            * Az: Accelerations along the z-axis. (Unit not important)
-            * Gx: Rotation rate about the x-axis.
-            * Gy: Rotation rate about the y-axis.
-            * Gz: Rotation rate about the z-axis.
-            * head: Heading measurement. Assumes right hand-rule about the "sensor-origin"
-              z-axis.
-
+        head_degrees : bool
+            If ``True`` (default), the heading is assumed to be in
+            degrees. Otherwise in radians.
         """
-        meas = np.asarray_chkfinite(meas, dtype=float)
-        acc = meas[0:3]
-        omega = meas[3:6]
-        head = meas[6]
+        f_imu = np.asarray_chkfinite(f_imu, dtype=float)
+        w_imu = np.asarray_chkfinite(w_imu, dtype=float)
 
         v01 = np.array([0.0, 0.0, 1.0], dtype=float)  # inertial direction of gravity
         v2_est_o = np.array([1.0, 0.0, 0.0], dtype=float)
 
         if degrees:
-            omega = np.radians(omega)
+            w_imu = np.radians(w_imu)
+        if head_degrees:
             head = np.radians(head)
 
         delta = head - _gamma_from_quaternion(self._q)
 
-        v1_meas_i = _normalize(acc)
+        v1_meas_i = _normalize(f_imu)
         v1_est_i = _rot_matrix_from_quaternion(self._q) @ v01
 
         # postpone rotation to after cross product
         v2_meas_o_i = np.array([np.cos(delta), -np.sin(delta), 0.0])
 
-        omega_meas_i = _cross(v1_meas_i, v1_est_i) + _rot_matrix_from_quaternion(
+        w_meas_i = _cross(v1_meas_i, v1_est_i) + _rot_matrix_from_quaternion(
             self._q
         ) @ _cross(v2_meas_o_i, v2_est_o)
 
         self._q, self._bias, self._error = self._update(
-            self._dt, self._q, self._bias, omega, omega_meas_i, self._Kp, self._Ki
+            self._dt, self._q, self._bias, w_imu, w_meas_i, self._Kp, self._Ki
         )
         return self
 
     def attitude(self, degrees=True):
         """
-        Current attitude estimate as Euler angles (i.e., roll, pitch and yaw).
+        Current attitude estimate as Euler angles in ZYX convention.
 
         Parameters
         ----------
@@ -192,11 +197,9 @@ class AHRS:
 
         Returns
         -------
-        attitude : ndarray
-            Attitude as array of shape (N, 3), where N is the number of samples
-            given in the update call. The colums of the array represent roll, pitch
-            and yaw Euler angles (in that order).
-
+        attitude : 1D array
+            Euler angles, i.e., roll, pitch and yaw (in that order). However, the angles
+            are according to the ZYX convention.
         """
         attitude = _euler_from_quaternion(self._q)
         if degrees:

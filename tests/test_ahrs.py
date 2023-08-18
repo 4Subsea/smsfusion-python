@@ -9,26 +9,28 @@ class Test_AHRS:
         fs = 10.24
         Kp = 0.5
         Ki = 0.1
-        q = np.array([1.0, 2.0, 3.0, 4.0]) / np.sqrt(30.0)
-        bias = np.array([0.1, 0.2, 0.3])
+        q_init = np.array([1.0, 2.0, 3.0, 4.0]) / np.sqrt(30.0)
+        bias_init = np.array([0.1, 0.2, 0.3])
 
-        alg = _ahrs.AHRS(fs, Kp, Ki, q_init=q, bias_init=bias)
+        alg = _ahrs.AHRS(fs, Kp, Ki, q_init=q_init, bias_init=bias_init)
 
         assert isinstance(alg, _ahrs.AHRS)
         assert alg._fs == fs
-        assert alg._dt == 1./fs
+        assert alg._dt == 1.0 / fs
         assert alg._Kp == Kp
         assert alg._Ki == Ki
-        np.testing.assert_array_almost_equal(alg.q, q)
-        np.testing.assert_array_almost_equal(alg.bias, bias)
-        np.testing.assert_array_almost_equal(alg.error, np.array([0., 0., 0.]))
+        np.testing.assert_array_almost_equal(alg.q, q_init)
+        np.testing.assert_array_almost_equal(alg.bias, bias_init)
+        np.testing.assert_array_almost_equal(alg.error, np.array([0.0, 0.0, 0.0]))
 
     def test_q_init(self):
         fs = 10.24
         Kp = 0.5
         Ki = 0.1
         q_init = np.array([0.96591925, -0.25882081, 0.0, 0.0], dtype=float)
+
         alg = _ahrs.AHRS(fs, Kp, Ki, q_init=q_init)
+
         q_expect = q_init
         np.testing.assert_array_almost_equal(alg.q, q_expect)
 
@@ -37,6 +39,7 @@ class Test_AHRS:
         Kp = 0.5
         Ki = 0.1
         q_init = np.array([2, -1, 0.0, 0.0], dtype=float)
+
         with pytest.warns():
             _ahrs.AHRS(fs, Kp, Ki, q_init=q_init)
 
@@ -45,8 +48,10 @@ class Test_AHRS:
         Kp = 0.5
         Ki = 0.1
         q_init = None
+
         alg = _ahrs.AHRS(fs, Kp, Ki, q_init=q_init)
-        q_expect = np.array([1., 0., 0., 0.])
+
+        q_expect = np.array([1.0, 0.0, 0.0, 0.0])
         np.testing.assert_array_almost_equal(alg.q, q_expect)
 
     def test_bias_init(self):
@@ -54,7 +59,9 @@ class Test_AHRS:
         Kp = 0.5
         Ki = 0.1
         bias_init = np.array([0.96591925, -0.25882081, 0.0], dtype=float)
+
         alg = _ahrs.AHRS(fs, Kp, Ki, bias_init=bias_init)
+
         bias_expect = bias_init
         np.testing.assert_array_almost_equal(alg.bias, bias_expect)
 
@@ -63,8 +70,10 @@ class Test_AHRS:
         Kp = 0.5
         Ki = 0.1
         bias_init = None
+
         alg = _ahrs.AHRS(fs, Kp, Ki, bias_init=bias_init)
-        bias_expect = np.array([0., 0., 0.])
+
+        bias_expect = np.array([0.0, 0.0, 0.0])
         np.testing.assert_array_almost_equal(alg.bias, bias_expect)
 
     def test_attitude(self):
@@ -78,12 +87,12 @@ class Test_AHRS:
         np.testing.assert_array_almost_equal(
             alg.attitude(), alpha_beta_gamma, decimal=3
         )
-        # np.testing.assert_array_almost_equal(
-        #     alg.attitude(degrees=True), alpha_beta_gamma, decimal=3
-        # )
-        # np.testing.assert_array_almost_equal(
-        #     alg.attitude(degrees=False), np.radians(alpha_beta_gamma), decimal=3
-        # )
+        np.testing.assert_array_almost_equal(
+            alg.attitude(degrees=True), alpha_beta_gamma, decimal=3
+        )
+        np.testing.assert_array_almost_equal(
+            alg.attitude(degrees=False), np.radians(alpha_beta_gamma), decimal=3
+        )
 
     def test__update_Ki(self):
         dt = 0.1
@@ -94,9 +103,7 @@ class Test_AHRS:
         Ki = 0.5
         Kp = 0.0
 
-        q, bias, error = _ahrs.AHRS._update(
-            dt, q, bias, omega_gyro, omega_corr, Kp, Ki
-        )
+        q, bias, error = _ahrs.AHRS._update(dt, q, bias, omega_gyro, omega_corr, Kp, Ki)
 
         q_expect = np.array([0.979986, 0.0246221, 0.0982436, 0.171375])
         error_expect = omega_corr
@@ -115,9 +122,7 @@ class Test_AHRS:
         Ki = 0.0
         Kp = 0.5
 
-        q, bias, error = _ahrs.AHRS._update(
-            dt, q, bias, omega_gyro, omega_corr, Kp, Ki
-        )
+        q, bias, error = _ahrs.AHRS._update(dt, q, bias, omega_gyro, omega_corr, Kp, Ki)
 
         q_expect = np.array([0.9843562, 0.0762876, 0.1033574, 0.1205836])
         error_expect = omega_corr
@@ -127,26 +132,32 @@ class Test_AHRS:
         np.testing.assert_almost_equal(error, error_expect)
         np.testing.assert_almost_equal(q, q_expect)
 
-    def test_update(self):
-        fs = 10
+    @pytest.mark.parametrize(
+        "degrees, head_degrees", [[True, True], [False, True], [True, False]]
+    )
+    def test_update(self, degrees, head_degrees):
+        fs = 10.24
         Kp = 0.5
         Ki = 0.1
+        q_init = np.array([1.0, 0.0, 0.0, 0.0])
+        bias_init = np.array([0.0, 0.0, 0.0])
 
-        q = np.array([1.0, 0.0, 0.0, 0.0])
-        bias = np.array([0.0, 0.0, 0.0])
+        alg = _ahrs.AHRS(fs, Kp, Ki, q_init=q_init, bias_init=bias_init)
 
-        alg = _ahrs.AHRS(fs, Kp, Ki, q_init=q, bias_init=bias)
-
-        ax, ay, az = (0.3422471493375811, 0.0, 9.800676053786814)
-        gx, gy, gz = (1.0, 0.0, 0.0)
+        f_imu = np.array([0.3422471493375811, 0.0, 9.800676053786814])
+        w_imu = np.array([1.0, 0.0, 0.0])
         head = 30.0
-        meas = np.array([ax, ay, az, gx, gy, gz, head])
 
-        alg.update(meas)
+        if not degrees:
+            w_imu = np.radians(w_imu)
+        if not head_degrees:
+            head = np.radians(head)
 
-        q_expect = np.array([0.999919, 0.000873, -0.000881, 0.012624])
+        alg.update(f_imu, w_imu, head, degrees=degrees, head_degrees=head_degrees)
+
+        q_expect = np.array([9.999233e-01, 8.521462e-04, -8.602932e-04, 1.232530e-02])
         error_expect = np.array([0.0, -0.034899, 0.5])
-        bias_expect = np.array([0.0, 0.000174, -0.0025])
+        bias_expect = np.array([0.0, 0.000170, -0.002441])
 
         np.testing.assert_array_almost_equal(alg.q, q_expect)
         np.testing.assert_array_almost_equal(alg.error, error_expect)
@@ -158,10 +169,12 @@ class Test_AHRS:
         Kp = 0.5
         Ki = 0.1
 
-        meas = np.random.random((100, 7))
+        f_imu = np.random.random((100, 3))
+        w_imu = np.random.random((100, 3))
+        head = np.random.random(100)
 
         alg = _ahrs.AHRS(fs, Kp, Ki)
         _ = [
-            alg.update(meas_i).q
-            for meas_i in meas
+            alg.update(f_imu_i, w_imu_i, head_i).q
+            for f_imu_i, w_imu_i, head_i in zip(f_imu, w_imu, head)
         ]
