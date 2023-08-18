@@ -144,7 +144,7 @@ class Test_AHRS:
 
         alg = _ahrs.AHRS(fs, Kp, Ki, q_init=q_init, bias_init=bias_init)
 
-        f_imu = np.array([0.3422471493375811, 0.0, 9.800676053786814])
+        f_imu = np.array([0.3422471493375811, -0.0, -9.800676053786814])
         w_imu = np.array([1.0, 0.0, 0.0])
         head = 30.0
 
@@ -155,9 +155,9 @@ class Test_AHRS:
 
         alg.update(f_imu, w_imu, head, degrees=degrees, head_degrees=head_degrees)
 
-        q_expect = np.array([9.999233e-01, 8.521462e-04, -8.602932e-04, 1.232530e-02])
-        error_expect = np.array([0.0, -0.034899, 0.5])
-        bias_expect = np.array([0.0, 0.000170, -0.002441])
+        q_expect = np.array([9.999233e-01, 8.521462e-04, 8.602932e-04, 1.232530e-02])
+        error_expect = np.array([0.0, 0.034899, 0.5])
+        bias_expect = np.array([0.0, -0.000170, -0.002441])
 
         np.testing.assert_array_almost_equal(alg.q, q_expect)
         np.testing.assert_array_almost_equal(alg.error, error_expect)

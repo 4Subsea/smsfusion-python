@@ -171,7 +171,7 @@ class AHRS:
 
         delta = head - _gamma_from_quaternion(self._q)
 
-        v1_meas_i = _normalize(f_imu)
+        v1_meas_i = -_normalize(f_imu)
         v1_est_i = _rot_matrix_from_quaternion(self._q) @ v01
 
         # postpone rotation to after cross product
