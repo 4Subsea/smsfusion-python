@@ -522,7 +522,7 @@ class AidedINS:
         x_ins = np.r_[self._ins.x, np.zeros((6, 1))]
 
         theta_ext = self._ahrs.update(
-            f_imu.flatten(), w_imu.flatten(), float(head), degrees=degrees, head_degrees=head_degrees
+            f_imu.flatten(), w_imu.flatten(), float(head), degrees=False, head_degrees=False
         ).attitude(degrees=False)
 
         # Transformation matrices
