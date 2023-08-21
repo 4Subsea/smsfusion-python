@@ -349,7 +349,7 @@ class AidedINS:
         self._G = self._prep_G_matrix(self._ACC_NOISE, self._GYRO_NOISE, self._theta.flatten())
         self._W = self._prep_W_matrix(self._ACC_NOISE, self._GYRO_NOISE)
         self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
-        self._R = 1e-1 * np.eye(7)
+        self._R = 1e-1 * np.eye(4)
 
         # Initialize Kalman filter
         self._dx_prior = np.zeros((15, 1))
@@ -498,11 +498,11 @@ class AidedINS:
 
         return W
 
-    def update(self, f_imu, w_imu, head, pos, vel, degrees=False, head_degrees=True):
+    def update(self, f_imu, w_imu, head, pos, degrees=False, head_degrees=True):
         f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3, 1).copy()
         w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3, 1).copy()
         pos = np.asarray_chkfinite(pos, dtype=float).reshape(3, 1).copy()
-        vel = np.asarray_chkfinite(vel, dtype=float).reshape(3, 1).copy()
+        # vel = np.asarray_chkfinite(vel, dtype=float).reshape(3, 1).copy()
         head = np.asarray_chkfinite(head, dtype=float).reshape(1, 1).copy()
 
         if degrees:
@@ -511,20 +511,19 @@ class AidedINS:
             head = np.radians(head)
 
         # Measurement matrix
-        H = np.zeros((7, 15))
+        H = np.zeros((4, 15))
         H[0:3, 0:3] = np.eye(3)     # position
-        H[3:6, 3:6] = np.eye(3)     # velocity
-        H[6, 8] = 1                 # heading
+        H[3, 8] = 1                 # heading
 
         # Measurements
-        z = np.r_[pos, vel, head]
+        z = np.r_[pos, head]
 
         # INS state
         x_ins = np.r_[self._ins.x, np.zeros((6, 1))]
 
         theta_ext = self._ahrs.update(
-            f_imu, w_imu, head, degrees=degrees, head_degrees=head_degrees
-        )
+            f_imu.flatten(), w_imu.flatten(), float(head), degrees=degrees, head_degrees=head_degrees
+        ).attitude(degrees=False)
 
         # Transformation matrices
         R_bn = _rot_matrix_from_euler(theta_ext).T   # body-to-NED
@@ -553,7 +552,7 @@ class AidedINS:
         dx = dx_prior + K @ (dz - H @ dx_prior)
 
         # Compute error covariance for updated estimate
-        P = (np.eye(15) - K @  H) @ P_prior @ (np.eye(15) - K @ H).T + K @ R @ K.T
+        P = (np.eye(15) - K @ H) @ P_prior @ (np.eye(15) - K @ H).T + K @ R @ K.T
 
         # Reset
         self._ins.reset(self._ins.x + dx[0:9])
