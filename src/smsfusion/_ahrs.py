@@ -78,8 +78,8 @@ class AHRS:
         dt: float,
         q: NDArray[np.float64],
         bias: NDArray[np.float64],
-        omega: NDArray[np.float64],
-        omega_corr: NDArray[np.float64],
+        w: NDArray[np.float64],
+        w_mes: NDArray[np.float64],
         Kp: float,
         Ki: float,
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
@@ -96,10 +96,10 @@ class AHRS:
             Current quaternion estimate.
         bias : 1D array
             Current quaternion estimate.
-        omega : 1D array
+        w : 1D array
             Gyroscope based rotation rate measurements in radians. Measurements
             are assumed to be in the body frame of reference.
-        omega_corr : 1D array
+        w_mes : 1D array
             "Corrective" rotation rate measured by other sensors
             (accelerometer, magnetometer, compass).
         Kp : float
@@ -118,13 +118,13 @@ class AHRS:
             sensors (accelerometer, magnetometer, compass).
 
         """
-        bias = bias - 0.5 * Ki * omega_corr * dt
+        bias = bias - 0.5 * Ki * w_mes * dt
 
-        omega = omega - bias + Kp * omega_corr
+        w = w - bias + Kp * w_mes
 
-        q = q + (_angular_matrix_from_quaternion(q) @ omega) * dt
+        q = q + (_angular_matrix_from_quaternion(q) @ w) * dt
         q = _normalize(q)
-        return q, bias, omega_corr
+        return q, bias, w_mes
 
     def update(
         self,
