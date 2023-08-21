@@ -319,12 +319,12 @@ class AidedINS:
         x0 = np.zeros((9, 1))
         self._ins = StrapdownINS(x0)
 
-        # System matrices
-        self._F = self._prep_F_matrix(self._ACC_NOISE, self._GYRO_NOISE, self._theta)
-        self._G = self._prep_G_matrix(self._ACC_NOISE, self._GYRO_NOISE, self._theta)
+        # Prepare system matrices
+        self._F = self._prep_F_matrix(self._ACC_NOISE, self._GYRO_NOISE, self._theta.flatten())
+        self._G = self._prep_G_matrix(self._ACC_NOISE, self._GYRO_NOISE, self._theta.flatten())
         self._W = self._prep_W_matrix(self._ACC_NOISE, self._GYRO_NOISE)
 
-        # Init Kalman filter
+        # Initialize Kalman filter
         self._dx_prior = np.zeros((15, 1))
         self._P_prior = np.eye(15)
 
