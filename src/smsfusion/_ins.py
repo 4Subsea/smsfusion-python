@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
+from ._ahrs import AHRS
 from ._transforms import _angular_matrix_from_euler, _rot_matrix_from_euler
 
 
@@ -283,3 +284,194 @@ class StrapdownINS:
         self._p = self._p + dt * self._v + 0.5 * dt**2 * a
         self._v = self._v + dt * a
         self._theta = self._theta + dt * T @ w_imu
+
+
+class AidedINS:
+    """
+    Aided inertial navigation system (AINS).
+    """
+
+    _ACC_NOISE = {
+        "N": 4.5e-4,
+        "B": 3.0e-4,
+        "tau_cb": 50.0,
+    }
+
+    _GYRO_NOISE = {
+        "N": 3.5e-5,
+        "B": 1.5e-5,
+        "tau_cb": 50.0,
+    }
+
+    _Kp = 0.05
+    _Ki = 0.035
+
+    def __init__(self, fs, x0):
+        self._fs = fs
+        self._dt = 1.0 / fs
+        self._x0 = np.asarray_chkfinite(x0).reshape(15, 1).copy()
+        self._x = self._x0.copy()
+
+        # Attitude Heading Reference System (AHRS)
+        self._ahrs = AHRS(fs, self._Kp, self._Ki)
+
+        # Strapdown algorithm
+        x0 = np.zeros((9, 1))
+        self._ins = StrapdownINS(x0)
+
+        # System matrices
+        self._F = self._prep_F_matrix(self._ACC_NOISE, self._GYRO_NOISE, self._theta)
+        self._G = self._prep_G_matrix(self._ACC_NOISE, self._GYRO_NOISE, self._theta)
+        self._W = self._prep_W_matrix(self._ACC_NOISE, self._GYRO_NOISE)
+
+        # Init Kalman filter
+        self._dx_prior = np.zeros((15, 1))
+        self._P_prior = np.eye(15)
+
+    @property
+    def _p(self) -> NDArray[np.float64]:
+        return self._x[0:3]
+
+    @property
+    def _v(self) -> NDArray[np.float64]:
+        return self._x[3:6]
+
+    @property
+    def _theta(self) -> NDArray[np.float64]:
+        return self._x[6:9]
+
+    @property
+    def x(self) -> NDArray[np.float64]:
+        """
+        Current state vector estimate.
+
+        Given as as:
+
+            ``x = [p_x, p_y, p_z, v_x, v_y, v_z, alpha, beta, gamma]^T``
+
+        where ``p_x``, ``p_y`` and ``p_z`` are position coordinates
+        (in x-, y- and z-direction), ``v_x``, ``v_y`` and ``v_z`` are (linear) velocities
+        (in x-, y- and z-direction), and ``alpha``, ``beta`` and ``gamma`` are Euler angles
+        (given in radians).
+
+        Returns
+        -------
+        x : ndarray
+            State as array of shape (9, 1).
+        """
+        return self._x.copy()
+
+    def position(self) -> NDArray[np.float64]:
+        """
+        Current position vector estimate.
+
+        Given as as:
+
+            ``p = [p_x, p_y, p_z]^T``
+
+        where ``p_x``, ``p_y`` and ``p_z`` are position coordinates in x-, y-, and
+        z-direction respectively.
+
+        Returns
+        -------
+        p : ndarray
+            Position as array of shape (3, 1).
+        """
+        return self._p.copy()
+
+    def velocity(self) -> NDArray[np.float64]:
+        """
+        Current velocity vector estimate.
+
+        Given as as:
+
+            ``v = [v_x, v_y, v_z]^T``
+
+        where ``v_x``, ``v_y`` and ``v_z`` are (linear) velocity components in x-, y-,
+        and z-direction respectively.
+
+        Returns
+        -------
+        v : ndarray
+            Velocity as array of shape (3, 1).
+        """
+        return self._v.copy()
+
+    def attitude(self, degrees: bool = False) -> NDArray[np.float64]:
+        """
+        Current attitude estimate as vector of Euler angles (i.e., roll, pitch and yaw).
+
+        Given as as:
+
+            ``theta = [alpha, beta, gamma]^T``
+
+        where ``alpha``, ``beta`` and ``gamma`` are the Euler angles (given in radians).
+
+        Returns
+        -------
+        theta : ndarray
+            Attitude as array of shape (3, 1).
+        """
+        theta = self._theta.copy()
+
+        if degrees:
+            theta = (180.0 / np.pi) * theta
+
+        return theta
+
+    @staticmethod
+    def _prep_F_matrix(acc_err, gyro_err, theta_rad):
+        """Prepare state matrix"""
+        beta_acc = 1.0 / acc_err["tau_cb"]
+        beta_gyro = 1.0 / gyro_err["tau_cb"]
+
+        R = _rot_matrix_from_euler(theta_rad)
+        T = _angular_matrix_from_euler(theta_rad)
+
+        # State matrix
+        F = np.zeros((15, 15))
+        F[0:3, 3:6] = np.eye(3)
+        F[3:6, 9:12] = -R   # NB! update each time step
+        F[6:9, 12:15] = -T   # NB! update each time step
+        F[9:12, 9:12] = -beta_acc * np.eye(3)
+        F[12:15, 12:15] = -beta_gyro * np.eye(3)
+
+        return F
+
+    @staticmethod
+    def _prep_G_matrix(acc_err, gyro_err, theta_rad):
+        """Prepare (white noise) input matrix"""
+        beta_acc = 1.0 / acc_err["tau_cb"]
+        sigma_acc = acc_err["B"]
+        beta_gyro = 1.0 / gyro_err["tau_cb"]
+        sigma_gyro = gyro_err["B"]
+
+        R = _rot_matrix_from_euler(theta_rad)
+        T = _angular_matrix_from_euler(theta_rad)
+
+        # Input (white noise) matrix
+        G = np.zeros((15, 12))
+        G[3:6, 0:3] = -R   # NB! update each time step
+        G[6:9, 3:6] = -T   # NB! update each time step
+        G[9:12, 6:9] = np.sqrt(2.0 * sigma_acc**2 * beta_acc) * np.eye(3)
+        G[12:15, 9:12] = np.sqrt(2.0 * sigma_gyro**2 * beta_gyro) * np.eye(3)
+
+        return G
+
+    @staticmethod
+    def _prep_W_matrix(acc_err, gyro_err):
+        """Prepare white noise power spectral density matrix"""
+        N_acc = acc_err["N"]
+        N_gyro = gyro_err["N"]
+
+        # White noise power spectral density matrix
+        W = np.eye(12)
+        W[0:3, 0:3] = N_acc ** 2 * np.eye(3)
+        W[3:6, 3:6] = N_gyro ** 2 * np.eye(3)
+
+        return W
+
+    # def update(self, f_imu, w_imu, head, degrees=False, head_degrees=True):
+    #     theta_ext = self._ahrs.update(
+    #         f_imu, w_imu, head, degrees=degrees, head_degrees=head_degrees
+    #     )
