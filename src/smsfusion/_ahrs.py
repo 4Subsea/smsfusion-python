@@ -78,7 +78,7 @@ class AHRS:
         dt: float,
         q: NDArray[np.float64],
         bias: NDArray[np.float64],
-        w: NDArray[np.float64],
+        w_imu: NDArray[np.float64],
         w_mes: NDArray[np.float64],
         Kp: float,
         Ki: float,
@@ -96,7 +96,7 @@ class AHRS:
             Current quaternion estimate.
         bias : 1D array
             Current quaternion estimate.
-        w : 1D array
+        w_imu : 1D array
             Gyroscope based rotation rate measurements in radians. Measurements
             are assumed to be in the body frame of reference.
         w_mes : 1D array
@@ -120,7 +120,7 @@ class AHRS:
         """
         bias = bias - 0.5 * Ki * w_mes * dt
 
-        w = w - bias + Kp * w_mes
+        w = w_imu - bias + Kp * w_mes
 
         q = q + (_angular_matrix_from_quaternion(q) @ w) * dt
         q = _normalize(q)
