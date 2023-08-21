@@ -133,7 +133,7 @@ class AHRS:
         head: float,
         degrees: bool = True,
         head_degrees: bool = True,
-    ) -> None:
+    ) -> "AHRS":  # TODO: Replace with ``typing.Self`` when Python > 3.11
         """
         Update the attitude estimate with new measurements from the IMU and compass.
 
@@ -187,7 +187,7 @@ class AHRS:
         )
         return self
 
-    def attitude(self, degrees=True):
+    def attitude(self, degrees: bool = True) -> NDArray[np.float64]:
         """
         Current attitude estimate as Euler angles in ZYX convention.
 
@@ -205,7 +205,7 @@ class AHRS:
         attitude = _euler_from_quaternion(self._q)
         if degrees:
             attitude = np.degrees(attitude)
-        return attitude
+        return attitude  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
 
     @property
     def q(self) -> NDArray[np.float64]:
