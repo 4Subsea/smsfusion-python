@@ -261,7 +261,7 @@ class StrapdownINS:
             else np.asarray_chkfinite(theta_ext, dtype=float)
         )
 
-        R = _rot_matrix_from_euler(theta)
+        R = _rot_matrix_from_euler(theta).T
         T = _angular_matrix_from_euler(theta)
 
         f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3, 1)

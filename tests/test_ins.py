@@ -1,5 +1,16 @@
+"""
+IMPORTANT
+---------
+
+SciPy Rotation implementation is used as reference in tests. However, SciPy
+operates with active rotations, whereas passive rotations are considered here. Keep in
+mind that passive rotations is simply the inverse active rotations and vice versa.
+"""
+
+
 import numpy as np
 import pytest
+from scipy.spatial.transform import Rotation
 
 from smsfusion._ins import StrapdownINS, gravity
 from smsfusion._transforms import _angular_matrix_from_euler, _rot_matrix_from_euler
@@ -165,7 +176,7 @@ class Test_StrapdownINS:
         x1_expect[6:9] = x0_expect[6:9] + dt * T0_expect @ w_imu
 
         # Calculate x2 by forward Euler
-        R1_expect = _rot_matrix_from_euler(x1_expect[6:9].flatten())
+        R1_expect = Rotation.from_euler("ZYX", x1_expect[8:5:-1].flatten()).as_matrix()
         T1_expect = _angular_matrix_from_euler(x1_expect[6:9].flatten())
         a1_expect = R1_expect @ f_imu + g
         x2_expect = np.zeros((9, 1))
