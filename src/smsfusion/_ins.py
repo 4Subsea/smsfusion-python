@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
+from scipy.linalg import expm
 
 from ._ahrs import AHRS
 from ._transforms import _angular_matrix_from_euler, _rot_matrix_from_euler
@@ -51,6 +52,30 @@ def gravity(lat: float | None = None, degrees: bool = True) -> float:
 
     g = g_e * (1.0 + k * np.sin(lat) ** 2.0) / np.sqrt(1.0 - e_2 * np.sin(lat) ** 2.0)
     return g  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
+
+
+def van_loan(dt, F, G, W):
+    """
+    Calculate the state transition matrix, ``phi``, and the process noise covariance
+    matrix, ``Q``, using the 'Van Loan method'.
+    """
+    F = np.asarray_chkfinite(F)
+    G = np.asarray_chkfinite(G)
+    W = np.asarray_chkfinite(W)
+
+    n_states = F.shape[0]
+    A = np.zeros((2 * n_states, 2 * n_states))
+    A[:n_states, :n_states] = -F
+    A[:n_states, n_states:] = G @ W @ G.T
+    A[n_states:, n_states:] = F.T
+    A = dt * A
+
+    B = expm(A)
+
+    phi = B[n_states:, n_states:].T
+    Q = phi @ B[:n_states, n_states:]
+
+    return phi, Q
 
 
 class StrapdownINS:
@@ -323,6 +348,7 @@ class AidedINS:
         self._F = self._prep_F_matrix(self._ACC_NOISE, self._GYRO_NOISE, self._theta.flatten())
         self._G = self._prep_G_matrix(self._ACC_NOISE, self._GYRO_NOISE, self._theta.flatten())
         self._W = self._prep_W_matrix(self._ACC_NOISE, self._GYRO_NOISE)
+        self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
 
         # Initialize Kalman filter
         self._dx_prior = np.zeros((15, 1))
@@ -471,7 +497,21 @@ class AidedINS:
 
         return W
 
-    # def update(self, f_imu, w_imu, head, degrees=False, head_degrees=True):
-    #     theta_ext = self._ahrs.update(
-    #         f_imu, w_imu, head, degrees=degrees, head_degrees=head_degrees
-    #     )
+    def update(self, f_imu, w_imu, head, pos=None, vel=None, degrees=False, head_degrees=True):
+        f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3, 1).copy()
+        w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3, 1).copy()
+
+        if pos is not None:
+            pos = np.asarray_chkfinite(pos).reshape(3, 1).copy()
+
+        if vel is not None:
+            vel = np.asarray_chkfinite(vel).reshape(3, 1).copy()
+
+        if degrees:
+            w_imu = np.radians(w_imu)
+        if head_degrees:
+            head = np.radians(head)
+
+        theta_ext = self._ahrs.update(
+            f_imu, w_imu, head, degrees=degrees, head_degrees=head_degrees
+        )
