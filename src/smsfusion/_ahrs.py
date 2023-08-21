@@ -161,26 +161,26 @@ class AHRS:
         f_imu = np.asarray_chkfinite(f_imu, dtype=float)
         w_imu = np.asarray_chkfinite(w_imu, dtype=float)
 
-        # Reference vectors expressed in NED frame
-        v01 = np.array([0.0, 0.0, 1.0], dtype=float)   # direction of gravity
-        v02 = np.array([1.0, 0.0, 0.0], dtype=float)   # direction of north
-
         if degrees:
             w_imu = np.radians(w_imu)
         if head_degrees:
             head = np.radians(head)
 
+        # Reference vectors expressed in NED frame
+        v01 = np.array([0.0, 0.0, 1.0], dtype=float)   # direction of gravity
+        v02 = np.array([1.0, 0.0, 0.0], dtype=float)   # direction of north
+
         delta_head = head - _gamma_from_quaternion(self._q)
 
+        R_nb = _rot_matrix_from_quaternion(self._q)
+
         v1_meas = -_normalize(f_imu)
-        v1_est = _rot_matrix_from_quaternion(self._q) @ v01
+        v1_est = R_nb @ v01
 
         # postpone rotation to after cross product
         v2_meas = np.array([np.cos(delta_head), -np.sin(delta_head), 0.0])
 
-        w_mes = _cross(v1_meas, v1_est) + _rot_matrix_from_quaternion(
-            self._q
-        ) @ _cross(v2_meas, v02)
+        w_mes = _cross(v1_meas, v1_est) + R_nb @ _cross(v2_meas, v02)
 
         self._q, self._bias, self._error = self._update(
             self._dt, self._q, self._bias, w_imu, w_mes, self._Kp, self._Ki
