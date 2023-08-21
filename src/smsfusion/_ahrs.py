@@ -167,8 +167,8 @@ class AHRS:
             head = np.radians(head)
 
         # Reference vectors expressed in NED frame
-        v01 = np.array([0.0, 0.0, 1.0], dtype=float)   # direction of gravity
-        v02 = np.array([1.0, 0.0, 0.0], dtype=float)   # direction of north
+        v01 = np.array([0.0, 0.0, 1.0], dtype=float)  # direction of gravity
+        v02 = np.array([1.0, 0.0, 0.0], dtype=float)  # direction of north
 
         delta_head = head - _gamma_from_quaternion(self._q)
 
