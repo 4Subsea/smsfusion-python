@@ -149,8 +149,8 @@ class AHRS:
             and z-axis, respectively. Unit determined with ``degrees`` keyword argument.
             See Notes.
         head : float
-            Compass heading measurement. Assumes right-hand rule about the NED
-              z-axis. Thus, the commonly used clockwise compass heading.
+            Compass heading measurement. Assumes right-hand rule about the NED z-axis.
+            Thus, the commonly used clockwise compass heading.
         degrees : bool
             If ``True`` (default), the rotation rates are assumed to be in
             degrees/s. Otherwise in radians/s.
