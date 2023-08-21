@@ -27,9 +27,9 @@ class AHRS:
     Ki : float
         Bias gain factor.
     q_init : 1D array
-        Quaternion initial value. If None (default), q = [1., 0., 0., 0.] is used.
+        Quaternion initial value. If ``None`` (default), ``q = [1., 0., 0., 0.]`` is used.
     bias_init : 1D array
-        Bias initial value. If None (default), bias= [0., 0., 0.] is used.
+        Bias initial value. If ``None`` (default), ``bias = [0., 0., 0.]`` is used.
     """
 
     def __init__(
