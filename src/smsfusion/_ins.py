@@ -349,6 +349,7 @@ class AidedINS:
         self._G = self._prep_G_matrix(self._ACC_NOISE, self._GYRO_NOISE, self._theta.flatten())
         self._W = self._prep_W_matrix(self._ACC_NOISE, self._GYRO_NOISE)
         self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
+        self._R = 1e-1 * np.eye(7)
 
         # Initialize Kalman filter
         self._dx_prior = np.zeros((15, 1))
@@ -497,21 +498,73 @@ class AidedINS:
 
         return W
 
-    def update(self, f_imu, w_imu, head, pos=None, vel=None, degrees=False, head_degrees=True):
+    def update(self, f_imu, w_imu, head, pos, vel, degrees=False, head_degrees=True):
         f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3, 1).copy()
         w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3, 1).copy()
-
-        if pos is not None:
-            pos = np.asarray_chkfinite(pos).reshape(3, 1).copy()
-
-        if vel is not None:
-            vel = np.asarray_chkfinite(vel).reshape(3, 1).copy()
+        pos = np.asarray_chkfinite(pos, dtype=float).reshape(3, 1).copy()
+        vel = np.asarray_chkfinite(vel, dtype=float).reshape(3, 1).copy()
+        head = np.asarray_chkfinite(head, dtype=float).reshape(1, 1).copy()
 
         if degrees:
             w_imu = np.radians(w_imu)
         if head_degrees:
             head = np.radians(head)
 
+        # Measurement matrix
+        H = np.zeros((7, 15))
+        H[0:3, 0:3] = np.eye(3)     # position
+        H[3:6, 3:6] = np.eye(3)     # velocity
+        H[6, 8] = 1                 # heading
+
+        # Measurements
+        z = np.r_[pos, vel, head]
+
+        # INS state
+        x_ins = np.r_[self._ins.x, np.zeros((6, 1))]
+
         theta_ext = self._ahrs.update(
             f_imu, w_imu, head, degrees=degrees, head_degrees=head_degrees
         )
+
+        # Transformation matrices
+        R_bn = _rot_matrix_from_euler(theta_ext).T   # body-to-NED
+        T = _angular_matrix_from_euler(theta_ext)
+
+        # Update system matrices with attitude 'measurements'
+        self._F[3:6, 9:12] = -R_bn
+        self._F[6:9, 12:15] = -T
+        self._G[3:6, 0:3] = -R_bn
+        self._G[6:9, 3:6] = -T
+
+        # Van Loan method (establish transition matrix and Q)
+        self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
+
+        phi = self._phi
+        Q = self._Q
+        R = self._R
+        P_prior = self._P_prior
+        dx_prior = self._dx_prior
+
+        # Compute Kalman gain
+        K = P_prior @ H.T @ np.linalg.inv(H @ P_prior @ H.T + R)
+
+        # Update error-state estimate with measurement
+        dz = z - H @ x_ins
+        dx = dx_prior + K @ (dz - H @ dx_prior)
+
+        # Compute error covariance for updated estimate
+        P = (np.eye(15) - K @  H) @ P_prior @ (np.eye(15) - K @ H).T + K @ R @ K.T
+
+        # Reset
+        self._ins.reset(self._ins.x + dx[0:9])
+        dx[0:9] = 0
+
+        # State estimate (INS + error)
+        x = np.r_[self._ins.x, np.zeros((6, 1))] + dx
+
+        # Project ahead
+        self._ins.update(self._dt, f_imu, w_imu, theta_ext=theta_ext, degrees=False)
+        self._dx_prior = phi @ dx
+        self._P_prior = phi @ P @ phi.T + Q
+
+        self._x = x
