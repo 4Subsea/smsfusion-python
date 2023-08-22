@@ -331,8 +331,8 @@ class AidedINS:
         self._acc_err = acc_err
         self._gyro_err = gyro_err
         self._x0 = np.asarray_chkfinite(x0).reshape(15, 1).copy()
-        var_pos = np.asarray_chkfinite(var_pos).reshape(3)
-        var_ahrs = np.asarray_chkfinite(var_ahrs).reshape(3)
+        var_pos = np.asarray_chkfinite(var_pos).reshape(3).copy()
+        var_ahrs = np.asarray_chkfinite(var_ahrs).reshape(3).copy()
 
         # Attitude Heading Reference System (AHRS)
         self._ahrs = AHRS(fs, self._Kp, self._Ki)
