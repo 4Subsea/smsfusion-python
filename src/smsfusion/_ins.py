@@ -317,14 +317,14 @@ class AidedINS:
     """
 
     _ACC_NOISE = {
-        "N": 4.5e-4,
-        "B": 3.0e-4,
+        "N": 4.0e-4,
+        "B": 1.5e-4,
         "tau_cb": 50.0,
     }
 
     _GYRO_NOISE = {
-        "N": 3.5e-5,
-        "B": 1.5e-5,
+        "N": (np.pi / 180.) * 1.9e-3,
+        "B": (np.pi / 180.) * 7.5e-4,
         "tau_cb": 50.0,
     }
 
