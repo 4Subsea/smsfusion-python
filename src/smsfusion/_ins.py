@@ -325,12 +325,14 @@ class AidedINS:
     _Kp = 0.05
     _Ki = 0.035
 
-    def __init__(self, fs, x0, acc_err, gyro_err):
+    def __init__(self, fs, x0, acc_err, gyro_err, var_pos, var_ahrs):
         self._fs = fs
         self._dt = 1.0 / fs
         self._acc_err = acc_err
         self._gyro_err = gyro_err
         self._x0 = np.asarray_chkfinite(x0).reshape(15, 1).copy()
+        var_pos = np.asarray_chkfinite(var_pos).reshape(3)
+        var_ahrs = np.asarray_chkfinite(var_ahrs).reshape(3)
 
         # Attitude Heading Reference System (AHRS)
         self._ahrs = AHRS(fs, self._Kp, self._Ki)
@@ -350,16 +352,7 @@ class AidedINS:
         self._W = self._prep_W_matrix(acc_err, gyro_err)
         self._H = self._prep_H_matrix()
         self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
-        self._R = np.diag(
-            [
-                1.01763218e-01,
-                1.03321846e-01,
-                1.01938181e-01,
-                1.00000000e-04,
-                1.00000000e-04,
-                1.00000000e-04,
-            ]
-        )
+        self._R = np.diag(np.r_[var_pos, var_ahrs])
 
     @property
     def _x(self):
