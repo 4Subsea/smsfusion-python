@@ -320,6 +320,16 @@ class AidedINS:
     ----------
     fs : float
         Sampling rate (Hz).
+    x0 : array-like (15,)
+        Initial state vector as 1-D array of length 15.
+    acc_err : dict
+        Accelerometer noise parameters.
+    gyro_err : dict
+        Gyroscope noise parameters.
+    var_pos : array-like (3,)
+        Position measurement noise variance.
+    var_ahrs : array-like (3,)
+        Attitude measurement noise variance. I.e., the variance of the AHRS error.
     """
 
     _Kp = 0.05
@@ -361,6 +371,7 @@ class AidedINS:
         return x
 
     def _reset_ins(self):
+        """Reset INS and Kalman filter"""
         self._ins.reset(self._ins.x + self._dx[0:9])
         self._dx[0:9] = 0
 
@@ -517,6 +528,26 @@ class AidedINS:
         return H
 
     def update(self, f_imu, w_imu, head, pos, degrees=False, head_degrees=True):
+        """
+        Update the AINS with measurements, and project ahead.
+
+        Parameters
+        ----------
+        f_imu : array-like (3,)
+            IMU specific force measurements (i.e., accelerations + gravity). Given as
+            ``[f_x, f_y, f_z]^T`` where ``f_x``, ``f_y`` and ``f_z`` are
+            acceleration measurements in x-, y-, and z-direction, respectively.
+        w_imu : array-like (3,)
+            IMU rotation rate measurements. Given as ``[w_x, w_y, w_z]^T`` where
+            ``w_x``, ``w_y`` and ``w_z`` are rotation rates about the x-, y-,
+            and z-axis, respectively. Unit determined with ``degrees`` keyword argument.
+        degrees : bool
+            Whether the rotation rates are given in `degrees` (``True``) or `radians`
+            (``False``).
+        head_degrees : bool
+            If ``True`` (default), the heading is assumed to be in
+            degrees. Otherwise in radians.
+        """
         f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3, 1).copy()
         w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3, 1).copy()
         pos = np.asarray_chkfinite(pos, dtype=float).reshape(3, 1).copy()
