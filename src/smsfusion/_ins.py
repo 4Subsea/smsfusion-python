@@ -315,45 +315,57 @@ class StrapdownINS:
 class AidedINS:
     """
     Aided inertial navigation system (AINS).
+
+    Parameters
+    ----------
+    fs : float
+        Sampling rate (Hz).
     """
-
-    _ACC_NOISE = {
-        "N": 4.0e-4,
-        "B": 1.5e-4,
-        "tau_cb": 50.0,
-    }
-
-    _GYRO_NOISE = {
-        "N": (np.pi / 180.) * 1.9e-3,
-        "B": (np.pi / 180.) * 7.5e-4,
-        "tau_cb": 50.0,
-    }
 
     _Kp = 0.05
     _Ki = 0.035
 
-    def __init__(self, fs, x0):
+    def __init__(self, fs, x0, acc_err, gyro_err):
         self._fs = fs
         self._dt = 1.0 / fs
+        self._acc_err = acc_err
+        self._gyro_err = gyro_err
         self._x0 = np.asarray_chkfinite(x0).reshape(15, 1).copy()
-        self._x = self._x0.copy()
 
         # Attitude Heading Reference System (AHRS)
         self._ahrs = AHRS(fs, self._Kp, self._Ki)
 
         # Strapdown algorithm
         self._ins = StrapdownINS(self._x0[0:9])
+        self._ins_bias = np.zeros((6, 1))
+
+        # Error state
+        self._dx = np.zeros((15, 1))
+        self._dx_prior = np.zeros((15, 1))
+        self._P_prior = np.eye(15)
 
         # Prepare system matrices
-        self._F = self._prep_F_matrix(self._ACC_NOISE, self._GYRO_NOISE, self._theta)
-        self._G = self._prep_G_matrix(self._ACC_NOISE, self._GYRO_NOISE, self._theta)
-        self._W = self._prep_W_matrix(self._ACC_NOISE, self._GYRO_NOISE)
+        self._F = self._prep_F_matrix(acc_err, gyro_err, self._theta)
+        self._G = self._prep_G_matrix(acc_err, gyro_err, self._theta)
+        self._W = self._prep_W_matrix(acc_err, gyro_err)
         self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
         self._R = np.diag([1.01763218e-01, 1.03321846e-01, 1.01938181e-01, 1.00000000e-04, 1.00000000e-04, 1.00000000e-04])
 
-        # Initialize Kalman filter
-        self._dx_prior = np.zeros((15, 1))
-        self._P_prior = np.eye(15)
+    @property
+    def _x(self):
+        """Full state"""
+        x = self._x_ins + self._dx
+        return x
+
+    @property
+    def _x_ins(self):
+        """INS state"""
+        x_ins = np.r_[self._ins.x, self._ins_bias]
+        return x_ins
+
+    def _reset_ins(self):
+        self._ins.reset(self._ins.x + self._dx[0:9])
+        self._dx[0:9] = 0
 
     @property
     def _p(self) -> NDArray[np.float64]:
@@ -504,7 +516,6 @@ class AidedINS:
         f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3, 1).copy()
         w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3, 1).copy()
         pos = np.asarray_chkfinite(pos, dtype=float).reshape(3, 1).copy()
-        # vel = np.asarray_chkfinite(vel, dtype=float).reshape(3, 1).copy()
         head = np.asarray_chkfinite(head, dtype=float).reshape(1, 1).copy()
 
         if degrees:
@@ -524,9 +535,6 @@ class AidedINS:
         # Measurements
         z = np.r_[pos, theta_ext.reshape(3, 1)]
 
-        # INS state
-        x_ins = np.r_[self._ins.x, np.zeros((6, 1))]
-
         # Transformation matrices
         R_bn = _rot_matrix_from_euler(theta_ext).T   # body-to-NED
         T = _angular_matrix_from_euler(theta_ext)
@@ -545,27 +553,22 @@ class AidedINS:
         R = self._R
         P_prior = self._P_prior
         dx_prior = self._dx_prior
+        x_ins = self._x_ins
 
         # Compute Kalman gain
         K = P_prior @ H.T @ inv(H @ P_prior @ H.T + R)
 
         # Update error-state estimate with measurement
         dz = z - H @ x_ins
-        dx = dx_prior + K @ (dz - H @ dx_prior)
+        self._dx = dx_prior + K @ (dz - H @ dx_prior)
 
         # Compute error covariance for updated estimate
         P = (np.eye(15) - K @ H) @ P_prior @ (np.eye(15) - K @ H).T + K @ R @ K.T
 
         # Reset
-        self._ins.reset(self._ins.x + dx[0:9])
-        dx[0:9] = 0
-
-        # State estimate (INS + error)
-        x = np.r_[self._ins.x, np.zeros((6, 1))] + dx
+        self._reset_ins()
 
         # Project ahead
         self._ins.update(self._dt, f_imu, w_imu, theta_ext=theta_ext, degrees=False)
-        self._dx_prior = phi @ dx
+        self._dx_prior = phi @ self._dx
         self._P_prior = phi @ P @ phi.T + Q
-
-        self._x = x
