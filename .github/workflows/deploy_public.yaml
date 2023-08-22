@@ -64,7 +64,14 @@ jobs:
 
       - name : Inject release notes to documentation
         run: |
-          gh api "https://api.github.com/repos/{owner}/{repo}/releases" --template "{{- range . -}}{{ if and (le .tag_name \"v$VERSION_NUMBER\") (eq .draft false) (eq .prerelease false) }}# [{{ .name }}]({{ .html_url }}){{ .body }}{{ end }}{{- end -}}" > docs/release_notes/generated.md
+          gh api "https://api.github.com/repos/{owner}/{repo}/releases" --template "
+          {{- range . -}}
+          {{ if and (le .tag_name \"v$VERSION_NUMBER\") (eq .draft false) (eq .prerelease false) }}
+          # [{{ .name }}]({{ .html_url }})
+          {{ .body }}
+          {{ end }}
+          {{- end -}}
+          " > docs/release_notes/generated.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
