@@ -452,13 +452,13 @@ class AidedINS:
         beta_acc = 1.0 / acc_err["tau_cb"]
         beta_gyro = 1.0 / gyro_err["tau_cb"]
 
-        R = _rot_matrix_from_euler(theta_rad)
+        R_bn = _rot_matrix_from_euler(theta_rad).T   # body-to-NED
         T = _angular_matrix_from_euler(theta_rad)
 
         # State matrix
         F = np.zeros((15, 15))
         F[0:3, 3:6] = np.eye(3)
-        F[3:6, 9:12] = -R   # NB! update each time step
+        F[3:6, 9:12] = -R_bn   # NB! update each time step
         F[6:9, 12:15] = -T   # NB! update each time step
         F[9:12, 9:12] = -beta_acc * np.eye(3)
         F[12:15, 12:15] = -beta_gyro * np.eye(3)
@@ -474,12 +474,12 @@ class AidedINS:
         beta_gyro = 1.0 / gyro_err["tau_cb"]
         sigma_gyro = gyro_err["B"]
 
-        R = _rot_matrix_from_euler(theta_rad)
+        R_bn = _rot_matrix_from_euler(theta_rad).T   # body-to-NED
         T = _angular_matrix_from_euler(theta_rad)
 
         # Input (white noise) matrix
         G = np.zeros((15, 12))
-        G[3:6, 0:3] = -R   # NB! update each time step
+        G[3:6, 0:3] = -R_bn   # NB! update each time step
         G[6:9, 3:6] = -T   # NB! update each time step
         G[9:12, 6:9] = np.sqrt(2.0 * sigma_acc**2 * beta_acc) * np.eye(3)
         G[12:15, 9:12] = np.sqrt(2.0 * sigma_gyro**2 * beta_gyro) * np.eye(3)
