@@ -350,7 +350,16 @@ class AidedINS:
         self._W = self._prep_W_matrix(acc_err, gyro_err)
         self._H = self._prep_H_matrix()
         self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
-        self._R = np.diag([1.01763218e-01, 1.03321846e-01, 1.01938181e-01, 1.00000000e-04, 1.00000000e-04, 1.00000000e-04])
+        self._R = np.diag(
+            [
+                1.01763218e-01,
+                1.03321846e-01,
+                1.01938181e-01,
+                1.00000000e-04,
+                1.00000000e-04,
+                1.00000000e-04,
+            ]
+        )
 
     @property
     def _x(self):
@@ -466,14 +475,14 @@ class AidedINS:
         beta_acc = 1.0 / acc_err["tau_cb"]
         beta_gyro = 1.0 / gyro_err["tau_cb"]
 
-        R_bn = _rot_matrix_from_euler(theta_rad).T   # body-to-NED
+        R_bn = _rot_matrix_from_euler(theta_rad).T  # body-to-NED
         T = _angular_matrix_from_euler(theta_rad)
 
         # State matrix
         F = np.zeros((15, 15))
         F[0:3, 3:6] = np.eye(3)
-        F[3:6, 9:12] = -R_bn   # NB! update each time step
-        F[6:9, 12:15] = -T   # NB! update each time step
+        F[3:6, 9:12] = -R_bn  # NB! update each time step
+        F[6:9, 12:15] = -T  # NB! update each time step
         F[9:12, 9:12] = -beta_acc * np.eye(3)
         F[12:15, 12:15] = -beta_gyro * np.eye(3)
 
@@ -488,13 +497,13 @@ class AidedINS:
         beta_gyro = 1.0 / gyro_err["tau_cb"]
         sigma_gyro = gyro_err["B"]
 
-        R_bn = _rot_matrix_from_euler(theta_rad).T   # body-to-NED
+        R_bn = _rot_matrix_from_euler(theta_rad).T  # body-to-NED
         T = _angular_matrix_from_euler(theta_rad)
 
         # Input (white noise) matrix
         G = np.zeros((15, 12))
-        G[3:6, 0:3] = -R_bn   # NB! update each time step
-        G[6:9, 3:6] = -T   # NB! update each time step
+        G[3:6, 0:3] = -R_bn  # NB! update each time step
+        G[6:9, 3:6] = -T  # NB! update each time step
         G[9:12, 6:9] = np.sqrt(2.0 * sigma_acc**2 * beta_acc) * np.eye(3)
         G[12:15, 9:12] = np.sqrt(2.0 * sigma_gyro**2 * beta_gyro) * np.eye(3)
 
@@ -508,16 +517,16 @@ class AidedINS:
 
         # White noise power spectral density matrix
         W = np.eye(12)
-        W[0:3, 0:3] = N_acc ** 2 * np.eye(3)
-        W[3:6, 3:6] = N_gyro ** 2 * np.eye(3)
+        W[0:3, 0:3] = N_acc**2 * np.eye(3)
+        W[3:6, 3:6] = N_gyro**2 * np.eye(3)
 
         return W
 
     def _prep_H_matrix(self):
         """Prepare measurement matrix"""
         H = np.zeros((6, 15))
-        H[0:3, 0:3] = np.eye(3)     # position
-        H[3:6, 6:9] = np.eye(3)     # attitude
+        H[0:3, 0:3] = np.eye(3)  # position
+        H[3:6, 6:9] = np.eye(3)  # attitude
         return H
 
     def update(self, f_imu, w_imu, head, pos, degrees=False, head_degrees=True):
@@ -532,14 +541,18 @@ class AidedINS:
             head = np.radians(head)
 
         theta_ext = self._ahrs.update(
-            f_imu.flatten(), w_imu.flatten(), float(head), degrees=False, head_degrees=False
+            f_imu.flatten(),
+            w_imu.flatten(),
+            float(head),
+            degrees=False,
+            head_degrees=False,
         ).attitude(degrees=False)
 
         # Measurements
         z = np.r_[pos, theta_ext.reshape(3, 1)]
 
         # Transformation matrices
-        R_bn = _rot_matrix_from_euler(theta_ext).T   # body-to-NED
+        R_bn = _rot_matrix_from_euler(theta_ext).T  # body-to-NED
         T = _angular_matrix_from_euler(theta_ext)
 
         # Update system matrices with attitude 'measurements'
