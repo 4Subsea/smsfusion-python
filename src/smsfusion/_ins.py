@@ -341,7 +341,7 @@ class AidedINS:
         self._ins = StrapdownINS(self._x0[0:9])
         self._ins_bias = np.zeros((6, 1))
 
-        # Error state
+        # Error-state Kalman filter
         self._dx = np.zeros((15, 1))
         self._dx_prior = np.zeros((15, 1))
         self._P_prior = np.eye(15)
@@ -351,8 +351,8 @@ class AidedINS:
         self._G = self._prep_G_matrix(acc_err, gyro_err, self._theta)
         self._W = self._prep_W_matrix(acc_err, gyro_err)
         self._H = self._prep_H_matrix()
-        self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
         self._R = np.diag(np.r_[var_pos, var_ahrs])
+        self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
 
     @property
     def _x(self):
