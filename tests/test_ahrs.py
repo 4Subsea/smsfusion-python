@@ -34,6 +34,15 @@ class Test_AHRS:
         q_expect = q_init
         np.testing.assert_array_almost_equal(alg.q, q_expect)
 
+    def test_q_init_wrong_len(self):
+        fs = 10.24
+        Kp = 0.5
+        Ki = 0.1
+        q_init = np.array([0.96591925, -0.25882081, 0.0, 0.0, 0.0], dtype=float)
+
+        with pytest.raises(ValueError):
+            _ahrs.AHRS(fs, Kp, Ki, q_init=q_init)
+
     def test_q_init_notunity(self):
         fs = 10.24
         Kp = 0.5
@@ -75,6 +84,15 @@ class Test_AHRS:
 
         bias_expect = np.array([0.0, 0.0, 0.0])
         np.testing.assert_array_almost_equal(alg.bias, bias_expect)
+
+    def test_bias_init_wrong_len(self):
+        fs = 10.24
+        Kp = 0.5
+        Ki = 0.1
+        bias_init = np.array([0.96591925, -0.25882081, 0.0, 0.0], dtype=float)
+
+        with pytest.raises(ValueError):
+            _ahrs.AHRS(fs, Kp, Ki, bias_init=bias_init)
 
     def test_attitude(self):
         fs = 10.24
@@ -162,6 +180,60 @@ class Test_AHRS:
         np.testing.assert_array_almost_equal(alg.q, q_expect)
         np.testing.assert_array_almost_equal(alg.error, error_expect)
         np.testing.assert_array_almost_equal(alg.bias, bias_expect)
+
+    @pytest.mark.parametrize(
+        "f_imu, w_imu, head",
+        [
+            [np.array([0.0, 0.0, -1.0]), np.array([0.0, 0.0, 0]), 0.0],
+            [np.array([0.0, 0.0, -1.0]), np.array([0.0, 0.0, 0]), np.array([0.0])],
+            [[0.0, 0.0, -1.0], [0.0, 0.0, 0], 0.0],
+            [
+                np.array([[0.0], [0.0], [-1.0]]),
+                np.array([[0.0], [0.0], [0]]),
+                np.array([[0.0]]),
+            ],
+        ],
+    )
+    def test_update_input_valid(self, f_imu, w_imu, head):
+        fs = 10.24
+        Kp = 0.5
+        Ki = 0.1
+        q_init = np.array([1.0, 0.0, 0.0, 0.0])
+        bias_init = np.array([0.0, 0.0, 0.0])
+
+        alg = _ahrs.AHRS(fs, Kp, Ki, q_init=q_init, bias_init=bias_init)
+        alg.update(f_imu, w_imu, head)
+
+        q_expect = np.array([1.0, 0.0, 0.0, 0.0])
+        error_expect = np.array([0.0, 0.0, 0.0])
+        bias_expect = np.array([0.0, 0.0, 0.0])
+
+        np.testing.assert_array_almost_equal(alg.q, q_expect)
+        np.testing.assert_array_almost_equal(alg.error, error_expect)
+        np.testing.assert_array_almost_equal(alg.bias, bias_expect)
+
+    @pytest.mark.parametrize(
+        "f_imu, w_imu, head",
+        [
+            [np.array([0.0, 0.0, -1.0, 0.0]), np.array([0.0, 0.0, 0.0]), 0.0],
+            [
+                np.array([0.0, 0.0, -1.0]),
+                np.array([0.0, 0.0, 0.0, 0.0]),
+                np.array([0.0]),
+            ],
+            [[0.0, 0.0, -1.0], [0.0, 0.0, 0], [0.0, 0.0]],
+        ],
+    )
+    def test_update_input_invalid(self, f_imu, w_imu, head):
+        fs = 10.24
+        Kp = 0.5
+        Ki = 0.1
+        q_init = np.array([1.0, 0.0, 0.0, 0.0])
+        bias_init = np.array([0.0, 0.0, 0.0])
+
+        alg = _ahrs.AHRS(fs, Kp, Ki, q_init=q_init, bias_init=bias_init)
+        with pytest.raises(ValueError):
+            alg.update(f_imu, w_imu, head)
 
     def test_update_succesive_calls(self):
         """Test that succesive calls goes through"""
