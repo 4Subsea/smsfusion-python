@@ -6,4 +6,4 @@ Welcome to SMS Fusion's documentation!
    :caption: Contents:
 
    reference/index
-   release_notes
+   release_notes/index
