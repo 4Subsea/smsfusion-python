@@ -348,6 +348,7 @@ class AidedINS:
         self._F = self._prep_F_matrix(acc_err, gyro_err, self._theta)
         self._G = self._prep_G_matrix(acc_err, gyro_err, self._theta)
         self._W = self._prep_W_matrix(acc_err, gyro_err)
+        self._H = self._prep_H_matrix()
         self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
         self._R = np.diag([1.01763218e-01, 1.03321846e-01, 1.01938181e-01, 1.00000000e-04, 1.00000000e-04, 1.00000000e-04])
 
@@ -512,6 +513,13 @@ class AidedINS:
 
         return W
 
+    def _prep_H_matrix(self):
+        """Prepare measurement matrix"""
+        H = np.zeros((6, 15))
+        H[0:3, 0:3] = np.eye(3)     # position
+        H[3:6, 6:9] = np.eye(3)     # attitude
+        return H
+
     def update(self, f_imu, w_imu, head, pos, degrees=False, head_degrees=True):
         f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3, 1).copy()
         w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3, 1).copy()
@@ -526,11 +534,6 @@ class AidedINS:
         theta_ext = self._ahrs.update(
             f_imu.flatten(), w_imu.flatten(), float(head), degrees=False, head_degrees=False
         ).attitude(degrees=False)
-
-        # Measurement matrix
-        H = np.zeros((6, 15))
-        H[0:3, 0:3] = np.eye(3)     # position
-        H[3:6, 6:9] = np.eye(3)     # attitude
 
         # Measurements
         z = np.r_[pos, theta_ext.reshape(3, 1)]
@@ -548,6 +551,7 @@ class AidedINS:
         # Van Loan method (establish transition matrix and Q)
         self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
 
+        H = self._H
         phi = self._phi
         Q = self._Q
         R = self._R
