@@ -349,7 +349,7 @@ class AidedINS:
         self._G = self._prep_G_matrix(self._ACC_NOISE, self._GYRO_NOISE, self._theta.flatten())
         self._W = self._prep_W_matrix(self._ACC_NOISE, self._GYRO_NOISE)
         self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
-        self._R = 1e-1 * np.eye(4)
+        self._R = np.diag([1.01763218e-01, 1.03321846e-01, 1.01938181e-01, 1.00000000e-04, 1.00000000e-04, 1.00000000e-04])
 
         # Initialize Kalman filter
         self._dx_prior = np.zeros((15, 1))
@@ -510,20 +510,20 @@ class AidedINS:
         if head_degrees:
             head = np.radians(head)
 
-        # Measurement matrix
-        H = np.zeros((4, 15))
-        H[0:3, 0:3] = np.eye(3)     # position
-        H[3, 8] = 1                 # heading
-
-        # Measurements
-        z = np.r_[pos, head]
-
-        # INS state
-        x_ins = np.r_[self._ins.x, np.zeros((6, 1))]
-
         theta_ext = self._ahrs.update(
             f_imu.flatten(), w_imu.flatten(), float(head), degrees=False, head_degrees=False
         ).attitude(degrees=False)
+
+        # Measurement matrix
+        H = np.zeros((6, 15))
+        H[0:3, 0:3] = np.eye(3)     # position
+        H[3:6, 6:9] = np.eye(3)     # attitude
+
+        # Measurements
+        z = np.r_[pos, theta_ext.reshape(3, 1)]
+
+        # INS state
+        x_ins = np.r_[self._ins.x, np.zeros((6, 1))]
 
         # Transformation matrices
         R_bn = _rot_matrix_from_euler(theta_ext).T   # body-to-NED
