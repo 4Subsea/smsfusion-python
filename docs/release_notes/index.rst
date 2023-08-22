@@ -7,4 +7,4 @@ Release Notes
 .. note::
     For full release history, see the `GitHub repo`_.
     
-.. _GitHub repo: https://www.github.com/smsfusion-python/releases
+.. _GitHub repo: https://github.com/4Subsea/smsfusion-python/releases
