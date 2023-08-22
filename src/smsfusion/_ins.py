@@ -339,7 +339,6 @@ class AidedINS:
 
         # Strapdown algorithm
         self._ins = StrapdownINS(self._x0[0:9])
-        self._ins_bias = np.zeros((6, 1))
 
         # Error-state Kalman filter
         self._dx = np.zeros((15, 1))
@@ -357,14 +356,9 @@ class AidedINS:
     @property
     def _x(self):
         """Full state"""
-        x = self._x_ins + self._dx
+        x_ins = np.r_[self._ins.x, np.zeros((6, 1))]
+        x = x_ins + self._dx
         return x
-
-    @property
-    def _x_ins(self):
-        """INS state"""
-        x_ins = np.r_[self._ins.x, self._ins_bias]
-        return x_ins
 
     def _reset_ins(self):
         self._ins.reset(self._ins.x + self._dx[0:9])
@@ -556,7 +550,9 @@ class AidedINS:
         R = self._R
         P_prior = self._P_prior
         dx_prior = self._dx_prior
-        x_ins = self._x_ins
+
+        # INS state
+        x_ins = np.r_[self._ins.x, np.zeros((6, 1))]
 
         # Compute Kalman gain
         K = P_prior @ H.T @ inv(H @ P_prior @ H.T + R)
