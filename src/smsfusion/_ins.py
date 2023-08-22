@@ -571,10 +571,4 @@ class AidedINS:
         self._dx_prior = phi @ self._dx
         self._P_prior = phi @ P @ phi.T + Q
         self._ins.update(self._dt, f_imu, w_imu, theta_ext=theta_ext, degrees=False)
-        self._ahrs.update(
-            f_imu.flatten(),
-            w_imu.flatten(),
-            float(head),
-            degrees=False,
-            head_degrees=False,
-        )
+        self._ahrs.update(f_imu, w_imu, head, degrees=False, head_degrees=False)
