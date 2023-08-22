@@ -341,12 +341,11 @@ class AidedINS:
         self._ahrs = AHRS(fs, self._Kp, self._Ki)
 
         # Strapdown algorithm
-        x0 = np.zeros((9, 1))
-        self._ins = StrapdownINS(x0)
+        self._ins = StrapdownINS(self._x0[0:9])
 
         # Prepare system matrices
-        self._F = self._prep_F_matrix(self._ACC_NOISE, self._GYRO_NOISE, self._theta.flatten())
-        self._G = self._prep_G_matrix(self._ACC_NOISE, self._GYRO_NOISE, self._theta.flatten())
+        self._F = self._prep_F_matrix(self._ACC_NOISE, self._GYRO_NOISE, self._theta)
+        self._G = self._prep_G_matrix(self._ACC_NOISE, self._GYRO_NOISE, self._theta)
         self._W = self._prep_W_matrix(self._ACC_NOISE, self._GYRO_NOISE)
         self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
         self._R = np.diag([1.01763218e-01, 1.03321846e-01, 1.01938181e-01, 1.00000000e-04, 1.00000000e-04, 1.00000000e-04])
@@ -449,6 +448,7 @@ class AidedINS:
     @staticmethod
     def _prep_F_matrix(acc_err, gyro_err, theta_rad):
         """Prepare state matrix"""
+        theta_rad = np.asarray_chkfinite(theta_rad).reshape(3)
         beta_acc = 1.0 / acc_err["tau_cb"]
         beta_gyro = 1.0 / gyro_err["tau_cb"]
 
@@ -468,6 +468,7 @@ class AidedINS:
     @staticmethod
     def _prep_G_matrix(acc_err, gyro_err, theta_rad):
         """Prepare (white noise) input matrix"""
+        theta_rad = np.asarray_chkfinite(theta_rad).reshape(3)
         beta_acc = 1.0 / acc_err["tau_cb"]
         sigma_acc = acc_err["B"]
         beta_gyro = 1.0 / gyro_err["tau_cb"]
