@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+from numpy.linalg import inv
 from numpy.typing import ArrayLike, NDArray
 from scipy.linalg import expm
 
@@ -546,7 +547,7 @@ class AidedINS:
         dx_prior = self._dx_prior
 
         # Compute Kalman gain
-        K = P_prior @ H.T @ np.linalg.inv(H @ P_prior @ H.T + R)
+        K = P_prior @ H.T @ inv(H @ P_prior @ H.T + R)
 
         # Update error-state estimate with measurement
         dz = z - H @ x_ins
