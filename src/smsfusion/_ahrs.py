@@ -34,9 +34,9 @@ class AHRS:
 
     def __init__(
         self,
-        fs: float,
-        Kp: float,
-        Ki: float,
+        fs: np.float64,
+        Kp: np.float64,
+        Ki: np.float64,
         q_init: ArrayLike | None = None,
         bias_init: ArrayLike | None = None,
     ) -> None:
@@ -48,40 +48,40 @@ class AHRS:
 
         self._q = self._q_init(q_init)
         self._bias = self._bias_init(bias_init)
-        self._error = np.array([0.0, 0.0, 0.0], dtype=float)
+        self._error = np.array([0.0, 0.0, 0.0], dtype=np.float64)
 
     @staticmethod
     def _q_init(q_init: ArrayLike | None) -> NDArray[np.float64]:
         """Initiate quaternion."""
         if q_init is not None:
-            q_init = np.asarray_chkfinite(q_init, dtype=float)
+            q_init = np.asarray_chkfinite(q_init, dtype=np.float64).reshape(4)
             q_abs = np.sqrt(np.dot(q_init, q_init))
             if (0.99 > q_abs) or (q_abs > 1.01):
                 warn("'q_init' is not a unit quaternion.")
             q_init /= q_abs
         else:
-            q_init = np.array([1.0, 0.0, 0.0, 0.0], dtype=float)
+            q_init = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float64)
         return q_init
 
     @staticmethod
     def _bias_init(bias_init: ArrayLike | None) -> NDArray[np.float64]:
         """Initiate bias."""
         if bias_init is not None:
-            bias_init = np.asarray_chkfinite(bias_init, dtype=float)
+            bias_init = np.asarray_chkfinite(bias_init, dtype=np.float64).reshape(3)
         else:
-            bias_init = np.array([0.0, 0.0, 0.0], dtype=float)
+            bias_init = np.array([0.0, 0.0, 0.0], dtype=np.float64)
         return bias_init
 
     @staticmethod
     @njit  # type: ignore[misc]
     def _update(
-        dt: float,
+        dt: np.float64,
         q: NDArray[np.float64],
         bias: NDArray[np.float64],
         w_imu: NDArray[np.float64],
         w_mes: NDArray[np.float64],
-        Kp: float,
-        Ki: float,
+        Kp: np.float64,
+        Ki: np.float64,
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
         """
         Attitude (quaternion) update.
@@ -130,7 +130,7 @@ class AHRS:
         self,
         f_imu: ArrayLike,
         w_imu: ArrayLike,
-        head: float,
+        head: np.float64,
         degrees: bool = True,
         head_degrees: bool = True,
     ) -> "AHRS":  # TODO: Replace with ``typing.Self`` when Python > 3.11
@@ -158,8 +158,9 @@ class AHRS:
             If ``True`` (default), the heading is assumed to be in
             degrees. Otherwise in radians.
         """
-        f_imu = np.asarray_chkfinite(f_imu, dtype=float)
-        w_imu = np.asarray_chkfinite(w_imu, dtype=float)
+        f_imu = np.asarray_chkfinite(f_imu, dtype=np.float64).reshape(3)
+        w_imu = np.asarray_chkfinite(w_imu, dtype=np.float64).reshape(3)
+        head = np.float64(head)
 
         if degrees:
             w_imu = np.radians(w_imu)
@@ -167,8 +168,8 @@ class AHRS:
             head = np.radians(head)
 
         # Reference vectors expressed in NED frame
-        v01 = np.array([0.0, 0.0, 1.0], dtype=float)  # direction of gravity
-        v02 = np.array([1.0, 0.0, 0.0], dtype=float)  # direction of north
+        v01 = np.array([0.0, 0.0, 1.0], dtype=np.float64)  # direction of gravity
+        v02 = np.array([1.0, 0.0, 0.0], dtype=np.float64)  # direction of north
 
         delta_head = head - _gamma_from_quaternion(self._q)
 
