@@ -527,19 +527,12 @@ class AidedINS:
         w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3, 1).copy()
         pos = np.asarray_chkfinite(pos, dtype=float).reshape(3, 1).copy()
         head = np.asarray_chkfinite(head, dtype=float).reshape(1, 1).copy()
+        theta_ext = self._ahrs.attitude(degrees=False)
 
         if degrees:
             w_imu = np.radians(w_imu)
         if head_degrees:
             head = np.radians(head)
-
-        theta_ext = self._ahrs.update(
-            f_imu.flatten(),
-            w_imu.flatten(),
-            float(head),
-            degrees=False,
-            head_degrees=False,
-        ).attitude(degrees=False)
 
         # Measurements
         z = np.r_[pos, theta_ext.reshape(3, 1)]
@@ -579,6 +572,13 @@ class AidedINS:
         self._reset_ins()
 
         # Project ahead
-        self._ins.update(self._dt, f_imu, w_imu, theta_ext=theta_ext, degrees=False)
         self._dx_prior = phi @ self._dx
         self._P_prior = phi @ P @ phi.T + Q
+        self._ins.update(self._dt, f_imu, w_imu, theta_ext=theta_ext, degrees=False)
+        self._ahrs.update(
+            f_imu.flatten(),
+            w_imu.flatten(),
+            float(head),
+            degrees=False,
+            head_degrees=False,
+        )
