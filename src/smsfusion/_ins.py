@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
@@ -59,9 +61,9 @@ class StrapdownINS:
 
     Parameters
     ----------
-    x0 = array-like (9,)
-        Initial state vector as 1-D array of length 9 (see Notes).
-    lat : float (optional)
+    x0 : array_like
+        Initial state vector as 1D array of length 9 (see Notes).
+    lat : float, optional
         Latitude used to calculate the gravitational acceleration. If `lat` is ``None``,
         the 'standard gravity' (i.e., 9.80665) is used.
 
@@ -172,6 +174,12 @@ class StrapdownINS:
 
         where ``alpha``, ``beta`` and ``gamma`` are the Euler angles (given in radians).
 
+        Parameters
+        ----------
+        degrees : bool, default False
+            Whether the rotation rates are given in `degrees` (``True``) or `radians`
+            (``False``).
+
         Returns
         -------
         theta : ndarray
@@ -190,8 +198,8 @@ class StrapdownINS:
 
         Parameters
         ----------
-        x_new : array-like (9,)
-            New state as 1-D array of length 9 (see Notes).
+        x_new : array_like
+            New state as 1D array of length 9 (see Notes).
 
         Notes
         -----
@@ -238,18 +246,18 @@ class StrapdownINS:
         ----------
         dt : float
             Sampling period in seconds.
-        f_imu : array-like (3,)
+        f_imu : array_like
             IMU specific force measurements (i.e., accelerations + gravity). Given as
             ``[f_x, f_y, f_z]^T`` where ``f_x``, ``f_y`` and ``f_z`` are
             acceleration measurements in x-, y-, and z-direction, respectively.
-        w_imu : array-like (3,)
+        w_imu : array_like
             IMU rotation rate measurements. Given as ``[w_x, w_y, w_z]^T`` where
             ``w_x``, ``w_y`` and ``w_z`` are rotation rates about the x-, y-,
             and z-axis, respectively. Unit determined with ``degrees`` keyword argument.
-        degrees : bool
+        degrees : bool, default False
             Whether the rotation rates are given in `degrees` (``True``) or `radians`
             (``False``).
-        theta_ext : array-like (3,), optional
+        theta_ext : array_like, optional
             Externally provided IMU orientation as Euler angles according to the
             ned-to-body `z-y-x` convention, which is used to calculate the
             ``R`` and ``T`` matrices. If ``None`` (default), the most recent orientation state

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from warnings import warn
 
 import numpy as np
@@ -26,17 +28,17 @@ class AHRS:
         Error gain factor.
     Ki : float
         Bias gain factor.
-    q_init : 1D array
+    q_init : array_like, optional
         Quaternion initial value. If ``None`` (default), ``q_init = [1., 0., 0., 0.]`` is used.
-    bias_init : 1D array
+    bias_init : array_like, optional
         Bias initial value. If ``None`` (default), ``bias_init = [0., 0., 0.]`` is used.
     """
 
     def __init__(
         self,
-        fs: np.float64,
-        Kp: np.float64,
-        Ki: np.float64,
+        fs: float,
+        Kp: float,
+        Ki: float,
         q_init: ArrayLike | None = None,
         bias_init: ArrayLike | None = None,
     ) -> None:
@@ -92,16 +94,16 @@ class AHRS:
         ----------
         dt : float
             Increment step size in time.
-        q : 1D array
-            Current quaternion estimate.
-        bias : 1D array
-            Current quaternion estimate.
-        w_imu : 1D array
-            Gyroscope based rotation rate measurements in radians. Measurements
-            are assumed to be in the body frame of reference.
-        w_mes : 1D array
+        q : ndarray
+            Current quaternion estimate as 1D array.
+        bias : ndarray
+            Current quaternion estimate as 1D array.
+        w_imu : ndarray
+            Gyroscope based rotation rate measurements in radians as 1D array.
+            Measurements are assumed to be in the body frame of reference.
+        w_mes : ndarray
             "Corrective" rotation rate measured by other sensors
-            (accelerometer, magnetometer, compass).
+            (accelerometer, magnetometer, compass) as 1D array.
         Kp : float
             Error gain factor.
         Ki : float
@@ -109,13 +111,13 @@ class AHRS:
 
         Returns
         -------
-        q : 1D array
-            Updated quaternion estimate.
-        bias : 1D array
-            Updated bias estimate.
-        omega_corr : 1D array
+        q : ndarray
+            Updated quaternion estimate as 1D array.
+        bias : ndarray
+            Updated bias estimate as 1D array.
+        omega_corr : ndarray
             Error measurement. I.e., "corrective" rotation rate measured by other
-            sensors (accelerometer, magnetometer, compass).
+            sensors (accelerometer, magnetometer, compass) as 1D array.
 
         """
         bias = bias - 0.5 * Ki * w_mes * dt
@@ -130,7 +132,7 @@ class AHRS:
         self,
         f_imu: ArrayLike,
         w_imu: ArrayLike,
-        head: np.float64,
+        head: float,
         degrees: bool = True,
         head_degrees: bool = True,
     ) -> "AHRS":  # TODO: Replace with ``typing.Self`` when Python > 3.11
@@ -139,11 +141,11 @@ class AHRS:
 
         Parameters
         ----------
-        f_imu : array-like (3,)
+        f_imu : array_like
             IMU specific force measurements (i.e., accelerations + gravity). Given as
             ``[f_x, f_y, f_z]^T`` where ``f_x``, ``f_y`` and ``f_z`` are
             acceleration measurements in x-, y-, and z-direction, respectively. See Notes.
-        w_imu : array-like (3,)
+        w_imu : array_like
             IMU rotation rate measurements. Given as ``[w_x, w_y, w_z]^T`` where
             ``w_x``, ``w_y`` and ``w_z`` are rotation rates about the x-, y-,
             and z-axis, respectively. Unit determined with ``degrees`` keyword argument.
@@ -160,7 +162,7 @@ class AHRS:
         """
         f_imu = np.asarray_chkfinite(f_imu, dtype=np.float64).reshape(3)
         w_imu = np.asarray_chkfinite(w_imu, dtype=np.float64).reshape(3)
-        head = np.float64(head)
+        head = float(head)
 
         if degrees:
             w_imu = np.radians(w_imu)
@@ -199,7 +201,7 @@ class AHRS:
 
         Returns
         -------
-        attitude : 1D array
+        attitude : ndarray
             Euler angles, i.e., roll, pitch and yaw (in that order). However, the angles
             are according to the ZYX convention.
         """

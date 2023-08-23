@@ -26,6 +26,7 @@ extensions = [
     "sphinx.ext.intersphinx",
 ]
 autosummary_generate = True
+autodoc_type_aliases = {"ArrayLike": "ArrayLike"}
 
 # Napoleon settings
 napoleon_google_docstring = False

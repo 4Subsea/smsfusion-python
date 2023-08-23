@@ -8,5 +8,6 @@ API reference
 .. autosummary::
    :toctree: api/
 
+   AHRS
    gravity
    StrapdownINS

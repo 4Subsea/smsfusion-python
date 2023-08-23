@@ -232,7 +232,7 @@ class Test_AHRS:
         bias_init = np.array([0.0, 0.0, 0.0])
 
         alg = _ahrs.AHRS(fs, Kp, Ki, q_init=q_init, bias_init=bias_init)
-        with pytest.raises(ValueError):
+        with pytest.raises((TypeError, ValueError)):
             alg.update(f_imu, w_imu, head)
 
     def test_update_succesive_calls(self):
