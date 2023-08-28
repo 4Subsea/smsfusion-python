@@ -352,7 +352,7 @@ class AidedINS:
         self._bias_ins = np.zeros((6, 1))
 
         # Error-state Kalman filter
-        self._dx = np.zeros((15, 1))
+        # self._dx = np.zeros((15, 1))
         self._dx_prior = np.zeros((15, 1))
         self._P_prior = np.eye(15)
 
@@ -588,30 +588,30 @@ class AidedINS:
         R = self._R
         P_prior = self._P_prior
         dx_prior = self._dx_prior
+        x_ins = self._x_ins
 
         # INS state
-        x_ins = np.r_[self._ins.x, np.zeros((6, 1))]
+        # x_ins = np.r_[self._ins.x, np.zeros((6, 1))]
 
         # Compute Kalman gain
         K = P_prior @ H.T @ inv(H @ P_prior @ H.T + R)
 
         # Update error-state estimate with measurement
         dz = z - H @ x_ins
-        self._dx = dx_prior + K @ (dz - H @ dx_prior)
+        dx = dx_prior + K @ (dz - H @ dx_prior)
 
         # Compute error covariance for updated estimate
         P = (np.eye(15) - K @ H) @ P_prior @ (np.eye(15) - K @ H).T + K @ R @ K.T
 
         # Reset
         # self._reset_ins()
-        self._ins.reset(self._ins.x + self._dx[0:9])
-        self._bias_ins = self._dx[9:15]
-        self._dx[:] = 0
+        self._ins.reset(self._ins.x + dx[0:9])
+        self._bias_ins = dx[9:15]
 
         # Project ahead
         # self._dx_prior = phi @ self._dx
-        self._P_prior = phi @ P @ phi.T + Q
         f_ins = f_imu - self._bias_ins[0:3]
         w_ins = w_imu - self._bias_ins[3:6]
         self._ins.update(self._dt, f_ins, w_ins, theta_ext=theta_ext, degrees=False)
         self._ahrs.update(f_imu, w_imu, head, degrees=False, head_degrees=False)
+        self._P_prior = phi @ P @ phi.T + Q
