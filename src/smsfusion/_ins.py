@@ -584,13 +584,13 @@ class AidedINS:
         # self._phi = np.eye(15) + self._dt * self._F
         # self._Q = self._dt ** 2 * self._G @ self._W @ self._G.T
 
-        H = self._H
-        phi = self._phi
-        Q = self._Q
-        R = self._R
-        P_prior = self._P_prior
-        dx_prior = self._dx_prior
-        x_ins = self._x_ins
+        H = self._H                 # measurement matrix
+        phi = self._phi             # state transition matrix
+        Q = self._Q                 # process noise covariance matrix
+        R = self._R                 # measurement noise covariance matrix
+        P_prior = self._P_prior     # error covariance matrix
+        dx_prior = self._dx_prior   # prior error-state estimate
+        x_ins = self._x_ins         # INS state
 
         # INS state
         # x_ins = np.r_[self._ins.x, np.zeros((6, 1))]
