@@ -352,7 +352,6 @@ class AidedINS:
         self._bias_ins = np.zeros((6, 1))
 
         # Error-state Kalman filter
-        # self._dx = np.zeros((15, 1))
         self._dx_prior = np.zeros((15, 1))
         self._P_prior = np.eye(15)
 
@@ -362,8 +361,6 @@ class AidedINS:
         self._W = self._prep_W_matrix(acc_err, gyro_err)
         self._H = self._prep_H_matrix()
         self._R = np.diag(np.r_[var_pos, var_ahrs])
-        # self._Q = self._dt ** 2 * self._G @ self._W @ self._G.T
-        # self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
 
     @property
     def _x_ins(self):
@@ -375,11 +372,6 @@ class AidedINS:
     def _x(self):
         """Full state (i.e., INS state + error state)"""
         return self._x_ins   # error state is zero due to reset
-
-    # def _reset_ins(self):
-    #     """Reset INS and Kalman filter"""
-    #     self._ins.reset(self._ins.x + self._dx[0:9])
-    #     self._dx[0:9] = 0
 
     @property
     def _p(self) -> NDArray[np.float64]:
@@ -593,9 +585,6 @@ class AidedINS:
         # phi, Q = van_loan(self._dt, F, G, W)
         phi = np.eye(15) + self._dt * F     # state transition matrix
         Q = self._dt ** 2 * G @ W @ G.T     # process noise covariance matrix
-
-        # INS state
-        # x_ins = np.r_[self._ins.x, np.zeros((6, 1))]
 
         # Compute Kalman gain
         K = P_prior @ H.T @ inv(H @ P_prior @ H.T + R)
