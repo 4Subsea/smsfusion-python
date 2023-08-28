@@ -362,7 +362,8 @@ class AidedINS:
         self._W = self._prep_W_matrix(acc_err, gyro_err)
         self._H = self._prep_H_matrix()
         self._R = np.diag(np.r_[var_pos, var_ahrs])
-        self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
+        # self._Q = self._dt ** 2 * self._G @ self._W @ self._G.T
+        # self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
 
     @property
     def _x_ins(self):
@@ -579,18 +580,19 @@ class AidedINS:
         self._G[3:6, 0:3] = -R_bn
         self._G[6:9, 3:6] = -T
 
-        # Discretize
-        self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
-        # self._phi = np.eye(15) + self._dt * self._F
-        # self._Q = self._dt ** 2 * self._G @ self._W @ self._G.T
+        F = self._F                         # state matrix
+        G = self._G                         # (white noise) input matrix
+        H = self._H                         # measurement matrix
+        W = self._W                         # white niser powerr spectral density matrix
+        R = self._R                         # measurement noise covariance matrix
+        P_prior = self._P_prior             # error covariance matrix
+        dx_prior = self._dx_prior           # prior error-state estimate
+        x_ins = self._x_ins                 # INS state
 
-        H = self._H                 # measurement matrix
-        phi = self._phi             # state transition matrix
-        Q = self._Q                 # process noise covariance matrix
-        R = self._R                 # measurement noise covariance matrix
-        P_prior = self._P_prior     # error covariance matrix
-        dx_prior = self._dx_prior   # prior error-state estimate
-        x_ins = self._x_ins         # INS state
+        # Discretize
+        # phi, Q = van_loan(self._dt, F, G, W)
+        phi = np.eye(15) + self._dt * F     # state transition matrix
+        Q = self._dt ** 2 * G @ W @ G.T     # process noise covariance matrix
 
         # INS state
         # x_ins = np.r_[self._ins.x, np.zeros((6, 1))]
