@@ -579,7 +579,7 @@ class AidedINS:
         self._G[3:6, 0:3] = -R_bn
         self._G[6:9, 3:6] = -T
 
-        # Van Loan method (establish transition matrix and Q)
+        # Discretize
         self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
         # self._phi = np.eye(15) + self._dt * self._F
         # self._Q = self._dt ** 2 * self._G @ self._W @ self._G.T
