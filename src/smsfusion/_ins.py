@@ -349,6 +349,7 @@ class AidedINS:
 
         # Strapdown algorithm
         self._ins = StrapdownINS(self._x0[0:9])
+        self._bias_ins = np.zeros((6, 1))
 
         # Error-state Kalman filter
         self._dx = np.zeros((15, 1))
@@ -364,16 +365,20 @@ class AidedINS:
         self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
 
     @property
-    def _x(self):
-        """Full state"""
-        x_ins = np.r_[self._ins.x, np.zeros((6, 1))]
-        x = x_ins + self._dx
-        return x
+    def _x_ins(self):
+        """INS state"""
+        x_ins = np.r_[self._ins.x, self._bias_ins]
+        return x_ins
 
-    def _reset_ins(self):
-        """Reset INS and Kalman filter"""
-        self._ins.reset(self._ins.x + self._dx[0:9])
-        self._dx[0:9] = 0
+    @property
+    def _x(self):
+        """Full state (i.e., INS state + error state)"""
+        return self._x_ins   # error state is zero due to reset
+
+    # def _reset_ins(self):
+    #     """Reset INS and Kalman filter"""
+    #     self._ins.reset(self._ins.x + self._dx[0:9])
+    #     self._dx[0:9] = 0
 
     @property
     def _p(self) -> NDArray[np.float64]:
@@ -598,10 +603,15 @@ class AidedINS:
         P = (np.eye(15) - K @ H) @ P_prior @ (np.eye(15) - K @ H).T + K @ R @ K.T
 
         # Reset
-        self._reset_ins()
+        # self._reset_ins()
+        self._ins.reset(self._ins.x + self._dx[0:9])
+        self._bias_ins = self._dx[9:15]
+        self._dx[:] = 0
 
         # Project ahead
-        self._dx_prior = phi @ self._dx
+        # self._dx_prior = phi @ self._dx
         self._P_prior = phi @ P @ phi.T + Q
-        self._ins.update(self._dt, f_imu, w_imu, theta_ext=theta_ext, degrees=False)
+        f_ins = f_imu - self._bias_ins[0:3]
+        w_ins = w_imu - self._bias_ins[3:6]
+        self._ins.update(self._dt, f_ins, w_ins, theta_ext=theta_ext, degrees=False)
         self._ahrs.update(f_imu, w_imu, head, degrees=False, head_degrees=False)
