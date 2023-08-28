@@ -490,10 +490,6 @@ class AidedINS:
     def _prep_G_matrix(acc_err, gyro_err, theta_rad):
         """Prepare (white noise) input matrix"""
         theta_rad = np.asarray_chkfinite(theta_rad).reshape(3)
-        beta_acc = 1.0 / acc_err["tau_cb"]
-        sigma_acc = acc_err["B"]
-        beta_gyro = 1.0 / gyro_err["tau_cb"]
-        sigma_gyro = gyro_err["B"]
 
         R_bn = _rot_matrix_from_euler(theta_rad).T  # body-to-NED
         T = _angular_matrix_from_euler(theta_rad)
@@ -502,8 +498,8 @@ class AidedINS:
         G = np.zeros((15, 12))
         G[3:6, 0:3] = -R_bn  # NB! update each time step
         G[6:9, 3:6] = -T  # NB! update each time step
-        G[9:12, 6:9] = np.sqrt(2.0 * sigma_acc**2 * beta_acc) * np.eye(3)
-        G[12:15, 9:12] = np.sqrt(2.0 * sigma_gyro**2 * beta_gyro) * np.eye(3)
+        G[9:12, 6:9] = np.eye(3)
+        G[12:15, 9:12] = np.eye(3)
 
         return G
 
@@ -511,12 +507,18 @@ class AidedINS:
     def _prep_W_matrix(acc_err, gyro_err):
         """Prepare white noise power spectral density matrix"""
         N_acc = acc_err["N"]
+        sigma_acc = acc_err["B"]
+        beta_acc = 1.0 / acc_err["tau_cb"]
         N_gyro = gyro_err["N"]
+        sigma_gyro = gyro_err["B"]
+        beta_gyro = 1.0 / gyro_err["tau_cb"]
 
         # White noise power spectral density matrix
         W = np.eye(12)
-        W[0:3, 0:3] = N_acc**2 * np.eye(3)
-        W[3:6, 3:6] = N_gyro**2 * np.eye(3)
+        W[0:3, 0:3] *= N_acc**2
+        W[3:6, 3:6] *= N_gyro**2
+        W[9:12, 6:9] *= np.sqrt(2.0 * sigma_acc**2 * beta_acc)
+        W[12:15, 9:12] *= np.sqrt(2.0 * sigma_gyro**2 * beta_gyro)
 
         return W
 
