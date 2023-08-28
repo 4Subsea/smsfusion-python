@@ -522,8 +522,8 @@ class AidedINS:
         W = np.eye(12)
         W[0:3, 0:3] *= N_acc**2
         W[3:6, 3:6] *= N_gyro**2
-        W[9:12, 6:9] *= np.sqrt(2.0 * sigma_acc**2 * beta_acc)
-        W[12:15, 9:12] *= np.sqrt(2.0 * sigma_gyro**2 * beta_gyro)
+        W[6:9, 6:9] *= 2.0 * sigma_acc**2 * beta_acc
+        W[9:12, 9:12] *= 2.0 * sigma_gyro**2 * beta_gyro
 
         return W
 
@@ -581,6 +581,8 @@ class AidedINS:
 
         # Van Loan method (establish transition matrix and Q)
         self._phi, self._Q = van_loan(self._dt, self._F, self._G, self._W)
+        # self._phi = np.eye(15) + self._dt * self._F
+        # self._Q = self._dt ** 2 * self._G @ self._W @ self._G.T
 
         H = self._H
         phi = self._phi
