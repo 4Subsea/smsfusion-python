@@ -361,7 +361,7 @@ class AidedINS:
         self._ins = StrapdownINS(self._x0[0:9])
         self._bias_ins = np.zeros((6, 1))
 
-        # Error-state Kalman filter
+        # Initial Kalman filter error covariance
         self._P_prior = np.eye(15)
 
         # Prepare system matrices
