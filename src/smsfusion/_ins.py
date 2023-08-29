@@ -340,6 +340,8 @@ class AidedINS:
         * AHRS gain factor parameters not configurable.
     """
 
+    _I15 = np.eye(15)
+
     _Kp = 0.05
     _Ki = 0.035
 
@@ -584,9 +586,10 @@ class AidedINS:
         R = self._R                         # measurement noise covariance matrix
         P_prior = self._P_prior             # error covariance matrix
         x_ins = self._x_ins                 # INS state
+        I15 = self._I15                     # 15x15 identity matrix
 
         # Discretize
-        phi = np.eye(15) + self._dt * F     # state transition matrix
+        phi = I15 + self._dt * F     # state transition matrix
         Q = self._dt * G @ W @ G.T          # process noise covariance matrix
 
         # Measurement
@@ -600,7 +603,7 @@ class AidedINS:
         dx = K @ dz
 
         # Compute error covariance for updated estimate
-        P = (np.eye(15) - K @ H) @ P_prior @ (np.eye(15) - K @ H).T + K @ R @ K.T
+        P = (I15 - K @ H) @ P_prior @ (I15 - K @ H).T + K @ R @ K.T
 
         # Reset
         self._ins.reset(self._ins.x + dx[0:9])
