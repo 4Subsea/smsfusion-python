@@ -567,7 +567,7 @@ class AidedINS:
         if head_degrees:
             head = np.radians(head)
 
-        # Transformation matrices
+        # Setup transformation matrices based on AHRS 'measurement'
         R_bn = _rot_matrix_from_euler(theta_ext).T  # body-to-NED rotation matrix
         T = _angular_matrix_from_euler(theta_ext)   # rotation rates to Euler rates
 
