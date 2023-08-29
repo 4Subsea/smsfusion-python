@@ -345,6 +345,7 @@ class AidedINS:
         var_ahrs = np.asarray_chkfinite(var_ahrs).reshape(3).copy()
 
         # Attitude Heading Reference System (AHRS)
+        # TODO: initial value
         self._ahrs = AHRS(fs, self._Kp, self._Ki)
 
         # Strapdown algorithm
@@ -584,7 +585,7 @@ class AidedINS:
         # Discretize
         # phi, Q = van_loan(self._dt, F, G, W)
         phi = np.eye(15) + self._dt * F     # state transition matrix
-        Q = self._dt ** 2 * G @ W @ G.T     # process noise covariance matrix
+        Q = self._dt * G @ W @ G.T          # process noise covariance matrix
 
         # Compute Kalman gain
         K = P_prior @ H.T @ inv(H @ P_prior @ H.T + R)
