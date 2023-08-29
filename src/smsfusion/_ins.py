@@ -568,14 +568,11 @@ class AidedINS:
         if head_degrees:
             head = np.radians(head)
 
-        # Measurements
-        z = np.r_[pos, theta_ext.reshape(3, 1)]
-
         # Transformation matrices
-        R_bn = _rot_matrix_from_euler(theta_ext).T  # body-to-NED
-        T = _angular_matrix_from_euler(theta_ext)
+        R_bn = _rot_matrix_from_euler(theta_ext).T  # body-to-NED rotation matrix
+        T = _angular_matrix_from_euler(theta_ext)   # rotation rates to Euler rates
 
-        # Update system matrices with attitude 'measurements'
+        # Update system matrices with AHRS attitude 'measurements'
         self._F[3:6, 9:12] = -R_bn
         self._F[6:9, 12:15] = -T
         self._G[3:6, 0:3] = -R_bn
@@ -595,6 +592,9 @@ class AidedINS:
         phi = np.eye(15) + self._dt * F     # state transition matrix
         Q = self._dt * G @ W @ G.T          # process noise covariance matrix
 
+        # Measurement
+        z = np.r_[pos, theta_ext.reshape(3, 1)]
+
         # Compute Kalman gain
         K = P_prior @ H.T @ inv(H @ P_prior @ H.T + R)
 
@@ -606,7 +606,6 @@ class AidedINS:
         P = (np.eye(15) - K @ H) @ P_prior @ (np.eye(15) - K @ H).T + K @ R @ K.T
 
         # Reset
-        # self._reset_ins()
         self._ins.reset(self._ins.x + dx[0:9])
         self._bias_ins = dx[9:15]
 
