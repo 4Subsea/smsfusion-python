@@ -355,8 +355,7 @@ class AidedINS:
         var_ahrs = np.asarray_chkfinite(var_ahrs).reshape(3).copy()
 
         # Attitude Heading Reference System (AHRS)
-        # TODO: initial value
-        self._ahrs = AHRS(fs, self._Kp, self._Ki)
+        self._ahrs = AHRS(fs, self._Kp, self._Ki)   # TODO: use initial attitude from x0
 
         # Strapdown algorithm
         self._ins = StrapdownINS(self._x0[0:9])
@@ -366,8 +365,8 @@ class AidedINS:
         self._P_prior = np.eye(15)
 
         # Prepare system matrices
-        self._F = self._prep_F_matrix(acc_err, gyro_err, self._theta)
-        self._G = self._prep_G_matrix(acc_err, gyro_err, self._theta)
+        self._F = self._prep_F_matrix(acc_err, gyro_err, self._theta.flatten())
+        self._G = self._prep_G_matrix(self._theta.flatten())
         self._W = self._prep_W_matrix(acc_err, gyro_err)
         self._H = self._prep_H_matrix()
         self._R = np.diag(np.r_[var_pos, var_ahrs])
@@ -477,7 +476,7 @@ class AidedINS:
     @staticmethod
     def _prep_F_matrix(acc_err, gyro_err, theta_rad):
         """Prepare state matrix"""
-        theta_rad = np.asarray_chkfinite(theta_rad).reshape(3)
+
         beta_acc = 1.0 / acc_err["tau_cb"]
         beta_gyro = 1.0 / gyro_err["tau_cb"]
 
@@ -495,9 +494,8 @@ class AidedINS:
         return F
 
     @staticmethod
-    def _prep_G_matrix(acc_err, gyro_err, theta_rad):
+    def _prep_G_matrix(theta_rad):
         """Prepare (white noise) input matrix"""
-        theta_rad = np.asarray_chkfinite(theta_rad).reshape(3)
 
         R_bn = _rot_matrix_from_euler(theta_rad).T  # body-to-NED
         T = _angular_matrix_from_euler(theta_rad)
