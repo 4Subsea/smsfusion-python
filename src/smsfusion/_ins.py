@@ -322,9 +322,9 @@ class AidedINS:
         Sampling rate (Hz).
     x0 : array-like (15,)
         Initial state vector as 1-D array of length 15.
-    acc_err : dict
+    err_acc : dict
         Accelerometer noise parameters.
-    gyro_err : dict
+    err_gyro : dict
         Gyroscope noise parameters.
     var_pos : array-like (3,)
         Position measurement noise variance.
@@ -345,11 +345,11 @@ class AidedINS:
     _Kp = 0.05
     _Ki = 0.035
 
-    def __init__(self, fs, x0, acc_err, gyro_err, var_pos, var_ahrs):
+    def __init__(self, fs, x0, err_acc, err_gyro, var_pos, var_ahrs):
         self._fs = fs
         self._dt = 1.0 / fs
-        self._acc_err = acc_err
-        self._gyro_err = gyro_err
+        self._err_acc = err_acc
+        self._err_gyro = err_gyro
         self._x0 = np.asarray_chkfinite(x0).reshape(15, 1).copy()
         var_pos = np.asarray_chkfinite(var_pos).reshape(3).copy()
         var_ahrs = np.asarray_chkfinite(var_ahrs).reshape(3).copy()
@@ -365,9 +365,9 @@ class AidedINS:
         self._P_prior = np.eye(15)
 
         # Prepare system matrices
-        self._F = self._prep_F_matrix(acc_err, gyro_err, self._theta.flatten())
+        self._F = self._prep_F_matrix(err_acc, err_gyro, self._theta.flatten())
         self._G = self._prep_G_matrix(self._theta.flatten())
-        self._W = self._prep_W_matrix(acc_err, gyro_err)
+        self._W = self._prep_W_matrix(err_acc, err_gyro)
         self._H = self._prep_H_matrix()
         self._R = np.diag(np.r_[var_pos, var_ahrs])
 
@@ -474,11 +474,11 @@ class AidedINS:
         return theta
 
     @staticmethod
-    def _prep_F_matrix(acc_err, gyro_err, theta_rad):
+    def _prep_F_matrix(err_acc, err_gyro, theta_rad):
         """Prepare state matrix"""
 
-        beta_acc = 1.0 / acc_err["tau_cb"]
-        beta_gyro = 1.0 / gyro_err["tau_cb"]
+        beta_acc = 1.0 / err_acc["tau_cb"]
+        beta_gyro = 1.0 / err_gyro["tau_cb"]
 
         R_bn = _rot_matrix_from_euler(theta_rad).T  # body-to-NED
         T = _angular_matrix_from_euler(theta_rad)
@@ -510,14 +510,14 @@ class AidedINS:
         return G
 
     @staticmethod
-    def _prep_W_matrix(acc_err, gyro_err):
+    def _prep_W_matrix(err_acc, err_gyro):
         """Prepare white noise power spectral density matrix"""
-        N_acc = acc_err["N"]
-        sigma_acc = acc_err["B"]
-        beta_acc = 1.0 / acc_err["tau_cb"]
-        N_gyro = gyro_err["N"]
-        sigma_gyro = gyro_err["B"]
-        beta_gyro = 1.0 / gyro_err["tau_cb"]
+        N_acc = err_acc["N"]
+        sigma_acc = err_acc["B"]
+        beta_acc = 1.0 / err_acc["tau_cb"]
+        N_gyro = err_gyro["N"]
+        sigma_gyro = err_gyro["B"]
+        beta_gyro = 1.0 / err_gyro["tau_cb"]
 
         # White noise power spectral density matrix
         W = np.eye(12)
