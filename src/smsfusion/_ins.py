@@ -586,7 +586,6 @@ class AidedINS:
         x_ins = self._x_ins                 # INS state
 
         # Discretize
-        # phi, Q = van_loan(self._dt, F, G, W)
         phi = np.eye(15) + self._dt * F     # state transition matrix
         Q = self._dt * G @ W @ G.T          # process noise covariance matrix
 
