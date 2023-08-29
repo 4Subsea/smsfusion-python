@@ -1,4 +1,4 @@
 from ._ahrs import AHRS
-from ._ins import StrapdownINS, gravity
+from ._ins import AidedINS, StrapdownINS, gravity
 
-__all__ = ["AHRS", "gravity", "StrapdownINS"]
+__all__ = ["AHRS", "AidedINS", "gravity", "StrapdownINS"]

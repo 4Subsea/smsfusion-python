@@ -355,7 +355,7 @@ class AidedINS:
         var_ahrs = np.asarray_chkfinite(var_ahrs).reshape(3).copy()
 
         # Attitude Heading Reference System (AHRS)
-        self._ahrs = AHRS(fs, self._Kp, self._Ki)   # TODO: use initial attitude from x0
+        self._ahrs = AHRS(fs, self._Kp, self._Ki)  # TODO: use initial attitude from x0
 
         # Strapdown algorithm
         self._ins = StrapdownINS(self._x0[0:9])
@@ -380,7 +380,7 @@ class AidedINS:
     @property
     def _x(self):
         """Full state (i.e., INS state + error state)"""
-        return self._x_ins   # error state is zero due to reset
+        return self._x_ins  # error state is zero due to reset
 
     @property
     def _p(self) -> NDArray[np.float64]:
@@ -569,7 +569,7 @@ class AidedINS:
 
         # Setup transformation matrices based on AHRS 'measurement'
         R_bn = _rot_matrix_from_euler(theta_ext).T  # body-to-NED rotation matrix
-        T = _angular_matrix_from_euler(theta_ext)   # rotation rates to Euler rates
+        T = _angular_matrix_from_euler(theta_ext)  # rotation rates to Euler rates
 
         # Update system matrices with AHRS attitude 'measurements'
         self._F[3:6, 9:12] = -R_bn
@@ -577,18 +577,18 @@ class AidedINS:
         self._G[3:6, 0:3] = -R_bn
         self._G[6:9, 3:6] = -T
 
-        F = self._F                         # state matrix
-        G = self._G                         # (white noise) input matrix
-        H = self._H                         # measurement matrix
-        W = self._W                         # white niser powerr spectral density matrix
-        R = self._R                         # measurement noise covariance matrix
-        P_prior = self._P_prior             # error covariance matrix
-        x_ins = self._x_ins                 # INS state
-        I15 = self._I15                     # 15x15 identity matrix
+        F = self._F  # state matrix
+        G = self._G  # (white noise) input matrix
+        H = self._H  # measurement matrix
+        W = self._W  # white niser powerr spectral density matrix
+        R = self._R  # measurement noise covariance matrix
+        P_prior = self._P_prior  # error covariance matrix
+        x_ins = self._x_ins  # INS state
+        I15 = self._I15  # 15x15 identity matrix
 
         # Discretize
-        phi = I15 + self._dt * F     # state transition matrix
-        Q = self._dt * G @ W @ G.T          # process noise covariance matrix
+        phi = I15 + self._dt * F  # state transition matrix
+        Q = self._dt * G @ W @ G.T  # process noise covariance matrix
 
         # Measurement
         z = np.r_[pos, theta_ext.reshape(3, 1)]
