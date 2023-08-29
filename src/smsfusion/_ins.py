@@ -330,6 +330,14 @@ class AidedINS:
         Position measurement noise variance.
     var_ahrs : array-like (3,)
         Attitude measurement noise variance. I.e., the variance of the AHRS error.
+
+    Notes
+    -----
+    Known limitations:
+        * Update assumes that aiding measurements are available at each time step.
+        * Only position and AHRS aiding available.
+        * Constant sampling.
+        * AHRS gain factor parameters not configurable.
     """
 
     _Kp = 0.05
