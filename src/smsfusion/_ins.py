@@ -361,7 +361,6 @@ class AidedINS:
         self._bias_ins = np.zeros((6, 1))
 
         # Error-state Kalman filter
-        self._dx_prior = np.zeros((15, 1))
         self._P_prior = np.eye(15)
 
         # Prepare system matrices
@@ -584,7 +583,6 @@ class AidedINS:
         W = self._W                         # white niser powerr spectral density matrix
         R = self._R                         # measurement noise covariance matrix
         P_prior = self._P_prior             # error covariance matrix
-        dx_prior = self._dx_prior           # prior error-state estimate
         x_ins = self._x_ins                 # INS state
 
         # Discretize
@@ -600,7 +598,7 @@ class AidedINS:
 
         # Update error-state estimate with measurement
         dz = z - H @ x_ins
-        dx = dx_prior + K @ (dz - H @ dx_prior)
+        dx = K @ dz
 
         # Compute error covariance for updated estimate
         P = (np.eye(15) - K @ H) @ P_prior @ (np.eye(15) - K @ H).T + K @ R @ K.T
@@ -610,7 +608,6 @@ class AidedINS:
         self._bias_ins = dx[9:15]
 
         # Project ahead
-        # self._dx_prior = phi @ self._dx
         f_ins = f_imu - self._bias_ins[0:3]
         w_ins = w_imu - self._bias_ins[3:6]
         self._ins.update(self._dt, f_ins, w_ins, theta_ext=theta_ext, degrees=False)
