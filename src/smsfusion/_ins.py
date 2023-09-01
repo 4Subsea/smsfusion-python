@@ -338,6 +338,7 @@ class AidedINS:
         * Only position and AHRS aiding available.
         * Constant sampling.
         * AHRS gain factor parameters not configurable.
+        * Initial error covariance matrix, P, can not be set during initialization.
     """
 
     _I15 = np.eye(15)

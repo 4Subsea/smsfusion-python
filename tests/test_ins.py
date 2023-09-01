@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
-from smsfusion._ins import StrapdownINS, gravity
+from smsfusion._ins import AHRS, AidedINS, StrapdownINS, gravity
 from smsfusion._transforms import _angular_matrix_from_euler
 
 
@@ -212,3 +212,52 @@ class Test_StrapdownINS:
             -1, 1
         )
         np.testing.assert_array_almost_equal(x_out, x_expect)
+
+
+class Test_AidedINS:
+    def test__init__(self):
+        x0 = np.zeros(15)
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+        var_pos = [1.0, 2.0, 3.0]
+        var_ahrs = [4.0, 5.0, 6.0]
+        ins = AidedINS(10.24, x0, err_acc, err_gyro, var_pos, var_ahrs)
+
+        assert isinstance(ins, AidedINS)
+        assert ins._fs == 10.24
+        assert ins._dt == 1.0 / 10.24
+        assert ins._err_acc == err_acc
+        assert ins._err_gyro == err_gyro
+        assert isinstance(ins._ahrs, AHRS)
+        assert isinstance(ins._ins, StrapdownINS)
+        np.testing.assert_array_almost_equal(ins._bias_ins, np.zeros((6, 1)))
+        np.testing.assert_array_almost_equal(ins._P_prior, np.eye(15))
+
+        # State matrix
+        F_expect = np.zeros((15, 15))
+        F_expect[0:3, 3:6] = np.eye(3)
+        F_expect[3:6, 9:12] = -np.eye(3)
+        F_expect[6:9, 12:15] = -np.eye(3)
+        F_expect[9:12, 9:12] = -(1.0 / err_acc["tau_cb"]) * np.eye(3)
+        F_expect[12:15, 12:15] = -(1.0 / err_gyro["tau_cb"]) * np.eye(3)
+        np.testing.assert_array_almost_equal(ins._F, F_expect)
+
+        # Input (white noise) matrix
+        G_expect = np.zeros((15, 12))
+        G_expect[3:6, 0:3] = -np.eye(3)
+        G_expect[6:9, 3:6] = -np.eye(3)
+        G_expect[9:12, 6:9] = np.eye(3)
+        G_expect[12:15, 9:12] = np.eye(3)
+        np.testing.assert_array_almost_equal(ins._G, G_expect)
+
+        # White noise power spectral density matrix
+        W_expect = np.eye(12)
+        W_expect[0:3, 0:3] *= err_acc["N"] ** 2
+        W_expect[3:6, 3:6] *= err_gyro["N"] ** 2
+        W_expect[6:9, 6:9] *= 2.0 * err_acc["B"] ** 2 * (1.0 / err_acc["tau_cb"])
+        W_expect[9:12, 9:12] *= 2.0 * err_gyro["B"] ** 2 * (1.0 / err_gyro["tau_cb"])
+        np.testing.assert_array_almost_equal(ins._W, W_expect)
+
+        # Measurement noise covariance matrix
+        R_expect = np.diag(np.r_[var_pos, var_ahrs])
+        np.testing.assert_array_almost_equal(ins._R, R_expect)
