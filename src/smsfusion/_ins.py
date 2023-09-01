@@ -543,18 +543,22 @@ class AidedINS:
 
     def update(self, f_imu, w_imu, head, pos, degrees=False, head_degrees=True):
         """
-        Update the AINS with measurements, and project ahead.
+        Update the AINS state estimates based on measurements, and project ahead.
 
         Parameters
         ----------
         f_imu : array-like (3,)
             IMU specific force measurements (i.e., accelerations + gravity). Given as
-            ``[f_x, f_y, f_z]^T`` where ``f_x``, ``f_y`` and ``f_z`` are
-            acceleration measurements in x-, y-, and z-direction, respectively.
+            `[f_x, f_y, f_z]^T` where `f_x`, `f_y` and `f_z` are acceleration measurements
+            in x-, y-, and z-direction, respectively.
         w_imu : array-like (3,)
-            IMU rotation rate measurements. Given as ``[w_x, w_y, w_z]^T`` where
-            ``w_x``, ``w_y`` and ``w_z`` are rotation rates about the x-, y-,
-            and z-axis, respectively. Unit determined with ``degrees`` keyword argument.
+            IMU rotation rate measurements. Given as `[w_x, w_y, w_z]^T` where
+            `w_x`, `w_y` and `w_z` are rotation rates about the x-, y-, and z-axis,
+            respectively. Unit determined with `degrees` keyword argument.
+        head : array-like (3,)
+            Heading measurement. I.e., yaw angle.
+        pos : array-like (3,)
+            Position measurement.
         degrees : bool
             Whether the rotation rates are given in `degrees` (``True``) or `radians`
             (``False``).
