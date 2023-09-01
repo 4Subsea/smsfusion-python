@@ -9,5 +9,6 @@ API reference
    :toctree: api/
 
    AHRS
+   AidedINS
    gravity
    StrapdownINS
