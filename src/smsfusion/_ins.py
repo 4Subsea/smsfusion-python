@@ -319,19 +319,24 @@ class AidedINS:
     Parameters
     ----------
     fs : float
-        Sampling rate (Hz).
+        Sampling rate in Hz.
     x0 : array-like (15,)
-        Initial state vector.
+        Initial state vector containing the following elements in order:
+            - Position in x, y, z directions (3 elements).
+            - Velocity in x, y, z directions (3 elements).
+            - Euler angles: alpha (roll), beta (pitch), and gamma (yaw) (3 elements).
+            - Accelerometer bias in x, y, z directions (3 elements).
+            - Gyroscope bias in x, y, z directions (3 elements).
     err_acc : dict
         Dictionary containing accelerometer noise parameters:
-            * N: White noise power spectral density in (m/s^2)/sqrt(Hz).
-            * B: Bias stability in m/s^2.
-            * tau_cb: Bias correlation time in seconds.
+            - N: White noise power spectral density in (m/s^2)/sqrt(Hz).
+            - B: Bias stability in m/s^2.
+            - tau_cb: Bias correlation time in seconds.
     err_gyro : dict
         Dictionary containing gyroscope noise parameters:
-            * N: White noise power spectral density in (rad/s)/sqrt(Hz).
-            * B: Bias stability in 'rad/s'.
-            * tau_cb: Bias correlation time in 's'.
+            - N: White noise power spectral density in (rad/s)/sqrt(Hz).
+            - B: Bias stability in 'rad/s'.
+            - tau_cb: Bias correlation time in 's'.
     var_pos : array-like (3,)
         Variance of position measurement noise in m/s^2
     var_ahrs : array-like (3,)
@@ -341,12 +346,12 @@ class AidedINS:
     Notes
     -----
     This AINS model has the following limitations:
-    - Assumes aiding measurements are available at every time step.
-    - Supports only position and AHRS aiding.
-    - Operates at a constant sampling rate.
-    - AHRS gain factor parameters are not configurable.
-    - Initial error covariance matrix, P, is fixed to the identity matrix, and cannot
-      be set during initialization.
+        - Assumes aiding measurements are available at every time step.
+        - Supports only position and AHRS aiding.
+        - Operates at a constant sampling rate.
+        - AHRS gain factor parameters are not configurable.
+        - Initial error covariance matrix, P, is fixed to the identity matrix, and
+          cannot be set during initialization.
     """
 
     _I15 = np.eye(15)
