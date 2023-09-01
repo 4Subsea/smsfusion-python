@@ -360,3 +360,22 @@ class Test_AidedINS:
         theta_out = ains.attitude(degrees=True)
         theta_expect = (180.0 / np.pi) * theta0.reshape(-1, 1)
         np.testing.assert_array_almost_equal(theta_out, theta_expect)
+
+    def test__prep_F_matrix(self):
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+        theta = np.array([np.pi / 8, np.pi / 16, 0.0])
+
+        F_out = AidedINS._prep_F_matrix(err_acc, err_gyro, theta)
+
+        # State matrix
+        R_bn = _rot_matrix_from_euler(theta).T
+        T = _angular_matrix_from_euler(theta)
+        F_expect = np.zeros((15, 15))
+        F_expect[0:3, 3:6] = np.eye(3)
+        F_expect[3:6, 9:12] = -R_bn
+        F_expect[6:9, 12:15] = -T
+        F_expect[9:12, 9:12] = -(1.0 / err_acc["tau_cb"]) * np.eye(3)
+        F_expect[12:15, 12:15] = -(1.0 / err_gyro["tau_cb"]) * np.eye(3)
+
+        np.testing.assert_array_almost_equal(F_out, F_expect)
