@@ -379,3 +379,35 @@ class Test_AidedINS:
         F_expect[12:15, 12:15] = -(1.0 / err_gyro["tau_cb"]) * np.eye(3)
 
         np.testing.assert_array_almost_equal(F_out, F_expect)
+
+    def test__prep_G_matrix(self):
+        theta = np.array([np.pi / 8, np.pi / 16, 0.0])
+
+        G_out = AidedINS._prep_G_matrix(theta)
+
+        # Input (white noise) matrix
+        R_bn = _rot_matrix_from_euler(theta).T
+        T = _angular_matrix_from_euler(theta)
+        G_expect = np.zeros((15, 12))
+        G_expect[3:6, 0:3] = -R_bn
+        G_expect[6:9, 3:6] = -T
+        G_expect[9:12, 6:9] = np.eye(3)
+        G_expect[12:15, 9:12] = np.eye(3)
+
+        np.testing.assert_array_almost_equal(G_out, G_expect)
+
+    def test__prep_W_matrix(self):
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+        theta = np.array([np.pi / 8, np.pi / 16, 0.0])
+
+        W_out = AidedINS._prep_W_matrix(err_acc, err_gyro)
+
+        # White noise power spectral density matrix
+        W_expect = np.eye(12)
+        W_expect[0:3, 0:3] *= err_acc["N"]**2
+        W_expect[3:6, 3:6] *= err_gyro["N"]**2
+        W_expect[6:9, 6:9] *= 2.0 * err_acc["B"]**2 * (1.0 / err_acc["tau_cb"])
+        W_expect[9:12, 9:12] *= 2.0 * err_gyro["B"]**2 * (1.0 / err_gyro["tau_cb"])
+
+        np.testing.assert_array_almost_equal(W_out, W_expect)
