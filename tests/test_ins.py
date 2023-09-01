@@ -13,7 +13,7 @@ import pytest
 from scipy.spatial.transform import Rotation
 
 from smsfusion._ins import AHRS, AidedINS, StrapdownINS, gravity
-from smsfusion._transforms import _angular_matrix_from_euler
+from smsfusion._transforms import _angular_matrix_from_euler, _rot_matrix_from_euler
 
 
 @pytest.mark.parametrize(
@@ -215,7 +215,6 @@ class Test_StrapdownINS:
 
 
 class Test_AidedINS:
-
     @pytest.fixture
     def ains(self):
         x0 = np.zeros(15)
@@ -265,10 +264,10 @@ class Test_AidedINS:
 
         # White noise power spectral density matrix
         W_expect = np.eye(12)
-        W_expect[0:3, 0:3] *= err_acc["N"]**2
-        W_expect[3:6, 3:6] *= err_gyro["N"]**2
-        W_expect[6:9, 6:9] *= 2.0 * err_acc["B"]**2 * (1.0 / err_acc["tau_cb"])
-        W_expect[9:12, 9:12] *= 2.0 * err_gyro["B"]**2 * (1.0 / err_gyro["tau_cb"])
+        W_expect[0:3, 0:3] *= err_acc["N"] ** 2
+        W_expect[3:6, 3:6] *= err_gyro["N"] ** 2
+        W_expect[6:9, 6:9] *= 2.0 * err_acc["B"] ** 2 * (1.0 / err_acc["tau_cb"])
+        W_expect[9:12, 9:12] *= 2.0 * err_gyro["B"] ** 2 * (1.0 / err_gyro["tau_cb"])
         np.testing.assert_array_almost_equal(ains._W, W_expect)
 
         # Measurement noise covariance matrix
@@ -278,7 +277,7 @@ class Test_AidedINS:
     def test_x(self):
         p0 = np.array([1.0, 2.0, 3.0])
         v0 = np.array([0.1, 0.2, 0.3])
-        theta0 = np.array([np.pi/4, np.pi/8, np.pi/16])
+        theta0 = np.array([np.pi / 4, np.pi / 8, np.pi / 16])
         b_acc0 = np.array([0.001, 0.002, 0.003])
         b_gyro0 = np.array([0.004, 0.005, 0.006])
         x0 = np.r_[p0, v0, theta0, b_acc0, b_gyro0]
@@ -296,7 +295,7 @@ class Test_AidedINS:
     def test_position(self):
         p0 = np.array([1.0, 2.0, 3.0])
         v0 = np.array([0.1, 0.2, 0.3])
-        theta0 = np.array([np.pi/4, np.pi/8, np.pi/16])
+        theta0 = np.array([np.pi / 4, np.pi / 8, np.pi / 16])
         b_acc0 = np.array([0.001, 0.002, 0.003])
         b_gyro0 = np.array([0.004, 0.005, 0.006])
         x0 = np.r_[p0, v0, theta0, b_acc0, b_gyro0]
@@ -313,7 +312,7 @@ class Test_AidedINS:
     def test_velocity(self):
         p0 = np.array([1.0, 2.0, 3.0])
         v0 = np.array([0.1, 0.2, 0.3])
-        theta0 = np.array([np.pi/4, np.pi/8, np.pi/16])
+        theta0 = np.array([np.pi / 4, np.pi / 8, np.pi / 16])
         b_acc0 = np.array([0.001, 0.002, 0.003])
         b_gyro0 = np.array([0.004, 0.005, 0.006])
         x0 = np.r_[p0, v0, theta0, b_acc0, b_gyro0]
@@ -330,7 +329,7 @@ class Test_AidedINS:
     def test_attitude_radians(self):
         p0 = np.array([1.0, 2.0, 3.0])
         v0 = np.array([0.1, 0.2, 0.3])
-        theta0 = np.array([np.pi/4, np.pi/8, np.pi/16])
+        theta0 = np.array([np.pi / 4, np.pi / 8, np.pi / 16])
         b_acc0 = np.array([0.001, 0.002, 0.003])
         b_gyro0 = np.array([0.004, 0.005, 0.006])
         x0 = np.r_[p0, v0, theta0, b_acc0, b_gyro0]
@@ -347,7 +346,7 @@ class Test_AidedINS:
     def test_attitude_degrees(self):
         p0 = np.array([1.0, 2.0, 3.0])
         v0 = np.array([0.1, 0.2, 0.3])
-        theta0 = np.array([np.pi/4, np.pi/8, np.pi/16])
+        theta0 = np.array([np.pi / 4, np.pi / 8, np.pi / 16])
         b_acc0 = np.array([0.001, 0.002, 0.003])
         b_gyro0 = np.array([0.004, 0.005, 0.006])
         x0 = np.r_[p0, v0, theta0, b_acc0, b_gyro0]
@@ -404,10 +403,10 @@ class Test_AidedINS:
 
         # White noise power spectral density matrix
         W_expect = np.eye(12)
-        W_expect[0:3, 0:3] *= err_acc["N"]**2
-        W_expect[3:6, 3:6] *= err_gyro["N"]**2
-        W_expect[6:9, 6:9] *= 2.0 * err_acc["B"]**2 * (1.0 / err_acc["tau_cb"])
-        W_expect[9:12, 9:12] *= 2.0 * err_gyro["B"]**2 * (1.0 / err_gyro["tau_cb"])
+        W_expect[0:3, 0:3] *= err_acc["N"] ** 2
+        W_expect[3:6, 3:6] *= err_gyro["N"] ** 2
+        W_expect[6:9, 6:9] *= 2.0 * err_acc["B"] ** 2 * (1.0 / err_acc["tau_cb"])
+        W_expect[9:12, 9:12] *= 2.0 * err_gyro["B"] ** 2 * (1.0 / err_gyro["tau_cb"])
 
         np.testing.assert_array_almost_equal(W_out, W_expect)
 
