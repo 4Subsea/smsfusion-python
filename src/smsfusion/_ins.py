@@ -321,24 +321,32 @@ class AidedINS:
     fs : float
         Sampling rate (Hz).
     x0 : array-like (15,)
-        Initial state vector as 1-D array of length 15.
+        Initial state vector.
     err_acc : dict
-        Accelerometer noise parameters.
+        Dictionary containing accelerometer noise parameters:
+            * N: White noise power spectral density in (m/s^2)/sqrt(Hz).
+            * B: Bias stability in m/s^2.
+            * tau_cb: Bias correlation time in seconds.
     err_gyro : dict
-        Gyroscope noise parameters.
+        Dictionary containing gyroscope noise parameters:
+            * N: White noise power spectral density in (rad/s)/sqrt(Hz).
+            * B: Bias stability in 'rad/s'.
+            * tau_cb: Bias correlation time in 's'.
     var_pos : array-like (3,)
-        Position measurement noise variance.
+        Variance of position measurement noise in m/s^2
     var_ahrs : array-like (3,)
-        Attitude measurement noise variance. I.e., the variance of the AHRS error.
+        Variance of attitude measurements in rad^2. Specifically, it refers to the
+        variance of the AHRS error.
 
     Notes
     -----
-    Known limitations:
-        * Update assumes that aiding measurements are available at each time step.
-        * Only position and AHRS aiding available.
-        * Constant sampling.
-        * AHRS gain factor parameters not configurable.
-        * Initial error covariance matrix, P, cannot be set during initialization.
+    This AINS model has the following limitations:
+    - Assumes aiding measurements are available at every time step.
+    - Supports only position and AHRS aiding.
+    - Operates at a constant sampling rate.
+    - AHRS gain factor parameters are not configurable.
+    - Initial error covariance matrix, P, is fixed to the identity matrix, and cannot
+      be set during initialization.
     """
 
     _I15 = np.eye(15)
