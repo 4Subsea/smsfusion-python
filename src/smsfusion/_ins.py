@@ -335,8 +335,8 @@ class AidedINS:
     err_gyro : dict
         Dictionary containing gyroscope noise parameters:
             - N: White noise power spectral density in (rad/s)/sqrt(Hz).
-            - B: Bias stability in 'rad/s'.
-            - tau_cb: Bias correlation time in 's'.
+            - B: Bias stability in rad/s.
+            - tau_cb: Bias correlation time in seconds.
     var_pos : array-like (3,)
         Variance of position measurement noise in m/s^2
     var_ahrs : array-like (3,)
