@@ -416,7 +416,7 @@ class AidedINS:
         Returns
         -------
         x : ndarray (15, 1)
-            The current AINS state vector containing the following elements in order:
+            The current state vector, containing the following elements in order:
                 - Position in x, y, z directions (3 elements).
                 - Velocity in x, y, z directions (3 elements).
                 - Euler angles: alpha (roll), beta (pitch), and gamma (yaw) (3 elements).
@@ -432,7 +432,7 @@ class AidedINS:
         Returns
         -------
         position : ndarray (3, 1)
-            The current position vector from the AINS, containing the following elements:
+            The current position vector, containing the following elements:
                 - Position in x direction.
                 - Position in y direction.
                 - Position in z direction.
@@ -441,19 +441,15 @@ class AidedINS:
 
     def velocity(self) -> NDArray[np.float64]:
         """
-        Current velocity vector estimate.
-
-        Given as as:
-
-            ``v = [v_x, v_y, v_z]^T``
-
-        where ``v_x``, ``v_y`` and ``v_z`` are (linear) velocity components in x-, y-,
-        and z-direction respectively.
+        Current AINS velocity estimate.
 
         Returns
         -------
-        v : ndarray
-            Velocity as array of shape (3, 1).
+        position : ndarray (3, 1)
+            The current velocity vector, containing the following elements:
+                - Velocity in x direction.
+                - Velocity in y direction.
+                - Velocity in z direction.
         """
         return self._v.copy()
 
