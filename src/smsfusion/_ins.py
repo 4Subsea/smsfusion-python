@@ -411,39 +411,31 @@ class AidedINS:
     @property
     def x(self) -> NDArray[np.float64]:
         """
-        Current state vector estimate.
-
-        Given as as:
-
-            ``x = [p_x, p_y, p_z, v_x, v_y, v_z, alpha, beta, gamma]^T``
-
-        where ``p_x``, ``p_y`` and ``p_z`` are position coordinates
-        (in x-, y- and z-direction), ``v_x``, ``v_y`` and ``v_z`` are (linear) velocities
-        (in x-, y- and z-direction), and ``alpha``, ``beta`` and ``gamma`` are Euler angles
-        (given in radians).
+        Current AINS state estimate.
 
         Returns
         -------
-        x : ndarray
-            State as array of shape (9, 1).
+        x : ndarray (15, 1)
+            The current AINS state vector containing the following elements in order:
+                - Position in x, y, z directions (3 elements).
+                - Velocity in x, y, z directions (3 elements).
+                - Euler angles: alpha (roll), beta (pitch), and gamma (yaw) (3 elements).
+                - Accelerometer bias in x, y, z directions (3 elements).
+                - Gyroscope bias in x, y, z directions (3 elements).
         """
         return self._x.copy()
 
     def position(self) -> NDArray[np.float64]:
         """
-        Current position vector estimate.
-
-        Given as as:
-
-            ``p = [p_x, p_y, p_z]^T``
-
-        where ``p_x``, ``p_y`` and ``p_z`` are position coordinates in x-, y-, and
-        z-direction respectively.
+        Current AINS position estimate.
 
         Returns
         -------
-        p : ndarray
-            Position as array of shape (3, 1).
+        position : ndarray (3, 1)
+            The current position vector from the AINS, containing the following elements:
+                - Position in x direction.
+                - Position in y direction.
+                - Position in z direction.
         """
         return self._p.copy()
 
