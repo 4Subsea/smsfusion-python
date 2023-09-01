@@ -529,7 +529,8 @@ class AidedINS:
 
         return W
 
-    def _prep_H_matrix(self):
+    @staticmethod
+    def _prep_H_matrix():
         """Prepare measurement matrix"""
         H = np.zeros((6, 15))
         H[0:3, 0:3] = np.eye(3)  # position

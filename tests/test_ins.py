@@ -399,7 +399,6 @@ class Test_AidedINS:
     def test__prep_W_matrix(self):
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-        theta = np.array([np.pi / 8, np.pi / 16, 0.0])
 
         W_out = AidedINS._prep_W_matrix(err_acc, err_gyro)
 
@@ -411,3 +410,12 @@ class Test_AidedINS:
         W_expect[9:12, 9:12] *= 2.0 * err_gyro["B"]**2 * (1.0 / err_gyro["tau_cb"])
 
         np.testing.assert_array_almost_equal(W_out, W_expect)
+
+    def test__prep_H_matrix(self):
+        H_out = AidedINS._prep_H_matrix()
+
+        H_expect = np.zeros((6, 15))
+        H_expect[0:3, 0:3] = np.eye(3)
+        H_expect[3:6, 6:9] = np.eye(3)
+
+        np.testing.assert_array_almost_equal(H_out, H_expect)
