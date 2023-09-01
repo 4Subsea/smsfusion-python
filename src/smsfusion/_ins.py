@@ -455,18 +455,21 @@ class AidedINS:
 
     def attitude(self, degrees: bool = False) -> NDArray[np.float64]:
         """
-        Current attitude estimate as vector of Euler angles (i.e., roll, pitch and yaw).
+        Current AINS attitude estimate as Euler angles (i.e., roll, pitch, yaw).
 
-        Given as as:
-
-            ``theta = [alpha, beta, gamma]^T``
-
-        where ``alpha``, ``beta`` and ``gamma`` are the Euler angles (given in radians).
+        Parameters
+        ----------
+        degrees : bool, default=False
+            If `True`, the Euler angles are returned in degrees. If `False`, they
+            are returned in radians.
 
         Returns
         -------
-        theta : ndarray
-            Attitude as array of shape (3, 1).
+        attitude : ndarray (3, 1)
+            The current attitude estimate, represented by Euler angles:
+                - alpha (roll).
+                - beta (pitch).
+                - gamma (yaw).
         """
         theta = self._theta.copy()
 
