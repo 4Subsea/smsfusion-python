@@ -541,6 +541,12 @@ class AidedINS:
         H[3:6, 6:9] = np.eye(3)  # attitude
         return H
 
+    def _update_system_matrices(self, R_bn, T):
+        self._F[3:6, 9:12] = -R_bn
+        self._F[6:9, 12:15] = -T
+        self._G[3:6, 0:3] = -R_bn
+        self._G[6:9, 3:6] = -T
+
     def update(self, f_imu, w_imu, head, pos, degrees=False, head_degrees=True):
         """
         Update the AINS state estimates based on measurements, and project ahead.
@@ -583,10 +589,7 @@ class AidedINS:
         T = _angular_matrix_from_euler(theta_ext)  # rotation rates to Euler rates
 
         # Update system matrices with AHRS attitude 'measurements'
-        self._F[3:6, 9:12] = -R_bn
-        self._F[6:9, 12:15] = -T
-        self._G[3:6, 0:3] = -R_bn
-        self._G[6:9, 3:6] = -T
+        self._update_system_matrices(R_bn, T)
 
         F = self._F  # state matrix
         G = self._G  # (white noise) input matrix
@@ -597,7 +600,7 @@ class AidedINS:
         x_ins = self._x_ins  # INS state
         I15 = self._I15  # 15x15 identity matrix
 
-        # Discretize
+        # Discretize system
         phi = I15 + self._dt * F  # state transition matrix
         Q = self._dt * G @ W @ G.T  # process noise covariance matrix
 
