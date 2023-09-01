@@ -215,6 +215,17 @@ class Test_StrapdownINS:
 
 
 class Test_AidedINS:
+
+    @pytest.fixture
+    def ains(self):
+        x0 = np.zeros(15)
+        err_acc = {"N": 0.0004, "B": 0.00015, "tau_cb": 100.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 100.0}
+        var_pos = [1.0, 1.0, 1.0]
+        var_ahrs = [0.1, 0.1, 0.1]
+        ains = AidedINS(10.24, x0, err_acc, err_gyro, var_pos, var_ahrs)
+        return ains
+
     def test__init__(self):
         x0 = np.zeros(15)
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
@@ -263,3 +274,20 @@ class Test_AidedINS:
         # Measurement noise covariance matrix
         R_expect = np.diag(np.r_[var_pos, var_ahrs])
         np.testing.assert_array_almost_equal(ains._R, R_expect)
+
+    def test_x(self):
+        p0 = np.array([1.0, 2.0, 3.0])
+        v0 = np.array([0.1, 0.2, 0.3])
+        theta0 = np.array([np.pi/4, np.pi/8, np.pi/16])
+        b_acc0 = np.array([0.001, 0.002, 0.003])
+        b_gyro0 = np.array([0.004, 0.005, 0.006])
+        x0 = np.r_[p0, v0, theta0, b_acc0, b_gyro0]
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+        var_pos = [1.0, 2.0, 3.0]
+        var_ahrs = [4.0, 5.0, 6.0]
+        ains = AidedINS(10.24, x0, err_acc, err_gyro, var_pos, var_ahrs)
+
+        x_out = ains.x
+        x_expect = x0.reshape(-1, 1)
+        np.testing.assert_array_almost_equal(x_out, x_expect)
