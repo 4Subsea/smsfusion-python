@@ -228,6 +228,8 @@ class Test_AidedINS:
         assert ains._dt == 1.0 / 10.24
         assert ains._err_acc == err_acc
         assert ains._err_gyro == err_gyro
+        assert ains._Kp == 0.05
+        assert ains._Ki == 0.035
         assert isinstance(ains._ahrs, AHRS)
         assert isinstance(ains._ins, StrapdownINS)
         np.testing.assert_array_almost_equal(ains._bias_ins, np.zeros((6, 1)))
