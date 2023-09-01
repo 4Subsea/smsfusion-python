@@ -360,7 +360,7 @@ class AidedINS:
 
         # Strapdown algorithm
         self._ins = StrapdownINS(self._x0[0:9])
-        self._bias_ins = np.zeros((6, 1))
+        self._bias_ins = self._x0[9:15]
 
         # Initial Kalman filter error covariance
         self._P_prior = np.eye(15)
