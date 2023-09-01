@@ -548,23 +548,24 @@ class AidedINS:
         Parameters
         ----------
         f_imu : array-like (3,)
-            IMU specific force measurements (i.e., accelerations + gravity). Given as
-            `[f_x, f_y, f_z]^T` where `f_x`, `f_y` and `f_z` are acceleration measurements
-            in x-, y-, and z-direction, respectively.
+            IMU specific force measurements (i.e., accelerations + gravity). Given
+            as `[f_x, f_y, f_z]^T` where `f_x`, `f_y`, and `f_z` are acceleration
+            measurements in the x-, y-, and z-directions, respectively.
         w_imu : array-like (3,)
-            IMU rotation rate measurements. Given as `[w_x, w_y, w_z]^T` where
-            `w_x`, `w_y` and `w_z` are rotation rates about the x-, y-, and z-axis,
-            respectively. Unit determined with `degrees` keyword argument.
+            IMU rotation rate measurements. Given as `[w_x, w_y, w_z]^T` where `w_x`,
+            `w_y`, and `w_z` are rotation rates about the x-, y-, and z-axes, respectively.
+            The unit is determined by the `degrees` keyword argument.
         head : array-like (3,)
-            Heading measurement. I.e., yaw angle.
+            Heading measurement, i.e., yaw angle. If `head_degrees` is `True`, the
+            heading is assumed to be in degrees; otherwise, in radians.
         pos : array-like (3,)
             Position measurement.
         degrees : bool
-            Whether the rotation rates are given in `degrees` (``True``) or `radians`
-            (``False``).
-        head_degrees : bool
-            If ``True`` (default), the heading is assumed to be in
-            degrees. Otherwise in radians.
+            If `True`, the rotation rates in `w_imu` are given in degrees. Otherwise,
+            in radians.
+        head_degrees : bool, default=True
+            Specifies the unit of the `head` parameter. If `True`, the heading is
+            in degrees; otherwise, in radians.
         """
         f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3, 1).copy()
         w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3, 1).copy()
