@@ -291,3 +291,4 @@ class Test_AidedINS:
         x_out = ains.x
         x_expect = x0.reshape(-1, 1)
         np.testing.assert_array_almost_equal(x_out, x_expect)
+        assert x_out is not ains._x
