@@ -576,7 +576,7 @@ class AidedINS:
             IMU rotation rate measurements. Given as `[w_x, w_y, w_z]^T` where `w_x`,
             `w_y`, and `w_z` are rotation rates about the x-, y-, and z-axes, respectively.
             The unit is determined by the `degrees` keyword argument.
-        head : array-like (3,)
+        head : float
             Heading measurement, i.e., yaw angle. If `head_degrees` is `True`, the
             heading is assumed to be in degrees; otherwise, in radians.
         pos : array-like (3,)
