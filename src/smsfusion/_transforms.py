@@ -235,6 +235,6 @@ def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     q_z = sin_gamma2 * cos_beta2 * cos_alpha2 - cos_gamma2 * sin_beta2 * sin_alpha2
 
     q = np.array([q_w, -q_x, -q_y, -q_z])
-    q /= np.sqrt(q[0] ** 2 + q[1] ** 2 + q[2] ** 2 + q[3]**2)  # ensure unit norm
+    q /= np.sqrt(q[0] ** 2 + q[1] ** 2 + q[2] ** 2 + q[3] ** 2)  # ensure unit norm
 
     return q

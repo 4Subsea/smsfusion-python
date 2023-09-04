@@ -241,12 +241,12 @@ def test__rot_matrix_from_euler(euler):
 
 
 def test__quaternion_from_euler():
-    euler = np.random.random(3)   # passive rotations
+    euler = np.random.random(3)  # passive rotations
 
     q_out = _transforms._quaternion_from_euler(euler)
 
-    q_expect = Rotation.from_euler("ZYX", euler[::-1]).as_quat()   # active rotations
+    q_expect = Rotation.from_euler("ZYX", euler[::-1]).as_quat()  # active rotations
     q_expect = np.r_[q_expect[3], q_expect[:3]]
-    q_expect[1:] *= -1
+    q_expect[1:] *= -1  # passive rotations
 
     np.testing.assert_array_almost_equal(q_out, q_expect)
