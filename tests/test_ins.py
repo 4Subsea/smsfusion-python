@@ -383,3 +383,22 @@ class Test_AidedINS:
         H_expect[3:6, 6:9] = np.eye(3)
 
         np.testing.assert_array_almost_equal(H_out, H_expect)
+
+    def test_update_standstill(self):
+        x0 = np.zeros(15)
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+        var_pos = np.ones(3)
+        var_ahrs = np.ones(3)
+        ains = AidedINS(10.24, x0, err_acc, err_gyro, var_pos, var_ahrs)
+
+        g = gravity()
+        f_imu = np.array([0.0, 0.0, -g])
+        w_imu = np.zeros(3)
+        head = 0.0
+        pos = np.zeros(3)
+
+        ains.update(f_imu, w_imu, head, pos, degrees=True, head_degrees=True)
+        np.testing.assert_array_almost_equal(ains.x, np.zeros((15, 1)))
+        ains.update(f_imu, w_imu, head, pos, degrees=True, head_degrees=True)
+        np.testing.assert_array_almost_equal(ains.x, np.zeros((15, 1)))
