@@ -182,7 +182,7 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     Parameters
     ----------
     euler : 1D array (3,)
-        Euler angle in radians given as (roll, pitch, yaw) but rotaions are applied
+        Euler angle in radians given as (roll, pitch, yaw) but rotations are applied
         according to the ZYX convention. That is, **yaw -> pitch -> roll**.
 
     Return
@@ -219,8 +219,22 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 
 @njit  # type: ignore[misc]
 def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
-    alpha2, beta2, gamma2 = euler / 2  # half angles
+    """
+    Unit quaternion defined from Euler angles (ZYX convention) (passive rotations).
 
+    Parameters
+    ----------
+    euler : 1D array (3,)
+        Euler angle in radians given as (roll, pitch, yaw) but rotations are applied
+        according to the ZYX convention. That is, **yaw -> pitch -> roll**.
+
+    Return
+    ------
+    rot : 1D array (3,)
+        Unit quaternion.
+
+    """
+    alpha2, beta2, gamma2 = euler / 2  # half angles
     cos_alpha2 = np.cos(alpha2)
     sin_alpha2 = np.sin(alpha2)
     cos_beta2 = np.cos(beta2)
