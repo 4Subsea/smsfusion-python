@@ -234,7 +234,7 @@ def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
         Unit quaternion.
 
     """
-    alpha2, beta2, gamma2 = euler / 2  # half angles
+    alpha2, beta2, gamma2 = euler / 2.0  # half angles
     cos_alpha2 = np.cos(alpha2)
     sin_alpha2 = np.sin(alpha2)
     cos_beta2 = np.cos(beta2)
