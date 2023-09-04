@@ -217,7 +217,8 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     return rot
 
 
-def _quaternion_from_euler(euler):
+@njit  # type: ignore[misc]
+def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     alpha2, beta2, gamma2 = euler / 2  # half angles
 
     cos_alpha2 = np.cos(alpha2)
