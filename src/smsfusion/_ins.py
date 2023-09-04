@@ -55,30 +55,6 @@ def gravity(lat: float | None = None, degrees: bool = True) -> float:
     return g  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
 
 
-def van_loan(dt, F, G, W):
-    """
-    Calculate the state transition matrix, ``phi``, and the process noise covariance
-    matrix, ``Q``, using the 'Van Loan method'.
-    """
-    F = np.asarray_chkfinite(F)
-    G = np.asarray_chkfinite(G)
-    W = np.asarray_chkfinite(W)
-
-    n_states = F.shape[0]
-    A = np.zeros((2 * n_states, 2 * n_states))
-    A[:n_states, :n_states] = -F
-    A[:n_states, n_states:] = G @ W @ G.T
-    A[n_states:, n_states:] = F.T
-    A = dt * A
-
-    B = expm(A)
-
-    phi = B[n_states:, n_states:].T
-    Q = phi @ B[:n_states, n_states:]
-
-    return phi, Q
-
-
 class StrapdownINS:
     """
     Inertial navigation system (INS) strapdown algorithm.
