@@ -338,7 +338,7 @@ class AidedINS:
             - B: Bias stability in rad/s.
             - tau_cb: Bias correlation time in seconds.
     var_pos : array-like (3,)
-        Variance of position measurement noise in m/s^2
+        Variance of position measurement noise in m^2
     var_ahrs : array-like (3,)
         Variance of attitude measurements in rad^2. Specifically, it refers to the
         variance of the AHRS error.
