@@ -463,7 +463,7 @@ class AidedINS:
         Parameters
         ----------
         degrees : bool, default=False
-            If `True`, the Euler angles are returned in degrees. If `False`, they
+            If `True`, the Euler angles are returned in degrees. Otherwise, they
             are returned in radians.
 
         Returns
