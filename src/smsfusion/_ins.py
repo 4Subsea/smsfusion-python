@@ -360,7 +360,15 @@ class AidedINS:
     _Kp = 0.05
     _Ki = 0.035
 
-    def __init__(self, fs, x0, err_acc, err_gyro, var_pos, var_ahrs):
+    def __init__(
+        self,
+        fs: float,
+        x0: ArrayLike,
+        err_acc: dict,
+        err_gyro: dict,
+        var_pos: ArrayLike,
+        var_ahrs: ArrayLike,
+    ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
         self._err_acc = err_acc
@@ -387,7 +395,7 @@ class AidedINS:
         self._R = np.diag(np.r_[var_pos, var_ahrs])
 
     @property
-    def _x(self):
+    def _x(self) -> NDArray[np.float64]:
         """Full state (i.e., INS state + error state)"""
         return self._x_ins  # error state is zero due to reset
 
@@ -474,7 +482,9 @@ class AidedINS:
         return theta
 
     @staticmethod
-    def _prep_F_matrix(err_acc, err_gyro, theta_rad):
+    def _prep_F_matrix(
+        err_acc: dict, err_gyro: dict, theta_rad: ArrayLike
+    ) -> NDArray[np.float64]:
         """Prepare state matrix"""
 
         beta_acc = 1.0 / err_acc["tau_cb"]
@@ -494,7 +504,7 @@ class AidedINS:
         return F
 
     @staticmethod
-    def _prep_G_matrix(theta_rad):
+    def _prep_G_matrix(theta_rad: ArrayLike) -> NDArray[np.float64]:
         """Prepare (white noise) input matrix"""
 
         R_bn = _rot_matrix_from_euler(theta_rad).T  # body-to-NED
@@ -510,7 +520,7 @@ class AidedINS:
         return G
 
     @staticmethod
-    def _prep_W_matrix(err_acc, err_gyro):
+    def _prep_W_matrix(err_acc: dict, err_gyro: dict) -> NDArray[np.float64]:
         """Prepare white noise power spectral density matrix"""
         N_acc = err_acc["N"]
         sigma_acc = err_acc["B"]
@@ -529,20 +539,30 @@ class AidedINS:
         return W
 
     @staticmethod
-    def _prep_H_matrix():
+    def _prep_H_matrix() -> NDArray[np.float64]:
         """Prepare measurement matrix"""
         H = np.zeros((6, 15))
         H[0:3, 0:3] = np.eye(3)  # position
         H[3:6, 6:9] = np.eye(3)  # attitude
         return H
 
-    def _update_system_matrices(self, R_bn, T):
+    def _update_system_matrices(
+        self, R_bn: NDArray[np.float64], T: NDArray[np.float64]
+    ) -> None:
         self._F[3:6, 9:12] = -R_bn
         self._F[6:9, 12:15] = -T
         self._G[3:6, 0:3] = -R_bn
         self._G[6:9, 3:6] = -T
 
-    def update(self, f_imu, w_imu, head, pos, degrees=False, head_degrees=True):
+    def update(
+        self,
+        f_imu: ArrayLike,
+        w_imu: ArrayLike,
+        head: float,
+        pos: ArrayLike,
+        degrees: bool = False,
+        head_degrees: bool = True,
+    ) -> None:
         """
         Update the AINS state estimates based on measurements, and project ahead.
 
