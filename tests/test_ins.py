@@ -247,7 +247,7 @@ class Test_AidedINS:
         assert ains._Ki == 0.035
         assert isinstance(ains._ahrs, AHRS)
         assert isinstance(ains._ins, StrapdownINS)
-        np.testing.assert_array_almost_equal(ains._bias_ins, np.zeros((6, 1)))
+        np.testing.assert_array_almost_equal(ains._x_ins, np.zeros((15, 1)))
         np.testing.assert_array_almost_equal(ains._P_prior, np.eye(15))
 
         # State matrix

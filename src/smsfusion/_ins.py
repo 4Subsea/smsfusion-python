@@ -372,8 +372,8 @@ class AidedINS:
         self._ahrs = AHRS(fs, self._Kp, self._Ki)  # TODO: use initial attitude from x0
 
         # Strapdown algorithm
-        self._ins = StrapdownINS(self._x0[0:9])
-        self._bias_ins = self._x0[9:15]
+        self._x_ins = self._x0
+        self._ins = StrapdownINS(self._x_ins[0:9])
 
         # Initial Kalman filter error covariance
         self._P_prior = np.eye(15)
@@ -384,12 +384,6 @@ class AidedINS:
         self._W = self._prep_W_matrix(err_acc, err_gyro)
         self._H = self._prep_H_matrix()
         self._R = np.diag(np.r_[var_pos, var_ahrs])
-
-    @property
-    def _x_ins(self):
-        """INS state"""
-        x_ins = np.r_[self._ins.x, self._bias_ins]
-        return x_ins
 
     @property
     def _x(self):
@@ -584,6 +578,9 @@ class AidedINS:
         if head_degrees:
             head = np.radians(head)
 
+        # Update INS state
+        self._x_ins[0:9] = self._ins.x
+
         # Setup transformation matrices based on AHRS 'measurement'
         R_bn = _rot_matrix_from_euler(theta_ext).T  # body-to-NED rotation matrix
         T = _angular_matrix_from_euler(theta_ext)  # rotation rates to Euler rates
@@ -594,10 +591,9 @@ class AidedINS:
         F = self._F  # state matrix
         G = self._G  # (white noise) input matrix
         H = self._H  # measurement matrix
-        W = self._W  # white niser powerr spectral density matrix
+        W = self._W  # white noise power spectral density matrix
         R = self._R  # measurement noise covariance matrix
         P_prior = self._P_prior  # error covariance matrix
-        x_ins = self._x_ins  # INS state
         I15 = self._I15  # 15x15 identity matrix
 
         # Discretize system
@@ -611,19 +607,19 @@ class AidedINS:
         K = P_prior @ H.T @ inv(H @ P_prior @ H.T + R)
 
         # Update error-state estimate with measurement
-        dz = z - H @ x_ins
+        dz = z - H @ self._x_ins
         dx = K @ dz
 
         # Compute error covariance for updated estimate
         P = (I15 - K @ H) @ P_prior @ (I15 - K @ H).T + K @ R @ K.T
 
         # Reset
-        self._ins.reset(self._ins.x + dx[0:9])
-        self._bias_ins = dx[9:15]
+        self._x_ins = self._x_ins + dx
+        self._ins.reset(self._x_ins[0:9])
 
         # Project ahead
-        f_ins = f_imu - self._bias_ins[0:3]
-        w_ins = w_imu - self._bias_ins[3:6]
+        f_ins = f_imu - self._x_ins[9:12]
+        w_ins = w_imu - self._x_ins[12:15]
         self._ins.update(self._dt, f_ins, w_ins, theta_ext=theta_ext, degrees=False)
         self._ahrs.update(f_imu, w_imu, head, degrees=False, head_degrees=False)
         self._P_prior = phi @ P @ phi.T + Q
