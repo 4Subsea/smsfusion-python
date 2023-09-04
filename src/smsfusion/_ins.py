@@ -582,8 +582,8 @@ class AidedINS:
         pos : array-like (3,)
             Position measurement.
         degrees : bool, default=False
-            If `True`, the rotation rates in `w_imu` are given in degrees. Otherwise,
-            in radians.
+            Specifies the units of the `w_imu` parameter. If `True`, the rotation
+            rates are assumed to be in degrees. Otherwise, in radians.
         head_degrees : bool, default=True
             Specifies the unit of the `head` parameter. If `True`, the heading is
             in degrees; otherwise, in radians.
