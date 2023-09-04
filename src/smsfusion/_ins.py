@@ -456,7 +456,7 @@ class AidedINS:
         """
         return self._v.copy()
 
-    def attitude(self, degrees: bool = False) -> NDArray[np.float64]:
+    def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
         Current AINS attitude estimate as Euler angles (i.e., roll, pitch, yaw).
 

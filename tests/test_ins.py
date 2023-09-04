@@ -313,13 +313,13 @@ class Test_AidedINS:
         vel_expect = np.array([0.1, 0.2, 0.3]).reshape(-1, 1)
         np.testing.assert_array_almost_equal(vel_out, vel_expect)
 
-    def test_attitude_radians(self, ains):
-        theta_out = ains.attitude(degrees=False)
+    def test_euler_radians(self, ains):
+        theta_out = ains.euler(degrees=False)
         theta_expect = np.array([np.pi / 4, np.pi / 8, np.pi / 16]).reshape(-1, 1)
         np.testing.assert_array_almost_equal(theta_out, theta_expect)
 
-    def test_attitude_degrees(self, ains):
-        theta_out = ains.attitude(degrees=True)
+    def test_euler_degrees(self, ains):
+        theta_out = ains.euler(degrees=True)
         theta_expect = (180.0 / np.pi) * np.array(
             [np.pi / 4, np.pi / 8, np.pi / 16]
         ).reshape(-1, 1)
