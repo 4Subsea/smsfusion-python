@@ -230,7 +230,7 @@ def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Return
     ------
-    rot : 1D array (3,)
+    q : 1D array (3,)
         Unit quaternion.
 
     """
