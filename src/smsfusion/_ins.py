@@ -352,6 +352,7 @@ class AidedINS:
         - AHRS gain factor parameters are not configurable.
         - Initial error covariance matrix, P, is fixed to the identity matrix, and
           cannot be set during initialization.
+        - Update method is not properly tested.
     """
 
     _I15 = np.eye(15)
