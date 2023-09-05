@@ -177,7 +177,9 @@ def _angular_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float6
 @njit  # type: ignore[misc]
 def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Rotation matrix (from-body-to-origin) defined from Euler angles (ZYX convention).
+    Compute the rotation matrix (from-body-to-origin) from Euler angles using the
+    ZYX convention.
+
 
     Parameters
     ----------
@@ -190,10 +192,10 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Notes
     -----
-    The Euler angles describes how you get from the 'origin' frame to the 'body'
-    frame by three consecutive (passive) rotations in the ZYX order. However, the
-    returned rotation matrix describes the transformation of a vector 'from-body-to-origin'
-    frame (i.e., an active rotation).
+    The Euler angles describe how to transition from the 'origin' frame to the 'body'
+    frame through three consecutive (passive) rotations in the ZYX order. However,
+    the returned rotation matrix represents the transformation of a vector from the 'body'
+    frame to the 'origin' frame (i.e., an active rotation).
 
     Returns
     -------
