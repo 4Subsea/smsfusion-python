@@ -184,8 +184,8 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     Parameters
     ----------
     euler : 1D array (3,)
-        Vector of Euler angles in radians (ZYX convention, passive rotations).
-        Contains the following three Euler angles in order:
+        Vector of Euler angles in radians (ZYX convention). Contains the following
+        three Euler angles in order:
             - Roll (alpha): Rotation about the x-axis.
             - Pitch (beta): Rotation about the y-axis.
             - Yaw (gamma): Rotation about the z-axis.
@@ -238,8 +238,8 @@ def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     Parameters
     ----------
     euler : 1D array (3,)
-        Vector of Euler angles in radians (ZYX convention, passive rotations).
-        Contains the following three Euler angles in order:
+        Vector of Euler angles in radians (ZYX convention). Contains the following
+        three Euler angles in order:
             - Roll (alpha): Rotation about the x-axis.
             - Pitch (beta): Rotation about the y-axis.
             - Yaw (gamma): Rotation about the z-axis.
