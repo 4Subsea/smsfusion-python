@@ -61,7 +61,17 @@ def _angular_matrix_from_euler(
 @njit  # type: ignore[misc]
 def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Convert quaternion to rotation matrix.
+    Compute the rotation matrix from a unit quaternion.
+
+    Parameters
+    ----------
+    q : 1D array (3,)
+        Unit quaternion.
+
+    Returns
+    -------
+    rot : ndarray (3, 3)
+        Rotation matrix.
     """
     q0, q1, q2, q3 = q
 
