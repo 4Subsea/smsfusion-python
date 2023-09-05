@@ -36,7 +36,7 @@ def _angular_matrix_from_euler(
     cos_alpha = np.cos(alpha)
     sin_alpha = np.sin(alpha)
 
-    if (np.abs(np.array([cos_beta])) < 1e-8).any():
+    if np.abs(cos_beta) < 1e-8:
         warn("Beta is close to +-90 degrees, angular matrix  may be undefined.")
 
     t_00 = 1.0
