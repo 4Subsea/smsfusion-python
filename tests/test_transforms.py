@@ -236,7 +236,7 @@ def test__rot_matrix_from_euler(euler):
     where also the resulting rotation matrix is from-origin-to-body.
     """
     out = _transforms._rot_matrix_from_euler(euler)
-    expected = Rotation.from_euler("ZYX", euler[::-1]).inv().as_matrix()
+    expected = Rotation.from_euler("ZYX", euler[::-1]).as_matrix()
     np.testing.assert_array_almost_equal(out, expected)
 
 
