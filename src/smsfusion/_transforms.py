@@ -193,9 +193,9 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     Notes
     -----
     The Euler angles describe how to transition from the 'origin' frame to the 'body'
-    frame through three consecutive (passive) rotations in the ZYX order. However,
-    the returned rotation matrix represents the transformation of a vector from the 'body'
-    frame to the 'origin' frame (i.e., an active rotation).
+    frame through three consecutive (passive, intrinsic) rotations in the ZYX order.
+    However, the returned rotation matrix represents the transformation of a vector
+    from the 'body' frame to the 'origin' frame.
 
     Returns
     -------
