@@ -11,13 +11,16 @@ def _angular_matrix_from_euler(
     euler: NDArray[np.float64],
 ) -> NDArray[np.float64]:
     """
-    Estimate angular velocity transformation matrix from Euler angles.
+    Estimate angular velocity transformation matrix, T, from Euler angles.
 
     Parameters
     ----------
-    alpha_beta_gamma : ndarray
-        Euler angle about x-axis (alpha-roll), y-axis (beta-pitch), and z-axis
-        (gamma-yaw) in radians.
+    euler : 1D array (3,)
+        Vector of Euler angles in radians (ZYX convention). Contains the following
+        three Euler angles in order:
+            - Roll (alpha): Rotation about the x-axis.
+            - Pitch (beta): Rotation about the y-axis.
+            - Yaw (gamma): Rotation about the z-axis.
 
     Return
     ------
