@@ -186,7 +186,20 @@ def _gamma_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _angular_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Angular transformation matrix, such that dq/dt = T(q) * omega.
+    Angular transformation matrix, T, such that:
+
+        ``dq/dt = T(q) * omega``
+
+    Parameters
+    ----------
+    q : 1D array (3,)
+        Unit quaternion.
+
+    Returns
+    -------
+    T : ndarray (3, 3)
+        Angular transformation matrix.
+
     """
     return 0.5 * np.array(
         [
