@@ -211,17 +211,17 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     cos_alpha = np.cos(alpha)
     sin_alpha = np.sin(alpha)
 
-    rot_01 = cos_beta * sin_gamma
     rot_00 = cos_gamma * cos_beta
-    rot_02 = -sin_beta
+    rot_01 = -sin_gamma * cos_alpha + cos_gamma * sin_beta * sin_alpha
+    rot_02 = sin_gamma * sin_alpha + cos_gamma * sin_beta * cos_alpha
 
-    rot_10 = cos_gamma * sin_beta * sin_alpha - cos_alpha * sin_gamma
+    rot_10 = sin_gamma * cos_beta
     rot_11 = cos_gamma * cos_alpha + sin_gamma * sin_beta * sin_alpha
-    rot_12 = cos_beta * sin_alpha
+    rot_12 = -cos_gamma * sin_alpha + sin_gamma * sin_beta * cos_alpha
 
-    rot_20 = cos_gamma * cos_alpha * sin_beta + sin_gamma * sin_alpha
-    rot_21 = cos_alpha * sin_gamma * sin_beta - cos_gamma * sin_alpha
-    rot_22 = cos_beta * cos_alpha
+    rot_20 = -sin_beta
+    rot_21 = cos_beta * sin_alpha
+    rot_22 = sin_beta * cos_alpha
 
     rot = np.array(
         [[rot_00, rot_01, rot_02], [rot_10, rot_11, rot_12], [rot_20, rot_21, rot_22]]
