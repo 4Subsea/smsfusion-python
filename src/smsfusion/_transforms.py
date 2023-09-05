@@ -177,18 +177,26 @@ def _angular_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float6
 @njit  # type: ignore[misc]
 def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Rotation matrix defined from Euler angles (ZYX convention). Note that the rotation
-    matrix describes the rigid body rotation from-origin-to-body, according to ZYX convention.
-
+    Rotation matrix (from-body-to-origin) defined from Euler angles (ZYX convention).
 
     Parameters
     ----------
     euler : 1D array (3,)
-        Euler angle in radians given as (roll, pitch, yaw) but rotations are applied
-        according to the ZYX convention. That is, **yaw -> pitch -> roll**.
+        Vector of Euler angles in radians (ZYX convention, passive rotations).
+        Contains the following three Euler angles in order:
+            - Roll (alpha): Rotation about the x-axis.
+            - Pitch (beta): Rotation about the y-axis.
+            - Yaw (gamma): Rotation about the z-axis.
 
-    Return
-    ------
+    Notes
+    -----
+    The Euler angles describes how you get from the 'origin' frame to the 'body'
+    frame by three consecutive (passive) rotations in the ZYX order. However, the
+    returned rotation matrix describes the transformation of a vector 'from-body-to-origin'
+    frame (i.e., an active rotation).
+
+    Returns
+    -------
     rot : ndarray (3, 3)
         Rotation matrix.
 
