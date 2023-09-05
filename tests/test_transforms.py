@@ -26,7 +26,7 @@ class Test__angular_matrix_from_euler:
         )
 
         np.testing.assert_array_almost_equal(
-            angular_matrix[0], angular_matrix_expected, decimal=3
+            angular_matrix, angular_matrix_expected, decimal=3
         )
 
     def test_pure_pitch(self):
@@ -39,7 +39,7 @@ class Test__angular_matrix_from_euler:
         )
 
         np.testing.assert_array_almost_equal(
-            angular_matrix[0], angular_matrix_expected, decimal=3
+            angular_matrix, angular_matrix_expected, decimal=3
         )
 
     def test_pure_yaw(self):
@@ -50,7 +50,7 @@ class Test__angular_matrix_from_euler:
         angular_matrix_expected = np.eye(3)
 
         np.testing.assert_array_almost_equal(
-            angular_matrix[0], angular_matrix_expected, decimal=3
+            angular_matrix, angular_matrix_expected, decimal=3
         )
 
     def test_references(self):
@@ -68,7 +68,7 @@ class Test__angular_matrix_from_euler:
         )
 
         np.testing.assert_array_almost_equal(
-            angular_matrix[0], angular_matrix_expected, decimal=3
+            angular_matrix, angular_matrix_expected, decimal=3
         )
 
         # case 2
@@ -85,7 +85,7 @@ class Test__angular_matrix_from_euler:
         )
 
         np.testing.assert_array_almost_equal(
-            angular_matrix[0], angular_matrix_expected, decimal=3
+            angular_matrix, angular_matrix_expected, decimal=3
         )
 
 
