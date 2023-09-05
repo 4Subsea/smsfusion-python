@@ -249,3 +249,13 @@ def test__quaternion_from_euler():
     q_expect = np.r_[q_expect[3], q_expect[:3]]
 
     np.testing.assert_array_almost_equal(q_out, q_expect)
+
+
+def test_euler2quaternion2euler_transform():
+    euler_in = np.random.random(3) * np.pi  # passive, intrinsic rotations
+
+    euler_out = _transforms._euler_from_quaternion(
+        _transforms._quaternion_from_euler(euler_in)
+    )
+
+    np.testing.assert_array_almost_equal(euler_out, euler_in)
