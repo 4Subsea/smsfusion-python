@@ -8,7 +8,7 @@ from smsfusion._vectorops import _normalize
 
 
 def _angular_matrix_from_euler(
-    alpha_beta_gamma: NDArray[np.float64],
+    euler: NDArray[np.float64],
 ) -> NDArray[np.float64]:
     """
     Estimate angular velocity transformation matrix from Euler angles.
@@ -29,10 +29,7 @@ def _angular_matrix_from_euler(
     Transform is singular for beta = +-90 degrees (gimbal lock).
 
     """
-    alpha, beta, gamma = alpha_beta_gamma.T
-
-    n = np.ones_like(beta)
-    z = np.zeros_like(beta)
+    alpha, beta, _ = euler
 
     cos_beta = np.cos(beta)
     tan_beta = np.tan(beta)
@@ -42,20 +39,20 @@ def _angular_matrix_from_euler(
     if (np.abs(np.array([cos_beta])) < 1e-8).any():
         warn("Beta is close to +-90 degrees, angular matrix  may be undefined.")
 
-    t_00 = n
+    t_00 = 1.0
     t_01 = sin_alpha * tan_beta
     t_02 = cos_alpha * tan_beta
 
-    t_10 = z
+    t_10 = 0.0
     t_11 = cos_alpha
     t_12 = -sin_alpha
 
-    t_20 = z
+    t_20 = 0.0
     t_21 = sin_alpha / cos_beta
     t_22 = cos_alpha / cos_beta
 
-    t = np.array([[t_00, t_10, t_20], [t_01, t_11, t_21], [t_02, t_12, t_22]]).T
-    return t.reshape(-1, 3, 3)
+    T = np.array([[t_00, t_01, t_02], [t_10, t_11, t_12], [t_20, t_21, t_22]])
+    return T
 
 
 @njit  # type: ignore[misc]
