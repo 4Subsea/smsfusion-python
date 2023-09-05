@@ -154,7 +154,17 @@ def _euler_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _gamma_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Get yaw from quaternion (ZYX convention).
+    Compute the yaw Euler angle (ZYX convention) from a unit quaternion.
+
+    Parameters
+    ----------
+    q : 1D array (3,)
+        Unit quaternion (representing transformation from-body-to-origin).
+
+    Returns
+    -------
+    yaw : float
+        Yaw (gamma) Euler angle (ZYX convention).
     """
     q0, q1, q2, q3 = q
 
