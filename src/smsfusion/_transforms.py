@@ -11,7 +11,8 @@ def _angular_matrix_from_euler(
     euler: NDArray[np.float64],
 ) -> NDArray[np.float64]:
     """
-    Estimate angular velocity transformation matrix, T, from Euler angles.
+    Compute the angular velocity transformation matrix, T, from Euler angles using
+    the ZYX convention.
 
     Parameters
     ----------
