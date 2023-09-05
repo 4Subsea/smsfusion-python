@@ -250,4 +250,4 @@ def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     q_y = cos_gamma2 * sin_beta2 * cos_alpha2 + sin_gamma2 * cos_beta2 * sin_alpha2
     q_z = sin_gamma2 * cos_beta2 * cos_alpha2 - cos_gamma2 * sin_beta2 * sin_alpha2
 
-    return _normalize(np.array([q_w, -q_x, -q_y, -q_z]))
+    return _normalize(np.array([q_w, -q_x, -q_y, -q_z]))  # type: ignore[no-any-return]  # see _normalize
