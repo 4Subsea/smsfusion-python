@@ -4,6 +4,8 @@ import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 
+from smsfusion._vectorops import _normalize
+
 
 def _angular_matrix_from_euler(
     alpha_beta_gamma: NDArray[np.float64],
@@ -248,7 +250,4 @@ def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     q_y = cos_gamma2 * sin_beta2 * cos_alpha2 + sin_gamma2 * cos_beta2 * sin_alpha2
     q_z = sin_gamma2 * cos_beta2 * cos_alpha2 - cos_gamma2 * sin_beta2 * sin_alpha2
 
-    q = np.array([q_w, -q_x, -q_y, -q_z])
-    q /= np.sqrt(q[0] ** 2 + q[1] ** 2 + q[2] ** 2 + q[3] ** 2)  # ensure unit norm
-
-    return q
+    return _normalize(np.array([q_w, -q_x, -q_y, -q_z]))

@@ -241,7 +241,7 @@ def test__rot_matrix_from_euler(euler):
 
 
 def test__quaternion_from_euler():
-    euler = np.random.random(3)  # passive rotations
+    euler = np.random.random(3) * np.pi  # passive rotations
 
     q_out = _transforms._quaternion_from_euler(euler)
 
