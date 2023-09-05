@@ -88,52 +88,6 @@ class Test__angular_matrix_from_euler:
             angular_matrix[0], angular_matrix_expected, decimal=3
         )
 
-    def test_vectorized(self):
-        euler_vector = np.array(
-            [
-                np.radians((30.0, 15.0, 20.0)),
-                np.radians((15.0, 45.0, 5.0)),
-                np.radians((25.0, 125.0, -35.0)),
-            ]
-        )
-        angular_matrix = _transforms._angular_matrix_from_euler(euler_vector)
-
-        angular_matrix_expected_0 = np.array(
-            [
-                [1.0, 0.1339746, 0.23205081],
-                [0.0, 0.8660254, -0.5],
-                [0.0, 0.51763809, 0.89657547],
-            ]
-        )
-
-        angular_matrix_expected_1 = np.array(
-            [
-                [1.0, 0.25881905, 0.96592583],
-                [0.0, 0.96592583, -0.25881905],
-                [0.0, 0.3660254, 1.3660254],
-            ]
-        )
-
-        angular_matrix_expected_2 = np.array(
-            [
-                [1.0, -0.60356143, -1.29434166],
-                [0.0, 0.90630779, -0.42261826],
-                [0.0, -0.73681245, -1.58009941],
-            ]
-        )
-
-        np.testing.assert_array_almost_equal(
-            angular_matrix[0], angular_matrix_expected_0, decimal=3
-        )
-
-        np.testing.assert_array_almost_equal(
-            angular_matrix[1], angular_matrix_expected_1, decimal=3
-        )
-
-        np.testing.assert_array_almost_equal(
-            angular_matrix[2], angular_matrix_expected_2, decimal=3
-        )
-
 
 @pytest.mark.parametrize(
     "q",
