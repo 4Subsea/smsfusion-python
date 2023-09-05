@@ -4,6 +4,8 @@ import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 
+from smsfusion._vectorops import _normalize
+
 
 def _angular_matrix_from_euler(
     alpha_beta_gamma: NDArray[np.float64],
@@ -182,7 +184,7 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     Parameters
     ----------
     euler : 1D array (3,)
-        Euler angle in radians given as (roll, pitch, yaw) but rotaions are applied
+        Euler angle in radians given as (roll, pitch, yaw) but rotations are applied
         according to the ZYX convention. That is, **yaw -> pitch -> roll**.
 
     Return
@@ -215,3 +217,37 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
         [[rot_00, rot_01, rot_02], [rot_10, rot_11, rot_12], [rot_20, rot_21, rot_22]]
     )
     return rot
+
+
+@njit  # type: ignore[misc]
+def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    Unit quaternion defined from Euler angles (ZYX convention) (passive rotations).
+
+    Parameters
+    ----------
+    euler : 1D array (3,)
+        Euler angle in radians given as (roll, pitch, yaw) but rotations are applied
+        according to the ZYX convention. That is, **yaw -> pitch -> roll**.
+
+    Return
+    ------
+    q : 1D array (3,)
+        Unit quaternion.
+
+    """
+    alpha2, beta2, gamma2 = euler / 2.0  # half angles
+    cos_alpha2 = np.cos(alpha2)
+    sin_alpha2 = np.sin(alpha2)
+    cos_beta2 = np.cos(beta2)
+    sin_beta2 = np.sin(beta2)
+    cos_gamma2 = np.cos(gamma2)
+    sin_gamma2 = np.sin(gamma2)
+
+    # Quaternion
+    q_w = cos_gamma2 * cos_beta2 * cos_alpha2 + sin_gamma2 * sin_beta2 * sin_alpha2
+    q_x = cos_gamma2 * cos_beta2 * sin_alpha2 - sin_gamma2 * sin_beta2 * cos_alpha2
+    q_y = cos_gamma2 * sin_beta2 * cos_alpha2 + sin_gamma2 * cos_beta2 * sin_alpha2
+    q_z = sin_gamma2 * cos_beta2 * cos_alpha2 - cos_gamma2 * sin_beta2 * sin_alpha2
+
+    return _normalize(np.array([q_w, -q_x, -q_y, -q_z]))  # type: ignore[no-any-return]  # see _normalize
