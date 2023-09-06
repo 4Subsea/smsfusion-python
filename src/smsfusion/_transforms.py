@@ -131,11 +131,11 @@ def _euler_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
             - Pitch (beta): Rotation about the y-axis.
             - Yaw (gamma): Rotation about the z-axis.
     """
-    q0, q1, q2, q3 = q
+    q_w, q_x, q_y, q_z = q
 
-    alpha = np.arctan2(2.0 * (q2 * q3 + q1 * q0), 1.0 - 2.0 * (q1**2 + q2**2))
-    beta = -np.arcsin(2.0 * (q1 * q3 - q2 * q0))
-    gamma = np.arctan2(2.0 * (q1 * q2 + q3 * q0), 1.0 - 2.0 * (q2**2 + q3**2))
+    alpha = np.arctan2(2.0 * (q_y * q_z + q_x * q_w), 1.0 - 2.0 * (q_x**2 + q_y**2))
+    beta = -np.arcsin(2.0 * (q_x * q_z - q_y * q_w))
+    gamma = np.arctan2(2.0 * (q_x * q_y + q_z * q_w), 1.0 - 2.0 * (q_y**2 + q_z**2))
 
     return np.array([alpha, beta, gamma])
 
@@ -155,9 +155,9 @@ def _gamma_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     yaw : float
         Yaw (gamma) Euler angle (ZYX convention).
     """
-    q0, q1, q2, q3 = q
+    q_w, q_x, q_y, q_z = q
 
-    gamma = np.arctan2(2.0 * (q1 * q2 + q3 * q0), 1.0 - 2.0 * (q2**2 + q3**2))
+    gamma = np.arctan2(2.0 * (q_x * q_y + q_z * q_w), 1.0 - 2.0 * (q_y**2 + q_z**2))
 
     return gamma  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
 
