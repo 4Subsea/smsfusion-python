@@ -133,31 +133,9 @@ def _euler_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     q0, q1, q2, q3 = q
 
-    _2q1 = q1 + q1
-    _2q2 = q2 + q2
-    _2q3 = q3 + q3
-
-    _2q1q1 = q1 * _2q1
-    _2q1q2 = q1 * _2q2
-    _2q1q3 = q1 * _2q3
-    _2q2q2 = q2 * _2q2
-    _2q2q3 = q2 * _2q3
-    _2q3q3 = q3 * _2q3
-    _2q0q1 = q0 * _2q1
-    _2q0q2 = q0 * _2q2
-    _2q0q3 = q0 * _2q3
-
-    rot_00 = 1.0 - (_2q2q2 + _2q3q3)
-    rot_01 = _2q1q2 + _2q0q3
-    rot_02 = _2q1q3 - _2q0q2
-
-    rot_12 = _2q2q3 + _2q0q1
-
-    rot_22 = 1.0 - (_2q1q1 + _2q2q2)
-
-    gamma = np.arctan2(rot_01, rot_00)
-    beta = -np.arcsin(rot_02)
-    alpha = np.arctan2(rot_12, rot_22)
+    alpha = np.arctan2(2.0 * (q2 * q3 + q1 * q0), 1.0 - 2.0 * (q1**2 + q2**2))
+    beta = -np.arcsin(2.0 * (q1 * q3 - q2 * q0))
+    gamma = np.arctan2(2.0 * (q1 * q2 + q3 * q0), 1.0 - 2.0 * (q2**2 + q3**2))
 
     return np.array([alpha, beta, gamma])
 
