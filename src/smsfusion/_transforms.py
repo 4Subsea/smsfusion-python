@@ -157,9 +157,9 @@ def _gamma_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     q0, q1, q2, q3 = q
 
-    yaw = np.arctan2(2.0 * (q1 * q2 + q3 * q0), 1.0 - 2.0 * (q2**2 + q3**2))
+    gamma = np.arctan2(2.0 * (q1 * q2 + q3 * q0), 1.0 - 2.0 * (q2**2 + q3**2))
 
-    return yaw  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
+    return gamma  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
 
 
 @njit  # type: ignore[misc]
