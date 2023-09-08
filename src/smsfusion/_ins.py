@@ -269,7 +269,7 @@ class StrapdownINS:
             else np.asarray_chkfinite(theta_ext, dtype=float)
         )
 
-        R = _rot_matrix_from_euler(theta).T
+        R_bn = _rot_matrix_from_euler(theta)  # body-to-ned rotation matrix
         T = _angular_matrix_from_euler(theta)
 
         f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3, 1)
@@ -279,7 +279,7 @@ class StrapdownINS:
             w_imu = (np.pi / 180.0) * w_imu
 
         # State propagation (assuming constant linear acceleration and angular velocity)
-        a = R @ f_imu + self._g
+        a = R_bn @ f_imu + self._g
         self._p = self._p + dt * self._v + 0.5 * dt**2 * a
         self._v = self._v + dt * a
         self._theta = self._theta + dt * T @ w_imu

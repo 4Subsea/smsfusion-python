@@ -8,16 +8,20 @@ from smsfusion._vectorops import _normalize
 
 
 def _angular_matrix_from_euler(
-    alpha_beta_gamma: NDArray[np.float64],
+    euler: NDArray[np.float64],
 ) -> NDArray[np.float64]:
     """
-    Estimate angular velocity transformation matrix from Euler angles.
+    Compute the angular velocity transformation matrix, T, from Euler angles using
+    the ZYX convention.
 
     Parameters
     ----------
-    alpha_beta_gamma : ndarray
-        Euler angle about x-axis (alpha-roll), y-axis (beta-pitch), and z-axis
-        (gamma-yaw) in radians.
+    euler : 1D array (3,)
+        Vector of Euler angles in radians (ZYX convention). Contains the following
+        three Euler angles in order:
+            - Roll (alpha): Rotation about the x-axis.
+            - Pitch (beta): Rotation about the y-axis.
+            - Yaw (gamma): Rotation about the z-axis.
 
     Return
     ------
@@ -29,39 +33,46 @@ def _angular_matrix_from_euler(
     Transform is singular for beta = +-90 degrees (gimbal lock).
 
     """
-    alpha, beta, gamma = alpha_beta_gamma.T
-
-    n = np.ones_like(beta)
-    z = np.zeros_like(beta)
+    alpha, beta, _ = euler
 
     cos_beta = np.cos(beta)
     tan_beta = np.tan(beta)
     cos_alpha = np.cos(alpha)
     sin_alpha = np.sin(alpha)
 
-    if (np.abs(np.array([cos_beta])) < 1e-8).any():
-        warn("Beta is close to +-90 degrees, angular matrix  may be undefined.")
+    if np.abs(cos_beta) < 1e-8:
+        warn("Beta is close to +-90 degrees, angular matrix may be undefined.")
 
-    t_00 = n
+    t_00 = 1.0
     t_01 = sin_alpha * tan_beta
     t_02 = cos_alpha * tan_beta
 
-    t_10 = z
+    t_10 = 0.0
     t_11 = cos_alpha
     t_12 = -sin_alpha
 
-    t_20 = z
+    t_20 = 0.0
     t_21 = sin_alpha / cos_beta
     t_22 = cos_alpha / cos_beta
 
-    t = np.array([[t_00, t_10, t_20], [t_01, t_11, t_21], [t_02, t_12, t_22]]).T
-    return t.reshape(-1, 3, 3)
+    T = np.array([[t_00, t_01, t_02], [t_10, t_11, t_12], [t_20, t_21, t_22]])
+    return T
 
 
 @njit  # type: ignore[misc]
 def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Convert quaternion to rotation matrix.
+    Compute the rotation matrix from a unit quaternion.
+
+    Parameters
+    ----------
+    q : 1D array (3,)
+        Unit quaternion.
+
+    Returns
+    -------
+    rot : ndarray (3, 3)
+        Rotation matrix.
     """
     q0, q1, q2, q3 = q
 
@@ -80,15 +91,15 @@ def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     _2q0q3 = q0 * _2q3
 
     rot_00 = 1.0 - (_2q2q2 + _2q3q3)
-    rot_01 = _2q1q2 + _2q0q3
-    rot_02 = _2q1q3 - _2q0q2
+    rot_01 = _2q1q2 - _2q0q3
+    rot_02 = _2q1q3 + _2q0q2
 
-    rot_10 = _2q1q2 - _2q0q3
+    rot_10 = _2q1q2 + _2q0q3
     rot_11 = 1.0 - (_2q1q1 + _2q3q3)
-    rot_12 = _2q2q3 + _2q0q1
+    rot_12 = _2q2q3 - _2q0q1
 
-    rot_20 = _2q1q3 + _2q0q2
-    rot_21 = _2q2q3 - _2q0q1
+    rot_20 = _2q1q3 - _2q0q2
+    rot_21 = _2q2q3 + _2q0q1
     rot_22 = 1.0 - (_2q1q1 + _2q2q2)
 
     rot = np.array(
@@ -104,35 +115,27 @@ def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _euler_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Convert quaternion to Euler angles (ZYX convention).
+    Compute the Euler angles (ZYX convention) from a unit quaternion.
+
+    Parameters
+    ----------
+    q : 1D array (3,)
+        Unit quaternion (representing transformation from-body-to-origin).
+
+    Returns
+    -------
+    euler : 1D array (3,)
+        Vector of Euler angles in radians (ZYX convention). Contains the following
+        three Euler angles in order:
+            - Roll (alpha): Rotation about the x-axis.
+            - Pitch (beta): Rotation about the y-axis.
+            - Yaw (gamma): Rotation about the z-axis.
     """
-    q0, q1, q2, q3 = q
+    q_w, q_x, q_y, q_z = q
 
-    _2q1 = q1 + q1
-    _2q2 = q2 + q2
-    _2q3 = q3 + q3
-
-    _2q1q1 = q1 * _2q1
-    _2q1q2 = q1 * _2q2
-    _2q1q3 = q1 * _2q3
-    _2q2q2 = q2 * _2q2
-    _2q2q3 = q2 * _2q3
-    _2q3q3 = q3 * _2q3
-    _2q0q1 = q0 * _2q1
-    _2q0q2 = q0 * _2q2
-    _2q0q3 = q0 * _2q3
-
-    rot_00 = 1.0 - (_2q2q2 + _2q3q3)
-    rot_01 = _2q1q2 + _2q0q3
-    rot_02 = _2q1q3 - _2q0q2
-
-    rot_12 = _2q2q3 + _2q0q1
-
-    rot_22 = 1.0 - (_2q1q1 + _2q2q2)
-
-    gamma = np.arctan2(rot_01, rot_00)
-    beta = -np.arcsin(rot_02)
-    alpha = np.arctan2(rot_12, rot_22)
+    alpha = np.arctan2(2.0 * (q_y * q_z + q_x * q_w), 1.0 - 2.0 * (q_x**2 + q_y**2))
+    beta = -np.arcsin(2.0 * (q_x * q_z - q_y * q_w))
+    gamma = np.arctan2(2.0 * (q_x * q_y + q_z * q_w), 1.0 - 2.0 * (q_y**2 + q_z**2))
 
     return np.array([alpha, beta, gamma])
 
@@ -140,29 +143,42 @@ def _euler_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _gamma_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Get yaw from quaternion (ZYX convention).
+    Compute the yaw Euler angle (ZYX convention) from a unit quaternion.
+
+    Parameters
+    ----------
+    q : 1D array (3,)
+        Unit quaternion (representing transformation from-body-to-origin).
+
+    Returns
+    -------
+    yaw : float
+        Yaw (gamma) Euler angle (ZYX convention).
     """
-    q0, q1, q2, q3 = q
+    q_w, q_x, q_y, q_z = q
 
-    _2q2 = q2 + q2
-    _2q3 = q3 + q3
+    gamma = np.arctan2(2.0 * (q_x * q_y + q_z * q_w), 1.0 - 2.0 * (q_y**2 + q_z**2))
 
-    _2q1q2 = q1 * _2q2
-    _2q2q2 = q2 * _2q2
-    _2q3q3 = q3 * _2q3
-    _2q0q3 = q0 * _2q3
-
-    rot_00 = 1.0 - (_2q2q2 + _2q3q3)
-    rot_01 = _2q1q2 + _2q0q3
-
-    yaw = np.arctan2(rot_01, rot_00)
-    return yaw  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
+    return gamma  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
 
 
 @njit  # type: ignore[misc]
 def _angular_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Angular transformation matrix, such that dq/dt = T(q) * omega.
+    Angular transformation matrix, T, such that:
+
+        ``dq/dt = T(q) * omega``
+
+    Parameters
+    ----------
+    q : 1D array (3,)
+        Unit quaternion.
+
+    Returns
+    -------
+    T : ndarray (3, 3)
+        Angular transformation matrix.
+
     """
     return 0.5 * np.array(
         [
@@ -177,18 +193,28 @@ def _angular_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float6
 @njit  # type: ignore[misc]
 def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Rotation matrix defined from Euler angles (ZYX convention). Note that the rotation
-    matrix describes the rigid body rotation from-origin-to-body, according to ZYX convention.
+    Compute the rotation matrix (from-body-to-origin) from Euler angles using the
+    ZYX convention.
 
 
     Parameters
     ----------
     euler : 1D array (3,)
-        Euler angle in radians given as (roll, pitch, yaw) but rotations are applied
-        according to the ZYX convention. That is, **yaw -> pitch -> roll**.
+        Vector of Euler angles in radians (ZYX convention). Contains the following
+        three Euler angles in order:
+            - Roll (alpha): Rotation about the x-axis.
+            - Pitch (beta): Rotation about the y-axis.
+            - Yaw (gamma): Rotation about the z-axis.
 
-    Return
-    ------
+    Notes
+    -----
+    The Euler angles describe how to transition from the 'origin' frame to the 'body'
+    frame through three consecutive (passive, intrinsic) rotations in the ZYX order.
+    However, the returned rotation matrix represents the transformation of a vector
+    from the 'body' frame to the 'origin' frame.
+
+    Returns
+    -------
     rot : ndarray (3, 3)
         Rotation matrix.
 
@@ -201,16 +227,16 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     cos_alpha = np.cos(alpha)
     sin_alpha = np.sin(alpha)
 
-    rot_01 = cos_beta * sin_gamma
     rot_00 = cos_gamma * cos_beta
-    rot_02 = -sin_beta
+    rot_01 = -sin_gamma * cos_alpha + cos_gamma * sin_beta * sin_alpha
+    rot_02 = sin_gamma * sin_alpha + cos_gamma * sin_beta * cos_alpha
 
-    rot_10 = cos_gamma * sin_beta * sin_alpha - cos_alpha * sin_gamma
+    rot_10 = sin_gamma * cos_beta
     rot_11 = cos_gamma * cos_alpha + sin_gamma * sin_beta * sin_alpha
-    rot_12 = cos_beta * sin_alpha
+    rot_12 = -cos_gamma * sin_alpha + sin_gamma * sin_beta * cos_alpha
 
-    rot_20 = cos_gamma * cos_alpha * sin_beta + sin_gamma * sin_alpha
-    rot_21 = cos_alpha * sin_gamma * sin_beta - cos_gamma * sin_alpha
+    rot_20 = -sin_beta
+    rot_21 = cos_beta * sin_alpha
     rot_22 = cos_beta * cos_alpha
 
     rot = np.array(
@@ -222,18 +248,29 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Unit quaternion defined from Euler angles (ZYX convention) (passive rotations).
+    Compute the unit quaternion (representing transformation from-body-to-origin)
+    from Euler angles using the ZYX convention.
 
     Parameters
     ----------
     euler : 1D array (3,)
-        Euler angle in radians given as (roll, pitch, yaw) but rotations are applied
-        according to the ZYX convention. That is, **yaw -> pitch -> roll**.
+        Vector of Euler angles in radians (ZYX convention). Contains the following
+        three Euler angles in order:
+            - Roll (alpha): Rotation about the x-axis.
+            - Pitch (beta): Rotation about the y-axis.
+            - Yaw (gamma): Rotation about the z-axis.
 
     Return
     ------
     q : 1D array (3,)
         Unit quaternion.
+
+    Notes
+    -----
+    The Euler angles describe how to transition from the 'origin' frame to the 'body'
+    frame through three consecutive (passive, intrinsic) rotations in the ZYX order.
+    However, the returned unit quaternion represents the transformation from the
+    'body' frame to the 'origin' frame.
 
     """
     alpha2, beta2, gamma2 = euler / 2.0  # half angles
@@ -250,4 +287,4 @@ def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     q_y = cos_gamma2 * sin_beta2 * cos_alpha2 + sin_gamma2 * cos_beta2 * sin_alpha2
     q_z = sin_gamma2 * cos_beta2 * cos_alpha2 - cos_gamma2 * sin_beta2 * sin_alpha2
 
-    return _normalize(np.array([q_w, -q_x, -q_y, -q_z]))  # type: ignore[no-any-return]  # see _normalize
+    return _normalize(np.array([q_w, q_x, q_y, q_z]))  # type: ignore[no-any-return]  # see _normalize

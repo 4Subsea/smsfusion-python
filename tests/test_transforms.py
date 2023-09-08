@@ -26,7 +26,7 @@ class Test__angular_matrix_from_euler:
         )
 
         np.testing.assert_array_almost_equal(
-            angular_matrix[0], angular_matrix_expected, decimal=3
+            angular_matrix, angular_matrix_expected, decimal=3
         )
 
     def test_pure_pitch(self):
@@ -39,7 +39,7 @@ class Test__angular_matrix_from_euler:
         )
 
         np.testing.assert_array_almost_equal(
-            angular_matrix[0], angular_matrix_expected, decimal=3
+            angular_matrix, angular_matrix_expected, decimal=3
         )
 
     def test_pure_yaw(self):
@@ -50,7 +50,7 @@ class Test__angular_matrix_from_euler:
         angular_matrix_expected = np.eye(3)
 
         np.testing.assert_array_almost_equal(
-            angular_matrix[0], angular_matrix_expected, decimal=3
+            angular_matrix, angular_matrix_expected, decimal=3
         )
 
     def test_references(self):
@@ -68,7 +68,7 @@ class Test__angular_matrix_from_euler:
         )
 
         np.testing.assert_array_almost_equal(
-            angular_matrix[0], angular_matrix_expected, decimal=3
+            angular_matrix, angular_matrix_expected, decimal=3
         )
 
         # case 2
@@ -85,53 +85,7 @@ class Test__angular_matrix_from_euler:
         )
 
         np.testing.assert_array_almost_equal(
-            angular_matrix[0], angular_matrix_expected, decimal=3
-        )
-
-    def test_vectorized(self):
-        euler_vector = np.array(
-            [
-                np.radians((30.0, 15.0, 20.0)),
-                np.radians((15.0, 45.0, 5.0)),
-                np.radians((25.0, 125.0, -35.0)),
-            ]
-        )
-        angular_matrix = _transforms._angular_matrix_from_euler(euler_vector)
-
-        angular_matrix_expected_0 = np.array(
-            [
-                [1.0, 0.1339746, 0.23205081],
-                [0.0, 0.8660254, -0.5],
-                [0.0, 0.51763809, 0.89657547],
-            ]
-        )
-
-        angular_matrix_expected_1 = np.array(
-            [
-                [1.0, 0.25881905, 0.96592583],
-                [0.0, 0.96592583, -0.25881905],
-                [0.0, 0.3660254, 1.3660254],
-            ]
-        )
-
-        angular_matrix_expected_2 = np.array(
-            [
-                [1.0, -0.60356143, -1.29434166],
-                [0.0, 0.90630779, -0.42261826],
-                [0.0, -0.73681245, -1.58009941],
-            ]
-        )
-
-        np.testing.assert_array_almost_equal(
-            angular_matrix[0], angular_matrix_expected_0, decimal=3
-        )
-
-        np.testing.assert_array_almost_equal(
-            angular_matrix[1], angular_matrix_expected_1, decimal=3
-        )
-
-        np.testing.assert_array_almost_equal(
-            angular_matrix[2], angular_matrix_expected_2, decimal=3
+            angular_matrix, angular_matrix_expected, decimal=3
         )
 
 
@@ -145,7 +99,7 @@ class Test__angular_matrix_from_euler:
 )
 def test_rot_matrix_from_quaternion(q):
     rot_matrix = _transforms._rot_matrix_from_quaternion(q)
-    rot_matrix_expect = Rotation.from_quat(q[[1, 2, 3, 0]]).inv().as_matrix()
+    rot_matrix_expect = Rotation.from_quat(q[[1, 2, 3, 0]]).as_matrix()
     np.testing.assert_array_almost_equal(rot_matrix, rot_matrix_expect, decimal=3)
 
 
@@ -236,17 +190,36 @@ def test__rot_matrix_from_euler(euler):
     where also the resulting rotation matrix is from-origin-to-body.
     """
     out = _transforms._rot_matrix_from_euler(euler)
-    expected = Rotation.from_euler("ZYX", euler[::-1]).inv().as_matrix()
+    expected = Rotation.from_euler("ZYX", euler[::-1]).as_matrix()
     np.testing.assert_array_almost_equal(out, expected)
 
 
 def test__quaternion_from_euler():
-    euler = np.random.random(3) * np.pi  # passive rotations
+    euler = np.random.random(3) * np.pi  # passive, intrinsic rotations
 
     q_out = _transforms._quaternion_from_euler(euler)
 
-    q_expect = Rotation.from_euler("ZYX", euler[::-1]).as_quat()  # active rotations
+    q_expect = Rotation.from_euler("ZYX", euler[::-1]).as_quat()
     q_expect = np.r_[q_expect[3], q_expect[:3]]
-    q_expect[1:] *= -1  # passive rotations
 
     np.testing.assert_array_almost_equal(q_out, q_expect)
+
+
+def test_euler2quaternion2euler_transform():
+    euler_in = np.random.random(3) * np.pi / 2  # passive, intrinsic rotations
+
+    euler_out = _transforms._euler_from_quaternion(
+        _transforms._quaternion_from_euler(euler_in)
+    )
+
+    np.testing.assert_array_almost_equal(euler_out, euler_in)
+
+
+def test_euler2quaternion2gamma_transform():
+    euler_in = np.random.random(3) * np.pi / 2  # passive, intrinsic rotations
+
+    gamma_out = _transforms._gamma_from_quaternion(
+        _transforms._quaternion_from_euler(euler_in)
+    )
+
+    np.testing.assert_array_almost_equal(gamma_out, euler_in[2])

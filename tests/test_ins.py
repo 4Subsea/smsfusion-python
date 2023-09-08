@@ -13,7 +13,7 @@ import pytest
 from scipy.spatial.transform import Rotation
 
 from smsfusion._ins import StrapdownINS, gravity
-from smsfusion._transforms import _angular_matrix_from_euler, _rot_matrix_from_euler
+from smsfusion._transforms import _angular_matrix_from_euler
 
 
 @pytest.mark.parametrize(
