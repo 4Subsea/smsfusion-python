@@ -99,7 +99,7 @@ class Test__angular_matrix_from_euler:
 )
 def test_rot_matrix_from_quaternion(q):
     rot_matrix = _transforms._rot_matrix_from_quaternion(q)
-    rot_matrix_expect = Rotation.from_quat(q[[1, 2, 3, 0]]).inv().as_matrix()
+    rot_matrix_expect = Rotation.from_quat(q[[1, 2, 3, 0]]).as_matrix()
     np.testing.assert_array_almost_equal(rot_matrix, rot_matrix_expect, decimal=3)
 
 

@@ -91,15 +91,15 @@ def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     _2q0q3 = q0 * _2q3
 
     rot_00 = 1.0 - (_2q2q2 + _2q3q3)
-    rot_01 = _2q1q2 + _2q0q3
-    rot_02 = _2q1q3 - _2q0q2
+    rot_01 = _2q1q2 - _2q0q3
+    rot_02 = _2q1q3 + _2q0q2
 
-    rot_10 = _2q1q2 - _2q0q3
+    rot_10 = _2q1q2 + _2q0q3
     rot_11 = 1.0 - (_2q1q1 + _2q3q3)
-    rot_12 = _2q2q3 + _2q0q1
+    rot_12 = _2q2q3 - _2q0q1
 
-    rot_20 = _2q1q3 + _2q0q2
-    rot_21 = _2q2q3 - _2q0q1
+    rot_20 = _2q1q3 - _2q0q2
+    rot_21 = _2q2q3 + _2q0q1
     rot_22 = 1.0 - (_2q1q1 + _2q2q2)
 
     rot = np.array(
