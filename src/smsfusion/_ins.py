@@ -328,6 +328,8 @@ class AidedINS:
         - Initial error covariance matrix, P, is fixed to the identity matrix, and
           cannot be set during initialization.
         - Update method is not properly tested.
+        - Does not correct for sensor installation offsets.
+        - Estimates the system states at the 'sensor location'.
     """
 
     _I15 = np.eye(15)
