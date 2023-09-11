@@ -342,8 +342,8 @@ class AidedINS:
         self,
         fs: float,
         x0: ArrayLike,
-        err_acc: dict,
-        err_gyro: dict,
+        err_acc: dict[str, float],
+        err_gyro: dict[str, float],
         var_pos: ArrayLike,
         var_ahrs: ArrayLike,
     ) -> None:
@@ -461,7 +461,9 @@ class AidedINS:
 
     @staticmethod
     def _prep_F_matrix(
-        err_acc: dict, err_gyro: dict, theta_rad: ArrayLike
+        err_acc: dict[str, float],
+        err_gyro: dict[str, float],
+        theta_rad: NDArray[np.float64],
     ) -> NDArray[np.float64]:
         """Prepare state matrix"""
 
@@ -482,7 +484,7 @@ class AidedINS:
         return F
 
     @staticmethod
-    def _prep_G_matrix(theta_rad: ArrayLike) -> NDArray[np.float64]:
+    def _prep_G_matrix(theta_rad: NDArray[np.float64]) -> NDArray[np.float64]:
         """Prepare (white noise) input matrix"""
 
         R_bn = _rot_matrix_from_euler(theta_rad)
@@ -498,7 +500,9 @@ class AidedINS:
         return G
 
     @staticmethod
-    def _prep_W_matrix(err_acc: dict, err_gyro: dict) -> NDArray[np.float64]:
+    def _prep_W_matrix(
+        err_acc: dict[str, float], err_gyro: dict[str, float]
+    ) -> NDArray[np.float64]:
         """Prepare white noise power spectral density matrix"""
         N_acc = err_acc["N"]
         sigma_acc = err_acc["B"]
@@ -569,7 +573,6 @@ class AidedINS:
         f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3, 1).copy()
         w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3, 1).copy()
         pos = np.asarray_chkfinite(pos, dtype=float).reshape(3, 1).copy()
-        head = np.asarray_chkfinite(head, dtype=float).reshape(1, 1).copy()
         theta_ext = self._ahrs.attitude(degrees=False)
 
         if degrees:
