@@ -468,7 +468,7 @@ class AidedINS:
         beta_acc = 1.0 / err_acc["tau_cb"]
         beta_gyro = 1.0 / err_gyro["tau_cb"]
 
-        R_bn = _rot_matrix_from_euler(theta_rad).T  # body-to-NED
+        R_bn = _rot_matrix_from_euler(theta_rad)
         T = _angular_matrix_from_euler(theta_rad)
 
         # State matrix
@@ -485,7 +485,7 @@ class AidedINS:
     def _prep_G_matrix(theta_rad: ArrayLike) -> NDArray[np.float64]:
         """Prepare (white noise) input matrix"""
 
-        R_bn = _rot_matrix_from_euler(theta_rad).T  # body-to-NED
+        R_bn = _rot_matrix_from_euler(theta_rad)
         T = _angular_matrix_from_euler(theta_rad)
 
         # Input (white noise) matrix
@@ -581,7 +581,7 @@ class AidedINS:
         self._x_ins[0:9] = self._ins.x
 
         # Setup transformation matrices based on AHRS 'measurement'
-        R_bn = _rot_matrix_from_euler(theta_ext).T  # body-to-NED rotation matrix
+        R_bn = _rot_matrix_from_euler(theta_ext)
         T = _angular_matrix_from_euler(theta_ext)  # rotation rates to Euler rates
 
         # Update system matrices with AHRS attitude 'measurements'

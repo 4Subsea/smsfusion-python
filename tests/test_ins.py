@@ -333,7 +333,7 @@ class Test_AidedINS:
         F_out = AidedINS._prep_F_matrix(err_acc, err_gyro, theta)
 
         # State matrix
-        R_bn = _rot_matrix_from_euler(theta).T
+        R_bn = _rot_matrix_from_euler(theta)
         T = _angular_matrix_from_euler(theta)
         F_expect = np.zeros((15, 15))
         F_expect[0:3, 3:6] = np.eye(3)
@@ -350,7 +350,7 @@ class Test_AidedINS:
         G_out = AidedINS._prep_G_matrix(theta)
 
         # Input (white noise) matrix
-        R_bn = _rot_matrix_from_euler(theta).T
+        R_bn = _rot_matrix_from_euler(theta)
         T = _angular_matrix_from_euler(theta)
         G_expect = np.zeros((15, 12))
         G_expect[3:6, 0:3] = -R_bn
