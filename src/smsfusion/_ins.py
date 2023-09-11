@@ -330,6 +330,7 @@ class AidedINS:
         - Update method is not properly tested.
         - Does not correct for sensor installation offsets.
         - Estimates the system states at the 'sensor location'.
+        - IMU error models are the same for all axes.
     """
 
     _I15 = np.eye(15)
