@@ -12,8 +12,8 @@ import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
-from smsfusion._ins import StrapdownINS, gravity
-from smsfusion._transforms import _angular_matrix_from_euler
+from smsfusion._ins import AHRS, AidedINS, StrapdownINS, gravity
+from smsfusion._transforms import _angular_matrix_from_euler, _rot_matrix_from_euler
 
 
 @pytest.mark.parametrize(
@@ -212,3 +212,193 @@ class Test_StrapdownINS:
             -1, 1
         )
         np.testing.assert_array_almost_equal(x_out, x_expect)
+
+
+class Test_AidedINS:
+    @pytest.fixture
+    def ains(self):
+        p0 = np.array([1.0, 2.0, 3.0])
+        v0 = np.array([0.1, 0.2, 0.3])
+        theta0 = np.array([np.pi / 4, np.pi / 8, np.pi / 16])
+        b_acc0 = np.array([0.001, 0.002, 0.003])
+        b_gyro0 = np.array([0.004, 0.005, 0.006])
+        x0 = np.r_[p0, v0, theta0, b_acc0, b_gyro0]
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+        var_pos = [1.0, 2.0, 3.0]
+        var_ahrs = [4.0, 5.0, 6.0]
+        ains = AidedINS(10.24, x0, err_acc, err_gyro, var_pos, var_ahrs)
+        return ains
+
+    def test__init__(self):
+        x0 = np.zeros(15)
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+        var_pos = [1.0, 2.0, 3.0]
+        var_ahrs = [4.0, 5.0, 6.0]
+        ains = AidedINS(10.24, x0, err_acc, err_gyro, var_pos, var_ahrs)
+
+        assert isinstance(ains, AidedINS)
+        assert ains._fs == 10.24
+        assert ains._dt == 1.0 / 10.24
+        assert ains._err_acc == err_acc
+        assert ains._err_gyro == err_gyro
+        assert ains._Kp == 0.05
+        assert ains._Ki == 0.035
+        assert isinstance(ains._ahrs, AHRS)
+        assert isinstance(ains._ins, StrapdownINS)
+        np.testing.assert_array_almost_equal(ains._x_ins, np.zeros((15, 1)))
+        np.testing.assert_array_almost_equal(ains._P_prior, np.eye(15))
+
+        # State matrix
+        F_expect = np.zeros((15, 15))
+        F_expect[0:3, 3:6] = np.eye(3)
+        F_expect[3:6, 9:12] = -np.eye(3)
+        F_expect[6:9, 12:15] = -np.eye(3)
+        F_expect[9:12, 9:12] = -(1.0 / err_acc["tau_cb"]) * np.eye(3)
+        F_expect[12:15, 12:15] = -(1.0 / err_gyro["tau_cb"]) * np.eye(3)
+        np.testing.assert_array_almost_equal(ains._F, F_expect)
+
+        # Input (white noise) matrix
+        G_expect = np.zeros((15, 12))
+        G_expect[3:6, 0:3] = -np.eye(3)
+        G_expect[6:9, 3:6] = -np.eye(3)
+        G_expect[9:12, 6:9] = np.eye(3)
+        G_expect[12:15, 9:12] = np.eye(3)
+        np.testing.assert_array_almost_equal(ains._G, G_expect)
+
+        # White noise power spectral density matrix
+        W_expect = np.eye(12)
+        W_expect[0:3, 0:3] *= err_acc["N"] ** 2
+        W_expect[3:6, 3:6] *= err_gyro["N"] ** 2
+        W_expect[6:9, 6:9] *= 2.0 * err_acc["B"] ** 2 * (1.0 / err_acc["tau_cb"])
+        W_expect[9:12, 9:12] *= 2.0 * err_gyro["B"] ** 2 * (1.0 / err_gyro["tau_cb"])
+        np.testing.assert_array_almost_equal(ains._W, W_expect)
+
+        # Measurement noise covariance matrix
+        R_expect = np.diag(np.r_[var_pos, var_ahrs])
+        np.testing.assert_array_almost_equal(ains._R, R_expect)
+
+    def test_x(self, ains):
+        x_expect = np.array(
+            [
+                1.0,
+                2.0,
+                3.0,
+                0.1,
+                0.2,
+                0.3,
+                np.pi / 4,
+                np.pi / 8,
+                np.pi / 16,
+                0.001,
+                0.002,
+                0.003,
+                0.004,
+                0.005,
+                0.006,
+            ]
+        ).reshape(-1, 1)
+        x_out = ains.x
+        np.testing.assert_array_almost_equal(x_out, x_expect)
+        assert x_out is not ains._x
+
+    def test_position(self, ains):
+        pos_out = ains.position()
+        pos_expect = np.array([1.0, 2.0, 3.0]).reshape(-1, 1)
+        np.testing.assert_array_almost_equal(pos_out, pos_expect)
+
+    def test_velocity(self, ains):
+        vel_out = ains.velocity()
+        vel_expect = np.array([0.1, 0.2, 0.3]).reshape(-1, 1)
+        np.testing.assert_array_almost_equal(vel_out, vel_expect)
+
+    def test_euler_radians(self, ains):
+        theta_out = ains.euler(degrees=False)
+        theta_expect = np.array([np.pi / 4, np.pi / 8, np.pi / 16]).reshape(-1, 1)
+        np.testing.assert_array_almost_equal(theta_out, theta_expect)
+
+    def test_euler_degrees(self, ains):
+        theta_out = ains.euler(degrees=True)
+        theta_expect = (180.0 / np.pi) * np.array(
+            [np.pi / 4, np.pi / 8, np.pi / 16]
+        ).reshape(-1, 1)
+        np.testing.assert_array_almost_equal(theta_out, theta_expect)
+
+    def test__prep_F_matrix(self):
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+        theta = np.array([np.pi / 8, np.pi / 16, 0.0])
+
+        F_out = AidedINS._prep_F_matrix(err_acc, err_gyro, theta)
+
+        # State matrix
+        R_bn = _rot_matrix_from_euler(theta)
+        T = _angular_matrix_from_euler(theta)
+        F_expect = np.zeros((15, 15))
+        F_expect[0:3, 3:6] = np.eye(3)
+        F_expect[3:6, 9:12] = -R_bn
+        F_expect[6:9, 12:15] = -T
+        F_expect[9:12, 9:12] = -(1.0 / err_acc["tau_cb"]) * np.eye(3)
+        F_expect[12:15, 12:15] = -(1.0 / err_gyro["tau_cb"]) * np.eye(3)
+
+        np.testing.assert_array_almost_equal(F_out, F_expect)
+
+    def test__prep_G_matrix(self):
+        theta = np.array([np.pi / 8, np.pi / 16, 0.0])
+
+        G_out = AidedINS._prep_G_matrix(theta)
+
+        # Input (white noise) matrix
+        R_bn = _rot_matrix_from_euler(theta)
+        T = _angular_matrix_from_euler(theta)
+        G_expect = np.zeros((15, 12))
+        G_expect[3:6, 0:3] = -R_bn
+        G_expect[6:9, 3:6] = -T
+        G_expect[9:12, 6:9] = np.eye(3)
+        G_expect[12:15, 9:12] = np.eye(3)
+
+        np.testing.assert_array_almost_equal(G_out, G_expect)
+
+    def test__prep_W_matrix(self):
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+
+        W_out = AidedINS._prep_W_matrix(err_acc, err_gyro)
+
+        # White noise power spectral density matrix
+        W_expect = np.eye(12)
+        W_expect[0:3, 0:3] *= err_acc["N"] ** 2
+        W_expect[3:6, 3:6] *= err_gyro["N"] ** 2
+        W_expect[6:9, 6:9] *= 2.0 * err_acc["B"] ** 2 * (1.0 / err_acc["tau_cb"])
+        W_expect[9:12, 9:12] *= 2.0 * err_gyro["B"] ** 2 * (1.0 / err_gyro["tau_cb"])
+
+        np.testing.assert_array_almost_equal(W_out, W_expect)
+
+    def test__prep_H_matrix(self):
+        H_out = AidedINS._prep_H_matrix()
+
+        H_expect = np.zeros((6, 15))
+        H_expect[0:3, 0:3] = np.eye(3)
+        H_expect[3:6, 6:9] = np.eye(3)
+
+        np.testing.assert_array_almost_equal(H_out, H_expect)
+
+    def test_update_standstill(self):
+        x0 = np.zeros(15)
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+        var_pos = np.ones(3)
+        var_ahrs = np.ones(3)
+        ains = AidedINS(10.24, x0, err_acc, err_gyro, var_pos, var_ahrs)
+
+        g = gravity()
+        f_imu = np.array([0.0, 0.0, -g])
+        w_imu = np.zeros(3)
+        head = 0.0
+        pos = np.zeros(3)
+
+        ains.update(f_imu, w_imu, head, pos, degrees=True, head_degrees=True)
+        np.testing.assert_array_almost_equal(ains.x, np.zeros((15, 1)))
+        ains.update(f_imu, w_imu, head, pos, degrees=True, head_degrees=True)
+        np.testing.assert_array_almost_equal(ains.x, np.zeros((15, 1)))
