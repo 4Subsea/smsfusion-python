@@ -317,13 +317,8 @@ class AidedINS:
     var_ahrs : array-like (3,)
         Variance of attitude measurements in rad^2. Specifically, it refers to the
         variance of the AHRS error.
-
-    Attributes
-    ----------
     ahrs : AHRS
-        A configured instance of AHRS.
-    x
-
+        A configured instance of :class:`AHRS`.
 
     Notes
     -----
@@ -338,6 +333,11 @@ class AidedINS:
         - Does not correct for sensor installation offsets.
         - Estimates the system states at the 'sensor location'.
         - IMU error models are the same for all axes.
+
+    Attributes
+    ----------
+    ahrs : AHRS
+        A configured instance of :class:`AHRS`.
     """
 
     _I15 = np.eye(15)
@@ -362,9 +362,9 @@ class AidedINS:
 
         # Attitude Heading Reference System (AHRS)
         if not isinstance(ahrs, AHRS):
-            raise TypeError("'ahrs' must be an instance of AHRS")
+            raise TypeError("`ahrs` must be an instance of `AHRS`")
         if ahrs._fs != fs:
-            raise ValueError("AidedINS and AHRS sampling frequencies must equal")
+            raise ValueError("`AidedINS` and `AHRS` sampling frequencies must be equal")
         self.ahrs = ahrs
 
         # Strapdown algorithm
