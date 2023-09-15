@@ -217,6 +217,8 @@ class Test_StrapdownINS:
 class Test_AidedINS:
     @pytest.fixture
     def ains(self):
+        fs = 10.24
+
         p0 = np.array([1.0, 2.0, 3.0])
         v0 = np.array([0.1, 0.2, 0.3])
         theta0 = np.array([np.pi / 4, np.pi / 8, np.pi / 16])
@@ -227,25 +229,29 @@ class Test_AidedINS:
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
         var_pos = [1.0, 2.0, 3.0]
         var_ahrs = [4.0, 5.0, 6.0]
-        ains = AidedINS(10.24, x0, err_acc, err_gyro, var_pos, var_ahrs)
+        ahrs = AHRS(fs, 0.050, 0.035)
+        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
         return ains
 
     def test__init__(self):
+        fs = 10.24
+
         x0 = np.zeros(15)
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
         var_pos = [1.0, 2.0, 3.0]
         var_ahrs = [4.0, 5.0, 6.0]
-        ains = AidedINS(10.24, x0, err_acc, err_gyro, var_pos, var_ahrs)
+        ahrs = AHRS(fs, 0.050, 0.035)
+        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
 
         assert isinstance(ains, AidedINS)
         assert ains._fs == 10.24
         assert ains._dt == 1.0 / 10.24
         assert ains._err_acc == err_acc
         assert ains._err_gyro == err_gyro
-        assert ains._Kp == 0.05
-        assert ains._Ki == 0.035
-        assert isinstance(ains._ahrs, AHRS)
+        assert ains.ahrs._Kp == 0.050
+        assert ains.ahrs._Ki == 0.035
+        assert isinstance(ains.ahrs, AHRS)
         assert isinstance(ains._ins, StrapdownINS)
         np.testing.assert_array_almost_equal(ains._x_ins, np.zeros((15, 1)))
         np.testing.assert_array_almost_equal(ains._P_prior, np.eye(15))
@@ -278,6 +284,30 @@ class Test_AidedINS:
         # Measurement noise covariance matrix
         R_expect = np.diag(np.r_[var_pos, var_ahrs])
         np.testing.assert_array_almost_equal(ains._R, R_expect)
+
+    def test__init__wrong_ahrs_type(self):
+        fs = 10.24
+
+        x0 = np.zeros(15)
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+        var_pos = [1.0, 2.0, 3.0]
+        var_ahrs = [4.0, 5.0, 6.0]
+        ahrs = None
+        with pytest.raises(TypeError):
+            _ = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
+
+    def test__init__ahrs_fs_mismatch(self):
+        fs = 10.24
+
+        x0 = np.zeros(15)
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+        var_pos = [1.0, 2.0, 3.0]
+        var_ahrs = [4.0, 5.0, 6.0]
+        ahrs = AHRS(2.0 * fs, 0.050, 0.035)
+        with pytest.raises(ValueError):
+            _ = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
 
     def test_x(self, ains):
         x_expect = np.array(
@@ -385,12 +415,16 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(H_out, H_expect)
 
     def test_update_standstill(self):
+        fs = 10.24
+
         x0 = np.zeros(15)
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
         var_pos = np.ones(3)
         var_ahrs = np.ones(3)
-        ains = AidedINS(10.24, x0, err_acc, err_gyro, var_pos, var_ahrs)
+
+        ahrs = AHRS(fs, 0.050, 0.035)
+        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])

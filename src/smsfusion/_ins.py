@@ -317,6 +317,8 @@ class AidedINS:
     var_ahrs : array-like (3,)
         Variance of attitude measurements in rad^2. Specifically, it refers to the
         variance of the AHRS error.
+    ahrs : AHRS
+        A configured instance of :class:`AHRS`.
 
     Notes
     -----
@@ -331,12 +333,14 @@ class AidedINS:
         - Does not correct for sensor installation offsets.
         - Estimates the system states at the 'sensor location'.
         - IMU error models are the same for all axes.
+
+    Attributes
+    ----------
+    ahrs : AHRS
+        A configured instance of :class:`AHRS`.
     """
 
     _I15 = np.eye(15)
-
-    _Kp = 0.05
-    _Ki = 0.035
 
     def __init__(
         self,
@@ -346,6 +350,7 @@ class AidedINS:
         err_gyro: dict[str, float],
         var_pos: ArrayLike,
         var_ahrs: ArrayLike,
+        ahrs: AHRS,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
@@ -356,7 +361,11 @@ class AidedINS:
         var_ahrs = np.asarray_chkfinite(var_ahrs).reshape(3).copy()
 
         # Attitude Heading Reference System (AHRS)
-        self._ahrs = AHRS(fs, self._Kp, self._Ki)  # TODO: use initial attitude from x0
+        if not isinstance(ahrs, AHRS):
+            raise TypeError("`ahrs` must be an instance of `AHRS`")
+        if ahrs._fs != fs:
+            raise ValueError("`AidedINS` and `AHRS` sampling frequencies must be equal")
+        self.ahrs = ahrs
 
         # Strapdown algorithm
         self._x_ins = self._x0
@@ -573,7 +582,7 @@ class AidedINS:
         f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3, 1).copy()
         w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3, 1).copy()
         pos = np.asarray_chkfinite(pos, dtype=float).reshape(3, 1).copy()
-        theta_ext = self._ahrs.attitude(degrees=False)
+        theta_ext = self.ahrs.attitude(degrees=False)
 
         if degrees:
             w_imu = np.radians(w_imu)
@@ -623,5 +632,5 @@ class AidedINS:
         f_ins = f_imu - self._x_ins[9:12]
         w_ins = w_imu - self._x_ins[12:15]
         self._ins.update(self._dt, f_ins, w_ins, theta_ext=theta_ext, degrees=False)
-        self._ahrs.update(f_imu, w_imu, head, degrees=False, head_degrees=False)
+        self.ahrs.update(f_imu, w_imu, head, degrees=False, head_degrees=False)
         self._P_prior = phi @ P @ phi.T + Q
