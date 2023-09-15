@@ -192,7 +192,7 @@ class AHRS:
             v2_meas = np.array([np.cos(delta_head), -np.sin(delta_head), 0.0])
             w_meas_2 = R_nb @ _cross(v2_meas, v02)
         else:
-            w_meas_2 = 0.
+            w_meas_2 = 0.0
 
         w_mes = w_meas_1 + w_meas_2
 

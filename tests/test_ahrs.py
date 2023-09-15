@@ -185,6 +185,7 @@ class Test_AHRS:
         "f_imu, w_imu, head",
         [
             [np.array([0.0, 0.0, -1.0]), np.array([0.0, 0.0, 0]), 0.0],
+            [np.array([0.0, 0.0, -1.0]), np.array([0.0, 0.0, 0]), None],
             [np.array([0.0, 0.0, -1.0]), np.array([0.0, 0.0, 0]), np.array([0.0])],
             [[0.0, 0.0, -1.0], [0.0, 0.0, 0], 0.0],
             [
@@ -244,6 +245,7 @@ class Test_AHRS:
         f_imu = np.random.random((100, 3))
         w_imu = np.random.random((100, 3))
         head = np.random.random(100)
+        head[::10] = None
 
         alg = _ahrs.AHRS(fs, Kp, Ki)
         _ = [
