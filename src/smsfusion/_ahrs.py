@@ -132,7 +132,7 @@ class AHRS:
         self,
         f_imu: ArrayLike,
         w_imu: ArrayLike,
-        head: float,
+        head: float | None,
         degrees: bool = True,
         head_degrees: bool = True,
     ) -> "AHRS":  # TODO: Replace with ``typing.Self`` when Python > 3.11
@@ -162,28 +162,32 @@ class AHRS:
         """
         f_imu = np.asarray_chkfinite(f_imu, dtype=np.float64).reshape(3)
         w_imu = np.asarray_chkfinite(w_imu, dtype=np.float64).reshape(3)
-        head = float(head)
 
         if degrees:
             w_imu = np.radians(w_imu)
-        if head_degrees:
-            head = np.radians(head)
 
-        # Reference vectors expressed in NED frame
+        # Accelerometer - reference vectors expressed in NED frame
         v01 = np.array([0.0, 0.0, 1.0], dtype=np.float64)  # direction of gravity
-        v02 = np.array([1.0, 0.0, 0.0], dtype=np.float64)  # direction of north
-
-        delta_head = head - _gamma_from_quaternion(self._q)
-
         R_nb = _rot_matrix_from_quaternion(self._q)
-
-        v1_meas = -_normalize(f_imu)
         v1_est = R_nb @ v01
+        v1_meas = -_normalize(f_imu)
+        w_meas_1 = _cross(v1_meas, v1_est)
 
-        # postpone rotation to after cross product
-        v2_meas = np.array([np.cos(delta_head), -np.sin(delta_head), 0.0])
+        # Compass - reference vectors expressed in NED frame
+        if head is not None:
+            head = float(head)
 
-        w_mes = _cross(v1_meas, v1_est) + R_nb @ _cross(v2_meas, v02)
+            if head_degrees:
+                head = np.radians(head)
+
+            v02 = np.array([1.0, 0.0, 0.0], dtype=np.float64)  # direction of north
+            delta_head = head - _gamma_from_quaternion(self._q)
+            v2_meas = np.array([np.cos(delta_head), -np.sin(delta_head), 0.0])
+            w_meas_2 = R_nb @ _cross(v2_meas, v02)
+        else:
+            w_meas_2 = 0.
+
+        w_mes = w_meas_1 + w_meas_2
 
         self._q, self._bias, self._error = self._update(
             self._dt, self._q, self._bias, w_imu, w_mes, self._Kp, self._Ki
