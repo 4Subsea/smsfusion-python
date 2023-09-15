@@ -150,15 +150,22 @@ class AHRS:
             ``w_x``, ``w_y`` and ``w_z`` are rotation rates about the x-, y-,
             and z-axis, respectively. Unit determined with ``degrees`` keyword argument.
             See Notes.
-        head : float
+        head : float or None
             Compass heading measurement. Assumes right-hand rule about the NED z-axis.
-            Thus, the commonly used clockwise compass heading.
+            Thus, the commonly used clockwise compass heading. If measurement is not
+            available for an update cycle, ``None`` may be passed.
         degrees : bool
             If ``True`` (default), the rotation rates are assumed to be in
             degrees/s. Otherwise in radians/s.
         head_degrees : bool
             If ``True`` (default), the heading is assumed to be in
             degrees. Otherwise in radians.
+
+        Notes
+        -----
+        When the compass measurement is not available, the error term is calcualted
+        without its contribution. If the compass measurement is not provided for
+        a sufficiently long time, the yaw estimate may start to drift.
         """
         f_imu = np.asarray_chkfinite(f_imu, dtype=np.float64).reshape(3)
         w_imu = np.asarray_chkfinite(w_imu, dtype=np.float64).reshape(3)
