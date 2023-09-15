@@ -177,8 +177,8 @@ class AHRS:
         v01 = np.array([0.0, 0.0, 1.0], dtype=np.float64)  # direction of gravity
         R_nb = _rot_matrix_from_quaternion(self._q)
         v1_est = R_nb @ v01
-        v1_meas = -_normalize(f_imu)
-        w_meas_1 = _cross(v1_meas, v1_est)
+        v1_mes = -_normalize(f_imu)
+        w_mes_1 = _cross(v1_mes, v1_est)
 
         # Compass - reference vectors expressed in NED frame
         if head is not None:
@@ -189,12 +189,12 @@ class AHRS:
 
             v02 = np.array([1.0, 0.0, 0.0], dtype=np.float64)  # direction of north
             delta_head = head - _gamma_from_quaternion(self._q)
-            v2_meas = np.array([np.cos(delta_head), -np.sin(delta_head), 0.0])
-            w_meas_2 = R_nb @ _cross(v2_meas, v02)
+            v2_mes = np.array([np.cos(delta_head), -np.sin(delta_head), 0.0])
+            w_mes_2 = R_nb @ _cross(v2_mes, v02)
         else:
-            w_meas_2 = 0.0
+            w_mes_2 = 0.0
 
-        w_mes = w_meas_1 + w_meas_2
+        w_mes = w_mes_1 + w_mes_2
 
         self._q, self._bias, self._error = self._update(
             self._dt, self._q, self._bias, w_imu, w_mes, self._Kp, self._Ki
