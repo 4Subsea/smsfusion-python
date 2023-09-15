@@ -173,10 +173,10 @@ class AHRS:
         if degrees:
             w_imu = np.radians(w_imu)
 
+        R_bn = _rot_matrix_from_quaternion(self._q).T
         # Accelerometer - reference vectors expressed in NED frame
         v01 = np.array([0.0, 0.0, 1.0], dtype=np.float64)  # direction of gravity
-        R_nb = _rot_matrix_from_quaternion(self._q)
-        v1_est = R_nb @ v01
+        v1_est = R_bn @ v01
         v1_mes = -_normalize(f_imu)
         w_mes_1 = _cross(v1_mes, v1_est)
 
@@ -190,7 +190,7 @@ class AHRS:
             v02 = np.array([1.0, 0.0, 0.0], dtype=np.float64)  # direction of north
             delta_head = head - _gamma_from_quaternion(self._q)
             v2_mes = np.array([np.cos(delta_head), -np.sin(delta_head), 0.0])
-            w_mes_2 = R_nb @ _cross(v2_mes, v02)
+            w_mes_2 = R_bn @ _cross(v2_mes, v02)
         else:
             w_mes_2 = 0.0
 
