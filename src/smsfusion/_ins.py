@@ -326,7 +326,6 @@ class AidedINS:
         - Assumes aiding measurements are available at every time step.
         - Supports only position and AHRS aiding.
         - Operates at a constant sampling rate.
-        - AHRS gain factor parameters are not configurable.
         - Initial error covariance matrix, P, is fixed to the identity matrix, and
           cannot be set during initialization.
         - Update method is not properly tested.
