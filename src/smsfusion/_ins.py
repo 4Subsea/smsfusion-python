@@ -323,7 +323,6 @@ class AidedINS:
     Notes
     -----
     This AINS model has the following limitations:
-        - Assumes aiding measurements are available at every time step.
         - Supports only position and AHRS aiding.
         - Operates at a constant sampling rate.
         - Initial error covariance matrix, P, is fixed to the identity matrix, and
