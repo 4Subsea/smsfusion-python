@@ -584,7 +584,6 @@ class AidedINS:
 
         if pos is not None:
             pos = np.asarray_chkfinite(pos, dtype=float).reshape(3, 1).copy()
-            # z = np.r_[pos, theta_ext.reshape(3, 1)]  # measurement vector
             z = np.vstack([pos, theta_ext.reshape(3, 1)])  # measurement vector
             H = self._H  # measurement matrix
             R = self._R  # measurement noise covariance matrix
@@ -610,9 +609,7 @@ class AidedINS:
 
         F = self._F  # state matrix
         G = self._G  # (white noise) input matrix
-        # H = self._H  # measurement matrix
         W = self._W  # white noise power spectral density matrix
-        # R = self._R  # measurement noise covariance matrix
         P_prior = self._P_prior  # error covariance matrix
         I15 = self._I15  # 15x15 identity matrix
 
