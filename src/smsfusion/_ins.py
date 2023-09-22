@@ -549,7 +549,7 @@ class AidedINS:
         f_imu: ArrayLike,
         w_imu: ArrayLike,
         head: float,
-        pos: ArrayLike,
+        pos: ArrayLike | None,
         degrees: bool = False,
         head_degrees: bool = True,
     ) -> None:
@@ -580,8 +580,18 @@ class AidedINS:
         """
         f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3, 1).copy()
         w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3, 1).copy()
-        pos = np.asarray_chkfinite(pos, dtype=float).reshape(3, 1).copy()
         theta_ext = self.ahrs.attitude(degrees=False)
+
+        if pos is not None:
+            pos = np.asarray_chkfinite(pos, dtype=float).reshape(3, 1).copy()
+            # z = np.r_[pos, theta_ext.reshape(3, 1)]  # measurement vector
+            z = np.vstack([pos, theta_ext.reshape(3, 1)])  # measurement vector
+            H = self._H  # measurement matrix
+            R = self._R  # measurement noise covariance matrix
+        else:
+            z = theta_ext.reshape(3, 1)  # measurement vector
+            H = self._H[3:6, :]  # measurement matrix
+            R = self._R[3:6, 3:6]  # measurement noise covariance matrix
 
         if degrees:
             w_imu = np.radians(w_imu)
@@ -600,18 +610,15 @@ class AidedINS:
 
         F = self._F  # state matrix
         G = self._G  # (white noise) input matrix
-        H = self._H  # measurement matrix
+        # H = self._H  # measurement matrix
         W = self._W  # white noise power spectral density matrix
-        R = self._R  # measurement noise covariance matrix
+        # R = self._R  # measurement noise covariance matrix
         P_prior = self._P_prior  # error covariance matrix
         I15 = self._I15  # 15x15 identity matrix
 
         # Discretize system
         phi = I15 + self._dt * F  # state transition matrix
         Q = self._dt * G @ W @ G.T  # process noise covariance matrix
-
-        # Measurement
-        z = np.r_[pos, theta_ext.reshape(3, 1)]
 
         # Compute Kalman gain
         K = P_prior @ H.T @ inv(H @ P_prior @ H.T + R)
