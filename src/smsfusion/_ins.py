@@ -548,7 +548,7 @@ class AidedINS:
         f_imu: ArrayLike,
         w_imu: ArrayLike,
         head: float,
-        pos: ArrayLike | None,
+        pos: ArrayLike | None = None,
         degrees: bool = False,
         head_degrees: bool = True,
     ) -> None:
@@ -568,7 +568,7 @@ class AidedINS:
         head : float
             Heading measurement, i.e., yaw angle. If `head_degrees` is `True`, the
             heading is assumed to be in degrees; otherwise, in radians.
-        pos : array-like (3,), optional
+        pos : array-like (3,), default=None
             Position aiding measurement. If `None`, no position aiding is used.
         degrees : bool, default=False
             Specifies the units of the `w_imu` parameter. If `True`, the rotation
