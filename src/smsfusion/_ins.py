@@ -569,8 +569,8 @@ class AidedINS:
         head : float
             Heading measurement, i.e., yaw angle. If `head_degrees` is `True`, the
             heading is assumed to be in degrees; otherwise, in radians.
-        pos : array-like (3,)
-            Position measurement.
+        pos : array-like (3,), optional
+            Position aiding measurement. If `None`, no position aiding is used.
         degrees : bool, default=False
             Specifies the units of the `w_imu` parameter. If `True`, the rotation
             rates are assumed to be in degrees; otherwise, in radians.
