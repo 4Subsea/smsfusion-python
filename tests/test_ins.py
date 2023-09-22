@@ -455,7 +455,9 @@ class Test_AidedINS:
         head = 0.0
         pos = np.zeros(3)
 
+        ains.update(f_imu, w_imu, head, None, degrees=True, head_degrees=True)  # no pos
+        np.testing.assert_array_almost_equal(ains.x, np.zeros((15, 1)))
         ains.update(f_imu, w_imu, head, pos, degrees=True, head_degrees=True)  # pos
         np.testing.assert_array_almost_equal(ains.x, np.zeros((15, 1)))
-        ains.update(f_imu, w_imu, head, None, degrees=True, head_degrees=True)  # no pos
+        ains.update(f_imu, w_imu, head, degrees=True, head_degrees=True)  # no pos
         np.testing.assert_array_almost_equal(ains.x, np.zeros((15, 1)))
