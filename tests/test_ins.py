@@ -8,12 +8,19 @@ mind that passive rotations is simply the inverse active rotations and vice vers
 """
 
 
+from pathlib import Path
+
 import numpy as np
 import pytest
+from pandas import read_parquet
 from scipy.spatial.transform import Rotation
 
 from smsfusion._ins import AHRS, AidedINS, StrapdownINS, gravity
-from smsfusion._transforms import _angular_matrix_from_euler, _rot_matrix_from_euler
+from smsfusion._transforms import (
+    _angular_matrix_from_euler,
+    _rot_matrix_from_euler,
+    _quaternion_from_euler,
+)
 
 
 @pytest.mark.parametrize(
@@ -28,6 +35,14 @@ from smsfusion._transforms import _angular_matrix_from_euler, _rot_matrix_from_e
 def test_gravity(mu, g_expect):
     g_out = gravity(mu)
     assert g_out == pytest.approx(g_expect)
+
+
+@pytest.fixture
+def ains_ref_data():
+    """Reference data for AINS testing."""
+    return read_parquet(
+        Path(__file__).parent / "testdata" / "ains_ahrs_imu.parquet", engine="pyarrow"
+    )
 
 
 @pytest.mark.filterwarnings("ignore")
@@ -461,3 +476,82 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(ains.x, np.zeros((15, 1)))
         ains.update(f_imu, w_imu, head, degrees=True, head_degrees=True)  # no pos
         np.testing.assert_array_almost_equal(ains.x, np.zeros((15, 1)))
+
+    def test_update_reference_case(self, ains_ref_data):
+        """Test that succesive calls goes through"""
+        fs = 10.24
+
+        # Measurement data
+        f_imu = ains_ref_data[["Ax_meas", "Ay_meas", "Az_meas"]].values
+        w_imu = ains_ref_data[["Gx_meas", "Gy_meas", "Gz_meas"]].values
+        head = ains_ref_data[["Gamma_meas"]].values
+
+        pos_gnss = ains_ref_data[["X_meas", "Y_meas", "Z_meas"]].values
+
+        # Measurement noise uncertainty
+        var_pos = 0.05**2 * np.ones(3)  # 5 cm std uncertainity
+        var_ahrs = np.radians(2.0) ** 2 * np.ones(3)  # 2 deg std uncertainity
+
+        # AHRS
+        Kp = 0.27
+        Ki = 0.05
+
+        q_init = _quaternion_from_euler(
+            np.radians(ains_ref_data[["Alpha", "Beta", "Gamma"]].values[0])
+        )
+        ahrs = AHRS(fs, Kp, Ki, q_init=q_init)
+
+        # AINS
+        ACC_NOISE = {"N": 5.0e-1, "B": 5.0e-1, "tau_cb": 50.0}
+
+        GYRO_NOISE = {
+            "N": (np.pi / 180.0) * 5e-3,
+            "B": (np.pi / 180.0) * 5e-3,
+            "tau_cb": 50.0,
+        }
+
+        x0 = np.r_[
+            ains_ref_data[
+                ["X", "Y", "Z", "VX", "VY", "VZ", "Alpha", "Beta", "Gamma"]
+            ].values[0],
+            np.zeros(6),
+        ].reshape(15, 1)
+        ains = AidedINS(fs, x0, ACC_NOISE, GYRO_NOISE, var_pos, var_ahrs, ahrs)
+
+        pos_aiding_inc = 10  # Position aiding every N update step
+
+        pos_out = []
+        vel_out = []
+        euler_out = []
+        for k, (f_imu_k, w_imu_k, head_k, pos_k) in enumerate(
+            zip(f_imu, w_imu, head, pos_gnss)
+        ):
+            if k % pos_aiding_inc:
+                pos_k = None
+
+            ains.update(
+                f_imu_k, w_imu_k, head_k, pos_k, degrees=True, head_degrees=True
+            )
+            pos_out.append(ains.position().flatten())
+            vel_out.append(ains.velocity().flatten())
+            euler_out.append(ains.euler(degrees=True).flatten())
+
+        pos_out = np.asarray(pos_out)[600:-100]
+        vel_out = np.asarray(vel_out)[600:-100]
+        euler_out = np.asarray(euler_out)[600:-100]
+
+        pos_expected = ains_ref_data.loc[:, ["X", "Y", "Z"]].iloc[600:-100]
+        vel_expected = ains_ref_data.loc[:, ["VX", "VY", "VZ"]].iloc[600:-100]
+        euler_expected = ains_ref_data.loc[:, ["Alpha", "Beta", "Gamma"]].iloc[600:-100]
+
+        pos_rms = (pos_out - pos_expected).std(axis=0)
+        assert pos_rms.shape == (3,)
+        assert all(pos_rms <= 0.10)
+
+        vel_rms = (vel_out - vel_expected).std(axis=0)
+        assert vel_rms.shape == (3,)
+        assert all(vel_rms <= 0.15)
+
+        euler_rms = (euler_out - euler_expected).std(axis=0)
+        assert euler_rms.shape == (3,)
+        assert all(euler_rms <= 0.04)

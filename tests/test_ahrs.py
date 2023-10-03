@@ -5,6 +5,9 @@ import pytest
 from pandas import read_parquet
 
 from smsfusion import _ahrs
+from smsfusion._transforms import (
+    _quaternion_from_euler
+)
 
 
 @pytest.fixture
@@ -274,7 +277,10 @@ class Test_AHRS:
         Kp = 0.27
         Ki = 0.05
 
-        ahrs = _ahrs.AHRS(fs, Kp, Ki)
+        q_init = _quaternion_from_euler(
+            np.radians(ahrs_ref_data[["Alpha", "Beta", "Gamma"]].values[0])
+        )
+        ahrs = _ahrs.AHRS(fs, Kp, Ki, q_init=q_init)
         euler_out = np.array([
             ahrs.update(f_imu_i, w_imu_i, head_i).attitude(degrees=True)
             for f_imu_i, w_imu_i, head_i in zip(f_imu, w_imu, head)
