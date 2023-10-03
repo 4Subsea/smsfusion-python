@@ -1,7 +1,19 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
+from pandas import read_parquet
 
 from smsfusion import _ahrs
+
+
+@pytest.fixture
+def ahrs_ref_data():
+    """Reference data for AHRS testing."""
+    return read_parquet(
+        Path(__file__).parent / "testdata" / "ains_ahrs_imu.parquet",
+        engine="pyarrow"
+        )
 
 
 class Test_AHRS:
@@ -250,3 +262,26 @@ class Test_AHRS:
             alg.update(f_imu_i, w_imu_i, head_i).q
             for f_imu_i, w_imu_i, head_i in zip(f_imu, w_imu, head)
         ]
+
+    def test_update_reference_case(self, ahrs_ref_data):
+        """Test that succesive calls goes through"""
+        # Measurement data
+        f_imu = ahrs_ref_data[["Ax_meas", "Ay_meas", "Az_meas"]].values
+        w_imu = ahrs_ref_data[["Gx_meas", "Gy_meas", "Gz_meas"]].values
+        head = ahrs_ref_data[["Gamma_meas"]].values
+
+        fs = 10.24
+        Kp = 0.27
+        Ki = 0.05
+
+        ahrs = _ahrs.AHRS(fs, Kp, Ki)
+        euler_out = np.array([
+            ahrs.update(f_imu_i, w_imu_i, head_i).attitude(degrees=True)
+            for f_imu_i, w_imu_i, head_i in zip(f_imu, w_imu, head)
+        ])[600:-100, :]
+
+        euler_expected = ahrs_ref_data.loc[:, ["Alpha", "Beta", "Gamma"]].iloc[600:-100]
+
+        rms = (euler_out - euler_expected).std(axis=0)
+        assert rms.shape == (3, )
+        assert all(rms <= 0.35)
