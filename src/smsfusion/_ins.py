@@ -551,7 +551,7 @@ class AidedINS:
         pos: ArrayLike | None = None,
         degrees: bool = False,
         head_degrees: bool = True,
-    ) -> None:
+    ) -> "AidedINS":  # TODO: Replace with ``typing.Self`` when Python > 3.11
         """
         Update the AINS state estimates based on measurements, and project ahead.
 
@@ -636,3 +636,5 @@ class AidedINS:
         self._ins.update(self._dt, f_ins, w_ins, theta_ext=theta_ext, degrees=False)
         self.ahrs.update(f_imu, w_imu, head, degrees=False, head_degrees=False)
         self._P_prior = phi @ P @ phi.T + Q
+
+        return self
