@@ -511,9 +511,8 @@ class Test_AidedINS:
         }
 
         x0 = np.r_[
-            ains_ref_data[
-                ["X", "Y", "Z", "VX", "VY", "VZ", "Alpha", "Beta", "Gamma"]
-            ].values[0],
+            ains_ref_data[["X", "Y", "Z", "VX", "VY", "VZ"]].values[0],
+            np.radians(ains_ref_data[["Alpha", "Beta", "Gamma"]].values[0]),
             np.zeros(6),
         ].reshape(15, 1)
         ains = AidedINS(fs, x0, ACC_NOISE, GYRO_NOISE, var_pos, var_ahrs, ahrs)
@@ -536,13 +535,13 @@ class Test_AidedINS:
             vel_out.append(ains.velocity().flatten())
             euler_out.append(ains.euler(degrees=True).flatten())
 
-        pos_out = np.asarray(pos_out)[600:-100]
-        vel_out = np.asarray(vel_out)[600:-100]
-        euler_out = np.asarray(euler_out)[600:-100]
+        pos_out = np.asarray(pos_out)[600:]
+        vel_out = np.asarray(vel_out)[600:]
+        euler_out = np.asarray(euler_out)[600:]
 
-        pos_expected = ains_ref_data.loc[:, ["X", "Y", "Z"]].iloc[600:-100]
-        vel_expected = ains_ref_data.loc[:, ["VX", "VY", "VZ"]].iloc[600:-100]
-        euler_expected = ains_ref_data.loc[:, ["Alpha", "Beta", "Gamma"]].iloc[600:-100]
+        pos_expected = ains_ref_data.loc[:, ["X", "Y", "Z"]].iloc[600:]
+        vel_expected = ains_ref_data.loc[:, ["VX", "VY", "VZ"]].iloc[600:]
+        euler_expected = ains_ref_data.loc[:, ["Alpha", "Beta", "Gamma"]].iloc[600:]
 
         pos_rms = (pos_out - pos_expected).std(axis=0)
         assert pos_rms.shape == (3,)

@@ -283,9 +283,9 @@ class Test_AHRS:
                 ahrs.update(f_imu_i, w_imu_i, head_i).attitude(degrees=True)
                 for f_imu_i, w_imu_i, head_i in zip(f_imu, w_imu, head)
             ]
-        )[600:-100, :]
+        )[600:, :]
 
-        euler_expected = ahrs_ref_data.loc[:, ["Alpha", "Beta", "Gamma"]].iloc[600:-100]
+        euler_expected = ahrs_ref_data.loc[:, ["Alpha", "Beta", "Gamma"]].iloc[600:]
 
         rms = (euler_out - euler_expected).std(axis=0)
         assert rms.shape == (3,)
