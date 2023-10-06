@@ -193,6 +193,22 @@ class Test_AHRS:
         np.testing.assert_array_almost_equal(alg.error, error_expect)
         np.testing.assert_array_almost_equal(alg.bias, bias_expect)
 
+    def test_update_return_self(self):
+        fs = 10.24
+        Kp = 0.5
+        Ki = 0.1
+        q_init = np.array([1.0, 0.0, 0.0, 0.0])
+        bias_init = np.array([0.0, 0.0, 0.0])
+
+        alg = _ahrs.AHRS(fs, Kp, Ki, q_init=q_init, bias_init=bias_init)
+
+        f_imu = np.array([0.0, 0.0, -9.80665])
+        w_imu = np.array([0.0, 0.0, 0.0])
+        head = 0.
+
+        update_return = alg.update(f_imu, w_imu, head)
+        assert update_return is alg
+
     @pytest.mark.parametrize(
         "f_imu, w_imu, head",
         [
