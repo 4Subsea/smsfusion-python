@@ -494,7 +494,7 @@ class Test_AidedINS:
 
         # AHRS
         Kp = 0.27
-        Ki = 0.05
+        Ki = 0.025
 
         q_init = _quaternion_from_euler(
             np.radians(ains_ref_data[["Alpha", "Beta", "Gamma"]].values[0])
