@@ -18,8 +18,8 @@ from scipy.spatial.transform import Rotation
 from smsfusion._ins import AHRS, AidedINS, StrapdownINS, gravity
 from smsfusion._transforms import (
     _angular_matrix_from_euler,
-    _rot_matrix_from_euler,
     _quaternion_from_euler,
+    _rot_matrix_from_euler,
 )
 
 

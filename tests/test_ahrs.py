@@ -5,18 +5,15 @@ import pytest
 from pandas import read_parquet
 
 from smsfusion import _ahrs
-from smsfusion._transforms import (
-    _quaternion_from_euler
-)
+from smsfusion._transforms import _quaternion_from_euler
 
 
 @pytest.fixture
 def ahrs_ref_data():
     """Reference data for AHRS testing."""
     return read_parquet(
-        Path(__file__).parent / "testdata" / "ains_ahrs_imu.parquet",
-        engine="pyarrow"
-        )
+        Path(__file__).parent / "testdata" / "ains_ahrs_imu.parquet", engine="pyarrow"
+    )
 
 
 class Test_AHRS:
@@ -281,13 +278,15 @@ class Test_AHRS:
             np.radians(ahrs_ref_data[["Alpha", "Beta", "Gamma"]].values[0])
         )
         ahrs = _ahrs.AHRS(fs, Kp, Ki, q_init=q_init)
-        euler_out = np.array([
-            ahrs.update(f_imu_i, w_imu_i, head_i).attitude(degrees=True)
-            for f_imu_i, w_imu_i, head_i in zip(f_imu, w_imu, head)
-        ])[600:-100, :]
+        euler_out = np.array(
+            [
+                ahrs.update(f_imu_i, w_imu_i, head_i).attitude(degrees=True)
+                for f_imu_i, w_imu_i, head_i in zip(f_imu, w_imu, head)
+            ]
+        )[600:-100, :]
 
         euler_expected = ahrs_ref_data.loc[:, ["Alpha", "Beta", "Gamma"]].iloc[600:-100]
 
         rms = (euler_out - euler_expected).std(axis=0)
-        assert rms.shape == (3, )
+        assert rms.shape == (3,)
         assert all(rms <= 0.35)
