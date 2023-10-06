@@ -35,6 +35,8 @@ dependencies = [
   "coverage[toml]",
   "isort",
   "mypy",
+  "pandas",  # used as to load data
+  "pyarrow",  # pandas dependency
   "pytest",
   "pytest-cov",
   "scipy"  # used as reference implementation for rotations
