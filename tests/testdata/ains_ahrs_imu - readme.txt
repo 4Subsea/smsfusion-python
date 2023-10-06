@@ -1,5 +1,8 @@
 # Reference data for AINS / AHRS testing
 
+Data can be generated from:
+git clone --single-branch --branch ains-ahrs-reference-case https://github.com/4Subsea/datalab-workspace.git ains-ahrs-reference-case
+
 Filename: ains_ahrs_imu.parquet
 Data type: Pandas DataFrame
 Columns: 'X', 'Y', 'Z', 'VX', 'VY', 'VZ', 'Alpha', 'Beta', 'Gamma', 'Ax', 'Ay', 'Az', 'Gx', 'Gy', 'Gz', 'Ax_meas', 'Ay_meas', 'Az_meas', 'Gx_meas', 'Gy_meas', 'Gz_meas', 'X_meas', 'Y_meas', 'Z_meas', 'Gamma_meas'
