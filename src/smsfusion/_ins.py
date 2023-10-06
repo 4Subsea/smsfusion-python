@@ -223,7 +223,7 @@ class StrapdownINS:
         w_imu: ArrayLike,
         degrees: bool = False,
         theta_ext: ArrayLike | None = None,
-    ) -> None:
+    ) -> "StrapdownINS":  # TODO: Replace with ``typing.Self`` when Python > 3.11:
         """
         Update the INS states by integrating the 'strapdown navigation equations'.
 
@@ -285,6 +285,8 @@ class StrapdownINS:
         self._p = self._p + dt * self._v + 0.5 * dt**2 * a
         self._v = self._v + dt * a
         self._theta = self._theta + dt * T @ w_imu
+
+        return self
 
 
 class AidedINS:

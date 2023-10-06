@@ -110,6 +110,18 @@ class Test_StrapdownINS:
 
         np.testing.assert_array_almost_equal(theta_out, theta_expect)
 
+    def test_update_return_self(self):
+        x0 = np.zeros((9, 1))
+        strapdownins = StrapdownINS(x0)
+
+        dt = 0.1
+        g = 9.80665
+        f = np.array([0.0, 0.0, -g]).reshape(-1, 1)
+        w = np.array([0.0, 0.0, 0.0]).reshape(-1, 1)
+
+        update_return = strapdownins.update(dt, f, w)
+        assert update_return is strapdownins
+
     def test_update(self):
         x0 = np.zeros((9, 1))
         ins = StrapdownINS(x0)
