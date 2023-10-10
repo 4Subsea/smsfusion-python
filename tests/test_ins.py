@@ -385,7 +385,7 @@ class Test_AidedINS:
 
     def test_position(self, ains):
         pos_out = ains.position()
-        pos_expect = np.array([1.0, 2.0, 3.0]).reshape(-1, 1)
+        pos_expect = np.array([1.0, 2.0, 3.0])
         np.testing.assert_array_almost_equal(pos_out, pos_expect)
 
     def test_velocity(self, ains):

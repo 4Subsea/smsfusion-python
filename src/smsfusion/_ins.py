@@ -449,7 +449,7 @@ class AidedINS:
                 - Position in y direction.
                 - Position in z direction.
         """
-        return self._p.copy()
+        return self._p.flatten()
 
     def velocity(self) -> NDArray[np.float64]:
         """
