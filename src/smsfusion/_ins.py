@@ -241,7 +241,7 @@ class StrapdownINS:
         w_imu: ArrayLike,
         degrees: bool = False,
         theta_ext: ArrayLike | None = None,
-    ) -> None:
+    ) -> "StrapdownINS":  # TODO: Replace with ``typing.Self`` when Python > 3.11:
         """
         Update the INS states by integrating the 'strapdown navigation equations'.
 
@@ -303,6 +303,8 @@ class StrapdownINS:
         self._p = self._p + dt * self._v + 0.5 * dt**2 * a
         self._v = self._v + dt * a
         self._theta = self._theta + dt * T @ w_imu
+
+        return self
 
 
 class AidedINS:
@@ -590,7 +592,7 @@ class AidedINS:
         pos: ArrayLike | None = None,
         degrees: bool = False,
         head_degrees: bool = True,
-    ) -> None:
+    ) -> "AidedINS":  # TODO: Replace with ``typing.Self`` when Python > 3.11
         """
         Update the AINS state estimates based on measurements, and project ahead.
 
@@ -675,3 +677,5 @@ class AidedINS:
         self._ins.update(self._dt, f_ins, w_ins, theta_ext=theta_ext, degrees=False)
         self.ahrs.update(f_imu, w_imu, head, degrees=False, head_degrees=False)
         self._P_prior = phi @ P @ phi.T + Q
+
+        return self
