@@ -120,7 +120,7 @@ class AHRS:
             sensors (accelerometer, magnetometer, compass) as 1D array.
 
         """
-        bias = bias - 0.5 * Ki * w_mes * dt
+        bias = bias - Ki * w_mes * dt
 
         w = w_imu - bias + Kp * w_mes
 
