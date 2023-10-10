@@ -92,23 +92,34 @@ class Test_StrapdownINS:
 
         np.testing.assert_array_almost_equal(v_out, v_expect)
 
-    def test_attitude_rad(self, ins):
+    def test_euler_rad(self, ins):
         x = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, np.pi, np.pi / 2.0, np.pi / 4.0])
         ins.reset(x)
 
-        theta_out = ins.attitude(degrees=False)
+        theta_out = ins.euler(degrees=False)
         theta_expect = np.array([np.pi, np.pi / 2.0, np.pi / 4.0]).reshape(-1, 1)
 
         np.testing.assert_array_almost_equal(theta_out, theta_expect)
 
-    def test_attitude_deg(self, ins):
+    def test_euler_deg(self, ins):
         x = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, np.pi, np.pi / 2.0, np.pi / 4.0])
         ins.reset(x)
 
-        theta_out = ins.attitude(degrees=True)
+        theta_out = ins.euler(degrees=True)
         theta_expect = np.array([180.0, 90.0, 45.0]).reshape(-1, 1)
 
         np.testing.assert_array_almost_equal(theta_out, theta_expect)
+
+    def test_quaternion(self, ins):
+        x = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, np.pi, np.pi / 2.0, np.pi / 4.0])
+        ins.reset(x)
+
+        quaternion_out = ins.quaternion()
+        q_expected = Rotation.from_euler(
+            "ZYX", np.array([np.pi, np.pi / 2.0, np.pi / 4.0])[::-1], degrees=False
+        ).as_quat()
+        q_expected = np.r_[q_expected[-1], q_expected[:-1]]
+        np.testing.assert_array_almost_equal(quaternion_out, q_expected)
 
     def test_update_return_self(self):
         x0 = np.zeros((9, 1))
@@ -381,6 +392,16 @@ class Test_AidedINS:
             [np.pi / 4, np.pi / 8, np.pi / 16]
         ).reshape(-1, 1)
         np.testing.assert_array_almost_equal(theta_out, theta_expect)
+
+    def test_quaternion(self, ains):
+        quaternion_out = ains.quaternion()
+
+        theta_expect = np.array([np.pi / 4, np.pi / 8, np.pi / 16])
+        q_expected = Rotation.from_euler(
+            "ZYX", theta_expect[::-1], degrees=False
+        ).as_quat()
+        q_expected = np.r_[q_expected[-1], q_expected[0:-1]]  # scipy rearrange
+        np.testing.assert_array_almost_equal(quaternion_out, q_expected)
 
     def test__prep_F_matrix(self):
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}

@@ -5,7 +5,11 @@ from numpy.linalg import inv
 from numpy.typing import ArrayLike, NDArray
 
 from ._ahrs import AHRS
-from ._transforms import _angular_matrix_from_euler, _rot_matrix_from_euler
+from ._transforms import (
+    _angular_matrix_from_euler,
+    _quaternion_from_euler,
+    _rot_matrix_from_euler,
+)
 
 
 def gravity(lat: float | None = None, degrees: bool = True) -> float:
@@ -166,26 +170,38 @@ class StrapdownINS:
         """
         return self._v.copy()
 
-    def attitude(self, degrees: bool = False) -> NDArray[np.float64]:
+    def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
-        Current attitude estimate as vector of Euler angles (i.e., roll, pitch and yaw).
-
-        Given as as:
-
-            ``theta = [alpha, beta, gamma]^T``
-
-        where ``alpha``, ``beta`` and ``gamma`` are the Euler angles (given in radians).
+        Current attitude estimate as Euler angles in ZYX convention, see Notes.
 
         Parameters
         ----------
-        degrees : bool, default False
-            Whether the rotation rates are given in `degrees` (``True``) or `radians`
-            (``False``).
+        degrees : bool
+            Whether to return the Euler angles in degrees (`True`) or radians (`False`).
 
         Returns
         -------
-        theta : ndarray
-            Attitude as array of shape (3, 1).
+        euler : numpy.ndarray
+            Euler angles, specifically:  alpha (roll), beta (pitch) and gamma (yaw)
+            in that order.
+
+        Notes
+        -----
+        The Euler angles describe how to transition from the 'NED' frame to the 'body'
+        frame through three consecutive intrinsic and passive rotations in the ZYX order:
+            1. A rotation by an angle gamma (often called yaw) about the z-axis.
+            2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+            3. A final rotation by an angle alpha (often called roll) about the x-axis.
+
+        This sequence of rotations is used to describe the orientation of the 'body' frame
+        relative to the 'NED' frame in 3D space.
+
+        Intrinsic rotations mean that the rotations are with respect to the changing
+        coordinate system; as one rotation is applied, the next is about the axis of
+        the newly rotated system.
+
+        Passive rotations mean that the frame itself is rotating, not the object
+        within the frame.
         """
         theta = self._theta.copy()
 
@@ -193,6 +209,12 @@ class StrapdownINS:
             theta = (180.0 / np.pi) * theta
 
         return theta
+
+    def quaternion(self) -> NDArray[np.float64]:
+        """
+        Current attitude estimate as unit quaternion (from-body-to-NED).
+        """
+        return _quaternion_from_euler(self._theta.flatten())
 
     def reset(self, x_new: ArrayLike) -> None:
         """
@@ -445,21 +467,36 @@ class AidedINS:
 
     def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
-        Current AINS attitude estimate as Euler angles (i.e., roll, pitch, yaw).
+        Current attitude estimate as Euler angles in ZYX convention, see Notes.
 
         Parameters
         ----------
-        degrees : bool, default=False
-            If `True`, the Euler angles are returned in degrees. Otherwise, they
-            are returned in radians.
+        degrees : bool
+            Whether to return the Euler angles in degrees (`True`) or radians (`False`).
 
         Returns
         -------
-        attitude : ndarray (3, 1)
-            The current attitude estimate, represented by Euler angles:
-                - alpha (roll).
-                - beta (pitch).
-                - gamma (yaw).
+        euler : numpy.ndarray
+            Euler angles, specifically:  alpha (roll), beta (pitch) and gamma (yaw)
+            in that order.
+
+        Notes
+        -----
+        The Euler angles describe how to transition from the 'NED' frame to the 'body'
+        frame through three consecutive intrinsic and passive rotations in the ZYX order:
+            1. A rotation by an angle gamma (often called yaw) about the z-axis.
+            2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+            3. A final rotation by an angle alpha (often called roll) about the x-axis.
+
+        This sequence of rotations is used to describe the orientation of the 'body' frame
+        relative to the 'NED' frame in 3D space.
+
+        Intrinsic rotations mean that the rotations are with respect to the changing
+        coordinate system; as one rotation is applied, the next is about the axis of
+        the newly rotated system.
+
+        Passive rotations mean that the frame itself is rotating, not the object
+        within the frame.
         """
         theta = self._theta.copy()
 
@@ -467,6 +504,12 @@ class AidedINS:
             theta = (180.0 / np.pi) * theta
 
         return theta
+
+    def quaternion(self) -> NDArray[np.float64]:
+        """
+        Current attitude estimate as unit quaternion (from-body-to-NED).
+        """
+        return _quaternion_from_euler(self._theta.flatten())
 
     @staticmethod
     def _prep_F_matrix(
@@ -581,7 +624,7 @@ class AidedINS:
         """
         f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3, 1).copy()
         w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3, 1).copy()
-        theta_ext = self.ahrs.attitude(degrees=False)
+        theta_ext = self.ahrs.euler(degrees=False)
 
         if pos is not None:
             pos = np.asarray_chkfinite(pos, dtype=float).reshape(3, 1).copy()
