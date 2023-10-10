@@ -177,9 +177,27 @@ class StrapdownINS:
 
         Returns
         -------
-        attitude : ndarray
-            Euler angles, i.e., roll, pitch and yaw (in that order). However, the angles
-            are according to the ZYX convention.
+        euler : numpy.ndarray
+            Euler angles, specifically:  alpha (roll), beta (pitch) and gamma (yaw)
+            in that order.
+
+        Notes
+        -----
+        The Euler angles describe how to transition from the 'NED' frame to the 'body'
+        frame through three consecutive intrinsic and passive rotations in the ZYX order:
+            1. A rotation by an angle gamma (often called yaw) about the z-axis.
+            2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+            3. A final rotation by an angle alpha (often called roll) about the x-axis.
+
+        This sequence of rotations is used to describe the orientation of the 'body' frame
+        relative to the 'NED' frame in 3D space.
+
+        Intrinsic rotations mean that the rotations are with respect to the changing
+        coordinate system; as one rotation is applied, the next is about the axis of
+        the newly rotated system.
+
+        Passive rotations mean that the frame itself is rotating, not the object
+        within the frame.
         """
         theta = self._theta.copy()
 
@@ -452,11 +470,27 @@ class AidedINS:
 
         Returns
         -------
-        attitude : ndarray (3, 1)
-            The current attitude estimate, represented by Euler angles:
-                - alpha (roll).
-                - beta (pitch).
-                - gamma (yaw).
+        euler : numpy.ndarray
+            Euler angles, specifically:  alpha (roll), beta (pitch) and gamma (yaw)
+            in that order.
+
+        Notes
+        -----
+        The Euler angles describe how to transition from the 'NED' frame to the 'body'
+        frame through three consecutive intrinsic and passive rotations in the ZYX order:
+            1. A rotation by an angle gamma (often called yaw) about the z-axis.
+            2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+            3. A final rotation by an angle alpha (often called roll) about the x-axis.
+
+        This sequence of rotations is used to describe the orientation of the 'body' frame
+        relative to the 'NED' frame in 3D space.
+
+        Intrinsic rotations mean that the rotations are with respect to the changing
+        coordinate system; as one rotation is applied, the next is about the axis of
+        the newly rotated system.
+
+        Passive rotations mean that the frame itself is rotating, not the object
+        within the frame.
         """
         theta = self._theta.copy()
 
