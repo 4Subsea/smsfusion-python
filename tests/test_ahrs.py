@@ -145,6 +145,33 @@ class Test_AHRS:
         assert q_out is not q_init
         np.testing.assert_array_almost_equal(q_out, q_expect, decimal=3)
 
+    def test_error(self):
+        fs = 10.24
+        Kp = 0.5
+        Ki = 0.1
+        q_init = np.array([0.96591925, -0.25882081, 0.0, 0.0], dtype=float)
+        alg = AHRS(fs, Kp, Ki, q_init=q_init)
+
+        q_out = alg.error()
+        q_expect = np.zeros(3)
+
+        assert q_out.shape == (3,)
+        np.testing.assert_array_almost_equal(q_out, q_expect, decimal=3)
+
+    def test_bias(self):
+        fs = 10.24
+        Kp = 0.5
+        Ki = 0.1
+        bias_init = np.array([0.1, 0.2, 0.3], dtype=float)
+        alg = AHRS(fs, Kp, Ki, bias_init=bias_init)
+
+        bias_out = alg.bias()
+        bias_expect = bias_init
+
+        assert bias_out.shape == (3,)
+        assert bias_out is not bias_init
+        np.testing.assert_array_almost_equal(bias_out, bias_expect, decimal=3)
+
     def test__update_Ki(self):
         dt = 0.1
         q = np.array([1.0, 0.0, 0.0, 0.0])
