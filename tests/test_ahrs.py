@@ -130,7 +130,7 @@ class Test_AHRS:
         bias = np.array([0.5, 0.0, -0.5])
         omega_gyro = np.array([1.0, 2.0, 3.0])
         omega_corr = np.array([0.1, 0.2, -0.1])
-        Ki = 0.5
+        Ki = 0.25
         Kp = 0.0
 
         q, bias, error = AHRS._update(dt, q, bias, omega_gyro, omega_corr, Kp, Ki)
@@ -168,7 +168,7 @@ class Test_AHRS:
     def test_update(self, degrees, head_degrees):
         fs = 10.24
         Kp = 0.5
-        Ki = 0.1
+        Ki = 0.05
         q_init = np.array([1.0, 0.0, 0.0, 0.0])
         bias_init = np.array([0.0, 0.0, 0.0])
 
@@ -286,7 +286,7 @@ class Test_AHRS:
 
         fs = 10.24
         Kp = 0.27
-        Ki = 0.05
+        Ki = 0.025
 
         q_init = _quaternion_from_euler(
             np.radians(ahrs_ref_data[["Alpha", "Beta", "Gamma"]].values[0])
