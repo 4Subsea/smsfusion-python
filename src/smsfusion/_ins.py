@@ -129,8 +129,8 @@ class StrapdownINS:
 
         Returns
         -------
-        x : ndarray
-            State as array of shape (9, 1).
+        x : numpy.array
+            State as array of shape (9,).
         """
         return self._x.flatten()
 
