@@ -579,7 +579,7 @@ class AidedINS:
         """
         f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3, 1).copy()
         w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3, 1).copy()
-        theta_ext = self.ahrs.attitude(degrees=False)
+        theta_ext = self.ahrs.euler(degrees=False)
 
         if pos is not None:
             pos = np.asarray_chkfinite(pos, dtype=float).reshape(3, 1).copy()

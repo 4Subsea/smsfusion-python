@@ -189,9 +189,9 @@ class AHRS:
         )
         return self
 
-    def attitude(self, degrees: bool = True) -> NDArray[np.float64]:
+    def euler(self, degrees: bool = True) -> NDArray[np.float64]:
         """
-        Current attitude estimate as Euler angles in ZYX convention.
+        Current attitude estimate as Euler angles in ZYX convention, see Notes.
 
         Parameters
         ----------
@@ -204,28 +204,28 @@ class AHRS:
             Euler angles, i.e., roll, pitch and yaw (in that order). However, the angles
             are according to the ZYX convention.
         """
-        attitude = _euler_from_quaternion(self._q)
+        euler = _euler_from_quaternion(self._q)
         if degrees:
-            attitude = np.degrees(attitude)
-        return attitude  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
+            euler = np.degrees(euler)
+        return euler  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
 
     @property
-    def q(self) -> NDArray[np.float64]:
+    def quaternion(self) -> NDArray[np.float64]:
         """
-        Get current attitude (quaternion) estimate.
+        Current attitude estimate as unit quaternion (from-body-to-NED).
         """
         return self._q.copy()
 
     @property
     def error(self) -> NDArray[np.float64]:
         """
-        Get current error estimate.
+        Current error estimate.
         """
         return self._error.copy()
 
     @property
     def bias(self) -> NDArray[np.float64]:
         """
-        Get current bias estimate.
+        Current bias estimate.
         """
         return self._bias.copy()
