@@ -498,7 +498,7 @@ class AidedINS:
         Passive rotations mean that the frame itself is rotating, not the object
         within the frame.
         """
-        theta = self._theta.copy()
+        theta = self._theta.flatten()
 
         if degrees:
             theta = (180.0 / np.pi) * theta
@@ -508,6 +508,11 @@ class AidedINS:
     def quaternion(self) -> NDArray[np.float64]:
         """
         Current attitude estimate as unit quaternion (from-body-to-NED).
+
+        Returns
+        -------
+        quaternion : numpy.ndarray (3,)
+            The current attitude estimate as a unit quaternion.
         """
         return _quaternion_from_euler(self._theta.flatten())
 

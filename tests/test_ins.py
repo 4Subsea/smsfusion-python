@@ -401,14 +401,20 @@ class Test_AidedINS:
 
     def test_euler_radians(self, ains):
         theta_out = ains.euler(degrees=False)
-        theta_expect = np.array([np.pi / 4, np.pi / 8, np.pi / 16]).reshape(-1, 1)
+        theta_expect = np.array([np.pi / 4, np.pi / 8, np.pi / 16])
+
+        assert theta_out.shape == (3,)
+        assert theta_out is not ains._theta
         np.testing.assert_array_almost_equal(theta_out, theta_expect)
 
     def test_euler_degrees(self, ains):
         theta_out = ains.euler(degrees=True)
         theta_expect = (180.0 / np.pi) * np.array(
             [np.pi / 4, np.pi / 8, np.pi / 16]
-        ).reshape(-1, 1)
+        )
+
+        assert theta_out.shape == (3,)
+        assert theta_out is not ains._theta
         np.testing.assert_array_almost_equal(theta_out, theta_expect)
 
     def test_quaternion(self, ains):
@@ -419,6 +425,8 @@ class Test_AidedINS:
             "ZYX", theta_expect[::-1], degrees=False
         ).as_quat()
         q_expected = np.r_[q_expected[-1], q_expected[0:-1]]  # scipy rearrange
+
+        assert quaternion_out.shape == (4,)
         np.testing.assert_array_almost_equal(quaternion_out, q_expected)
 
     def test__prep_F_matrix(self):
