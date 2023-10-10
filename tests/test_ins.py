@@ -116,10 +116,8 @@ class Test_StrapdownINS:
 
         quaternion_out = ins.quaternion()
         q_expected = Rotation.from_euler(
-            "ZYX",
-            np.array([np.pi, np.pi / 2.0, np.pi / 4.0])[::-1],
-            degrees=False
-            ).as_quat()
+            "ZYX", np.array([np.pi, np.pi / 2.0, np.pi / 4.0])[::-1], degrees=False
+        ).as_quat()
         q_expected = np.r_[q_expected[-1], q_expected[:-1]]
         np.testing.assert_array_almost_equal(quaternion_out, q_expected)
 
@@ -399,7 +397,9 @@ class Test_AidedINS:
         quaternion_out = ains.quaternion()
 
         theta_expect = np.array([np.pi / 4, np.pi / 8, np.pi / 16])
-        q_expected = Rotation.from_euler("ZYX", theta_expect[::-1], degrees=False).as_quat()
+        q_expected = Rotation.from_euler(
+            "ZYX", theta_expect[::-1], degrees=False
+        ).as_quat()
         q_expected = np.r_[q_expected[-1], q_expected[0:-1]]  # scipy rearrange
         np.testing.assert_array_almost_equal(quaternion_out, q_expected)
 

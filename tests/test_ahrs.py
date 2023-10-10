@@ -114,9 +114,7 @@ class Test_AHRS:
         alg = AHRS(fs, Kp, Ki, q_init=q_init)
 
         alpha_beta_gamma = np.array([-30.0, 0.0, 0.0], dtype=float)
-        np.testing.assert_array_almost_equal(
-            alg.euler(), alpha_beta_gamma, decimal=3
-        )
+        np.testing.assert_array_almost_equal(alg.euler(), alpha_beta_gamma, decimal=3)
         np.testing.assert_array_almost_equal(
             alg.euler(degrees=True), alpha_beta_gamma, decimal=3
         )

@@ -5,7 +5,11 @@ from numpy.linalg import inv
 from numpy.typing import ArrayLike, NDArray
 
 from ._ahrs import AHRS
-from ._transforms import _angular_matrix_from_euler, _rot_matrix_from_euler, _quaternion_from_euler
+from ._transforms import (
+    _angular_matrix_from_euler,
+    _quaternion_from_euler,
+    _rot_matrix_from_euler,
+)
 
 
 def gravity(lat: float | None = None, degrees: bool = True) -> float:
