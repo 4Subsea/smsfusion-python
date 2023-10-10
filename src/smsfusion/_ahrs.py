@@ -227,21 +227,18 @@ class AHRS:
             euler = np.degrees(euler)
         return euler  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
 
-    @property
     def quaternion(self) -> NDArray[np.float64]:
         """
         Current attitude estimate as unit quaternion (from-body-to-NED).
         """
         return self._q.copy()
 
-    @property
     def error(self) -> NDArray[np.float64]:
         """
         Current error estimate.
         """
         return self._error.copy()
 
-    @property
     def bias(self) -> NDArray[np.float64]:
         """
         Current bias estimate.
