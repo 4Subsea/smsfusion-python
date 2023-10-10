@@ -370,6 +370,14 @@ class Test_AidedINS:
         ).reshape(-1, 1)
         np.testing.assert_array_almost_equal(theta_out, theta_expect)
 
+    def test_quaternions(self, ains):
+        quaternion_out = ains.quaternion()
+
+        theta_expect = np.array([np.pi / 4, np.pi / 8, np.pi / 16])
+        q_expected = Rotation.from_euler("ZYX", theta_expect[::-1], degrees=False).as_quat()
+        q_expected = np.r_[q_expected[-1], q_expected[0:-1]]  # scipy rearrange
+        np.testing.assert_array_almost_equal(quaternion_out, q_expected)
+
     def test__prep_F_matrix(self):
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}

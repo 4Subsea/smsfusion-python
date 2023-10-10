@@ -5,7 +5,7 @@ from numpy.linalg import inv
 from numpy.typing import ArrayLike, NDArray
 
 from ._ahrs import AHRS
-from ._transforms import _angular_matrix_from_euler, _rot_matrix_from_euler
+from ._transforms import _angular_matrix_from_euler, _rot_matrix_from_euler, _quaternion_from_euler
 
 
 def gravity(lat: float | None = None, degrees: bool = True) -> float:
@@ -443,7 +443,7 @@ class AidedINS:
 
     def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
-        Current AINS attitude estimate as Euler angles (i.e., roll, pitch, yaw).
+        Current attitude estimate as Euler angles in ZYX convention, see Notes.
 
         Parameters
         ----------
@@ -465,6 +465,12 @@ class AidedINS:
             theta = (180.0 / np.pi) * theta
 
         return theta
+
+    def quaternion(self) -> NDArray[np.float64]:
+        """
+        Current attitude estimate as unit quaternion (from-body-to-NED).
+        """
+        return _quaternion_from_euler(self._theta.flatten())
 
     @staticmethod
     def _prep_F_matrix(
