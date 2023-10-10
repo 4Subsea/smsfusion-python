@@ -196,13 +196,19 @@ class AHRS:
         Parameters
         ----------
         degrees : bool
-            Whether to return the attitude in degrees (default) or radians.
+            Whether to return the Euler angles in degrees (`True`) or radians (`False`).
 
         Returns
         -------
-        attitude : ndarray
-            Euler angles, i.e., roll, pitch and yaw (in that order). However, the angles
-            are according to the ZYX convention.
+        euler : numpy.ndarray
+            Euler angles, i.e., roll, pitch and yaw (in that order).
+
+        Notes
+        -----
+        The Euler angles describe how to transition from the 'NED' frame to the 'body'
+        frame through three consecutive (passive, intrinsic) rotations in the ZYX order.
+        That is, first rotate about the z-axis (gamma), then about the y-axis
+        (pitch), and lastly about the x-axis (roll).
         """
         euler = _euler_from_quaternion(self._q)
         if degrees:

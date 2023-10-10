@@ -173,7 +173,7 @@ class StrapdownINS:
         Parameters
         ----------
         degrees : bool
-            Whether to return the attitude in degrees (default) or radians.
+            Whether to return the Euler angles in degrees (`True`) or radians (`False`).
 
         Returns
         -------
@@ -447,9 +447,8 @@ class AidedINS:
 
         Parameters
         ----------
-        degrees : bool, default=False
-            If `True`, the Euler angles are returned in degrees. Otherwise, they
-            are returned in radians.
+        degrees : bool
+            Whether to return the Euler angles in degrees (`True`) or radians (`False`).
 
         Returns
         -------
