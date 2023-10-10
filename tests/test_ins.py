@@ -74,6 +74,7 @@ class Test_StrapdownINS:
         x_expect = x
 
         assert x_out.shape == (9,)
+        assert x_out is not ins._x
         np.testing.assert_array_equal(x_out, x_expect)
 
     def test_position(self, ins):
@@ -81,6 +82,7 @@ class Test_StrapdownINS:
         ins.reset(x)
 
         p_out = ins.position()
+        assert p_out is not ins._p
         p_expect = np.array([1.0, 2.0, 3.0])
 
         assert p_out.shape == (3,)
@@ -91,6 +93,7 @@ class Test_StrapdownINS:
         ins.reset(x)
 
         v_out = ins.velocity()
+        assert v_out is not ins._v
         v_expect = np.array([4.0, 5.0, 6.0])
 
         assert v_out.shape == (3,)
