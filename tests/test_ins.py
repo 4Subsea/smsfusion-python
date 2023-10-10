@@ -130,6 +130,8 @@ class Test_StrapdownINS:
             "ZYX", np.array([np.pi, np.pi / 2.0, np.pi / 4.0])[::-1], degrees=False
         ).as_quat()
         q_expected = np.r_[q_expected[-1], q_expected[:-1]]
+
+        assert quaternion_out.shape == (4,)
         np.testing.assert_array_almost_equal(quaternion_out, q_expected)
 
     def test_update_return_self(self):
