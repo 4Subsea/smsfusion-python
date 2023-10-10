@@ -110,6 +110,18 @@ class Test_StrapdownINS:
 
         np.testing.assert_array_almost_equal(theta_out, theta_expect)
 
+    def test_update_return_self(self):
+        x0 = np.zeros((9, 1))
+        strapdownins = StrapdownINS(x0)
+
+        dt = 0.1
+        g = 9.80665
+        f = np.array([0.0, 0.0, -g]).reshape(-1, 1)
+        w = np.array([0.0, 0.0, 0.0]).reshape(-1, 1)
+
+        update_return = strapdownins.update(dt, f, w)
+        assert update_return is strapdownins
+
     def test_update(self):
         x0 = np.zeros((9, 1))
         ins = StrapdownINS(x0)
@@ -428,6 +440,31 @@ class Test_AidedINS:
         H_expect[3:6, 6:9] = np.eye(3)
 
         np.testing.assert_array_almost_equal(H_out, H_expect)
+
+    def test_update_return_self(self):
+        fs = 10.24
+        Kp = 0.5
+        Ki = 0.1
+
+        x0 = np.zeros(15)
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+        var_pos = np.ones(3)
+        var_ahrs = np.ones(3)
+
+        ahrs = AHRS(fs, Kp, Ki)
+        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
+
+        g = gravity()
+        f_imu = np.array([0.0, 0.0, -g])
+        w_imu = np.zeros(3)
+        head = 0.0
+        pos = np.zeros(3)
+
+        update_return = ains.update(
+            f_imu, w_imu, head, pos, degrees=True, head_degrees=True
+        )
+        assert update_return is ains
 
     def test_update_standstill(self):
         fs = 10.24
