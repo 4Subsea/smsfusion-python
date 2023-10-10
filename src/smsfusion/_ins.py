@@ -166,26 +166,20 @@ class StrapdownINS:
         """
         return self._v.copy()
 
-    def attitude(self, degrees: bool = False) -> NDArray[np.float64]:
+    def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
-        Current attitude estimate as vector of Euler angles (i.e., roll, pitch and yaw).
-
-        Given as as:
-
-            ``theta = [alpha, beta, gamma]^T``
-
-        where ``alpha``, ``beta`` and ``gamma`` are the Euler angles (given in radians).
+        Current attitude estimate as Euler angles in ZYX convention, see Notes.
 
         Parameters
         ----------
-        degrees : bool, default False
-            Whether the rotation rates are given in `degrees` (``True``) or `radians`
-            (``False``).
+        degrees : bool
+            Whether to return the attitude in degrees (default) or radians.
 
         Returns
         -------
-        theta : ndarray
-            Attitude as array of shape (3, 1).
+        attitude : ndarray
+            Euler angles, i.e., roll, pitch and yaw (in that order). However, the angles
+            are according to the ZYX convention.
         """
         theta = self._theta.copy()
 
@@ -193,6 +187,12 @@ class StrapdownINS:
             theta = (180.0 / np.pi) * theta
 
         return theta
+
+    def quaternion(self) -> NDArray[np.float64]:
+        """
+        Current attitude estimate as unit quaternion (from-body-to-NED).
+        """
+        return _quaternion_from_euler(self._theta.flatten())
 
     def reset(self, x_new: ArrayLike) -> None:
         """
