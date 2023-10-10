@@ -435,7 +435,7 @@ class AidedINS:
                 - Accelerometer bias in x, y, z directions (3 elements).
                 - Gyroscope bias in x, y, z directions (3 elements).
         """
-        return self._x.copy()
+        return self._x.flatten()
 
     def position(self) -> NDArray[np.float64]:
         """

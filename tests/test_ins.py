@@ -375,8 +375,11 @@ class Test_AidedINS:
                 0.005,
                 0.006,
             ]
-        ).reshape(-1, 1)
+        )
         x_out = ains.x
+
+        assert x_out.shape == (15,)
+        assert x_out is not ains._x
         np.testing.assert_array_almost_equal(x_out, x_expect)
         assert x_out is not ains._x
 
@@ -515,9 +518,9 @@ class Test_AidedINS:
         pos = np.zeros(3)
 
         ains.update(f_imu, w_imu, head, pos, degrees=True, head_degrees=True)
-        np.testing.assert_array_almost_equal(ains.x, np.zeros((15, 1)))
+        np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
         ains.update(f_imu, w_imu, head, pos, degrees=True, head_degrees=True)
-        np.testing.assert_array_almost_equal(ains.x, np.zeros((15, 1)))
+        np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
 
     def test_update_irregular_position_aiding(self):
         fs = 10.24
@@ -538,11 +541,11 @@ class Test_AidedINS:
         pos = np.zeros(3)
 
         ains.update(f_imu, w_imu, head, None, degrees=True, head_degrees=True)  # no pos
-        np.testing.assert_array_almost_equal(ains.x, np.zeros((15, 1)))
+        np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
         ains.update(f_imu, w_imu, head, pos, degrees=True, head_degrees=True)  # pos
-        np.testing.assert_array_almost_equal(ains.x, np.zeros((15, 1)))
+        np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
         ains.update(f_imu, w_imu, head, degrees=True, head_degrees=True)  # no pos
-        np.testing.assert_array_almost_equal(ains.x, np.zeros((15, 1)))
+        np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
 
     def test_update_reference_case(self, ains_ref_data):
         """Test that succesive calls goes through"""
