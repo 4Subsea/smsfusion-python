@@ -132,7 +132,7 @@ class StrapdownINS:
         x : ndarray
             State as array of shape (9, 1).
         """
-        return self._x.copy()
+        return self._x.flatten()
 
     def position(self) -> NDArray[np.float64]:
         """
@@ -427,7 +427,7 @@ class AidedINS:
 
         Returns
         -------
-        x : ndarray (15, 1)
+        x : numpy.array (15,)
             The current state vector, containing the following elements in order:
                 - Position in x, y, z directions (3 elements).
                 - Velocity in x, y, z directions (3 elements).
@@ -642,7 +642,7 @@ class AidedINS:
             head = np.radians(head)
 
         # Update INS state
-        self._x_ins[0:9] = self._ins.x
+        self._x_ins[0:9] = self._ins.x.reshape(9, 1)
 
         # Setup transformation matrices based on AHRS 'measurement'
         R_bn = _rot_matrix_from_euler(theta_ext)

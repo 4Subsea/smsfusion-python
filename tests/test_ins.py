@@ -67,7 +67,7 @@ class Test_StrapdownINS:
         np.testing.assert_array_equal(ins._x, x)
 
     def test_x(self, ins):
-        x = np.random.random((9, 1))
+        x = np.random.random(9)
         ins.reset(x)
 
         x_out = ins.x
@@ -146,10 +146,10 @@ class Test_StrapdownINS:
         ins.update(h, f, w)
         x1_out = ins.x
 
-        x0_expect = np.zeros((9, 1))
+        x0_expect = np.zeros(9)
         x1_expect = np.array(
             [0.005, 0.01, 0.015, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
-        ).reshape(-1, 1)
+        )
 
         np.testing.assert_array_almost_equal(x0_out, x0_expect)
         np.testing.assert_array_almost_equal(x1_out, x1_expect)
@@ -167,7 +167,7 @@ class Test_StrapdownINS:
         ins.update(dt, f_imu, w_imu, degrees=True)
         x1_out = ins.x
 
-        x0_expect = np.zeros((9, 1))
+        x0_expect = np.zeros(9)
         x1_expect = np.array(
             [
                 0.005,
@@ -180,7 +180,7 @@ class Test_StrapdownINS:
                 (np.pi / 180.0) * 0.5,
                 (np.pi / 180.0) * 0.6,
             ]
-        ).reshape(-1, 1)
+        )
 
         np.testing.assert_array_almost_equal(x0_out, x0_expect)
         np.testing.assert_array_almost_equal(x1_out, x1_expect)
@@ -224,9 +224,9 @@ class Test_StrapdownINS:
         x2_expect[3:6] = x1_expect[3:6] + dt * a1_expect
         x2_expect[6:9] = x1_expect[6:9] + dt * T1_expect @ w_imu
 
-        np.testing.assert_array_almost_equal(x0_out, x0_expect)
-        np.testing.assert_array_almost_equal(x1_out, x1_expect)
-        np.testing.assert_array_almost_equal(x2_out, x2_expect)
+        np.testing.assert_array_almost_equal(x0_out, x0_expect.flatten())
+        np.testing.assert_array_almost_equal(x1_out, x1_expect.flatten())
+        np.testing.assert_array_almost_equal(x2_out, x2_expect.flatten())
 
     def test_update_R_T(self):
         ins = StrapdownINS(np.zeros((9, 1)))
@@ -238,17 +238,13 @@ class Test_StrapdownINS:
         ins.update(h, f_imu, w_imu, theta_ext=(0.0, 0.0, 0.0))
 
         x_out = ins.x
-        x_expect = np.array([0.005, 0.01, 0.015, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]).reshape(
-            -1, 1
-        )
+        x_expect = np.array([0.005, 0.01, 0.015, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
         np.testing.assert_array_almost_equal(x_out, x_expect)
 
         ins.update(h, f_imu, w_imu, theta_ext=(0.0, 0.0, 0.0))
 
         x_out = ins.x
-        x_expect = np.array([0.02, 0.04, 0.06, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]).reshape(
-            -1, 1
-        )
+        x_expect = np.array([0.02, 0.04, 0.06, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2])
         np.testing.assert_array_almost_equal(x_out, x_expect)
 
 
