@@ -104,8 +104,10 @@ class Test_StrapdownINS:
         ins.reset(x)
 
         theta_out = ins.euler(degrees=False)
-        theta_expect = np.array([np.pi, np.pi / 2.0, np.pi / 4.0]).reshape(-1, 1)
+        theta_expect = np.array([np.pi, np.pi / 2.0, np.pi / 4.0])
 
+        assert theta_out.shape == (3,)
+        assert theta_out is not ins._theta
         np.testing.assert_array_almost_equal(theta_out, theta_expect)
 
     def test_euler_deg(self, ins):
@@ -113,8 +115,10 @@ class Test_StrapdownINS:
         ins.reset(x)
 
         theta_out = ins.euler(degrees=True)
-        theta_expect = np.array([180.0, 90.0, 45.0]).reshape(-1, 1)
+        theta_expect = np.array([180.0, 90.0, 45.0])
 
+        assert theta_out.shape == (3,)
+        assert theta_out is not ins._theta
         np.testing.assert_array_almost_equal(theta_out, theta_expect)
 
     def test_quaternion(self, ins):

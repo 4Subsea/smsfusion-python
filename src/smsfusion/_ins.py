@@ -182,7 +182,7 @@ class StrapdownINS:
         Returns
         -------
         euler : numpy.ndarray
-            Euler angles, specifically:  alpha (roll), beta (pitch) and gamma (yaw)
+            Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
             in that order.
 
         Notes
@@ -203,7 +203,7 @@ class StrapdownINS:
         Passive rotations mean that the frame itself is rotating, not the object
         within the frame.
         """
-        theta = self._theta.copy()
+        theta = self._theta.flatten()
 
         if degrees:
             theta = (180.0 / np.pi) * theta
