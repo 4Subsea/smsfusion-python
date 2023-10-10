@@ -129,8 +129,8 @@ class StrapdownINS:
 
         Returns
         -------
-        x : numpy.array
-            State as array of shape (9,).
+        x : numpy.ndarray
+            State as array of shape (3,).
         """
         return self._x.flatten()
 
@@ -147,10 +147,10 @@ class StrapdownINS:
 
         Returns
         -------
-        p : ndarray
-            Position as array of shape (3, 1).
+        p : numpy.ndarray
+            Position as array of shape (3,).
         """
-        return self._p.copy()
+        return self._p.flatten()
 
     def velocity(self) -> NDArray[np.float64]:
         """
@@ -165,10 +165,10 @@ class StrapdownINS:
 
         Returns
         -------
-        v : ndarray
-            Velocity as array of shape (3, 1).
+        v : numpy.ndarray
+            Velocity as array of shape (3,).
         """
-        return self._v.copy()
+        return self._v.flatten()
 
     def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """

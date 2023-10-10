@@ -72,6 +72,8 @@ class Test_StrapdownINS:
 
         x_out = ins.x
         x_expect = x
+
+        assert x_out.shape == (9,)
         np.testing.assert_array_equal(x_out, x_expect)
 
     def test_position(self, ins):
@@ -79,8 +81,9 @@ class Test_StrapdownINS:
         ins.reset(x)
 
         p_out = ins.position()
-        p_expect = np.array([1.0, 2.0, 3.0]).reshape(-1, 1)
+        p_expect = np.array([1.0, 2.0, 3.0])
 
+        assert p_out.shape == (3,)
         np.testing.assert_array_almost_equal(p_out, p_expect)
 
     def test_velocity(self, ins):
@@ -88,8 +91,9 @@ class Test_StrapdownINS:
         ins.reset(x)
 
         v_out = ins.velocity()
-        v_expect = np.array([4.0, 5.0, 6.0]).reshape(-1, 1)
+        v_expect = np.array([4.0, 5.0, 6.0])
 
+        assert v_out.shape == (3,)
         np.testing.assert_array_almost_equal(v_out, v_expect)
 
     def test_euler_rad(self, ins):
