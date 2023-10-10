@@ -386,11 +386,17 @@ class Test_AidedINS:
     def test_position(self, ains):
         pos_out = ains.position()
         pos_expect = np.array([1.0, 2.0, 3.0])
+
+        assert pos_out.shape == (3,)
+        assert pos_out is not ains._p
         np.testing.assert_array_almost_equal(pos_out, pos_expect)
 
     def test_velocity(self, ains):
         vel_out = ains.velocity()
-        vel_expect = np.array([0.1, 0.2, 0.3]).reshape(-1, 1)
+        vel_expect = np.array([0.1, 0.2, 0.3])
+
+        assert vel_out.shape == (3,)
+        assert vel_out is not ains._v
         np.testing.assert_array_almost_equal(vel_out, vel_expect)
 
     def test_euler_radians(self, ains):

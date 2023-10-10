@@ -427,7 +427,7 @@ class AidedINS:
 
         Returns
         -------
-        x : numpy.array (15,)
+        x : numpy.ndarray (15,)
             The current state vector, containing the following elements in order:
                 - Position in x, y, z directions (3 elements).
                 - Velocity in x, y, z directions (3 elements).
@@ -443,7 +443,7 @@ class AidedINS:
 
         Returns
         -------
-        position : ndarray (3, 1)
+        position : numpy.ndarray (3,)
             The current position vector, containing the following elements:
                 - Position in x direction.
                 - Position in y direction.
@@ -457,13 +457,13 @@ class AidedINS:
 
         Returns
         -------
-        position : ndarray (3, 1)
+        position : numpy.ndarray (3,)
             The current velocity vector, containing the following elements:
                 - Velocity in x direction.
                 - Velocity in y direction.
                 - Velocity in z direction.
         """
-        return self._v.copy()
+        return self._v.flatten()
 
     def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
