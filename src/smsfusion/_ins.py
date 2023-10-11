@@ -182,7 +182,7 @@ class StrapdownINS:
         Returns
         -------
         euler : numpy.ndarray
-            Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
+            Euler angle vector, specifically: alpha (roll), beta (pitch) and gamma (yaw)
             in that order.
 
         Notes
@@ -477,7 +477,7 @@ class AidedINS:
         Returns
         -------
         euler : numpy.ndarray
-            Euler angles, specifically:  alpha (roll), beta (pitch) and gamma (yaw)
+            Euler angle vector, specifically: alpha (roll), beta (pitch) and gamma (yaw)
             in that order.
 
         Notes
