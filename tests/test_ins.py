@@ -160,9 +160,7 @@ class Test_StrapdownINS:
         x1_out = ins.x
 
         x0_expect = np.zeros(9)
-        x1_expect = np.array(
-            [0.005, 0.01, 0.015, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
-        )
+        x1_expect = np.array([0.005, 0.01, 0.015, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
 
         np.testing.assert_array_almost_equal(x0_out, x0_expect)
         np.testing.assert_array_almost_equal(x1_out, x1_expect)
@@ -409,9 +407,7 @@ class Test_AidedINS:
 
     def test_euler_degrees(self, ains):
         theta_out = ains.euler(degrees=True)
-        theta_expect = (180.0 / np.pi) * np.array(
-            [np.pi / 4, np.pi / 8, np.pi / 16]
-        )
+        theta_expect = (180.0 / np.pi) * np.array([np.pi / 4, np.pi / 8, np.pi / 16])
 
         assert theta_out.shape == (3,)
         assert theta_out is not ains._theta
