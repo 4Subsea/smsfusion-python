@@ -129,10 +129,10 @@ class StrapdownINS:
 
         Returns
         -------
-        x : ndarray
-            State as array of shape (9, 1).
+        x : numpy.ndarray
+            State as array of shape (9,).
         """
-        return self._x.copy()
+        return self._x.flatten()
 
     def position(self) -> NDArray[np.float64]:
         """
@@ -147,10 +147,10 @@ class StrapdownINS:
 
         Returns
         -------
-        p : ndarray
-            Position as array of shape (3, 1).
+        p : numpy.ndarray
+            Position as array of shape (3,).
         """
-        return self._p.copy()
+        return self._p.flatten()
 
     def velocity(self) -> NDArray[np.float64]:
         """
@@ -165,10 +165,10 @@ class StrapdownINS:
 
         Returns
         -------
-        v : ndarray
-            Velocity as array of shape (3, 1).
+        v : numpy.ndarray
+            Velocity as array of shape (3,).
         """
-        return self._v.copy()
+        return self._v.flatten()
 
     def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
@@ -182,7 +182,7 @@ class StrapdownINS:
         Returns
         -------
         euler : numpy.ndarray
-            Euler angles, specifically:  alpha (roll), beta (pitch) and gamma (yaw)
+            Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
             in that order.
 
         Notes
@@ -203,7 +203,7 @@ class StrapdownINS:
         Passive rotations mean that the frame itself is rotating, not the object
         within the frame.
         """
-        theta = self._theta.copy()
+        theta = self._theta.flatten()
 
         if degrees:
             theta = (180.0 / np.pi) * theta
@@ -427,7 +427,7 @@ class AidedINS:
 
         Returns
         -------
-        x : ndarray (15, 1)
+        x : numpy.ndarray (15,)
             The current state vector, containing the following elements in order:
                 - Position in x, y, z directions (3 elements).
                 - Velocity in x, y, z directions (3 elements).
@@ -435,7 +435,7 @@ class AidedINS:
                 - Accelerometer bias in x, y, z directions (3 elements).
                 - Gyroscope bias in x, y, z directions (3 elements).
         """
-        return self._x.copy()
+        return self._x.flatten()
 
     def position(self) -> NDArray[np.float64]:
         """
@@ -443,13 +443,13 @@ class AidedINS:
 
         Returns
         -------
-        position : ndarray (3, 1)
+        position : numpy.ndarray (3,)
             The current position vector, containing the following elements:
                 - Position in x direction.
                 - Position in y direction.
                 - Position in z direction.
         """
-        return self._p.copy()
+        return self._p.flatten()
 
     def velocity(self) -> NDArray[np.float64]:
         """
@@ -457,13 +457,13 @@ class AidedINS:
 
         Returns
         -------
-        position : ndarray (3, 1)
+        position : numpy.ndarray (3,)
             The current velocity vector, containing the following elements:
                 - Velocity in x direction.
                 - Velocity in y direction.
                 - Velocity in z direction.
         """
-        return self._v.copy()
+        return self._v.flatten()
 
     def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
@@ -477,7 +477,7 @@ class AidedINS:
         Returns
         -------
         euler : numpy.ndarray
-            Euler angles, specifically:  alpha (roll), beta (pitch) and gamma (yaw)
+            Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
             in that order.
 
         Notes
@@ -498,7 +498,7 @@ class AidedINS:
         Passive rotations mean that the frame itself is rotating, not the object
         within the frame.
         """
-        theta = self._theta.copy()
+        theta = self._theta.flatten()
 
         if degrees:
             theta = (180.0 / np.pi) * theta
@@ -508,6 +508,11 @@ class AidedINS:
     def quaternion(self) -> NDArray[np.float64]:
         """
         Current attitude estimate as unit quaternion (from-body-to-NED).
+
+        Returns
+        -------
+        quaternion : numpy.ndarray (3,)
+            The current attitude estimate as a unit quaternion.
         """
         return _quaternion_from_euler(self._theta.flatten())
 
@@ -642,7 +647,7 @@ class AidedINS:
             head = np.radians(head)
 
         # Update INS state
-        self._x_ins[0:9] = self._ins.x
+        self._x_ins[0:9] = self._ins.x.reshape(9, 1)
 
         # Setup transformation matrices based on AHRS 'measurement'
         R_bn = _rot_matrix_from_euler(theta_ext)

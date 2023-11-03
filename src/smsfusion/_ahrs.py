@@ -201,7 +201,7 @@ class AHRS:
         Returns
         -------
         euler : numpy.ndarray
-            Euler angles, specifically:  alpha (roll), beta (pitch) and gamma (yaw)
+            Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
             in that order.
 
         Notes

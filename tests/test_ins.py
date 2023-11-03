@@ -67,11 +67,14 @@ class Test_StrapdownINS:
         np.testing.assert_array_equal(ins._x, x)
 
     def test_x(self, ins):
-        x = np.random.random((9, 1))
+        x = np.random.random(9)
         ins.reset(x)
 
         x_out = ins.x
         x_expect = x
+
+        assert x_out.shape == (9,)
+        assert x_out is not ins._x
         np.testing.assert_array_equal(x_out, x_expect)
 
     def test_position(self, ins):
@@ -79,8 +82,10 @@ class Test_StrapdownINS:
         ins.reset(x)
 
         p_out = ins.position()
-        p_expect = np.array([1.0, 2.0, 3.0]).reshape(-1, 1)
+        assert p_out is not ins._p
+        p_expect = np.array([1.0, 2.0, 3.0])
 
+        assert p_out.shape == (3,)
         np.testing.assert_array_almost_equal(p_out, p_expect)
 
     def test_velocity(self, ins):
@@ -88,8 +93,10 @@ class Test_StrapdownINS:
         ins.reset(x)
 
         v_out = ins.velocity()
-        v_expect = np.array([4.0, 5.0, 6.0]).reshape(-1, 1)
+        assert v_out is not ins._v
+        v_expect = np.array([4.0, 5.0, 6.0])
 
+        assert v_out.shape == (3,)
         np.testing.assert_array_almost_equal(v_out, v_expect)
 
     def test_euler_rad(self, ins):
@@ -97,8 +104,10 @@ class Test_StrapdownINS:
         ins.reset(x)
 
         theta_out = ins.euler(degrees=False)
-        theta_expect = np.array([np.pi, np.pi / 2.0, np.pi / 4.0]).reshape(-1, 1)
+        theta_expect = np.array([np.pi, np.pi / 2.0, np.pi / 4.0])
 
+        assert theta_out.shape == (3,)
+        assert theta_out is not ins._theta
         np.testing.assert_array_almost_equal(theta_out, theta_expect)
 
     def test_euler_deg(self, ins):
@@ -106,8 +115,10 @@ class Test_StrapdownINS:
         ins.reset(x)
 
         theta_out = ins.euler(degrees=True)
-        theta_expect = np.array([180.0, 90.0, 45.0]).reshape(-1, 1)
+        theta_expect = np.array([180.0, 90.0, 45.0])
 
+        assert theta_out.shape == (3,)
+        assert theta_out is not ins._theta
         np.testing.assert_array_almost_equal(theta_out, theta_expect)
 
     def test_quaternion(self, ins):
@@ -119,6 +130,8 @@ class Test_StrapdownINS:
             "ZYX", np.array([np.pi, np.pi / 2.0, np.pi / 4.0])[::-1], degrees=False
         ).as_quat()
         q_expected = np.r_[q_expected[-1], q_expected[:-1]]
+
+        assert quaternion_out.shape == (4,)
         np.testing.assert_array_almost_equal(quaternion_out, q_expected)
 
     def test_update_return_self(self):
@@ -146,10 +159,8 @@ class Test_StrapdownINS:
         ins.update(h, f, w)
         x1_out = ins.x
 
-        x0_expect = np.zeros((9, 1))
-        x1_expect = np.array(
-            [0.005, 0.01, 0.015, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
-        ).reshape(-1, 1)
+        x0_expect = np.zeros(9)
+        x1_expect = np.array([0.005, 0.01, 0.015, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
 
         np.testing.assert_array_almost_equal(x0_out, x0_expect)
         np.testing.assert_array_almost_equal(x1_out, x1_expect)
@@ -167,7 +178,7 @@ class Test_StrapdownINS:
         ins.update(dt, f_imu, w_imu, degrees=True)
         x1_out = ins.x
 
-        x0_expect = np.zeros((9, 1))
+        x0_expect = np.zeros(9)
         x1_expect = np.array(
             [
                 0.005,
@@ -180,7 +191,7 @@ class Test_StrapdownINS:
                 (np.pi / 180.0) * 0.5,
                 (np.pi / 180.0) * 0.6,
             ]
-        ).reshape(-1, 1)
+        )
 
         np.testing.assert_array_almost_equal(x0_out, x0_expect)
         np.testing.assert_array_almost_equal(x1_out, x1_expect)
@@ -224,9 +235,9 @@ class Test_StrapdownINS:
         x2_expect[3:6] = x1_expect[3:6] + dt * a1_expect
         x2_expect[6:9] = x1_expect[6:9] + dt * T1_expect @ w_imu
 
-        np.testing.assert_array_almost_equal(x0_out, x0_expect)
-        np.testing.assert_array_almost_equal(x1_out, x1_expect)
-        np.testing.assert_array_almost_equal(x2_out, x2_expect)
+        np.testing.assert_array_almost_equal(x0_out, x0_expect.flatten())
+        np.testing.assert_array_almost_equal(x1_out, x1_expect.flatten())
+        np.testing.assert_array_almost_equal(x2_out, x2_expect.flatten())
 
     def test_update_R_T(self):
         ins = StrapdownINS(np.zeros((9, 1)))
@@ -238,17 +249,13 @@ class Test_StrapdownINS:
         ins.update(h, f_imu, w_imu, theta_ext=(0.0, 0.0, 0.0))
 
         x_out = ins.x
-        x_expect = np.array([0.005, 0.01, 0.015, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]).reshape(
-            -1, 1
-        )
+        x_expect = np.array([0.005, 0.01, 0.015, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
         np.testing.assert_array_almost_equal(x_out, x_expect)
 
         ins.update(h, f_imu, w_imu, theta_ext=(0.0, 0.0, 0.0))
 
         x_out = ins.x
-        x_expect = np.array([0.02, 0.04, 0.06, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]).reshape(
-            -1, 1
-        )
+        x_expect = np.array([0.02, 0.04, 0.06, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2])
         np.testing.assert_array_almost_equal(x_out, x_expect)
 
 
@@ -366,31 +373,44 @@ class Test_AidedINS:
                 0.005,
                 0.006,
             ]
-        ).reshape(-1, 1)
+        )
         x_out = ains.x
+
+        assert x_out.shape == (15,)
+        assert x_out is not ains._x
         np.testing.assert_array_almost_equal(x_out, x_expect)
         assert x_out is not ains._x
 
     def test_position(self, ains):
         pos_out = ains.position()
-        pos_expect = np.array([1.0, 2.0, 3.0]).reshape(-1, 1)
+        pos_expect = np.array([1.0, 2.0, 3.0])
+
+        assert pos_out.shape == (3,)
+        assert pos_out is not ains._p
         np.testing.assert_array_almost_equal(pos_out, pos_expect)
 
     def test_velocity(self, ains):
         vel_out = ains.velocity()
-        vel_expect = np.array([0.1, 0.2, 0.3]).reshape(-1, 1)
+        vel_expect = np.array([0.1, 0.2, 0.3])
+
+        assert vel_out.shape == (3,)
+        assert vel_out is not ains._v
         np.testing.assert_array_almost_equal(vel_out, vel_expect)
 
     def test_euler_radians(self, ains):
         theta_out = ains.euler(degrees=False)
-        theta_expect = np.array([np.pi / 4, np.pi / 8, np.pi / 16]).reshape(-1, 1)
+        theta_expect = np.array([np.pi / 4, np.pi / 8, np.pi / 16])
+
+        assert theta_out.shape == (3,)
+        assert theta_out is not ains._theta
         np.testing.assert_array_almost_equal(theta_out, theta_expect)
 
     def test_euler_degrees(self, ains):
         theta_out = ains.euler(degrees=True)
-        theta_expect = (180.0 / np.pi) * np.array(
-            [np.pi / 4, np.pi / 8, np.pi / 16]
-        ).reshape(-1, 1)
+        theta_expect = (180.0 / np.pi) * np.array([np.pi / 4, np.pi / 8, np.pi / 16])
+
+        assert theta_out.shape == (3,)
+        assert theta_out is not ains._theta
         np.testing.assert_array_almost_equal(theta_out, theta_expect)
 
     def test_quaternion(self, ains):
@@ -401,6 +421,8 @@ class Test_AidedINS:
             "ZYX", theta_expect[::-1], degrees=False
         ).as_quat()
         q_expected = np.r_[q_expected[-1], q_expected[0:-1]]  # scipy rearrange
+
+        assert quaternion_out.shape == (4,)
         np.testing.assert_array_almost_equal(quaternion_out, q_expected)
 
     def test__prep_F_matrix(self):
@@ -506,9 +528,9 @@ class Test_AidedINS:
         pos = np.zeros(3)
 
         ains.update(f_imu, w_imu, head, pos, degrees=True, head_degrees=True)
-        np.testing.assert_array_almost_equal(ains.x, np.zeros((15, 1)))
+        np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
         ains.update(f_imu, w_imu, head, pos, degrees=True, head_degrees=True)
-        np.testing.assert_array_almost_equal(ains.x, np.zeros((15, 1)))
+        np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
 
     def test_update_irregular_position_aiding(self):
         fs = 10.24
@@ -529,11 +551,11 @@ class Test_AidedINS:
         pos = np.zeros(3)
 
         ains.update(f_imu, w_imu, head, None, degrees=True, head_degrees=True)  # no pos
-        np.testing.assert_array_almost_equal(ains.x, np.zeros((15, 1)))
+        np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
         ains.update(f_imu, w_imu, head, pos, degrees=True, head_degrees=True)  # pos
-        np.testing.assert_array_almost_equal(ains.x, np.zeros((15, 1)))
+        np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
         ains.update(f_imu, w_imu, head, degrees=True, head_degrees=True)  # no pos
-        np.testing.assert_array_almost_equal(ains.x, np.zeros((15, 1)))
+        np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
 
     def test_update_reference_case(self, ains_ref_data):
         """Test that succesive calls goes through"""
