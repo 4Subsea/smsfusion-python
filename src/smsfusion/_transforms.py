@@ -59,14 +59,14 @@ def _angular_matrix_from_euler(
     return T
 
 
-def _inv_angular_matrix_from_euler(euler):
+def _inv_angular_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Compute the inverse angular velocity transformation matrix, T**-1, from
+    Compute the inverse angular velocity transformation matrix, ``T**-1``, from
     Euler angles using the ZYX convention.
 
     Parameters
     ----------
-    euler : 1D array (3,)
+    euler : numpy.ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
             - Roll (alpha): Rotation about the x-axis.
@@ -75,7 +75,7 @@ def _inv_angular_matrix_from_euler(euler):
 
     Return
     ------
-    T_inv : array (Nx3x3)
+    T_inv : numpy.ndarray, shape (3, 3)
         Inverse angular velocity tansformation matrix.
 
     """
@@ -109,12 +109,12 @@ def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    q : 1D array (3,)
+    q : numpy.ndarray, shape (4,)
         Unit quaternion.
 
     Returns
     -------
-    rot : ndarray (3, 3)
+    rot : numpy.ndarray, shape (3, 3)
         Rotation matrix.
     """
     q0, q1, q2, q3 = q
@@ -162,12 +162,12 @@ def _euler_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    q : 1D array (3,)
+    q : numpy.ndarray, shape (4,)
         Unit quaternion (representing transformation from-body-to-origin).
 
     Returns
     -------
-    euler : 1D array (3,)
+    euler : numpy.ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
             - Roll (alpha): Rotation about the x-axis.
@@ -190,7 +190,7 @@ def _gamma_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    q : 1D array (3,)
+    q : numpy.ndarray, shape (4,)
         Unit quaternion (representing transformation from-body-to-origin).
 
     Returns
@@ -214,12 +214,12 @@ def _angular_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float6
 
     Parameters
     ----------
-    q : 1D array (3,)
+    q : numpy.ndarray, shape (4,)
         Unit quaternion.
 
     Returns
     -------
-    T : ndarray (3, 3)
+    T : numpy.ndarray, shape (3, 3)
         Angular transformation matrix.
 
     """
@@ -242,7 +242,7 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    euler : 1D array (3,)
+    euler : numpy.ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
             - Roll (alpha): Rotation about the x-axis.
@@ -258,7 +258,7 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Returns
     -------
-    rot : ndarray (3, 3)
+    rot : numpy.ndarray, shape (3, 3)
         Rotation matrix.
 
     """
@@ -296,7 +296,7 @@ def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    euler : 1D array (3,)
+    euler : numpy.ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
             - Roll (alpha): Rotation about the x-axis.
@@ -305,7 +305,7 @@ def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Return
     ------
-    q : 1D array (3,)
+    q : numpy.ndarray, shape (4,)
         Unit quaternion.
 
     Notes
