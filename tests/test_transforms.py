@@ -15,78 +15,84 @@ from scipy.spatial.transform import Rotation
 from smsfusion import _transforms
 
 
-class Test__angular_matrix_from_euler:
-    def test_pure_roll(self):
-        angular_matrix = _transforms._angular_matrix_from_euler(
-            np.radians((30.0, 0.0, 0.0))
-        )
+@pytest.mark.parametrize(
+    "euler, expected",
+    [
+        (
+            np.radians((30.0, 0.0, 0.0)),
+            np.array([[1.0, 0.0, -0.0], [0.0, 0.8660254, -0.5], [0.0, 0.5, 0.8660254]]),
+        ),  # pure roll
+        (
+            np.radians((0.0, 30.0, 0.0)),
+            np.array([[1.0, 0.0, 0.57735027], [0.0, 1.0, -0.0], [0.0, 0.0, 1.15470054]]),
+        ),  # pure pitch
+        (np.radians((0.0, 0.0, 30.0)), np.eye(3)),  # pure yaw
+        (
+            np.radians((30.0, 15.0, 20.0)),
+            np.array(
+                [
+                    [1.0, 0.1339746 , 0.23205081],
+                    [0.0, 0.8660254, -0.5],
+                    [0.0, 0.51763809, 0.89657547],
+                ]
+            ),
+        ),  # mixed case 1
+        (
+            np.radians((15.0, 45.0, 5.0)),
+            np.array(
+                [
+                    [1.0, 0.25881905, 0.96592583],
+                    [0.0, 0.96592583, -0.25881905],
+                    [0.0, 0.3660254, 1.3660254],
+                ]
+            ),
+        ),  # mixed case 2
+    ],
+    ids=["roll", "pitch", "yaw", "mix 1", "mix 2"],
+)
+def test_angular_matrix_from_euler(euler, expected):
+    output = _transforms._angular_matrix_from_euler(euler)
+    np.testing.assert_array_almost_equal(output, expected)
 
-        angular_matrix_expected = np.array(
-            [[1.000, 0.000, 0.000], [0.000, 0.866, -0.500], [0.000, 0.500, 0.866]]
-        )
 
-        np.testing.assert_array_almost_equal(
-            angular_matrix, angular_matrix_expected, decimal=3
-        )
-
-    def test_pure_pitch(self):
-        angular_matrix = _transforms._angular_matrix_from_euler(
-            np.radians((0.0, 30.0, 0.0))
-        )
-
-        angular_matrix_expected = np.array(
-            [[1.000, 0.000, 0.577], [0.000, 1.000, 0.000], [0.000, 0.000, 1.155]]
-        )
-
-        np.testing.assert_array_almost_equal(
-            angular_matrix, angular_matrix_expected, decimal=3
-        )
-
-    def test_pure_yaw(self):
-        angular_matrix = _transforms._angular_matrix_from_euler(
-            np.radians((0.0, 0.0, 30.0))
-        )
-
-        angular_matrix_expected = np.eye(3)
-
-        np.testing.assert_array_almost_equal(
-            angular_matrix, angular_matrix_expected, decimal=3
-        )
-
-    def test_references(self):
-        # case 1
-        angular_matrix = _transforms._angular_matrix_from_euler(
-            np.radians((30.0, 15.0, 20.0))
-        )
-
-        angular_matrix_expected = np.array(
-            [
-                [1.0, 0.1339746, 0.23205081],
-                [0.0, 0.8660254, -0.5],
-                [0.0, 0.51763809, 0.89657547],
-            ]
-        )
-
-        np.testing.assert_array_almost_equal(
-            angular_matrix, angular_matrix_expected, decimal=3
-        )
-
-        # case 2
-        angular_matrix = _transforms._angular_matrix_from_euler(
-            np.radians((15.0, 45.0, 5.0))
-        )
-
-        angular_matrix_expected = np.array(
-            [
-                [1.0, 0.25881905, 0.96592583],
-                [0.0, 0.96592583, -0.25881905],
-                [0.0, 0.3660254, 1.3660254],
-            ]
-        )
-
-        np.testing.assert_array_almost_equal(
-            angular_matrix, angular_matrix_expected, decimal=3
-        )
+@pytest.mark.parametrize(
+    "euler, expected",
+    [
+        (
+            np.radians((30.0, 0.0, 0.0)),
+            np.array([[1.0, 0.0, -0.0], [0.0, 0.8660254, 0.5], [0.0, -0.5, 0.8660254]]),
+        ),  # pure roll
+        (
+            np.radians((0.0, 30.0, 0.0)),
+            np.array([[1.0, 0.0, -0.5], [0.0, 1.0, 0.0], [0.0, -0.0, 0.8660254]]),
+        ),  # pure pitch
+        (np.radians((0.0, 0.0, 30.0)), np.eye(3)),  # pure yaw
+        (
+            np.radians((30.0, 15.0, 20.0)),
+            np.array(
+                [
+                    [1.0, 0.0, -0.25881905],
+                    [0.0, 0.8660254, 0.48296291],
+                    [0.0, -0.5, 0.8365163],
+                ]
+            ),
+        ),  # mixed case 1
+        (
+            np.radians((15.0, 45.0, 5.0)),
+            np.array(
+                [
+                    [1.0, 0.0, -0.70710678],
+                    [0.0, 0.96592583, 0.1830127],
+                    [0.0, -0.25881905, 0.6830127],
+                ]
+            ),
+        ),  # mixed case 2
+    ],
+    ids=["roll", "pitch", "yaw", "mix 1", "mix 2"],
+)
+def test_inv_angular_matrix_from_euler(euler, expected):
+    output = _transforms._inv_angular_matrix_from_euler(euler)
+    np.testing.assert_array_almost_equal(output, expected)
 
 
 @pytest.mark.parametrize(
