@@ -63,7 +63,7 @@ class BeatSignal:
             The time derivative of the signal.
 
         """
-        t = np.linspace(0., n / fs, n, endpoint=False)
+        t = np.linspace(0.0, n / fs, n, endpoint=False)
         if phase_degrees:
             phase = np.radians(phase)
         return t, self._y(t, amp, phase), self._dydt(t, amp, phase)
