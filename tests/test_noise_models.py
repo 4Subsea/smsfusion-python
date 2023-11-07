@@ -1,11 +1,11 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
-from pathlib import Path
 
-from smsfusion import white_noise, random_walk, gauss_markov
+from smsfusion import gauss_markov, random_walk, white_noise
 from smsfusion._noise_models import _standard_normal
-
 
 TEST_PATH = Path(__file__).parent
 
