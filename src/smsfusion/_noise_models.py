@@ -31,9 +31,9 @@ def white_noise(
     Bandlimited white noise is described by a spectral amplitude which is
     constant over the bandwidth, and zero outside that range. I.e.,:
 
-        ``S(w) = N ** 2``,  for ``|w| <= 2*pi*W``
+        S(w) = N ** 2,  for ``|w|`` <= 2*pi*W
 
-        ``S(w) = 0``,       for ``|w| > 2*pi*W``
+        S(w) = 0,       for ``|w|`` > 2*pi*W
 
     where `W = fs / 2` is the bandwidth in hertz, and N is the spectral density
     coefficient.
