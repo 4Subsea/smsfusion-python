@@ -71,7 +71,7 @@ def random_walk(
 
         S(w) = K ** 2 / w ** 2
 
-    where ``K`` is the spectral density coefficient.
+    where `K` is the spectral density coefficient.
 
     Parameters
     ----------
@@ -84,8 +84,8 @@ def random_walk(
 
     Return
     ------
-    array :
-        Discrete time random walk sequence.
+    x : numpy.ndarray
+        Discrete-time random walk sequence.
     """
 
     sigma_k = K / np.sqrt(fs)
@@ -130,6 +130,11 @@ def gauss_markov(
         Sampling frequency in Hz.
     n : int
         Number of samples to generate.
+
+    Return
+    ------
+    x : numpy.ndarray
+        Discrete-time first-order Gauss-Markov sequence.
 
     References
     ----------
