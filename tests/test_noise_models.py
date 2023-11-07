@@ -1,7 +1,13 @@
 import numpy as np
+import pandas as pd
 import pytest
+from pathlib import Path
 
+from smsfusion import white_noise
 from smsfusion._noise_models import _standard_normal
+
+
+TEST_PATH = Path(__file__).parent
 
 
 def test__standard_normal():
@@ -19,3 +25,14 @@ def test__standard_normal_seeds():
 
     np.testing.assert_array_almost_equal(x0, x1)
     assert not np.array_equal(x0, x2)
+
+
+def test_white_noise():
+    K, fs, n = 3, 10.0, 100_000
+    wn_out = white_noise(K, fs, n, seed=123)
+
+    wn_expect = pd.read_csv(
+        TEST_PATH / "testdata" / "white_noise.csv", index_col=0
+    ).values.flatten()
+
+    np.testing.assert_array_almost_equal(wn_out, wn_expect)
