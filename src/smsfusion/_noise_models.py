@@ -146,7 +146,7 @@ def gauss_markov(
     beta = 1.0 / tau_c
 
     phi = np.exp(-beta * dt)
-    sigma_wn = sigma**2 * (1.0 - np.exp(-2 * beta * dt))
+    sigma_wn = sigma * np.sqrt(1.0 - np.exp(-2 * beta * dt))
 
     x = np.zeros(n)
     epsilon = _standard_normal(n - 1, seed=seed)

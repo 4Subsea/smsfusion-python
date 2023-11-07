@@ -44,18 +44,18 @@ def test_random_walk():
 
     rw_expect = pd.read_csv(
         TEST_PATH / "testdata" / "random_walk.csv", index_col=0
-    ).values
+    ).values.flatten()
 
-    np.testing.assert_array_almost_equal(rw_out, rw_expect.flatten())
+    np.testing.assert_array_almost_equal(rw_out, rw_expect)
 
 
-# def test_gauss_markov():
-#     G, tau_c, fs, n = 3, 5, 10.0, 100_000
+def test_gauss_markov():
+    sigma, tau_c, fs, n = 3, 5, 10.0, 100_000
 
-#     gm_out = gauss_markov(G, tau_c, fs, n, seed=123)
+    gm_out = gauss_markov(sigma, tau_c, fs, n, seed=123)
 
-#     gm_expect = pd.read_csv(
-#         TEST_PATH / "testdata" / "gauss_markov.csv", index_col=0
-#     ).values
+    gm_expect = pd.read_csv(
+        TEST_PATH / "testdata" / "gauss_markov.csv", index_col=0
+    ).values.flatten()
 
-#     np.testing.assert_array_almost_equal(gm_out, gm_expect.flatten())
+    np.testing.assert_array_almost_equal(gm_out, gm_expect)
