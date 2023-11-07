@@ -67,7 +67,7 @@ def random_walk(
     Generates a discrete time random walk (i.e., Brown noise) sequence. The
     sequence starts always at 0.
 
-    The generated signal will have a power spectrum,
+    The random walk process is characterized by a power spectrum:
 
         S(w) = K ** 2 / w ** 2
 
