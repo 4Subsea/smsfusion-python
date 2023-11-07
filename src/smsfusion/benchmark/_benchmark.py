@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import numpy as np
+from numpy.typing import NDArray
 
 
 class BeatSignal:
     """
-    Generate an evenly sampled beating sinusoidal signal by defining a main frequency
-    and a beating frequency.
+    Generate an evenly sampled beating sinusoidal signal by defining a main
+    frequency and a beating frequency.
 
     Parameters
     ----------
@@ -17,7 +20,8 @@ class BeatSignal:
         rad/s is assumed.
 
     """
-    def __init__(self, f_main, f_beat, freq_hz=True):
+
+    def __init__(self, f_main: float, f_beat: float, freq_hz: bool = True) -> None:
         self._f_main = f_main
         self._f_beat = f_beat
 
@@ -25,7 +29,14 @@ class BeatSignal:
             self._f_main *= 2.0 * np.pi
             self._f_beat *= 2.0 * np.pi
 
-    def __call__(self, fs, duration, amp=5.0, phase=0.0, phase_degrees=True):
+    def __call__(
+        self,
+        fs: float,
+        duration: float,
+        amp: float = 5.0,
+        phase: float = 0.0,
+        phase_degrees: float = True,
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
         """
         Generate a beating signal.
 
@@ -42,20 +53,33 @@ class BeatSignal:
         phase_degrees : bool, default True
             If ``True``, ``phase`` is in degrees. Otherwise, rad/s is assumed.
 
+        Return
+        ------
+        t : numpy.ndarray
+            Time in seconds.
+        y : numpy.ndarray
+            The generated signal.
+        dydt : numpy.ndarray
+            The time derivative of the signal.
+
         """
         t = np.arange(0.0, duration, 1 / fs)
         if phase_degrees:
             phase = np.radians(phase)
         return t, self._y(t, amp, phase), self._dydt(t, amp, phase)
 
-    def _y(self, t, amp, phase):
+    def _y(
+        self, t: NDArray[np.float64], amp: float, phase: float
+    ) -> NDArray[np.float64]:
         """
         Generate a beating signal with a maximum amplitude given by ``amp``.
         """
         y = amp * np.sin(self._f_beat / 2.0 * t) * np.cos(self._f_main * t + phase)
         return y
 
-    def _dydt(self, t, amp, phase):
+    def _dydt(
+        self, t: NDArray[np.float64], amp: float, phase: float
+    ) -> NDArray[np.float64]:
         """
         Generate the time derivative of a beating signal with a maximum
         amplitude given by ``amp``.
