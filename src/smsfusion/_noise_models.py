@@ -1,7 +1,8 @@
 import numpy as np
+from numpy.typing import NDArray
 
 
-def _standard_normal(n: int, seed: int | None = None):
+def _standard_normal(n: int, seed: int | None = None) -> NDArray[np.float64]:
     """
     Draw i.i.d. samples from a standard Normal distribution (mean=0, stdev=1).
 
@@ -21,15 +22,25 @@ def _standard_normal(n: int, seed: int | None = None):
     return np.random.default_rng(seed).standard_normal(n)
 
 
-def white_noise(N, fs, n, seed=None):
+def white_noise(
+    N: float, fs: float, n: int, seed: int | None = None
+) -> NDArray[np.float64]:
     """
-    Generates a discrete time Gaussian white noise sequence.
+    Generates a (bandlimited) Gaussian white noise sequence.
 
-    The generated signal will have a constant power spectrum,
+    Bandlimited white noise is described by a spectral amplitude which is
+    constant over the bandwidth, and zero outside that range. I.e.,:
 
-        S(f) = N ** 2
+        ``S(f) = N ** 2,  for |f| <= W``
 
-    where N is the spectral density coefficient.
+        ``S(f) = 0,       for |f| > W``
+
+    where `W = fs / 2` is the bandwidth in hertz, and N is the spectral density
+    coefficient.
+
+    The returned white sequence will thus have a variance of:
+
+        ``Var = N ** 2 * fs``
 
     Parameters
     ----------
@@ -42,7 +53,7 @@ def white_noise(N, fs, n, seed=None):
 
     Return
     ------
-    array :
+    x : numpy.ndarray, shape (n,)
         Discrete time white noise sequence.
     """
 

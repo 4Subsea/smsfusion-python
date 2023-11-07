@@ -1,6 +1,5 @@
-import pytest
-
 import numpy as np
+import pytest
 
 from smsfusion._noise_models import _standard_normal
 
