@@ -75,7 +75,7 @@ class BeatSignal:
         Generate a beating signal with a maximum amplitude given by ``amp``.
         """
         y = amp * np.sin(self._f_beat / 2.0 * t) * np.cos(self._f_main * t + phase)
-        return y
+        return y  # type: ignore[no-any-return]
 
     def _dydt(
         self, t: NDArray[np.float64], amp: float, phase: float
@@ -89,4 +89,4 @@ class BeatSignal:
         ) + amp * (self._f_beat / 2.0) * (
             np.cos(self._f_beat / 2.0 * t) * np.cos(self._f_main * t + phase)
         )
-        return dydt
+        return dydt  # type: ignore[no-any-return]
