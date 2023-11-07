@@ -26,7 +26,7 @@ def white_noise(
     N: float, fs: float, n: int, seed: int | None = None
 ) -> NDArray[np.float64]:
     """
-    Generates a (bandlimited) Gaussian white noise sequence.
+    Generates a discrete time (bandlimited) Gaussian white noise sequence.
 
     Bandlimited white noise is described by a spectral amplitude which is
     constant over the bandwidth, and zero outside that range. I.e.,:
@@ -69,9 +69,9 @@ def random_walk(K, fs, n, seed=None):
 
     The generated signal will have a power spectrum,
 
-        S(f) = K ** 2 / (2*pi*f) ** 2
+        ``S(f) = K ** 2 / (2*pi*f) ** 2``
 
-    where K is the spectral density coefficient.
+    where ``K`` is the spectral density coefficient.
 
     Parameters
     ----------

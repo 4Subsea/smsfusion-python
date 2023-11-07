@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from pathlib import Path
 
-from smsfusion import white_noise
+from smsfusion import white_noise, random_walk
 from smsfusion._noise_models import _standard_normal
 
 
@@ -36,3 +36,14 @@ def test_white_noise():
     ).values.flatten()
 
     np.testing.assert_array_almost_equal(wn_out, wn_expect)
+
+
+def test_random_walk():
+    K, fs, n = 3, 10.0, 100_000
+    rw_out = random_walk(K, fs, n, seed=123)
+
+    rw_expect = pd.read_csv(
+        TEST_PATH / "testdata" / "random_walk.csv", index_col=0
+    ).values
+
+    np.testing.assert_array_almost_equal(rw_out, rw_expect.flatten())
