@@ -116,9 +116,10 @@ def gauss_markov(
 
         X[k+1] = exp(-beta * dt) * X[k] + W[k]
 
-    with `W[k]` being a zero-mean Gaussian white noise sequence with variance:
+    with `W[k]` being a zero-mean Gaussian white noise sequence with standard
+    deviation:
 
-        sigma_wn**2 = sigma**2 * (1 - exp(-2 * beta * dt)).
+        sigma_wn = sigma * sqrt(1 - exp(-2 * beta * dt)).
 
     Parameters
     ----------
