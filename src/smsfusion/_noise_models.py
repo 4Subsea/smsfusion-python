@@ -114,7 +114,7 @@ def gauss_markov(sigma, tau_c, fs, n, seed=None):
 
     with `W[k]` being a zero-mean Gaussian white noise sequence with variance:
 
-        `sigma_w ** 2 = sigma ** 2 * (1 - exp(-2 * beta * dt))`.
+        sigma_wn**2 = sigma**2 * (1 - exp(-2 * beta * dt)).
 
     Parameters
     ----------
@@ -137,11 +137,11 @@ def gauss_markov(sigma, tau_c, fs, n, seed=None):
     beta = 1.0 / tau_c
 
     phi = np.exp(-beta * dt)
-    sigma_w = sigma ** 2 * (1.0 - np.exp(-2 * beta * dt))
+    sigma_wn = sigma ** 2 * (1.0 - np.exp(-2 * beta * dt))
 
     x = np.zeros(n)
     epsilon = _standard_normal(n - 1, seed=seed)
     for i in range(1, n):
-        x[i] = phi * x[i - 1] + sigma_w * epsilon[i - 1]
+        x[i] = phi * x[i - 1] + sigma_wn * epsilon[i - 1]
 
     return x
