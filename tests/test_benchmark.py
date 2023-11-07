@@ -19,12 +19,15 @@ class Test_BeatSignal:
         beat_signal = benchmark.BeatSignal(0.1, 0.01, freq_hz=True)
 
         fs = 10.0
-        duration = 200.0
-        t, y, dydt = beat_signal(fs, duration, amp=5.0)
+        n = 2000
+        t, y, dydt = beat_signal(fs, n, amp=5.0)
 
-        assert len(t) == int(duration * fs)
+        assert len(t) == int(n)
         assert len(t) == len(y)
         assert len(t) == len(dydt)
+
+        assert t[0] == 0.0
+        assert t[-1] == pytest.approx((n - 1) / fs)
 
         assert y.max() == pytest.approx(5.0)
         assert y.min() == pytest.approx(-5.0)

@@ -32,7 +32,7 @@ class BeatSignal:
     def __call__(
         self,
         fs: float,
-        duration: float,
+        n: int,
         amp: float = 5.0,
         phase: float = 0.0,
         phase_degrees: float = True,
@@ -44,8 +44,8 @@ class BeatSignal:
         ----------
         fs : float
             Sampling frequency (in Hz) of the generated signal.
-        duration : float
-            Duration of the generated signal in seconds.
+        n : int
+            Number of samples to generate.
         amp : float, default 5.0
             The maximum amplitude of the generated signal.
         phase : float, defualt 0.0
@@ -63,7 +63,7 @@ class BeatSignal:
             The time derivative of the signal.
 
         """
-        t = np.arange(0.0, duration, 1 / fs)
+        t = np.linspace(0., n / fs, n, endpoint=False)
         if phase_degrees:
             phase = np.radians(phase)
         return t, self._y(t, amp, phase), self._dydt(t, amp, phase)
