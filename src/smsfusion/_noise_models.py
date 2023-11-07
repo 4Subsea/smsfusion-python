@@ -15,7 +15,7 @@ def _standard_normal(n: int, seed: int | None = None) -> NDArray[np.float64]:
 
     Returns
     -------
-    x : numpy.ndarray, shape (n,)
+    x : numpy.ndarray
         Sequence of i.i.d. samples.
     """
 
@@ -31,17 +31,14 @@ def white_noise(
     Bandlimited white noise is described by a spectral amplitude which is
     constant over the bandwidth, and zero outside that range. I.e.,:
 
-        ```
-        S(f) = N ** 2,  for |f| <= W
-        S(f) = 0,       for |f| > W
-        ```
+        S(w) = N ** 2,  for |w| <= 2*pi*W
+
+        S(w) = 0,       for |w| > 2*pi*W
 
     where `W = fs / 2` is the bandwidth in hertz, and N is the spectral density
     coefficient.
 
-    The returned white sequence will thus have a variance of:
-
-        ``Var = N ** 2 * fs``
+    The returned white sequence will thus have a variance of `N ** 2 * fs`.
 
     Parameters
     ----------
@@ -54,7 +51,7 @@ def white_noise(
 
     Return
     ------
-    x : numpy.ndarray, shape (n,)
+    x : numpy.ndarray
         Discrete time white noise sequence.
     """
 
