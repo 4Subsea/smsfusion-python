@@ -59,6 +59,49 @@ def _angular_matrix_from_euler(
     return T
 
 
+def _inv_angular_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    Compute the inverse angular velocity transformation matrix, ``T**-1``, from
+    Euler angles using the ZYX convention.
+
+    Parameters
+    ----------
+    euler : numpy.ndarray, shape (3,)
+        Vector of Euler angles in radians (ZYX convention). Contains the following
+        three Euler angles in order:
+            - Roll (alpha): Rotation about the x-axis.
+            - Pitch (beta): Rotation about the y-axis.
+            - Yaw (gamma): Rotation about the z-axis.
+
+    Return
+    ------
+    T_inv : numpy.ndarray, shape (3, 3)
+        Inverse angular velocity tansformation matrix.
+
+    """
+    alpha, beta, _ = euler
+
+    cos_beta = np.cos(beta)
+    sin_beta = np.sin(beta)
+    cos_alpha = np.cos(alpha)
+    sin_alpha = np.sin(alpha)
+
+    t_00 = 1.0
+    t_01 = 0.0
+    t_02 = -sin_beta
+
+    t_10 = 0.0
+    t_11 = cos_alpha
+    t_12 = cos_beta * sin_alpha
+
+    t_20 = 0.0
+    t_21 = -sin_alpha
+    t_22 = cos_beta * cos_alpha
+
+    T_inv = np.array([[t_00, t_01, t_02], [t_10, t_11, t_12], [t_20, t_21, t_22]])
+    return T_inv
+
+
 @njit  # type: ignore[misc]
 def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
@@ -66,12 +109,12 @@ def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    q : 1D array (3,)
+    q : numpy.ndarray, shape (4,)
         Unit quaternion.
 
     Returns
     -------
-    rot : ndarray (3, 3)
+    rot : numpy.ndarray, shape (3, 3)
         Rotation matrix.
     """
     q0, q1, q2, q3 = q
@@ -119,12 +162,12 @@ def _euler_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    q : 1D array (3,)
+    q : numpy.ndarray, shape (4,)
         Unit quaternion (representing transformation from-body-to-origin).
 
     Returns
     -------
-    euler : 1D array (3,)
+    euler : numpy.ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
             - Roll (alpha): Rotation about the x-axis.
@@ -147,7 +190,7 @@ def _gamma_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    q : 1D array (3,)
+    q : numpy.ndarray, shape (4,)
         Unit quaternion (representing transformation from-body-to-origin).
 
     Returns
@@ -171,12 +214,12 @@ def _angular_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float6
 
     Parameters
     ----------
-    q : 1D array (3,)
+    q : numpy.ndarray, shape (4,)
         Unit quaternion.
 
     Returns
     -------
-    T : ndarray (3, 3)
+    T : numpy.ndarray, shape (3, 3)
         Angular transformation matrix.
 
     """
@@ -199,7 +242,7 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    euler : 1D array (3,)
+    euler : numpy.ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
             - Roll (alpha): Rotation about the x-axis.
@@ -215,7 +258,7 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Returns
     -------
-    rot : ndarray (3, 3)
+    rot : numpy.ndarray, shape (3, 3)
         Rotation matrix.
 
     """
@@ -253,7 +296,7 @@ def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    euler : 1D array (3,)
+    euler : numpy.ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
             - Roll (alpha): Rotation about the x-axis.
@@ -262,7 +305,7 @@ def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Return
     ------
-    q : 1D array (3,)
+    q : numpy.ndarray, shape (4,)
         Unit quaternion.
 
     Notes

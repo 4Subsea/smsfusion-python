@@ -214,7 +214,7 @@ class StrapdownINS:
         """
         Current attitude estimate as unit quaternion (from-body-to-NED).
         """
-        return _quaternion_from_euler(self._theta.flatten())
+        return _quaternion_from_euler(self._theta.flatten())  # type: ignore[no-any-return]
 
     def reset(self, x_new: ArrayLike) -> None:
         """
@@ -514,7 +514,7 @@ class AidedINS:
         quaternion : numpy.ndarray (3,)
             The current attitude estimate as a unit quaternion.
         """
-        return _quaternion_from_euler(self._theta.flatten())
+        return _quaternion_from_euler(self._theta.flatten())  # type: ignore[no-any-return]
 
     @staticmethod
     def _prep_F_matrix(
