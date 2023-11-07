@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from pathlib import Path
 
-from smsfusion import white_noise, random_walk
+from smsfusion import white_noise, random_walk, gauss_markov
 from smsfusion._noise_models import _standard_normal
 
 
@@ -47,3 +47,14 @@ def test_random_walk():
     ).values
 
     np.testing.assert_array_almost_equal(rw_out, rw_expect.flatten())
+
+
+def test_gauss_markov():
+    G, tau_c, fs, n = 3, 5, 10.0, 100_000
+    gm_out = gauss_markov(G, tau_c, fs, n, seed=123)
+
+    gm_expect = pd.read_csv(
+        TEST_PATH / "testdata" / "gauss_markov.csv", index_col=0
+    ).values
+
+    np.testing.assert_array_almost_equal(gm_out, gm_expect.flatten())
