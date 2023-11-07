@@ -24,6 +24,13 @@ class BeatSignal:
         If ``True``, ``f_main`` and ``f_beat`` are in Hz. Otherwise,
         rad/s is assumed.
 
+    Notes
+    -----
+    The signal may be expressed as:
+
+        ```
+        y = amp * sin(f_beat / 2.0 * t) * cos(f_main * t + phase)
+        ```
     """
 
     def __init__(self, f_main: float, f_beat: float, freq_hz: bool = True) -> None:
@@ -58,7 +65,6 @@ class BeatSignal:
             The generated signal.
         dydt : numpy.ndarray
             The time derivative of the signal.
-
         """
         t = np.asarray_chkfinite(t)
         if phase_degrees:
@@ -86,4 +92,99 @@ class BeatSignal:
         ) + amp * (self._f_beat / 2.0) * (
             np.cos(self._f_beat / 2.0 * t) * np.cos(self._f_main * t + phase)
         )
+        return dydt  # type: ignore[no-any-return]
+
+
+class ChirpSignal:
+    """
+    Generate an evenly sampled chirp signal with oscillating frequency by
+    defining a maximum frequency and a frequency oscillation rate.
+
+    Parameters
+    ----------
+    f_max : float
+        The max frequency the signal ramps up to, before ramping down to zero.
+    f_os : float
+        The frequency oscillation rate.
+    freq_hz : bool, default True.
+        If ``True``, ``f_main`` and ``f_beat`` are in Hz. Otherwise,
+        rad/s is assumed.
+
+    Notes
+    -----
+    The signal may be expressed as:
+
+        ```
+        phi = 2 * f_max / f_os * sin(f_os * t)
+        y = amp * sin(phi + phase)
+        ```
+    """
+
+    def __init__(self, f_max: float, f_os: float, freq_hz: bool = True) -> None:
+        self._f_max = f_max
+        self._f_os = f_os
+
+        if freq_hz:
+            self._f_max *= 2.0 * np.pi
+            self._f_os *= 2.0 * np.pi
+
+    def __call__(
+        self,
+        fs: float,
+        n: int,
+        amp: float = 5.0,
+        phase: float = 0.0,
+        phase_degrees: float = True,
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+        """
+        Generate a chirp signal with oscillating frequency.
+
+        Parameters
+        ----------
+        fs : float
+            Sampling frequency (in Hz) of the generated signal.
+        n : int
+            Number of samples to generate.
+        amp : float, default 5.0
+            The maximum amplitude of the generated signal.
+        phase : float, defualt 0.0
+            The phase of the main sinusiodal signal.
+        phase_degrees : bool, default True
+            If ``True``, ``phase`` is in degrees. Otherwise, rad/s is assumed.
+
+        Return
+        ------
+        t : numpy.ndarray
+            Time in seconds.
+        y : numpy.ndarray
+            The generated signal.
+        dydt : numpy.ndarray
+            The time derivative of the signal.
+
+        """
+        t = np.linspace(0.0, n / fs, n, endpoint=False)
+        if phase_degrees:
+            phase = np.radians(phase)
+        return t, self._y(t, amp, phase), self._dydt(t, amp, phase)
+
+    def _y(
+        self, t: NDArray[np.float64], amp: float, phase: float
+    ) -> NDArray[np.float64]:
+        """
+        Generate a chirp signal with oscillating frequency given an amplitude
+        and phase.
+        """
+        phi = 2.0 * self._f_max / self._f_os * np.sin(self._f_os / 2.0 * t)
+        y = amp * np.sin(phi + phase)
+        return y  # type: ignore[no-any-return]
+
+    def _dydt(
+        self, t: NDArray[np.float64], amp: float, phase: float
+    ) -> NDArray[np.float64]:
+        """
+        Generate the time derivative of a chirp signal with oscillating frequency
+        given an amplitude and phase.
+        """
+        phi = 2.0 * self._f_max / self._f_os * np.sin(self._f_os / 2.0 * t)
+        dydt = amp * self._f_max * np.cos(phi + phase) * np.cos(self._f_os / 2.0 * t)
         return dydt  # type: ignore[no-any-return]
