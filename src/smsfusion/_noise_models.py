@@ -126,3 +126,46 @@ def gauss_markov(G, tau_c, fs, n, seed=None):
         x[i] = phi * x[i - 1] + sigma_g * epsilon[i - 1]
 
     return x
+
+
+def gauss_markov2(sigma, tau_c, fs, n, seed=None):
+    """
+    Generates a discrete time first-order Gauss-Markov sequence. The sequence
+    starts always at 0.
+
+    The first-order Gauss-Markov process is described by the power spectrum:
+
+        ``S(w) = 2 * sigma**2 * beta / (w**2 + beta**2)``
+
+    where ``beta = 1 / tau_c`` describes the correlation time.
+
+    The generated signal evolves in accordance with the recursive equation:
+
+        ``X[k+1] = exp(-beta * dt) * X[k] + W[k]``
+
+    where ``W[k]`` is a zero-mean white Gaussian sequence which is uncorrelated
+    with ``X[k]``. The variance of white sequence is given by:
+
+        ``sigma_w ** 2 = sigma ** 2 * (1 - exp(-2 * beta * dt))``
+
+    Parameters
+    ----------
+    sigma : float
+        Standard deviation (i.e., root-mean-square value) of the process.
+    tau_c : float
+        Correlation time in seconds.
+    fs : float
+        Sampling frequency in Hz.
+    n : int
+        Number of samples to generate.
+    """
+
+    sigma_g = G / np.sqrt(fs)
+
+    x = np.zeros(n)
+    epsilon = _standard_normal(n - 1, seed=seed)
+    phi = 1.0 - 1.0 / (tau_c * fs)
+    for i in range(1, n):
+        x[i] = phi * x[i - 1] + sigma_g * epsilon[i - 1]
+
+    return x
