@@ -1,4 +1,4 @@
-from . import _benchmark as benchmark
+from . import benchmark
 from ._ahrs import AHRS
 from ._ins import AidedINS, StrapdownINS, gravity
 
