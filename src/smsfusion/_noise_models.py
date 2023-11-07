@@ -60,14 +60,16 @@ def white_noise(
     return sigma_wn * _standard_normal(n, seed=seed)
 
 
-def random_walk(K, fs, n, seed=None):
+def random_walk(
+    K: float, fs: float, n: int, seed: int | None = None
+) -> NDArray[np.float64]:
     """
     Generates a discrete time random walk (i.e., Brown noise) sequence. The
     sequence starts always at 0.
 
     The generated signal will have a power spectrum,
 
-        ``S(f) = K ** 2 / (2*pi*f) ** 2``
+        S(w) = K ** 2 / w ** 2
 
     where ``K`` is the spectral density coefficient.
 
@@ -96,7 +98,9 @@ def random_walk(K, fs, n, seed=None):
     return x
 
 
-def gauss_markov(sigma, tau_c, fs, n, seed=None):
+def gauss_markov(
+    sigma: float, tau_c: float, fs: float, n: int, seed: int | None = None
+) -> NDArray[np.float64]:
     """
     Generates a discrete-time first-order Gauss-Markov sequence.
 
@@ -137,7 +141,7 @@ def gauss_markov(sigma, tau_c, fs, n, seed=None):
     beta = 1.0 / tau_c
 
     phi = np.exp(-beta * dt)
-    sigma_wn = sigma ** 2 * (1.0 - np.exp(-2 * beta * dt))
+    sigma_wn = sigma**2 * (1.0 - np.exp(-2 * beta * dt))
 
     x = np.zeros(n)
     epsilon = _standard_normal(n - 1, seed=seed)
