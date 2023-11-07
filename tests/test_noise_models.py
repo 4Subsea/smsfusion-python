@@ -28,8 +28,8 @@ def test__standard_normal_seeds():
 
 
 def test_white_noise():
-    K, fs, n = 3, 10.0, 100_000
-    wn_out = white_noise(K, fs, n, seed=123)
+    N, fs, n = 3, 10.0, 100_000
+    wn_out = white_noise(N, fs, n, seed=123)
 
     wn_expect = pd.read_csv(
         TEST_PATH / "testdata" / "white_noise.csv", index_col=0
