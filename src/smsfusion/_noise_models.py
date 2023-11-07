@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def _standard_normal(n, seed=None):
+def _standard_normal(n: int, seed: int | None = None):
     """
     Draw i.i.d. samples from a standard Normal distribution (mean=0, stdev=1).
 
