@@ -11,6 +11,11 @@ def _standard_normal(n: int, seed: int | None = None):
         Number of samples to generate.
     seed : int, optional
         A seed used to initialize a random number generator.
+
+    Returns
+    -------
+    x : numpy.ndarray, shape (n,)
+        Sequence of i.i.d. samples.
     """
 
     return np.random.default_rng(seed).standard_normal(n)
