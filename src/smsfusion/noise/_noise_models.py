@@ -28,7 +28,7 @@ def white_noise(
     """
     Generates a discrete-time (bandlimited) Gaussian white noise sequence.
 
-    Bandlimited white noise is described by a spectral amplitude which is
+    Bandlimited white noise is characterized by a spectral amplitude which is
     constant over the bandwidth, and zero outside that range. I.e.,:
 
         S(w) = N ** 2,  for ``|w|`` <= 2*pi*W
@@ -64,8 +64,7 @@ def random_walk(
     K: float, fs: float, n: int, seed: int | None = None
 ) -> NDArray[np.float64]:
     """
-    Generates a discrete-time random walk (i.e., Brown noise) sequence. The
-    sequence starts always at 0.
+    Generates a discrete-time random walk (i.e., Brownian noise) sequence.
 
     The random walk process is characterized by a power spectrum:
 
@@ -83,6 +82,8 @@ def random_walk(
     deviation:
 
         sigma_wn = K / sqrt(fs)
+
+    The sequence starts always at 0.
 
     Parameters
     ----------
@@ -113,8 +114,7 @@ def gauss_markov(
     sigma: float, tau_c: float, fs: float, n: int, seed: int | None = None
 ) -> NDArray[np.float64]:
     """
-    Generates a discrete-time first-order Gauss-Markov sequence. The sequence
-    starts always at 0.
+    Generates a discrete-time first-order Gauss-Markov sequence.
 
     The first-order Gauss-Markov process is characterized by a power spectrum:
 
@@ -133,6 +133,8 @@ def gauss_markov(
     deviation:
 
         sigma_wn = sigma * sqrt(1 - exp(-2 * beta * dt))
+
+    The sequence starts always at 0.
 
     Parameters
     ----------
