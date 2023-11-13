@@ -10,8 +10,8 @@ API reference
 
    AHRS
    AidedINS
-   gravity
    StrapdownINS
    noise.gauss_markov
+   gravity
    noise.random_walk
    noise.white_noise
