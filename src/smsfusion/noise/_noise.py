@@ -160,14 +160,14 @@ def gauss_markov(
     x : numpy.ndarray
         Discrete-time first-order Gauss-Markov sequence.
 
-    See Also
-    --------
-    smsfusion.random_walk, smsfusion.white_noise
-
     References
     ----------
     .. [1] Brown R.G. & Hwang P.Y.C. (2012) "Random Signals and Applied Kalman
        Filtering". (4th ed., p. 78, 79 and 100). Wiley.
+
+    See Also
+    --------
+    smsfusion.random_walk, smsfusion.white_noise
     """
 
     dt = 1.0 / fs
@@ -345,12 +345,6 @@ class IMUNoise:
     seed : int, optional
         A seed used to initialize a random number generator.
 
-    See Also
-    --------
-    smsfusion.NoiseModel : Used to generate the specific noise for each sensor
-                           signal.
-    smsfusion.gauss_markov, smsfusion.random_walk, smsfusion.white_noise
-
     Notes
     -----
     The noise parameters are given as dictionaries where the key represents the
@@ -400,6 +394,12 @@ class IMUNoise:
     The default parameters represent noise with units m/s^2 for the
     accelerometer, and deg/s for the gyroscope. To generate noise with
     different units, the parameters must be scaled accordingly.
+
+    See Also
+    --------
+    smsfusion.NoiseModel : Used to generate the specific noise for each sensor
+                           signal.
+    smsfusion.gauss_markov, smsfusion.random_walk, smsfusion.white_noise
 
     """
 
