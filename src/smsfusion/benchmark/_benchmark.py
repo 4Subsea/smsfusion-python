@@ -1,10 +1,54 @@
 from __future__ import annotations
+import abc
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 
-class BeatSignal:
+class _Signal(abc.ABC):
+    """
+    Abstarct class for benchmark signals.
+    """
+    def __call__(
+        self,
+        t: ArrayLike,
+        phase: float = 0.0,
+        phase_degrees: float = True,
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+        """
+        Generate a beating signal.
+
+        Parameters
+        ----------
+        t : array-like
+            A time array in seconds.
+        phase : float, defualt 0.0
+            The phase of the main sinusiodal signal.
+        phase_degrees : bool, default True
+            If ``True``, ``phase`` is in degrees. Otherwise, rad/s is assumed.
+
+        Return
+        ------
+        y : numpy.ndarray
+            The generated signal.
+        dydt : numpy.ndarray
+            The time derivative of the signal.
+        """
+        t = np.asarray_chkfinite(t)
+        if phase_degrees:
+            phase = np.radians(phase)
+        return self._y(t, phase), self._dydt(t, phase)
+
+    @abc.abstractmethod
+    def _y(self):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _dydt(self):
+        raise NotImplementedError
+
+
+class BeatSignal(_Signal):
     """
     Generate a unit amplitude sinusoidal signal, and its time derivative, with
     a beating effect.
@@ -41,36 +85,6 @@ class BeatSignal:
             self._f_main = self._f_main * 2.0 * np.pi
             self._f_beat = self._f_beat * 2.0 * np.pi
 
-    def __call__(
-        self,
-        t: ArrayLike,
-        phase: float = 0.0,
-        phase_degrees: float = True,
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-        """
-        Generate a beating signal.
-
-        Parameters
-        ----------
-        t : array-like
-            A time array in seconds.
-        phase : float, defualt 0.0
-            The phase of the main sinusiodal signal.
-        phase_degrees : bool, default True
-            If ``True``, ``phase`` is in degrees. Otherwise, rad/s is assumed.
-
-        Return
-        ------
-        y : numpy.ndarray
-            The generated signal.
-        dydt : numpy.ndarray
-            The time derivative of the signal.
-        """
-        t = np.asarray_chkfinite(t)
-        if phase_degrees:
-            phase = np.radians(phase)
-        return self._y(t, phase), self._dydt(t, phase)
-
     def _y(
         self, t: NDArray[np.float64], phase: float
     ) -> NDArray[np.float64]:
@@ -95,7 +109,7 @@ class BeatSignal:
         return dydt  # type: ignore[no-any-return]
 
 
-class ChirpSignal:
+class ChirpSignal(_Signal):
     """
     Generate a unit amplitude sinusoidal signal, and its time derivative, with
     a chirp effect
@@ -131,37 +145,6 @@ class ChirpSignal:
         if freq_hz:
             self._f_max *= 2.0 * np.pi
             self._f_os *= 2.0 * np.pi
-
-    def __call__(
-        self,
-        t: ArrayLike,
-        phase: float = 0.0,
-        phase_degrees: float = True,
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-        """
-        Generate a chirp signal with oscillating frequency.
-
-        Parameters
-        ----------
-        t : array-like
-            A time array in seconds.
-        phase : float, defualt 0.0
-            The phase of the main sinusiodal signal.
-        phase_degrees : bool, default True
-            If ``True``, ``phase`` is in degrees. Otherwise, rad/s is assumed.
-
-        Return
-        ------
-        y : numpy.ndarray
-            The generated signal.
-        dydt : numpy.ndarray
-            The time derivative of the signal.
-
-        """
-        t = np.asarray_chkfinite(t)
-        if phase_degrees:
-            phase = np.radians(phase)
-        return self._y(t, phase), self._dydt(t, phase)
 
     def _y(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         """
