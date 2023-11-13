@@ -10,6 +10,8 @@ API reference
 
    AHRS
    AidedINS
+   noise.IMUNoise
+   noise.NoiseModel
    StrapdownINS
    noise.gauss_markov
    gravity
