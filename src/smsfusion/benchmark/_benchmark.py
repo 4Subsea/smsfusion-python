@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import abc
 
 import numpy as np
@@ -9,6 +10,7 @@ class _Signal(abc.ABC):
     """
     Abstarct class for benchmark signals.
     """
+
     def __call__(
         self,
         t: ArrayLike,
@@ -85,18 +87,14 @@ class BeatSignal(_Signal):
             self._f_main = self._f_main * 2.0 * np.pi
             self._f_beat = self._f_beat * 2.0 * np.pi
 
-    def _y(
-        self, t: NDArray[np.float64], phase: float
-    ) -> NDArray[np.float64]:
+    def _y(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         """
         Generate a beating signal with a unit amplitude.
         """
         y = np.sin(self._f_beat / 2.0 * t) * np.cos(self._f_main * t + phase)
         return y  # type: ignore[no-any-return]
 
-    def _dydt(
-        self, t: NDArray[np.float64], phase: float
-    ) -> NDArray[np.float64]:
+    def _dydt(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         """
         Generate the time derivative of a beating signal with a unit
         amplitude.
