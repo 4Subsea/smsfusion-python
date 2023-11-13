@@ -184,7 +184,7 @@ def gauss_markov(
     return x
 
 
-def _gen_seeds(seed: int, num: int | None) -> NDArray[np.uint64]:
+def _gen_seeds(seed: int | None, num: int) -> NDArray[np.uint64]:
     """
     Generates a list of seeds based on one seed.
 
@@ -200,7 +200,7 @@ def _gen_seeds(seed: int, num: int | None) -> NDArray[np.uint64]:
     seeds : numpy.ndarray
         List of seeds.
     """
-    return np.random.SeedSequence(seed).generate_state(num, "uint64")
+    return np.random.SeedSequence(seed).generate_state(num, "uint64")  # type: ignore[return-value]
 
 
 class NoiseModel:
@@ -423,8 +423,8 @@ class IMUNoise:
 
     def __init__(
         self,
-        acc_err: dict | None = None,
-        gyro_err: dict | None = None,
+        acc_err: dict[str, tuple[float, float, float]] | None = None,
+        gyro_err: dict[str, tuple[float, float, float]] | None = None,
         seed: int | None = None,
     ) -> None:
         self._acc_err = acc_err or self._DEFAULT_ACC_NOISE
@@ -443,7 +443,9 @@ class IMUNoise:
             raise ValueError("Not enough noise parameters provided.")
 
     @staticmethod
-    def _to_list(dict_of_lists: dict) -> list:
+    def _to_list(
+        dict_of_lists: dict[str, tuple[float, float, float]]
+    ) -> list[dict[str, float]]:
         """Convert dict of lists to list of dicts."""
         if len(set(map(len, dict_of_lists.values()))) != 1:
             raise ValueError("lists must be of same length")
