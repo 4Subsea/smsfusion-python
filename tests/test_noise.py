@@ -332,6 +332,7 @@ class Test_IMUNoise:
             TEST_PATH / "testdata" / "IMUNoise.csv", index_col=0
         ).values
 
+        assert x_out.shape == (1_000, 6)
         np.testing.assert_array_almost_equal(x_out, x_expect)
 
     def test_different_seeds(self):
