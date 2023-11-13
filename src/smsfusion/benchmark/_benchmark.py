@@ -16,7 +16,7 @@ class _Signal(abc.ABC):
         t: ArrayLike,
         phase: float = 0.0,
         phase_degrees: float = True,
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
         """
         Generate a beating signal.
 
@@ -35,11 +35,13 @@ class _Signal(abc.ABC):
             The generated signal.
         dydt : numpy.ndarray
             The time derivative of the signal.
+        d2ydt2 : numpy.ndarray
+            The second time derivative of the signal.
         """
         t = np.asarray_chkfinite(t)
         if phase_degrees:
             phase = np.radians(phase)
-        return self._y(t, phase), self._dydt(t, phase)
+        return self._y(t, phase), self._dydt(t, phase), self._d2ydt2(t, phase)
 
     @abc.abstractmethod
     def _y(self):
@@ -91,7 +93,9 @@ class BeatSignal(_Signal):
         """
         Generate a beating signal with a unit amplitude.
         """
-        y = np.sin(self._f_beat / 2.0 * t) * np.cos(self._f_main * t + phase)
+        main = np.cos(self._f_main * t + phase)
+        beat = np.sin(self._f_beat / 2.0 * t)
+        y = beat * main
         return y  # type: ignore[no-any-return]
 
     def _dydt(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
@@ -99,12 +103,30 @@ class BeatSignal(_Signal):
         Generate the time derivative of a beating signal with a unit
         amplitude.
         """
-        dydt = -(self._f_main) * (
-            np.sin(self._f_beat / 2.0 * t) * np.sin(self._f_main * t + phase)
-        ) + (self._f_beat / 2.0) * (
-            np.cos(self._f_beat / 2.0 * t) * np.cos(self._f_main * t + phase)
-        )
+        main = np.cos(self._f_main * t + phase)
+        beat = np.sin(self._f_beat / 2.0 * t)
+        dmain = -self._f_main * np.sin(self._f_main * t + phase)
+        dbeat = self._f_beat / 2.0 * np.cos(self._f_beat / 2.0 * t)
+
+        dydt = dbeat * main + beat * dmain
         return dydt  # type: ignore[no-any-return]
+
+    #TODO: Verify!
+    def _d2ydt2(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
+        """
+        Generate the second time derivative of a beating signal with a unit
+        amplitude.
+        """
+        main = np.cos(self._f_main * t + phase)
+        beat = np.sin(self._f_beat / 2.0 * t)
+        dmain = -self._f_main * np.sin(self._f_main * t + phase)
+        dbeat = self._f_beat / 2.0 * np.cos(self._f_beat / 2.0 * t)
+        d2main = -(self._f_main)**2 * np.cos(self._f_main * t + phase)
+        d2beat = -(self._f_beat / 2.0)**2 * np.sin(self._f_beat / 2.0 * t)
+
+        d2ydt2 = dbeat * dmain + d2beat * main + beat * d2main + dbeat * dmain
+
+        return d2ydt2  # type: ignore[no-any-return]
 
 
 class ChirpSignal(_Signal):
@@ -159,5 +181,17 @@ class ChirpSignal(_Signal):
         given an amplitude and phase.
         """
         phi = 2.0 * self._f_max / self._f_os * np.sin(self._f_os / 2.0 * t)
-        dydt = self._f_max * np.cos(phi + phase) * np.cos(self._f_os / 2.0 * t)
+        dphi = self._f_max * np.cos(self._f_os / 2.0 * t)
+        dydt = dphi * np.cos(phi + phase)
         return dydt  # type: ignore[no-any-return]
+
+    def _d2ydt2(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
+        """
+        Generate the second time derivative of a chirp signal with oscillating frequency
+        given an amplitude and phase.
+        """
+        phi = 2.0 * self._f_max / self._f_os * np.sin(self._f_os / 2.0 * t)
+        dphi = self._f_max * np.cos(self._f_os / 2.0 * t)
+        d2phi = - self._f_max * self._f_os / 2.0 * np.sin(self._f_os / 2.0 * t)
+        d2ydt2 = -dphi**2 * np.sin(phi + phase) + d2phi * np.cos(phi + phase)
+        return d2ydt2  # type: ignore[no-any-return]
