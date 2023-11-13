@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from smsfusion.noise import gauss_markov, random_walk, white_noise
-from smsfusion.noise._noise_models import _standard_normal
+from smsfusion.noise._noise import _standard_normal
 
 TEST_PATH = Path(__file__).parent
 
