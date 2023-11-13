@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 from numpy.typing import NDArray
 
+
 class BeatSignal:
     """
     Generate a unit amplitude sinusoidal signal with a beating effect, and
@@ -67,7 +68,7 @@ class BeatSignal:
         t = np.linspace(0.0, n / fs, n, endpoint=False)
         if phase_degrees:
             phase = np.radians(phase)
-        return t, self._y(t, 1., phase), self._dydt(t, 1., phase)
+        return t, self._y(t, 1.0, phase), self._dydt(t, 1.0, phase)
 
     def _y(
         self, t: NDArray[np.float64], amp: float, phase: float

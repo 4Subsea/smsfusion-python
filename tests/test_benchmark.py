@@ -38,6 +38,6 @@ class Test_BeatSignal:
             dydt, np.gradient(y, t), atol=0.0025
         )  # Verified tolerance
 
-        _, y_phase, dydt_phase = beat_signal(fs, n, phase=30.)
+        _, y_phase, dydt_phase = beat_signal(fs, n, phase=30.0)
         assert not np.array_equal(y, y_phase)
         assert not np.array_equal(dydt, dydt_phase)
