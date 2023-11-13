@@ -480,9 +480,9 @@ class IMUNoise:
 
         """
 
-        x = np.zeros((n, 6))
+        # x = np.zeros((n, 6))
         seeds = _gen_seeds(self._seed, 6)
-        for i in range(6):
-            x[:, i] += NoiseModel(**self._err_list[i], seed=seeds[i])(fs, n)
-
+        x = np.column_stack(
+            [NoiseModel(**self._err_list[i], seed=seeds[i])(fs, n) for i in range(6)]
+        )
         return x
