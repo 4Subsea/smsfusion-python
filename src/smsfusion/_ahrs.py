@@ -201,13 +201,14 @@ class AHRS:
         Returns
         -------
         euler : numpy.ndarray
-            Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
-            in that order.
+        Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
+        in that order.
 
         Notes
         -----
         The Euler angles describe how to transition from the 'NED' frame to the 'body'
         frame through three consecutive intrinsic and passive rotations in the ZYX order:
+
             1. A rotation by an angle gamma (often called yaw) about the z-axis.
             2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
             3. A final rotation by an angle alpha (often called roll) about the x-axis.
