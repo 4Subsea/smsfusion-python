@@ -52,11 +52,12 @@ class Test_ChirpSignal:
         assert chirp_signal._f_os == 0.01
 
     def test_signal(self):
-        beat_signal = benchmark.ChirpSignal(0.1, 0.01, freq_hz=True)
+        chirp_signal = benchmark.ChirpSignal(0.1, 0.01, freq_hz=True)
 
         fs = 10.0
         n = 10_000
-        t, y, dydt = beat_signal(fs, n, amp=5.0)
+        t = np.linspace(0.0, n / fs, n, endpoint=False)
+        y, dydt = chirp_signal(t)
 
         assert len(t) == int(n)
         assert len(t) == len(y)
@@ -65,15 +66,15 @@ class Test_ChirpSignal:
         assert t[0] == 0.0
         assert t[-1] == pytest.approx((n - 1) / fs)
 
-        assert y.max() == pytest.approx(5.0, rel=1e-3)
-        assert y.min() == pytest.approx(-5.0, rel=1e-3)
+        assert y.max() == pytest.approx(1.0, rel=1e-3)
+        assert y.min() == pytest.approx(-1.0, rel=1e-3)
         assert y.mean() == pytest.approx(0.0)
-        assert 3.0 < y.std() < 4.0
+        assert 0.5 < y.std() < 1.0
 
         np.testing.assert_allclose(
             dydt[1:-1], np.gradient(y, t)[1:-1], atol=0.0025
         )  # Verified tolerance
 
-        y_phase, dydt_phase = beat_signal(t, phase=30.0)
+        y_phase, dydt_phase = chirp_signal(t, phase=30.0)
         assert not np.array_equal(y, y_phase)
         assert not np.array_equal(dydt, dydt_phase)

@@ -130,23 +130,17 @@ class ChirpSignal:
 
     def __call__(
         self,
-        fs: float,
-        n: int,
-        amp: float = 5.0,
+        t: ArrayLike,
         phase: float = 0.0,
         phase_degrees: float = True,
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         """
         Generate a chirp signal with oscillating frequency.
 
         Parameters
         ----------
-        fs : float
-            Sampling frequency (in Hz) of the generated signal.
-        n : int
-            Number of samples to generate.
-        amp : float, default 5.0
-            The maximum amplitude of the generated signal.
+        t : array-like
+            A time array in seconds.
         phase : float, defualt 0.0
             The phase of the main sinusiodal signal.
         phase_degrees : bool, default True
@@ -154,18 +148,16 @@ class ChirpSignal:
 
         Return
         ------
-        t : numpy.ndarray
-            Time in seconds.
         y : numpy.ndarray
             The generated signal.
         dydt : numpy.ndarray
             The time derivative of the signal.
 
         """
-        t = np.linspace(0.0, n / fs, n, endpoint=False)
+        t = np.asarray_chkfinite(t)
         if phase_degrees:
             phase = np.radians(phase)
-        return t, self._y(t, amp, phase), self._dydt(t, amp, phase)
+        return self._y(t, 1., phase), self._dydt(t, 1., phase)
 
     def _y(
         self, t: NDArray[np.float64], amp: float, phase: float
