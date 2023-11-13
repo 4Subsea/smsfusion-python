@@ -160,6 +160,10 @@ def gauss_markov(
     x : numpy.ndarray
         Discrete-time first-order Gauss-Markov sequence.
 
+    See Also
+    --------
+    smsfusion.random_walk, smsfusion.white_noise
+
     References
     ----------
     .. [1] Brown R.G. & Hwang P.Y.C. (2012) "Random Signals and Applied Kalman
