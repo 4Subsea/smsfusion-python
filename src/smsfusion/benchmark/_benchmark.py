@@ -6,8 +6,8 @@ from numpy.typing import ArrayLike, NDArray
 
 class BeatSignal:
     """
-    Generate a unit amplitude sinusoidal signal with a beating effect, and
-    its time derivative.
+    Generate a unit amplitude sinusoidal signal, and its time derivative, with
+    a beating effect.
 
     This function creates a signal with a main frequency and a beating
     frequency, resulting in a wave that appears to "beat" or vary in
@@ -29,7 +29,7 @@ class BeatSignal:
     The signal may be expressed as:
 
         ```
-        y = amp * sin(f_beat / 2.0 * t) * cos(f_main * t + phase)
+        y = sin(f_beat / 2.0 * t) * cos(f_main * t + phase)
         ```
     """
 
@@ -97,8 +97,12 @@ class BeatSignal:
 
 class ChirpSignal:
     """
-    Generate an evenly sampled chirp signal with oscillating frequency by
-    defining a maximum frequency and a frequency oscillation rate.
+    Generate a unit amplitude sinusoidal signal, and its time derivative, with
+    a chirp effect
+
+    This function creates a signal with a frequency that appears to vary in time.
+    The frequency oscillates between 0. and a maximum frequency at a specific
+    rate.
 
     Parameters
     ----------
@@ -107,7 +111,7 @@ class ChirpSignal:
     f_os : float
         The frequency oscillation rate.
     freq_hz : bool, default True.
-        If ``True``, ``f_main`` and ``f_beat`` are in Hz. Otherwise,
+        If ``True``, ``f_max`` and ``f_os`` are in Hz. Otherwise,
         rad/s is assumed.
 
     Notes
@@ -116,7 +120,7 @@ class ChirpSignal:
 
         ```
         phi = 2 * f_max / f_os * sin(f_os * t)
-        y = amp * sin(phi + phase)
+        y = sin(phi + phase)
         ```
     """
 
