@@ -49,10 +49,14 @@ def white_noise(
     n : int
         Number of samples to generate.
 
-    Return
-    ------
+    Returns
+    -------
     x : numpy.ndarray
         Discrete time Gaussian white noise sequence.
+
+    See Also
+    --------
+    smsfusion.gauss_markov, smsfusion.random_walk
     """
 
     sigma_wn = N * np.sqrt(fs)
