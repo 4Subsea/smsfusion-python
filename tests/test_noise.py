@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from smsfusion.noise import gauss_markov, random_walk, white_noise
+from smsfusion.noise import NoiseModel, gauss_markov, random_walk, white_noise
 from smsfusion.noise._noise import _gen_seeds, _standard_normal
 
 TEST_PATH = Path(__file__).parent
@@ -87,3 +87,66 @@ class Test_gen_seed:
         assert len(np.unique(seeds_out)) == 3
         for i in range(3):
             assert isinstance(seeds_out[i], np.uint64)
+
+
+class Test_NoiseModel:
+    def test__init__(self):
+        noise = NoiseModel(1, 2, 3, 4, 5, 6, 7)
+
+        assert noise._N == 1
+        assert noise._B == 2
+        assert noise._K == 3
+        assert noise._tau_cb == 4
+        assert noise._tau_ck == 5
+        assert noise._bc == 6
+        assert noise._seed == 7
+
+    def test__init__default(self):
+        noise = NoiseModel(1, 2, 3, 4)
+
+        assert noise._N == 1
+        assert noise._B == 2
+        assert noise._K == 3
+        assert noise._tau_cb == 4
+        assert noise._tau_ck is None
+        assert noise._bc == 0.0
+        assert noise._seed is None
+
+    def test__call__GM(self):
+        N = 4.0e-4
+        B = 3.0e-4
+        K = 3.0e-5
+        tau_cb = 10
+        tau_ck = 5e5
+        bc = 0.1
+        noise = NoiseModel(N, B, K, tau_cb, tau_ck, bc, seed=123)
+        x_out = noise(10.24, 10_000)
+
+        x_expect = pd.read_csv(
+            TEST_PATH / "testdata" / "NoiseModel_GM.csv", index_col=0
+        ).values.flatten()
+
+        np.testing.assert_array_almost_equal(x_out, x_expect)
+
+    def test__call__RW(self):
+        N = 4.0e-4
+        B = 3.0e-4
+        K = 3.0e-5
+        tau_cb = 10
+        tau_ck = None
+        bc = 0.1
+        noise = NoiseModel(N, B, K, tau_cb, tau_ck, bc, seed=123)
+        x_out = noise(10.24, 10_000)
+
+        x_expect = pd.read_csv(
+            TEST_PATH / "testdata" / "NoiseModel_RW.csv", index_col=0
+        ).values.flatten()
+
+        np.testing.assert_array_almost_equal(x_out, x_expect, decimal=5)
+
+    def test__call__constant_bias(self):
+        N, B, K, tau_cb, tau_ck, bc = 0.0, 0.0, 0.0, 10, None, 1.0
+        noise = NoiseModel(N, B, K, tau_cb, tau_ck, bc, 123)
+        x_out = noise(10.24, 100)
+
+        assert np.mean(x_out) == 1.0
