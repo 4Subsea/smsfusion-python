@@ -3,18 +3,22 @@ from __future__ import annotations
 import numpy as np
 from numpy.typing import NDArray
 
-
 class BeatSignal:
     """
-    Generate an evenly sampled beating sinusoidal signal by defining a main
-    frequency and a beating frequency.
+    Generate a unit amplitude sinusoidal signal with a beating effect, and
+    its time derivative.
+
+    This function creates a signal with a main frequency and a beating
+    frequency, resulting in a wave that appears to "beat" or vary in
+    amplitude over time.
 
     Parameters
     ----------
     f_main : float
-        The main sinusoidal signal frequency.
+        The main frequency of the sinusoidal signal.
     f_beat : float
-        The beating signal frequency.
+        The beating frequency, which controls the
+        variation in amplitude.
     freq_hz : bool, default True.
         If ``True``, ``f_main`` and ``f_beat`` are in Hz. Otherwise,
         rad/s is assumed.
@@ -26,14 +30,13 @@ class BeatSignal:
         self._f_beat = f_beat
 
         if freq_hz:
-            self._f_main *= 2.0 * np.pi
-            self._f_beat *= 2.0 * np.pi
+            self._f_main = self._f_main * 2.0 * np.pi
+            self._f_beat = self._f_beat * 2.0 * np.pi
 
     def __call__(
         self,
         fs: float,
         n: int,
-        amp: float = 5.0,
         phase: float = 0.0,
         phase_degrees: float = True,
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
@@ -46,8 +49,6 @@ class BeatSignal:
             Sampling frequency (in Hz) of the generated signal.
         n : int
             Number of samples to generate.
-        amp : float, default 5.0
-            The maximum amplitude of the generated signal.
         phase : float, defualt 0.0
             The phase of the main sinusiodal signal.
         phase_degrees : bool, default True
@@ -66,7 +67,7 @@ class BeatSignal:
         t = np.linspace(0.0, n / fs, n, endpoint=False)
         if phase_degrees:
             phase = np.radians(phase)
-        return t, self._y(t, amp, phase), self._dydt(t, amp, phase)
+        return t, self._y(t, 1., phase), self._dydt(t, 1., phase)
 
     def _y(
         self, t: NDArray[np.float64], amp: float, phase: float
