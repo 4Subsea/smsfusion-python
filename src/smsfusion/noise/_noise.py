@@ -102,6 +102,10 @@ def random_walk(
     ------
     x : numpy.ndarray
         Discrete-time random walk sequence.
+
+    See Also
+    --------
+    smsfusion.gauss_markov, smsfusion.white_noise
     """
 
     sigma_wn = K / np.sqrt(fs)
