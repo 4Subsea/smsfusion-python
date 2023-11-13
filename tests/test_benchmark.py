@@ -20,7 +20,8 @@ class Test_BeatSignal:
 
         fs = 10.0
         n = 2000
-        t, y, dydt = beat_signal(fs, n)
+        t = np.linspace(0.0, n / fs, n, endpoint=False)
+        y, dydt = beat_signal(t)
 
         assert len(t) == int(n)
         assert len(t) == len(y)
@@ -38,6 +39,6 @@ class Test_BeatSignal:
             dydt, np.gradient(y, t), atol=0.0025
         )  # Verified tolerance
 
-        _, y_phase, dydt_phase = beat_signal(fs, n, phase=30.0)
+        y_phase, dydt_phase = beat_signal(t, phase=30.0)
         assert not np.array_equal(y, y_phase)
         assert not np.array_equal(dydt, dydt_phase)

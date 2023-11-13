@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike, NDArray
 
 
 class BeatSignal:
@@ -36,20 +36,17 @@ class BeatSignal:
 
     def __call__(
         self,
-        fs: float,
-        n: int,
+        t: ArrayLike,
         phase: float = 0.0,
         phase_degrees: float = True,
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         """
         Generate a beating signal.
 
         Parameters
         ----------
-        fs : float
-            Sampling frequency (in Hz) of the generated signal.
-        n : int
-            Number of samples to generate.
+        t : array-like
+            A time array in seconds.
         phase : float, defualt 0.0
             The phase of the main sinusiodal signal.
         phase_degrees : bool, default True
@@ -57,18 +54,16 @@ class BeatSignal:
 
         Return
         ------
-        t : numpy.ndarray
-            Time in seconds.
         y : numpy.ndarray
             The generated signal.
         dydt : numpy.ndarray
             The time derivative of the signal.
 
         """
-        t = np.linspace(0.0, n / fs, n, endpoint=False)
+        t = np.asarray_chkfinite(t)
         if phase_degrees:
             phase = np.radians(phase)
-        return t, self._y(t, 1.0, phase), self._dydt(t, 1.0, phase)
+        return self._y(t, 1.0, phase), self._dydt(t, 1.0, phase)
 
     def _y(
         self, t: NDArray[np.float64], amp: float, phase: float
