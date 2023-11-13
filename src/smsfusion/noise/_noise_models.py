@@ -57,7 +57,7 @@ def white_noise(
 
     sigma_wn = N * np.sqrt(fs)
 
-    return sigma_wn * _standard_normal(n, seed=seed)
+    return sigma_wn * _standard_normal(n, seed=seed)  # type: ignore[no-any-return]
 
 
 def random_walk(
