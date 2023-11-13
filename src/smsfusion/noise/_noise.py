@@ -182,3 +182,22 @@ def gauss_markov(
         x[i] = phi * x[i - 1] + sigma_wn * epsilon[i - 1]
 
     return x
+
+
+def _gen_seeds(seed: int, num: int | None) -> NDArray[np.uint64]:
+    """
+    Generates a list of seeds based on one seed.
+
+    Parameters
+    ----------
+    seed : int or None
+        A seed used to generate a list of new seeds.
+    num : int
+        Number of new seeds to generate.
+
+    Returns
+    -------
+    seeds : numpy.ndarray
+        List of seeds.
+    """
+    return np.random.SeedSequence(seed).generate_state(num, "uint64")
