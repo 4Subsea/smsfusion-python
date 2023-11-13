@@ -93,3 +93,235 @@ class Test_ChirpSignal:
         assert not np.array_equal(y, y_phase)
         assert not np.array_equal(dydt, dydt_phase)
         assert not np.array_equal(d2ydt2, d2ydt2_phase)
+
+
+class Test_benchmark_ahrs:
+    def test_signal_family_default(self):
+        signal_family = benchmark.BeatSignal()
+
+        fs = 10.0
+        n = 10_000
+        t, acc, gyro, euler = benchmark.benchmark_ahrs(
+            fs,
+            n,
+            (5.0, 5.0, 5.0),
+            (0.0, 0.0, 0.0),
+            (0.0, 45.0, 90.0),
+            phase_degrees=True,
+        )
+
+        assert len(t) == int(n)
+        assert acc.shape == (n, 3)
+        assert gyro.shape == (n, 3)
+        assert euler.shape == (n, 3)
+
+        assert t[0] == 0.0
+        assert t[-1] == pytest.approx((n - 1) / fs)
+
+        np.testing.assert_allclose(euler[:, 0], signal_family(fs, n, 5.0, 0.0)[1])
+        np.testing.assert_allclose(euler[:, 1], signal_family(fs, n, 5.0, 45.0)[1])
+        np.testing.assert_allclose(euler[:, 2], signal_family(fs, n, 5.0, 90.0)[1])
+
+    def test_signal_family_beat(self):
+        signal_family = benchmark.BeatSignal(0.09, 0.02)
+
+        fs = 10.0
+        n = 10_000
+        t, acc, gyro, euler = benchmark.benchmark_ahrs(
+            fs,
+            n,
+            (5.0, 5.0, 5.0),
+            (0.0, 0.0, 0.0),
+            (0.0, 45.0, 90.0),
+            phase_degrees=True,
+            signal_family=signal_family,
+        )
+
+        assert len(t) == int(n)
+        assert acc.shape == (n, 3)
+        assert gyro.shape == (n, 3)
+        assert euler.shape == (n, 3)
+
+        assert t[0] == 0.0
+        assert t[-1] == pytest.approx((n - 1) / fs)
+
+        np.testing.assert_allclose(euler[:, 0], signal_family(fs, n, 5.0, 0.0)[1])
+        np.testing.assert_allclose(euler[:, 1], signal_family(fs, n, 5.0, 45.0)[1])
+        np.testing.assert_allclose(euler[:, 2], signal_family(fs, n, 5.0, 90.0)[1])
+
+    def test_signal_family_chirp(self):
+        signal_family = benchmark.ChirpSignal(0.5, 0.05)
+
+        fs = 10.0
+        n = 10_000
+        t, acc, gyro, euler = benchmark.benchmark_ahrs(
+            fs,
+            n,
+            (5.0, 5.0, 5.0),
+            (0.0, 0.0, 0.0),
+            (0.0, 45.0, 90.0),
+            phase_degrees=True,
+            signal_family=signal_family,
+        )
+
+        assert len(t) == int(n)
+        assert acc.shape == (n, 3)
+        assert gyro.shape == (n, 3)
+        assert euler.shape == (n, 3)
+
+        assert t[0] == 0.0
+        assert t[-1] == pytest.approx((n - 1) / fs)
+
+        np.testing.assert_allclose(euler[:, 0], signal_family(fs, n, 5.0, 0.0)[1])
+        np.testing.assert_allclose(euler[:, 1], signal_family(fs, n, 5.0, 45.0)[1])
+        np.testing.assert_allclose(euler[:, 2], signal_family(fs, n, 5.0, 90.0)[1])
+
+    def test_pure_roll(self):
+        fs = 10.0
+        n = 10_000
+        t, acc, gyro, euler = benchmark.benchmark_ahrs(
+            fs, n, (5.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), phase_degrees=True
+        )
+
+        assert len(t) == int(n)
+        assert acc.shape == (n, 3)
+        assert gyro.shape == (n, 3)
+        assert euler.shape == (n, 3)
+
+        assert t[0] == 0.0
+        assert t[-1] == pytest.approx((n - 1) / fs)
+
+        np.testing.assert_allclose(acc[:, 0], np.zeros(n))
+        np.testing.assert_allclose(acc[:, 1], 9.80665 * np.sin(np.radians(euler[:, 0])))
+        np.testing.assert_allclose(
+            acc[:, 2], -9.80665 * np.cos(np.radians(euler[:, 0]))
+        )
+
+        np.testing.assert_allclose(gyro[:, 0], np.gradient(euler[:, 0], t), atol=0.003)
+        np.testing.assert_allclose(gyro[:, 1], np.zeros(n))
+        np.testing.assert_allclose(gyro[:, 2], np.zeros(n))
+
+    def test_pure_pitch(self):
+        fs = 10.0
+        n = 10_000
+        t, acc, gyro, euler = benchmark.benchmark_ahrs(
+            fs, n, (0.0, 5.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), phase_degrees=True
+        )
+
+        assert len(t) == int(n)
+        assert acc.shape == (n, 3)
+        assert gyro.shape == (n, 3)
+        assert euler.shape == (n, 3)
+
+        assert t[0] == 0.0
+        assert t[-1] == pytest.approx((n - 1) / fs)
+
+        np.testing.assert_allclose(
+            acc[:, 0], -9.80665 * np.sin(np.radians(euler[:, 1]))
+        )
+        np.testing.assert_allclose(acc[:, 1], np.zeros(n))
+        np.testing.assert_allclose(
+            acc[:, 2], -9.80665 * np.cos(np.radians(euler[:, 1]))
+        )
+
+        np.testing.assert_allclose(gyro[:, 0], np.zeros(n))
+        np.testing.assert_allclose(gyro[:, 1], np.gradient(euler[:, 1], t), atol=0.003)
+        np.testing.assert_allclose(gyro[:, 2], np.zeros(n))
+
+    def test_pure_yaw(self):
+        fs = 10.0
+        n = 10_000
+        t, acc, gyro, euler = benchmark.benchmark_ahrs(
+            fs, n, (0.0, 0.0, 5.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), phase_degrees=True
+        )
+
+        assert len(t) == int(n)
+        assert acc.shape == (n, 3)
+        assert gyro.shape == (n, 3)
+        assert euler.shape == (n, 3)
+
+        assert t[0] == 0.0
+        assert t[-1] == pytest.approx((n - 1) / fs)
+
+        np.testing.assert_allclose(acc[:, 0], np.zeros(n))
+        np.testing.assert_allclose(acc[:, 1], np.zeros(n))
+        np.testing.assert_allclose(acc[:, 2], -9.80665 * np.ones(n))
+
+        np.testing.assert_allclose(gyro[:, 0], np.zeros(n))
+        np.testing.assert_allclose(gyro[:, 0], np.zeros(n))
+        np.testing.assert_allclose(gyro[:, 2], np.gradient(euler[:, 2], t), atol=0.003)
+
+    def test_pure_roll_mean(self):
+        fs = 10.0
+        n = 10_000
+        t, acc, gyro, euler = benchmark.benchmark_ahrs(
+            fs, n, (0.0, 0.0, 0.0), (5.0, 0.0, 0.0), (0.0, 0.0, 0.0), phase_degrees=True
+        )
+
+        assert len(t) == int(n)
+        assert acc.shape == (n, 3)
+        assert gyro.shape == (n, 3)
+        assert euler.shape == (n, 3)
+
+        assert t[0] == 0.0
+        assert t[-1] == pytest.approx((n - 1) / fs)
+
+        np.testing.assert_allclose(acc[:, 0], np.zeros(n))
+        np.testing.assert_allclose(acc[:, 1], 9.80665 * np.sin(np.radians(euler[:, 0])))
+        np.testing.assert_allclose(
+            acc[:, 2], -9.80665 * np.cos(np.radians(euler[:, 0]))
+        )
+
+        np.testing.assert_allclose(gyro[:, 0], np.zeros(n))
+        np.testing.assert_allclose(gyro[:, 1], np.zeros(n))
+        np.testing.assert_allclose(gyro[:, 2], np.zeros(n))
+
+    def test_pure_pitch_mean(self):
+        fs = 10.0
+        n = 10_000
+        t, acc, gyro, euler = benchmark.benchmark_ahrs(
+            fs, n, (0.0, 0.0, 0.0), (0.0, 5.0, 0.0), (0.0, 0.0, 0.0), phase_degrees=True
+        )
+
+        assert len(t) == int(n)
+        assert acc.shape == (n, 3)
+        assert gyro.shape == (n, 3)
+        assert euler.shape == (n, 3)
+
+        assert t[0] == 0.0
+        assert t[-1] == pytest.approx((n - 1) / fs)
+
+        np.testing.assert_allclose(
+            acc[:, 0], -9.80665 * np.sin(np.radians(euler[:, 1]))
+        )
+        np.testing.assert_allclose(acc[:, 1], np.zeros(n))
+        np.testing.assert_allclose(
+            acc[:, 2], -9.80665 * np.cos(np.radians(euler[:, 1]))
+        )
+
+        np.testing.assert_allclose(gyro[:, 0], np.zeros(n))
+        np.testing.assert_allclose(gyro[:, 1], np.zeros(n))
+        np.testing.assert_allclose(gyro[:, 2], np.zeros(n))
+
+    def test_pure_yaw_mean(self):
+        fs = 10.0
+        n = 10_000
+        t, acc, gyro, euler = benchmark.benchmark_ahrs(
+            fs, n, (0.0, 0.0, 0.0), (0.0, 0.0, 5.0), (0.0, 0.0, 0.0), phase_degrees=True
+        )
+
+        assert len(t) == int(n)
+        assert acc.shape == (n, 3)
+        assert gyro.shape == (n, 3)
+        assert euler.shape == (n, 3)
+
+        assert t[0] == 0.0
+        assert t[-1] == pytest.approx((n - 1) / fs)
+
+        np.testing.assert_allclose(acc[:, 0], np.zeros(n))
+        np.testing.assert_allclose(acc[:, 1], np.zeros(n))
+        np.testing.assert_allclose(acc[:, 2], -9.80665 * np.ones(n))
+
+        np.testing.assert_allclose(gyro[:, 0], np.zeros(n))
+        np.testing.assert_allclose(gyro[:, 0], np.zeros(n))
+        np.testing.assert_allclose(gyro[:, 2], np.zeros(n))
