@@ -44,11 +44,15 @@ class _Signal(abc.ABC):
         return self._y(t, phase), self._dydt(t, phase), self._d2ydt2(t, phase)
 
     @abc.abstractmethod
-    def _y(self):
+    def _y(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _dydt(self):
+    def _dydt(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _d2ydt2(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         raise NotImplementedError
 
 
@@ -111,7 +115,6 @@ class BeatSignal(_Signal):
         dydt = dbeat * main + beat * dmain
         return dydt  # type: ignore[no-any-return]
 
-    #TODO: Verify!
     def _d2ydt2(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         """
         Generate the second time derivative of a beating signal with a unit
@@ -121,8 +124,8 @@ class BeatSignal(_Signal):
         beat = np.sin(self._f_beat / 2.0 * t)
         dmain = -self._f_main * np.sin(self._f_main * t + phase)
         dbeat = self._f_beat / 2.0 * np.cos(self._f_beat / 2.0 * t)
-        d2main = -(self._f_main)**2 * np.cos(self._f_main * t + phase)
-        d2beat = -(self._f_beat / 2.0)**2 * np.sin(self._f_beat / 2.0 * t)
+        d2main = -((self._f_main) ** 2) * np.cos(self._f_main * t + phase)
+        d2beat = -((self._f_beat / 2.0) ** 2) * np.sin(self._f_beat / 2.0 * t)
 
         d2ydt2 = dbeat * dmain + d2beat * main + beat * d2main + dbeat * dmain
 
@@ -192,6 +195,6 @@ class ChirpSignal(_Signal):
         """
         phi = 2.0 * self._f_max / self._f_os * np.sin(self._f_os / 2.0 * t)
         dphi = self._f_max * np.cos(self._f_os / 2.0 * t)
-        d2phi = - self._f_max * self._f_os / 2.0 * np.sin(self._f_os / 2.0 * t)
-        d2ydt2 = -dphi**2 * np.sin(phi + phase) + d2phi * np.cos(phi + phase)
+        d2phi = -self._f_max * self._f_os / 2.0 * np.sin(self._f_os / 2.0 * t)
+        d2ydt2 = -(dphi**2) * np.sin(phi + phase) + d2phi * np.cos(phi + phase)
         return d2ydt2  # type: ignore[no-any-return]
