@@ -5,7 +5,7 @@ import abc
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from smsfusion._transforms import _rot_matrix_from_euler, _inv_angular_matrix_from_euler
+from smsfusion._transforms import _inv_angular_matrix_from_euler, _rot_matrix_from_euler
 
 
 class _Signal(abc.ABC):
@@ -15,7 +15,7 @@ class _Signal(abc.ABC):
 
     def __call__(
         self,
-        t: ArrayLike[np.float64],
+        t: ArrayLike,
         phase: float = 0.0,
         phase_degrees: float = True,
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
@@ -210,7 +210,12 @@ def _benchmark_helper(
     signal_family: _Signal,
     fs: float,
 ) -> tuple[
-    NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
 ]:
     """
     A general helper function for generating benchmark scenarios for INS sensor
@@ -290,27 +295,34 @@ def _benchmark_helper(
 
     amp_x, amp_y, amp_z, amp_roll, amp_pitch, amp_yaw = amplitude
     mean_x, mean_y, mean_z, mean_roll, mean_pitch, mean_yaw = mean
-    phase_x, phase_y, phase_z, phase_roll, phase_pitch, phase_yaw = mean
+    phase_x, phase_y, phase_z, phase_roll, phase_pitch, phase_yaw = phase
 
-    pos_x, vel_x, acc_x = mean_x + amp_x * signal_family(
-        t, phase_x, phase_degrees=False
-    )
-    pos_y, vel_y, acc_y = mean_y + amp_y * signal_family(
-        t, phase_y, phase_degrees=False
-    )
-    pos_z, vel_z, acc_z = mean_z + amp_z * signal_family(
-        t, phase_z, phase_degrees=False
-    )
+    pos_x_, vel_x_, acc_x_ = signal_family(t, phase_x, phase_degrees=False)
+    pos_x = mean_x + amp_x * pos_x_
+    vel_x = amp_x * vel_x_
+    acc_x = amp_x * acc_x_
 
-    roll, droll, _ = mean_roll + amp_roll * signal_family(
-        t, phase_roll, phase_degrees=False
-    )
-    pitch, dpitch, _ = mean_pitch + amp_pitch * signal_family(
-        t, phase_pitch, phase_degrees=False
-    )
-    yaw, dyaw, _ = mean_yaw + amp_yaw * signal_family(
-        t, phase_yaw, phase_degrees=False
-    )
+    pos_y_, vel_y_, acc_y_ = signal_family(t, phase_y, phase_degrees=False)
+    pos_y = mean_y + amp_y * pos_y_
+    vel_y = amp_y * vel_y_
+    acc_y = amp_y * acc_y_
+
+    pos_z_, vel_z_, acc_z_ = signal_family(t, phase_z, phase_degrees=False)
+    pos_z = mean_z + amp_z * pos_z_
+    vel_z = amp_z * vel_z_
+    acc_z = amp_z * acc_z_
+
+    roll_, droll_, _ = signal_family(t, phase_roll, phase_degrees=False)
+    roll = mean_roll + amp_roll * roll_
+    droll = amp_roll * droll_
+
+    pitch_, dpitch_, _ = signal_family(t, phase_pitch, phase_degrees=False)
+    pitch = mean_pitch + amp_pitch * pitch_
+    dpitch = amp_pitch * dpitch_
+
+    yaw_, dyaw_, _ = signal_family(t, phase_yaw, phase_degrees=False)
+    yaw = mean_yaw + amp_yaw * yaw_
+    dyaw = amp_yaw * dyaw_
 
     position = np.column_stack((pos_x, pos_y, pos_z))
     velocity = np.column_stack((vel_x, vel_y, vel_z))
@@ -321,11 +333,18 @@ def _benchmark_helper(
     accelerometer = []
     gyroscope = []
     for euler_i, deuler_i, acc_i in zip(attitude, dattitude, acceleration):
-        gyroscope.append(
-            _inv_angular_matrix_from_euler(euler_i).dot(deuler_i)
-        )
+        gyroscope.append(_inv_angular_matrix_from_euler(euler_i).dot(deuler_i))
         accelerometer.append(
-            _rot_matrix_from_euler(euler_i).dot(acc_i + np.array([0.0, 0.0, -9.80665]))
+            _rot_matrix_from_euler(euler_i).T.dot(
+                acc_i + np.array([0.0, 0.0, -9.80665])
+            )
         )
 
-    return t, position, velocity, attitude, np.asarray(accelerometer), np.asarray(gyroscope)
+    return (
+        t,
+        position,
+        velocity,
+        attitude,
+        np.asarray(accelerometer),
+        np.asarray(gyroscope),
+    )
