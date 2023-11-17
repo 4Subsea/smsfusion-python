@@ -8,7 +8,7 @@ from numpy.typing import ArrayLike, NDArray
 
 class _Signal(abc.ABC):
     """
-    Abstarct class for benchmark signals.
+    Abstract class for benchmark signals.
     """
 
     def __call__(
