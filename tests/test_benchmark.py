@@ -298,3 +298,33 @@ class Test__benchmark_helper:
         np.testing.assert_allclose(gyro[:, 0], np.zeros_like(t))
         np.testing.assert_allclose(gyro[:, 1], np.zeros_like(t))
         np.testing.assert_allclose(gyro[:, 2], np.zeros_like(t))
+
+
+def test_benchmark_ahrs_beat_202311A():
+    signature_signal, _, _ = benchmark.BeatSignal(0.1, 0.01)(
+        np.arange(0.0, 1200.0, 1.0 / 10.24)
+    )
+
+    t, euler, acc, gyro = benchmark.benchmark_ahrs_beat_202311A()
+
+    assert len(t) == int(1200 * 10.24)
+    assert euler.shape == (len(t), 3)
+    assert acc.shape == (len(t), 3)
+    assert gyro.shape == (len(t), 3)
+
+    np.testing.assert_array_equal(euler[:, 0], 5.0 * signature_signal)
+
+
+def test_benchmark_ahrs_chirp_202311A():
+    signature_signal, _, _ = benchmark.ChirpSignal(0.1, 0.01)(
+        np.arange(0.0, 1200.0, 1.0 / 10.24)
+    )
+
+    t, euler, acc, gyro = benchmark.benchmark_ahrs_chirp_202311A()
+
+    assert len(t) == int(1200 * 10.24)
+    assert euler.shape == (len(t), 3)
+    assert acc.shape == (len(t), 3)
+    assert gyro.shape == (len(t), 3)
+
+    np.testing.assert_array_equal(euler[:, 0], 5.0 * signature_signal)

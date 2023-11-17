@@ -349,3 +349,126 @@ def _benchmark_helper(
         np.asarray(accelerometer),
         np.asarray(gyroscope),
     )
+
+
+def benchmark_ahrs_beat_202311A(fs: float = 10.24):
+    """
+    A benchmark for performance testing of AHRS sensor fusion algorithms.
+
+    The benchmark scenario is 20 minutes long. It generates Euler angles
+    (roll, pitch, and yaw), and the corresponding accelerometer and
+    gyroscope signals. Note that the generated motion is pure rotations.
+
+    The generated signals are "beating" with maximum amplitudes corresponding to
+    5 degrees. The main signal frequency is 0.1 Hz while the "beating" frequency
+    is 0.01 Hz. The phases for roll, pitch, and yaw are 0.0, 45.0, and 90.0 degrees
+    respectively. See ``BeatSignal`` for details.
+
+    Parameters
+    ----------
+    fs : float, default 10.24
+        Sampling frequency of the generated signals.
+
+    Returns
+    -------
+    t : numpy.ndarray, shape (N,)
+        Time in seconds.
+    euler : numpy.ndarray, shape (N, 3)
+        Attitude of the body in Euler angles [rad], see Notes.
+    acc : numpy.ndarray, shape (N, 3)
+        Accelerations [m/s**2] in body frame (corresponding to accelerometer measurements).
+    gyro : numpy.ndarray, shape (N, 3)
+        Angular rates [rad/s] in body frame (corresponding to gyroscope measurements).
+
+    Notes
+    -----
+    The Euler angles describe how to transition from the 'NED' frame to the 'body'
+    frame through three consecutive intrinsic and passive rotations in the ZYX order:
+        1. A rotation by an angle gamma (often called yaw) about the z-axis.
+        2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+        3. A final rotation by an angle alpha (often called roll) about the x-axis.
+
+    This sequence of rotations is used to describe the orientation of the 'body' frame
+    relative to the 'NED' frame in 3D space.
+
+    Intrinsic rotations mean that the rotations are with respect to the changing
+    coordinate system; as one rotation is applied, the next is about the axis of
+    the newly rotated system.
+
+    Passive rotations mean that the frame itself is rotating, not the object
+    within the frame.
+
+    """
+    duration = 1200.0  # 20 minutes
+    amplitude = (0.0, 0.0, 0.0, 5.0, 5.0, 5.0)
+    mean = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    phase = np.radians((0.0, 0.0, 0.0, 0.0, 45.0, 90.0))
+
+    f_main = 0.1
+    f_beat = 0.01
+
+    t, _, _, euler, acc, gyro = _benchmark_helper(
+        duration, amplitude, mean, phase, BeatSignal(f_main, f_beat), fs
+    )
+    return t, euler, acc, gyro
+
+
+def benchmark_ahrs_chirp_202311A(fs: float = 10.24):
+    """
+    A benchmark for performance testing of AHRS sensor fusion algorithms.
+
+    The benchmark scenario is 20 minutes long. It generates Euler angles
+    (roll, pitch, and yaw), and the corresponding accelerometer and
+    gyroscope signals. Note that the generated motion is pure rotations.
+
+    The generated signals have a frequency that appears to vary in time and
+    amplitudes corresponding to 5 degrees. The phases for roll, pitch, and yaw
+    are 0.0, 45.0, and 90.0 degrees respectively. See ``ChirpSignal`` for details.
+
+    Parameters
+    ----------
+    fs : float, default 10.24
+        Sampling frequency of the generated signals.
+
+    Returns
+    -------
+    t : numpy.ndarray, shape (N,)
+        Time in seconds.
+    euler : numpy.ndarray, shape (N, 3)
+        Attitude of the body in Euler angles [rad], see Notes.
+    acc : numpy.ndarray, shape (N, 3)
+        Accelerations [m/s**2] in body frame (corresponding to accelerometer measurements).
+    gyro : numpy.ndarray, shape (N, 3)
+        Angular rates [rad/s] in body frame (corresponding to gyroscope measurements).
+
+    Notes
+    -----
+    The Euler angles describe how to transition from the 'NED' frame to the 'body'
+    frame through three consecutive intrinsic and passive rotations in the ZYX order:
+        1. A rotation by an angle gamma (often called yaw) about the z-axis.
+        2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+        3. A final rotation by an angle alpha (often called roll) about the x-axis.
+
+    This sequence of rotations is used to describe the orientation of the 'body' frame
+    relative to the 'NED' frame in 3D space.
+
+    Intrinsic rotations mean that the rotations are with respect to the changing
+    coordinate system; as one rotation is applied, the next is about the axis of
+    the newly rotated system.
+
+    Passive rotations mean that the frame itself is rotating, not the object
+    within the frame.
+
+    """
+    duration = 1200.0  # 20 minutes
+    amplitude = (0.0, 0.0, 0.0, 5.0, 5.0, 5.0)
+    mean = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    phase = np.radians((0.0, 0.0, 0.0, 0.0, 45.0, 90.0))
+
+    f_main = 0.1
+    f_beat = 0.01
+
+    t, _, _, euler, acc, gyro = _benchmark_helper(
+        duration, amplitude, mean, phase, ChirpSignal(f_main, f_beat), fs
+    )
+    return t, euler, acc, gyro
