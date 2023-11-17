@@ -10,7 +10,7 @@ from smsfusion._transforms import _inv_angular_matrix_from_euler, _rot_matrix_fr
 
 class _Signal(abc.ABC):
     """
-    Abstarct class for benchmark signals.
+    Abstract class for benchmark signals.
     """
 
     def __call__(
