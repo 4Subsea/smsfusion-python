@@ -21,11 +21,12 @@ class Test_BeatSignal:
         fs = 10.0
         n = 2000
         t = np.linspace(0.0, n / fs, n, endpoint=False)
-        y, dydt = beat_signal(t)
+        y, dydt, d2ydt2 = beat_signal(t)
 
         assert len(t) == int(n)
         assert len(t) == len(y)
         assert len(t) == len(dydt)
+        assert len(t) == len(d2ydt2)
 
         assert t[0] == 0.0
         assert t[-1] == pytest.approx((n - 1) / fs)
@@ -38,6 +39,15 @@ class Test_BeatSignal:
         np.testing.assert_allclose(
             dydt[1:-1], np.gradient(y, t)[1:-1], atol=0.0025
         )  # Verified tolerance
+
+        np.testing.assert_allclose(
+            d2ydt2[1:-1], np.gradient(dydt, t)[1:-1], atol=0.0025
+        )  # Verified tolerance
+
+        y_phase, dydt_phase, d2ydt2_phase = beat_signal(t, phase=30.0)
+        assert not np.array_equal(y, y_phase)
+        assert not np.array_equal(dydt, dydt_phase)
+        assert not np.array_equal(d2ydt2, d2ydt2_phase)
 
 
 class Test_ChirpSignal:
@@ -57,7 +67,7 @@ class Test_ChirpSignal:
         fs = 10.0
         n = 10_000
         t = np.linspace(0.0, n / fs, n, endpoint=False)
-        y, dydt = chirp_signal(t)
+        y, dydt, d2ydt2 = chirp_signal(t)
 
         assert len(t) == int(n)
         assert len(t) == len(y)
@@ -75,6 +85,11 @@ class Test_ChirpSignal:
             dydt[1:-1], np.gradient(y, t)[1:-1], atol=0.0025
         )  # Verified tolerance
 
-        y_phase, dydt_phase = chirp_signal(t, phase=30.0)
+        np.testing.assert_allclose(
+            d2ydt2[1:-1], np.gradient(dydt, t)[1:-1], atol=0.0025
+        )  # Verified tolerance
+
+        y_phase, dydt_phase, d2ydt2_phase = chirp_signal(t, phase=30.0)
         assert not np.array_equal(y, y_phase)
         assert not np.array_equal(dydt, dydt_phase)
+        assert not np.array_equal(d2ydt2, d2ydt2_phase)
