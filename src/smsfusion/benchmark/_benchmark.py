@@ -5,6 +5,7 @@ import abc
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
+from smsfusion._ins import gravity
 from smsfusion._transforms import _inv_angular_matrix_from_euler, _rot_matrix_from_euler
 
 
@@ -336,7 +337,7 @@ def _benchmark_helper(
         gyroscope.append(_inv_angular_matrix_from_euler(euler_i).dot(deuler_i))
         accelerometer.append(
             _rot_matrix_from_euler(euler_i).T.dot(
-                acc_i + np.array([0.0, 0.0, -9.80665])
+                acc_i + np.array([0.0, 0.0, -gravity()])
             )
         )
 
