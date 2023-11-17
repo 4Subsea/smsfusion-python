@@ -258,8 +258,8 @@ def _benchmark_helper(
     fs : float
         Sampling rate of the outputs in hertz.
 
-    Return
-    ------
+    Returns
+    -------
     t : numpy.ndarray, shape (N,)
         Time in seconds.
     position : numpy.ndarray, shape (N, 3)
