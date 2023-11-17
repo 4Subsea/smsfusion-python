@@ -1,3 +1,3 @@
-from ._benchmark import BeatSignal, ChirpSignal
+from ._benchmark import BeatSignal, ChirpSignal, _benchmark_helper
 
-__all__ = ["BeatSignal", "ChirpSignal"]
+__all__ = ["_benchmark_helper", "BeatSignal", "ChirpSignal"]
