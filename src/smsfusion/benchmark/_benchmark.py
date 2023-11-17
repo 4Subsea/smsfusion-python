@@ -233,8 +233,8 @@ def _benchmark_helper(
         - Accelerations [m/s**2] in body frame (corresponding to accelerometer measurements)
         - Angular rates [rad/s] in body frame (corresponding to gyroscope measurements)
 
-    Position, velocity, and attitude are relative to the 'NED' frame, and the
-    position origin is at (0., 0., 0.).
+    Position, velocity, and attitude are relative to the 'NED' frame and expressed
+    in the 'NED' frame. The position origin is at (0., 0., 0.).
 
     Parameters
     ----------
