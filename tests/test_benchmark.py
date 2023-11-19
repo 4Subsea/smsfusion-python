@@ -316,7 +316,7 @@ def test_benchmark_ahrs_beat_202311A():
 
 
 def test_benchmark_ahrs_chirp_202311A():
-    signature_signal, _, _ = benchmark.ChirpSignal(0.1, 0.01)(
+    signature_signal, _, _ = benchmark.ChirpSignal(0.25, 0.01)(
         np.arange(0.0, 1200.0, 1.0 / 10.24)
     )
 

@@ -422,8 +422,10 @@ def benchmark_ahrs_chirp_202311A(fs: float = 10.24):
     gyroscope signals. Note that the generated motion is pure rotations.
 
     The generated signals have a frequency that appears to vary in time and
-    amplitudes corresponding to 5 degrees. The phases for roll, pitch, and yaw
-    are 0.0, 45.0, and 90.0 degrees respectively. See ``ChirpSignal`` for details.
+    amplitudes corresponding to 5 degrees. The signal frequency oscillates
+    between 0.0 Hz and 0.25 Hz every 100 seconds. The phases for roll, pitch,
+    and yaw are 0.0, 45.0, and 90.0 degrees respectively. See ``ChirpSignal``
+    for details.
 
     Parameters
     ----------
@@ -465,10 +467,10 @@ def benchmark_ahrs_chirp_202311A(fs: float = 10.24):
     mean = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     phase = np.radians((0.0, 0.0, 0.0, 0.0, 45.0, 90.0))
 
-    f_main = 0.1
-    f_beat = 0.01
+    f_max = 0.25
+    f_os = 0.01
 
     t, _, _, euler, acc, gyro = _benchmark_helper(
-        duration, amplitude, mean, phase, ChirpSignal(f_main, f_beat), fs
+        duration, amplitude, mean, phase, ChirpSignal(f_max, f_os), fs
     )
     return t, euler, acc, gyro
