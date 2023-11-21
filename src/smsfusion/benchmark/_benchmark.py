@@ -438,7 +438,7 @@ def benchmark_ahrs_chirp_202311A(
     Parameters
     ----------
     fs : float, default 10.24
-        Sampling frequency of the generated signals.
+        Sampling frequency in hertz of the generated signals.
 
     Returns
     -------
