@@ -351,7 +351,11 @@ def _benchmark_helper(
     )
 
 
-def benchmark_ahrs_beat_202311A(fs: float = 10.24):
+def benchmark_ahrs_beat_202311A(
+    fs: float = 10.24,
+) -> tuple[
+    NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]
+]:
     """
     A benchmark for performance testing of AHRS sensor fusion algorithms.
 
@@ -400,9 +404,9 @@ def benchmark_ahrs_beat_202311A(fs: float = 10.24):
 
     """
     duration = 1200.0  # 20 minutes
-    amplitude = np.radians((0.0, 0.0, 0.0, 5.0, 5.0, 5.0))
-    mean = np.radians((0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
-    phase = np.radians((0.0, 0.0, 0.0, 0.0, 45.0, 90.0))
+    amplitude = np.radians(np.array([0.0, 0.0, 0.0, 5.0, 5.0, 5.0]))
+    mean = np.radians(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
+    phase = np.radians(np.array([0.0, 0.0, 0.0, 0.0, 45.0, 90.0]))
 
     f_main = 0.1
     f_beat = 0.01
@@ -413,7 +417,11 @@ def benchmark_ahrs_beat_202311A(fs: float = 10.24):
     return t, euler, acc, gyro
 
 
-def benchmark_ahrs_chirp_202311A(fs: float = 10.24):
+def benchmark_ahrs_chirp_202311A(
+    fs: float = 10.24,
+) -> tuple[
+    NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]
+]:
     """
     A benchmark for performance testing of AHRS sensor fusion algorithms.
 
@@ -463,9 +471,9 @@ def benchmark_ahrs_chirp_202311A(fs: float = 10.24):
 
     """
     duration = 1200.0  # 20 minutes
-    amplitude = np.radians((0.0, 0.0, 0.0, 5.0, 5.0, 5.0))
-    mean = np.radians((0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
-    phase = np.radians((0.0, 0.0, 0.0, 0.0, 45.0, 90.0))
+    amplitude = np.radians(np.array([0.0, 0.0, 0.0, 5.0, 5.0, 5.0]))
+    mean = np.radians(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
+    phase = np.radians(np.array([0.0, 0.0, 0.0, 0.0, 45.0, 90.0]))
 
     f_max = 0.25
     f_os = 0.01
