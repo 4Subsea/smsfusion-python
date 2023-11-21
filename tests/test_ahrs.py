@@ -1,19 +1,13 @@
-from pathlib import Path
-
 import numpy as np
 import pytest
-from pandas import read_parquet
+from scipy.signal import resample_poly
 
 from smsfusion._ahrs import AHRS
-from smsfusion._transforms import _quaternion_from_euler
-
-
-@pytest.fixture
-def ahrs_ref_data():
-    """Reference data for AHRS testing."""
-    return read_parquet(
-        Path(__file__).parent / "testdata" / "ains_ahrs_imu.parquet", engine="pyarrow"
-    )
+from smsfusion.benchmark import (
+    benchmark_ahrs_beat_202311A,
+    benchmark_ahrs_chirp_202311A,
+)
+from smsfusion.noise import IMUNoise, white_noise
 
 
 class Test_AHRS:
@@ -325,30 +319,50 @@ class Test_AHRS:
             for f_imu_i, w_imu_i, head_i in zip(f_imu, w_imu, head)
         ]
 
-    def test_update_reference_case(self, ahrs_ref_data):
-        """Test that succesive calls goes through"""
-        # Measurement data
-        f_imu = ahrs_ref_data[["Ax_meas", "Ay_meas", "Az_meas"]].values
-        w_imu = ahrs_ref_data[["Gx_meas", "Gy_meas", "Gz_meas"]].values
-        head = ahrs_ref_data[["Gamma_meas"]].values
+    @pytest.mark.parametrize(
+        "benchmark_gen", [benchmark_ahrs_beat_202311A, benchmark_ahrs_chirp_202311A]
+    )
+    def test_benchmark(self, benchmark_gen):
+        fs = 100.0
+        warmup = int(fs * 200.0)  # truncate 200 seconds from the beginning
+        compass_noise_std = 0.5
 
-        fs = 10.24
-        Kp = 0.27
-        Ki = 0.025
+        t, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs)
+        euler_ref = np.degrees(euler_ref)
+        gyro_ref = np.degrees(gyro_ref)
 
-        q_init = _quaternion_from_euler(
-            np.radians(ahrs_ref_data[["Alpha", "Beta", "Gamma"]].values[0])
+        noise_model = IMUNoise(seed=96)
+        imu_noise = noise_model(fs, len(t))
+
+        acc_noise = acc_ref + imu_noise[:, :3]
+        gyro_noise = gyro_ref + imu_noise[:, 3:]
+
+        compass = euler_ref[:, 2] + white_noise(
+            compass_noise_std / np.sqrt(fs), fs, len(t)
         )
-        ahrs = AHRS(fs, Kp, Ki, q_init=q_init)
-        euler_out = np.array(
-            [
-                ahrs.update(f_imu_i, w_imu_i, head_i).euler(degrees=True)
-                for f_imu_i, w_imu_i, head_i in zip(f_imu, w_imu, head)
-            ]
-        )[600:, :]
 
-        euler_expected = ahrs_ref_data.loc[:, ["Alpha", "Beta", "Gamma"]].iloc[600:]
+        omega_e = 2.0 * np.pi / 40.0
+        delta = np.sqrt(3.0) / 2
 
-        rms = (euler_out - euler_expected).std(axis=0)
-        assert rms.shape == (3,)
-        assert all(rms <= 0.35)
+        Ki = omega_e**2
+        Kp = delta * omega_e
+
+        ahrs = AHRS(fs, Kp, Ki)
+        euler_out = []
+
+        for acc_i, gyro_i, head_i in zip(acc_noise, gyro_noise, compass):
+            euler_out.append(
+                ahrs.update(acc_i, gyro_i, head_i, degrees=True).euler(degrees=True)
+            )
+
+        euler_out = np.array(euler_out)
+
+        # half-sample shift
+        euler_out = resample_poly(euler_out, 2, 1)[1:-1:2]
+        euler_ref = euler_ref[1:, :]
+
+        roll_rms, pitch_rms, yaw_rms = np.std((euler_out - euler_ref)[warmup:], axis=0)
+
+        assert roll_rms <= 0.005
+        assert pitch_rms <= 0.005
+        assert yaw_rms <= 0.025
