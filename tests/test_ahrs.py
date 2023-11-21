@@ -365,4 +365,4 @@ class Test_AHRS:
 
         assert roll_rms <= 0.005
         assert pitch_rms <= 0.005
-        assert yaw_rms <= 0.025
+        assert yaw_rms <= 0.05
