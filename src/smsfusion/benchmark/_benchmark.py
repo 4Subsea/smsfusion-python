@@ -490,12 +490,11 @@ def benchmark_9dof_beat_202311A(
     NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]
 ]:
     """
-    A benchmark for performance testing of INS/AHRS sensor fusion algorithms.
+    A benchmark for performance testing of INS/AHRS/VRU sensor fusion algorithms.
 
-    The benchmark scenario is 20 minutes long. It generates 15 degrees of freedom:
-    i.e., linear position (pos_x, pos_y, pos_z), linear velocity (vel_x, vel_y, vel_z)
-    and Euler angles (roll, pitch, and yaw), and the corresponding accelerometer
-    and gyroscope signals.
+    The benchmark scenario is 20 minutes long. It generates 15 degrees of freedom
+    (i.e., position, velocity and attitude), and the corresponding accelerometer and
+    gyroscope signals.
 
     The generated position reference signals are characterized by:
         * "Beating" signal.
@@ -506,6 +505,8 @@ def benchmark_9dof_beat_202311A(
         * "Beating" signal.
         * Maximum amplitude of 5 degrees.
         * The phases for roll, pitch, and yaw are 90.0, 120.0, and 150.0 degrees respectively.
+
+    The other reference signals will be exact analythical derivatives of these signals.
 
     Parameters
     ----------
