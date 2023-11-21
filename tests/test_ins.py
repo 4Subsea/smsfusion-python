@@ -21,6 +21,8 @@ from smsfusion._transforms import (
     _quaternion_from_euler,
     _rot_matrix_from_euler,
 )
+from smsfusion.benchmark import benchmark_9dof_beat_202311A
+from smsfusion.noise import IMUNoise, white_noise
 
 
 @pytest.mark.parametrize(
@@ -634,3 +636,77 @@ class Test_AidedINS:
         euler_rms = (euler_out - euler_expected).std(axis=0)
         assert euler_rms.shape == (3,)
         assert all(euler_rms <= 0.04)
+
+    @pytest.mark.parametrize(
+        "benchmark_gen", [benchmark_9dof_beat_202311A]
+    )
+    def test_benchmark(self, benchmark_gen):
+        fs = 100.0
+        warmup = int(fs * 200.0)  # truncate 200 seconds from the beginning
+        compass_noise_std = 0.5
+        gps_noise_std = 0.1
+
+        t, pos_ref, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs)
+        euler_ref = np.degrees(euler_ref)
+        gyro_ref = np.degrees(gyro_ref)
+
+        noise_model = IMUNoise(seed=96)
+        imu_noise = noise_model(fs, len(t))
+
+        acc_noise = acc_ref + imu_noise[:, :3]
+        gyro_noise = gyro_ref + imu_noise[:, 3:]
+
+        compass = euler_ref[:, 2] + white_noise(
+            compass_noise_std / np.sqrt(fs), fs, len(t)
+        )
+
+        gps = pos_ref + np.column_stack([white_noise(gps_noise_std / np.sqrt(fs), fs, len(t)) for _ in range(3)])
+
+        omega_e = 2.0 * np.pi / 40.0
+        delta = np.sqrt(3.0) / 2
+
+        Ki = omega_e**2
+        Kp = delta * omega_e
+
+        ahrs = AHRS(fs, Kp, Ki)
+
+        err_acc = {
+            'N': 4.0e-4,
+            'B': 1.5e-4,
+            'K': 4.5e-6,
+            'tau_cb': 50,
+        }
+
+        err_gyro = {
+            'N': 1.9e-3,
+            'B': 7.5e-4,
+            'tau_cb': 50,
+        }
+
+        var_pos = gps_noise_std ** 2 * np.ones(3)
+        var_ahrs = 0.1 * np.ones(3)
+        x0 = np.zeros(15)
+        x0[0:3] = pos_ref[0]
+        x0[3:6] = vel_ref[0]
+        x0[6:9] = np.degrees(euler_ref[0])
+
+        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
+
+        euler_out = []
+
+        for acc_i, gyro_i, head_i, pos_i in zip(acc_noise, gyro_noise, compass, gps):
+            euler_out.append(
+                ains.update(acc_i, gyro_i, head_i, pos_i, degrees=True, head_degrees=True).euler(degrees=True)
+            )
+
+        euler_out = np.array(euler_out)
+
+        # half-sample shift
+        # euler_out = resample_poly(euler_out, 2, 1)[1:-1:2]
+        # euler_ref = euler_ref[1:, :]
+
+        roll_rms, pitch_rms, yaw_rms = np.std((euler_out - euler_ref)[warmup:], axis=0)
+
+        assert roll_rms <= 0.1
+        assert pitch_rms <= 0.1
+        assert yaw_rms <= 0.1
