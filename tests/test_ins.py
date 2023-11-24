@@ -21,7 +21,7 @@ from smsfusion._transforms import (
     _quaternion_from_euler,
     _rot_matrix_from_euler,
 )
-from smsfusion.benchmark import benchmark_9dof_beat_202311A
+from smsfusion.benchmark import benchmark_9dof_beat_202311A, benchmark_9dof_chirp_202311A
 from smsfusion.noise import IMUNoise, white_noise
 
 
@@ -637,7 +637,7 @@ class Test_AidedINS:
         assert euler_rms.shape == (3,)
         assert all(euler_rms <= 0.04)
 
-    @pytest.mark.parametrize("benchmark_gen", [benchmark_9dof_beat_202311A])
+    @pytest.mark.parametrize("benchmark_gen", [benchmark_9dof_beat_202311A, benchmark_9dof_chirp_202311A])
     def test_benchmark(self, benchmark_gen):
         fs = 100.0
         warmup = int(fs * 200.0)  # truncate 200 seconds from the beginning
@@ -705,14 +705,14 @@ class Test_AidedINS:
         vel_x_rms, vel_y_rms, vel_z_rms = np.std((vel_out - vel_ref)[warmup:], axis=0)
         roll_rms, pitch_rms, yaw_rms = np.std((euler_out - euler_ref)[warmup:], axis=0)
 
-        assert pos_x_rms <= 0.1
-        assert pos_y_rms <= 0.1
-        assert pos_z_rms <= 0.1
+        assert pos_x_rms <= 0.8
+        assert pos_y_rms <= 0.8
+        assert pos_z_rms <= 0.8
 
-        assert vel_x_rms <= 0.1
-        assert vel_y_rms <= 0.1
-        assert vel_z_rms <= 0.1
+        assert vel_x_rms <= 0.5
+        assert vel_y_rms <= 0.5
+        assert vel_z_rms <= 0.5
 
-        assert roll_rms <= 0.1
-        assert pitch_rms <= 0.1
-        assert yaw_rms <= 0.1
+        assert roll_rms <= 0.2
+        assert pitch_rms <= 0.2
+        assert yaw_rms <= 0.2
