@@ -644,10 +644,12 @@ class Test_AidedINS:
         compass_noise_std = 0.5
         gps_noise_std = 0.1
 
+        # Reference signals (without noise)
         t, pos_ref, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs)
         euler_ref = np.degrees(euler_ref)
         gyro_ref = np.degrees(gyro_ref)
 
+        # Add measurement noise
         noise_model = IMUNoise(seed=96)
         imu_noise = noise_model(fs, len(t))
 
@@ -665,49 +667,51 @@ class Test_AidedINS:
         omega_e = 2.0 * np.pi / 40.0
         delta = np.sqrt(3.0) / 2
 
+        # AHRS
         Ki = omega_e**2
         Kp = delta * omega_e
-
         ahrs = AHRS(fs, Kp, Ki)
 
-        err_acc = {
-            "N": 4.0e-4,
-            "B": 1.5e-4,
-            "K": 4.5e-6,
-            "tau_cb": 50,
-        }
-
-        err_gyro = {
-            "N": 1.9e-3,
-            "B": 7.5e-4,
-            "tau_cb": 50,
-        }
-
+        # AINS
+        err_acc = {"N": 4.0e-4, "B": 1.5e-4, "K": 4.5e-6, "tau_cb": 50}
+        err_gyro = {"N": 1.9e-3, "B": 7.5e-4, "tau_cb": 50}
         var_pos = gps_noise_std**2 * np.ones(3)
-        var_ahrs = 0.1 * np.ones(3)
+        var_ahrs = 0.01 * np.ones(3)
         x0 = np.zeros(15)
         x0[0:3] = pos_ref[0]
         x0[3:6] = vel_ref[0]
         x0[6:9] = np.degrees(euler_ref[0])
-
         ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
 
+        # Apply filter
+        pos_out = []
+        vel_out = []
         euler_out = []
-
         for acc_i, gyro_i, head_i, pos_i in zip(acc_noise, gyro_noise, compass, gps):
-            euler_out.append(
-                ains.update(
-                    acc_i, gyro_i, head_i, pos_i, degrees=True, head_degrees=True
-                ).euler(degrees=True)
-            )
+            ains.update(acc_i, gyro_i, head_i, pos_i, degrees=True, head_degrees=True)
+            pos_out.append(ains.position())
+            vel_out.append(ains.velocity())
+            euler_out.append(ains.euler(degrees=True))
 
+        pos_out = np.array(pos_out)
+        vel_out = np.array(vel_out)
         euler_out = np.array(euler_out)
 
         # half-sample shift
         # euler_out = resample_poly(euler_out, 2, 1)[1:-1:2]
         # euler_ref = euler_ref[1:, :]
 
+        pos_x_rms, pos_y_rms, pos_z_rms = np.std((pos_out - pos_ref)[warmup:], axis=0)
+        vel_x_rms, vel_y_rms, vel_z_rms = np.std((vel_out - vel_ref)[warmup:], axis=0)
         roll_rms, pitch_rms, yaw_rms = np.std((euler_out - euler_ref)[warmup:], axis=0)
+
+        assert pos_x_rms <= 0.1
+        assert pos_y_rms <= 0.1
+        assert pos_z_rms <= 0.1
+
+        assert vel_x_rms <= 0.1
+        assert vel_y_rms <= 0.1
+        assert vel_z_rms <= 0.1
 
         assert roll_rms <= 0.1
         assert pitch_rms <= 0.1
