@@ -637,9 +637,7 @@ class Test_AidedINS:
         assert euler_rms.shape == (3,)
         assert all(euler_rms <= 0.04)
 
-    @pytest.mark.parametrize(
-        "benchmark_gen", [benchmark_9dof_beat_202311A]
-    )
+    @pytest.mark.parametrize("benchmark_gen", [benchmark_9dof_beat_202311A])
     def test_benchmark(self, benchmark_gen):
         fs = 100.0
         warmup = int(fs * 200.0)  # truncate 200 seconds from the beginning
@@ -660,7 +658,9 @@ class Test_AidedINS:
             compass_noise_std / np.sqrt(fs), fs, len(t)
         )
 
-        gps = pos_ref + np.column_stack([white_noise(gps_noise_std / np.sqrt(fs), fs, len(t)) for _ in range(3)])
+        gps = pos_ref + np.column_stack(
+            [white_noise(gps_noise_std / np.sqrt(fs), fs, len(t)) for _ in range(3)]
+        )
 
         omega_e = 2.0 * np.pi / 40.0
         delta = np.sqrt(3.0) / 2
@@ -671,19 +671,19 @@ class Test_AidedINS:
         ahrs = AHRS(fs, Kp, Ki)
 
         err_acc = {
-            'N': 4.0e-4,
-            'B': 1.5e-4,
-            'K': 4.5e-6,
-            'tau_cb': 50,
+            "N": 4.0e-4,
+            "B": 1.5e-4,
+            "K": 4.5e-6,
+            "tau_cb": 50,
         }
 
         err_gyro = {
-            'N': 1.9e-3,
-            'B': 7.5e-4,
-            'tau_cb': 50,
+            "N": 1.9e-3,
+            "B": 7.5e-4,
+            "tau_cb": 50,
         }
 
-        var_pos = gps_noise_std ** 2 * np.ones(3)
+        var_pos = gps_noise_std**2 * np.ones(3)
         var_ahrs = 0.1 * np.ones(3)
         x0 = np.zeros(15)
         x0[0:3] = pos_ref[0]
@@ -696,7 +696,9 @@ class Test_AidedINS:
 
         for acc_i, gyro_i, head_i, pos_i in zip(acc_noise, gyro_noise, compass, gps):
             euler_out.append(
-                ains.update(acc_i, gyro_i, head_i, pos_i, degrees=True, head_degrees=True).euler(degrees=True)
+                ains.update(
+                    acc_i, gyro_i, head_i, pos_i, degrees=True, head_degrees=True
+                ).euler(degrees=True)
             )
 
         euler_out = np.array(euler_out)
