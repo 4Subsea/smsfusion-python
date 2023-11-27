@@ -630,7 +630,7 @@ def benchmark_9dof_chirp_202311A(
     amplitude = np.array(
         [0.5, 0.5, 0.5, np.radians(5.0), np.radians(5.0), np.radians(5.0)]
     )
-    mean = np.radians(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
+    mean = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     phase = np.radians(np.array([0.0, 30.0, 60.0, 90.0, 120.0, 150.0]))
 
     f_max = 0.25
