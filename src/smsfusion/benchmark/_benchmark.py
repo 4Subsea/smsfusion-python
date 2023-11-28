@@ -497,12 +497,12 @@ def benchmark_9dof_beat_202311A(
     gyroscope signals.
 
     The generated position reference signals are characterized by:
-        * "Beating" signal.
+        * "Beating" signal. See ``BeatSignal`` for details.
         * Maximum amplitude of 0.5 m.
         * The phases for x-, y-, and z-axis are 0.0, 30.0, and 60.0 degrees respectively.
 
     The generated Euler reference signals are characterized by:
-        * "Beating" signal.
+        * "Beating" signal. See ``BeatSignal`` for details.
         * Maximum amplitude of 5 degrees.
         * The phases for roll, pitch, and yaw are 90.0, 120.0, and 150.0 degrees respectively.
 
@@ -576,12 +576,12 @@ def benchmark_9dof_chirp_202311A(
     gyroscope signals.
 
     The generated position reference signals are characterized by:
-        * "Chirp" signal.
+        * "Chirp" signal. See ``ChirpSignal`` for details.
         * Maximum amplitude of 0.5 m.
         * The phases for x-, y-, and z-axis are 0.0, 30.0, and 60.0 degrees respectively.
 
     The generated Euler reference signals are characterized by:
-        * "Chirp" signal.
+        * "Chirp" signal. See ``ChirpSignal`` for details.
         * Maximum amplitude of 5 degrees.
         * The phases for roll, pitch, and yaw are 90.0, 120.0, and 150.0 degrees respectively.
 
