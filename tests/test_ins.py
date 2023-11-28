@@ -667,12 +667,13 @@ class Test_AidedINS:
             compass_noise_std / np.sqrt(fs_imu), fs_imu, len(t)
         )
 
-        gps = pos_ref + np.column_stack(
+        gps_noise = np.column_stack(
             [
                 white_noise(gps_noise_std / np.sqrt(fs_gps), fs_gps, len(t))
                 for _ in range(3)
             ]
         )
+        gps = pos_ref + gps_noise
 
         omega_e = 2.0 * np.pi / 40.0
         delta = np.sqrt(3.0) / 2
