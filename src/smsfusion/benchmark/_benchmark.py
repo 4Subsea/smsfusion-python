@@ -492,7 +492,7 @@ def benchmark_9dof_beat_202311A(
     """
     A benchmark for performance testing of INS/AHRS/VRU sensor fusion algorithms.
 
-    The benchmark scenario is 20 minutes long. It generates 15 degrees of freedom
+    The benchmark scenario is 30 minutes long. It generates 15 degrees of freedom
     (i.e., position, velocity and attitude), and the corresponding accelerometer and
     gyroscope signals.
 
@@ -547,7 +547,7 @@ def benchmark_9dof_beat_202311A(
     within the frame.
 
     """
-    duration = 1200.0  # 20 minutes
+    duration = 1800.0  # 30 minutes
     amplitude = np.array(
         [0.5, 0.5, 0.5, np.radians(5.0), np.radians(5.0), np.radians(5.0)]
     )
@@ -571,7 +571,7 @@ def benchmark_9dof_chirp_202311A(
     """
     A benchmark for performance testing of INS/AHRS/VRU sensor fusion algorithms.
 
-    The benchmark scenario is 20 minutes long. It generates 15 degrees of freedom
+    The benchmark scenario is 30 minutes long. It generates 15 degrees of freedom
     (i.e., position, velocity and attitude), and the corresponding accelerometer and
     gyroscope signals.
 
@@ -626,7 +626,7 @@ def benchmark_9dof_chirp_202311A(
     within the frame.
 
     """
-    duration = 1200.0  # 20 minutes
+    duration = 1800.0  # 30 minutes
     amplitude = np.array(
         [0.5, 0.5, 0.5, np.radians(5.0), np.radians(5.0), np.radians(5.0)]
     )
