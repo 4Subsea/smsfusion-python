@@ -345,3 +345,20 @@ def test_benchmark_9dof_beat_202311A():
     assert gyro.shape == (len(t), 3)
 
     np.testing.assert_array_equal(pos[:, 0], 0.5 * signature_signal)
+
+
+def test_benchmark_9dof_chirp_202311A():
+    signature_signal, _, _ = benchmark.ChirpSignal(0.25, 0.01)(
+        np.arange(0.0, 1800.0, 1.0 / 10.24)
+    )
+
+    t, pos, vel, euler, acc, gyro = benchmark.benchmark_9dof_chirp_202311A()
+
+    assert len(t) == int(1800 * 10.24)
+    assert pos.shape == (len(t), 3)
+    assert vel.shape == (len(t), 3)
+    assert euler.shape == (len(t), 3)
+    assert acc.shape == (len(t), 3)
+    assert gyro.shape == (len(t), 3)
+
+    np.testing.assert_array_equal(pos[:, 0], 0.5 * signature_signal)
