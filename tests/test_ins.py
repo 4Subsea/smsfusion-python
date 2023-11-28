@@ -21,7 +21,10 @@ from smsfusion._transforms import (
     _quaternion_from_euler,
     _rot_matrix_from_euler,
 )
-from smsfusion.benchmark import benchmark_9dof_beat_202311A, benchmark_9dof_chirp_202311A
+from smsfusion.benchmark import (
+    benchmark_9dof_beat_202311A,
+    benchmark_9dof_chirp_202311A,
+)
 from smsfusion.noise import IMUNoise, white_noise
 
 
@@ -637,7 +640,9 @@ class Test_AidedINS:
         assert euler_rms.shape == (3,)
         assert all(euler_rms <= 0.04)
 
-    @pytest.mark.parametrize("benchmark_gen", [benchmark_9dof_beat_202311A, benchmark_9dof_chirp_202311A])
+    @pytest.mark.parametrize(
+        "benchmark_gen", [benchmark_9dof_beat_202311A, benchmark_9dof_chirp_202311A]
+    )
     def test_benchmark(self, benchmark_gen):
         fs_imu = 100.0
         fs_gps = 1.0
@@ -663,7 +668,10 @@ class Test_AidedINS:
         )
 
         gps = pos_ref + np.column_stack(
-            [white_noise(gps_noise_std / np.sqrt(fs_gps), fs_gps, len(t)) for _ in range(3)]
+            [
+                white_noise(gps_noise_std / np.sqrt(fs_gps), fs_gps, len(t))
+                for _ in range(3)
+            ]
         )
 
         omega_e = 2.0 * np.pi / 40.0
@@ -676,7 +684,11 @@ class Test_AidedINS:
 
         # AINS
         err_acc = {"N": 4.0e-4, "B": 1.5e-4, "K": 4.5e-6, "tau_cb": 50}
-        err_gyro = {"N": (np.pi / 180.0) * 1.9e-3, "B": (np.pi / 180.0) * 7.5e-4, "tau_cb": 50}
+        err_gyro = {
+            "N": (np.pi / 180.0) * 1.9e-3,
+            "B": (np.pi / 180.0) * 7.5e-4,
+            "tau_cb": 50,
+        }
         var_pos = gps_noise_std**2 * np.ones(3)
         var_ahrs = 0.01 * np.ones(3)
         x0 = np.zeros(15)
@@ -689,9 +701,13 @@ class Test_AidedINS:
         pos_out = []
         vel_out = []
         euler_out = []
-        for i, (acc_i, gyro_i, head_i, pos_i) in enumerate(zip(acc_noise, gyro_noise, compass, gps)):
+        for i, (acc_i, gyro_i, head_i, pos_i) in enumerate(
+            zip(acc_noise, gyro_noise, compass, gps)
+        ):
             if not (i % fs_ratio):  # GPS aiding
-                ains.update(acc_i, gyro_i, head_i, pos_i, degrees=True, head_degrees=True)
+                ains.update(
+                    acc_i, gyro_i, head_i, pos_i, degrees=True, head_degrees=True
+                )
             else:  # no GPS aiding
                 ains.update(acc_i, gyro_i, head_i, degrees=True, head_degrees=True)
             pos_out.append(ains.position())
