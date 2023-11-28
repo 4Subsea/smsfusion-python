@@ -719,22 +719,12 @@ class Test_AidedINS:
         vel_out = np.array(vel_out)
         euler_out = np.array(euler_out)
 
-        # half-sample shift
-        # euler_out = resample_poly(euler_out, 2, 1)[1:-1:2]
-        # euler_ref = euler_ref[1:, :]
-
         pos_x_rms, pos_y_rms, pos_z_rms = np.std((pos_out - pos_ref)[warmup:], axis=0)
         vel_x_rms, vel_y_rms, vel_z_rms = np.std((vel_out - vel_ref)[warmup:], axis=0)
         roll_rms, pitch_rms, yaw_rms = np.std((euler_out - euler_ref)[warmup:], axis=0)
 
-        # assert pos_x_rms <= 0.8
-        # assert pos_y_rms <= 0.8
         assert pos_z_rms <= 0.2
-
-        # assert vel_x_rms <= 0.5
-        # assert vel_y_rms <= 0.5
         assert vel_z_rms <= 0.02
-
         assert roll_rms <= 0.3
         assert pitch_rms <= 0.3
         assert yaw_rms <= 0.3
