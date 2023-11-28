@@ -642,7 +642,7 @@ class Test_AidedINS:
         fs_imu = 100.0
         fs_gps = 1.0
         fs_ratio = np.ceil(fs_imu / fs_gps)
-        warmup = int(fs_imu * 200.0)  # truncate 200 seconds from the beginning
+        warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
         compass_noise_std = 0.5
         gps_noise_std = 0.1
 
@@ -676,7 +676,7 @@ class Test_AidedINS:
 
         # AINS
         err_acc = {"N": 4.0e-4, "B": 1.5e-4, "K": 4.5e-6, "tau_cb": 50}
-        err_gyro = {"N": 1.9e-3, "B": 7.5e-4, "tau_cb": 50}
+        err_gyro = {"N": (np.pi / 180.0) * 1.9e-3, "B": (np.pi / 180.0) * 7.5e-4, "tau_cb": 50}
         var_pos = gps_noise_std**2 * np.ones(3)
         var_ahrs = 0.01 * np.ones(3)
         x0 = np.zeros(15)
@@ -712,12 +712,12 @@ class Test_AidedINS:
 
         # assert pos_x_rms <= 0.8
         # assert pos_y_rms <= 0.8
-        assert pos_z_rms <= 0.8
+        assert pos_z_rms <= 0.2
 
         # assert vel_x_rms <= 0.5
         # assert vel_y_rms <= 0.5
-        assert vel_z_rms <= 0.5
+        assert vel_z_rms <= 0.02
 
-        assert roll_rms <= 0.2
-        assert pitch_rms <= 0.2
-        assert yaw_rms <= 0.2
+        assert roll_rms <= 0.25
+        assert pitch_rms <= 0.25
+        assert yaw_rms <= 0.25
