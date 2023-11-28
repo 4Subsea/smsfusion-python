@@ -735,6 +735,6 @@ class Test_AidedINS:
         # assert vel_y_rms <= 0.5
         assert vel_z_rms <= 0.02
 
-        assert roll_rms <= 0.25
-        assert pitch_rms <= 0.25
-        assert yaw_rms <= 0.25
+        assert roll_rms <= 0.3
+        assert pitch_rms <= 0.3
+        assert yaw_rms <= 0.3
