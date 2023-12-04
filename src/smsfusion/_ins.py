@@ -12,7 +12,7 @@ from ._transforms import (
 )
 
 
-def _signed_smallest_angle(angle, degrees=True):
+def _signed_smallest_angle(angle : float, degrees : bool = True) -> float:
     """
     Return the signed smallest angles between [-pi, pi) or [-180, 180) (default).
     """
