@@ -27,6 +27,8 @@ from smsfusion._transforms import (
     _angular_matrix_from_euler,
     _quaternion_from_euler,
     _rot_matrix_from_euler,
+    _angular_matrix_from_quaternion,
+    _rot_matrix_from_quaternion,
 )
 
 
@@ -197,6 +199,48 @@ class Test_StrapdownINS:
 
         np.testing.assert_array_almost_equal(x0_out, x0_expect)
         np.testing.assert_array_almost_equal(x1_out, x1_expect)
+
+    def test_update_twise(self, ins):
+        dt = 0.1
+        g = ins._g
+        f_imu = np.array([1.0, 2.0, 3.0]).reshape(-1, 1) - g
+        w_imu = np.array([4.0, 5.0, 6.0]).reshape(-1, 1)
+
+        x0_out = ins.x
+        ins.update(dt, f_imu, w_imu, degrees=True)
+        x1_out = ins.x
+        ins.update(dt, f_imu, w_imu, degrees=True)
+        x2_out = ins.x
+
+        x0_expect = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]).reshape(-1, 1)
+
+        # Calculate x1
+        R0_expect = np.eye(3)
+        T0_expect = _angular_matrix_from_quaternion(x0_expect[6:10].flatten())
+        a0_expect = R0_expect @ f_imu + g
+        x1_expect = np.zeros((10, 1))
+        x1_expect[0:3] = (
+            x0_expect[0:3] + dt * x0_expect[3:6] + 0.5 * dt**2 * a0_expect
+        )
+        x1_expect[3:6] = x0_expect[3:6] + dt * a0_expect
+        x1_expect[6:10] = x0_expect[6:10] + (np.pi / 180.0) * dt * T0_expect @ w_imu
+        x1_expect[6:10] = x1_expect[6:10] / np.linalg.norm(x1_expect[6:10])
+
+        # Calculate x2 by forward Euler
+        R1_expect = _rot_matrix_from_quaternion(x1_expect[6:10].flatten())
+        T1_expect = _angular_matrix_from_quaternion(x1_expect[6:10].flatten())
+        a1_expect = R1_expect @ f_imu + g
+        x2_expect = np.zeros((10, 1))
+        x2_expect[0:3] = (
+            x1_expect[0:3] + dt * x1_expect[3:6] + 0.5 * dt**2 * a1_expect
+        )
+        x2_expect[3:6] = x1_expect[3:6] + dt * a1_expect
+        x2_expect[6:10] = x1_expect[6:10] + (np.pi / 180.0) * dt * T1_expect @ w_imu
+        x2_expect[6:10] = x2_expect[6:10] / np.linalg.norm(x2_expect[6:10])
+
+        np.testing.assert_array_almost_equal(x0_out, x0_expect.flatten())
+        np.testing.assert_array_almost_equal(x1_out, x1_expect.flatten())
+        np.testing.assert_array_almost_equal(x2_out, x2_expect.flatten())
 
 
 @pytest.mark.filterwarnings("ignore")
