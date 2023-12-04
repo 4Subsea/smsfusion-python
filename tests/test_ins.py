@@ -181,7 +181,6 @@ class Test_StrapdownINS:
         np.testing.assert_array_almost_equal(x1_out, x1_expect)
 
     def test_update_deg(self, ins):
-
         dt = 0.1
         g = ins._g
         f_imu = np.array([1.0, 2.0, 3.0]).reshape(-1, 1) - g
