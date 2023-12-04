@@ -300,12 +300,12 @@ class Test__benchmark_helper:
         np.testing.assert_allclose(gyro[:, 2], np.zeros_like(t))
 
 
-def test_benchmark_ahrs_beat_202311A():
+def test_benchmark_pure_attitude_beat_202311A():
     signature_signal, _, _ = benchmark.BeatSignal(0.1, 0.01)(
         np.arange(0.0, 1200.0, 1.0 / 10.24)
     )
 
-    t, euler, acc, gyro = benchmark.benchmark_ahrs_beat_202311A()
+    t, euler, acc, gyro = benchmark.benchmark_pure_attitude_beat_202311A()
 
     assert len(t) == int(1200 * 10.24)
     assert euler.shape == (len(t), 3)
@@ -315,12 +315,12 @@ def test_benchmark_ahrs_beat_202311A():
     np.testing.assert_array_equal(euler[:, 0], np.radians(5.0) * signature_signal)
 
 
-def test_benchmark_ahrs_chirp_202311A():
+def test_benchmark_pure_attitude_chirp_202311A():
     signature_signal, _, _ = benchmark.ChirpSignal(0.25, 0.01)(
         np.arange(0.0, 1200.0, 1.0 / 10.24)
     )
 
-    t, euler, acc, gyro = benchmark.benchmark_ahrs_chirp_202311A()
+    t, euler, acc, gyro = benchmark.benchmark_pure_attitude_chirp_202311A()
 
     assert len(t) == int(1200 * 10.24)
     assert euler.shape == (len(t), 3)
@@ -328,3 +328,37 @@ def test_benchmark_ahrs_chirp_202311A():
     assert gyro.shape == (len(t), 3)
 
     np.testing.assert_array_equal(euler[:, 0], np.radians(5.0) * signature_signal)
+
+
+def test_benchmark_full_pva_beat_202311A():
+    signature_signal, _, _ = benchmark.BeatSignal(0.1, 0.01)(
+        np.arange(0.0, 1800.0, 1.0 / 10.24)
+    )
+
+    t, pos, vel, euler, acc, gyro = benchmark.benchmark_full_pva_beat_202311A()
+
+    assert len(t) == int(1800 * 10.24)
+    assert pos.shape == (len(t), 3)
+    assert vel.shape == (len(t), 3)
+    assert euler.shape == (len(t), 3)
+    assert acc.shape == (len(t), 3)
+    assert gyro.shape == (len(t), 3)
+
+    np.testing.assert_array_equal(pos[:, 0], 0.5 * signature_signal)
+
+
+def test_benchmark_full_pva_chirp_202311A():
+    signature_signal, _, _ = benchmark.ChirpSignal(0.25, 0.01)(
+        np.arange(0.0, 1800.0, 1.0 / 10.24)
+    )
+
+    t, pos, vel, euler, acc, gyro = benchmark.benchmark_full_pva_chirp_202311A()
+
+    assert len(t) == int(1800 * 10.24)
+    assert pos.shape == (len(t), 3)
+    assert vel.shape == (len(t), 3)
+    assert euler.shape == (len(t), 3)
+    assert acc.shape == (len(t), 3)
+    assert gyro.shape == (len(t), 3)
+
+    np.testing.assert_array_equal(pos[:, 0], 0.5 * signature_signal)

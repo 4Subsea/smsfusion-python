@@ -21,6 +21,11 @@ from smsfusion._transforms import (
     _quaternion_from_euler,
     _rot_matrix_from_euler,
 )
+from smsfusion.benchmark import (
+    benchmark_full_pva_beat_202311A,
+    benchmark_full_pva_chirp_202311A,
+)
+from smsfusion.noise import IMUNoise, white_noise
 
 
 @pytest.mark.parametrize(
@@ -652,3 +657,93 @@ class Test_AidedINS:
         euler_rms = (euler_out - euler_expected).std(axis=0)
         assert euler_rms.shape == (3,)
         assert all(euler_rms <= 0.04)
+
+    @pytest.mark.parametrize(
+        "benchmark_gen",
+        [benchmark_full_pva_beat_202311A, benchmark_full_pva_chirp_202311A],
+    )
+    def test_benchmark(self, benchmark_gen):
+        fs_imu = 100.0
+        fs_gps = 1.0
+        fs_ratio = np.ceil(fs_imu / fs_gps)
+        warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
+        compass_noise_std = 0.5
+        gps_noise_std = 0.1
+
+        # Reference signals (without noise)
+        t, pos_ref, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
+        euler_ref = np.degrees(euler_ref)
+        gyro_ref = np.degrees(gyro_ref)
+
+        # Add measurement noise
+        noise_model = IMUNoise(seed=96)
+        imu_noise = noise_model(fs_imu, len(t))
+
+        acc_noise = acc_ref + imu_noise[:, :3]
+        gyro_noise = gyro_ref + imu_noise[:, 3:]
+
+        compass = euler_ref[:, 2] + white_noise(
+            compass_noise_std / np.sqrt(fs_imu), fs_imu, len(t)
+        )
+
+        gps_noise = np.column_stack(
+            [
+                white_noise(gps_noise_std / np.sqrt(fs_gps), fs_gps, len(t))
+                for _ in range(3)
+            ]
+        )
+        gps = pos_ref + gps_noise
+
+        omega_e = 2.0 * np.pi / 40.0
+        delta = np.sqrt(3.0) / 2
+
+        # AHRS
+        Ki = omega_e**2
+        Kp = delta * omega_e
+        ahrs = AHRS(fs_imu, Kp, Ki)
+
+        # AINS
+        err_acc = {"N": 4.0e-4, "B": 1.5e-4, "K": 4.5e-6, "tau_cb": 50}
+        err_gyro = {
+            "N": (np.pi / 180.0) * 1.9e-3,
+            "B": (np.pi / 180.0) * 7.5e-4,
+            "tau_cb": 50,
+        }
+        var_pos = gps_noise_std**2 * np.ones(3)
+        var_ahrs = 0.01 * np.ones(3)
+        x0 = np.zeros(15)
+        x0[0:3] = pos_ref[0]
+        x0[3:6] = vel_ref[0]
+        x0[6:9] = np.degrees(euler_ref[0])
+        ains = AidedINS(fs_imu, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
+
+        # Apply filter
+        pos_out = []
+        vel_out = []
+        euler_out = []
+        for i, (acc_i, gyro_i, head_i, pos_i) in enumerate(
+            zip(acc_noise, gyro_noise, compass, gps)
+        ):
+            if not (i % fs_ratio):  # GPS aiding
+                ains.update(
+                    acc_i, gyro_i, head_i, pos_i, degrees=True, head_degrees=True
+                )
+            else:  # no GPS aiding
+                ains.update(acc_i, gyro_i, head_i, degrees=True, head_degrees=True)
+            pos_out.append(ains.position())
+            vel_out.append(ains.velocity())
+            euler_out.append(ains.euler(degrees=True))
+
+        pos_out = np.array(pos_out)
+        vel_out = np.array(vel_out)
+        euler_out = np.array(euler_out)
+
+        pos_x_rms, pos_y_rms, pos_z_rms = np.std((pos_out - pos_ref)[warmup:], axis=0)
+        vel_x_rms, vel_y_rms, vel_z_rms = np.std((vel_out - vel_ref)[warmup:], axis=0)
+        roll_rms, pitch_rms, yaw_rms = np.std((euler_out - euler_ref)[warmup:], axis=0)
+
+        assert pos_z_rms <= 0.2
+        assert vel_z_rms <= 0.02
+        assert roll_rms <= 0.3
+        assert pitch_rms <= 0.3
+        assert yaw_rms <= 0.3

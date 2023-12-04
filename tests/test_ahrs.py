@@ -4,8 +4,8 @@ from scipy.signal import resample_poly
 
 from smsfusion._ahrs import AHRS
 from smsfusion.benchmark import (
-    benchmark_ahrs_beat_202311A,
-    benchmark_ahrs_chirp_202311A,
+    benchmark_pure_attitude_beat_202311A,
+    benchmark_pure_attitude_chirp_202311A,
 )
 from smsfusion.noise import IMUNoise, white_noise
 
@@ -320,7 +320,8 @@ class Test_AHRS:
         ]
 
     @pytest.mark.parametrize(
-        "benchmark_gen", [benchmark_ahrs_beat_202311A, benchmark_ahrs_chirp_202311A]
+        "benchmark_gen",
+        [benchmark_pure_attitude_beat_202311A, benchmark_pure_attitude_chirp_202311A],
     )
     def test_benchmark(self, benchmark_gen):
         fs = 100.0

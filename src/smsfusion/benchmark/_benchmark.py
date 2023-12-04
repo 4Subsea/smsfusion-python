@@ -351,13 +351,14 @@ def _benchmark_helper(
     )
 
 
-def benchmark_ahrs_beat_202311A(
+def benchmark_pure_attitude_beat_202311A(
     fs: float = 10.24,
 ) -> tuple[
     NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]
 ]:
     """
-    A benchmark for performance testing of AHRS sensor fusion algorithms.
+    A benchmark with pure attitude for performance testing of INS/AHRS/VRU
+    sensor fusion algorithms.
 
     The benchmark scenario is 20 minutes long. It generates Euler angles
     (roll, pitch, and yaw), and the corresponding accelerometer and
@@ -417,13 +418,14 @@ def benchmark_ahrs_beat_202311A(
     return t, euler, acc, gyro
 
 
-def benchmark_ahrs_chirp_202311A(
+def benchmark_pure_attitude_chirp_202311A(
     fs: float = 10.24,
 ) -> tuple[
     NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]
 ]:
     """
-    A benchmark for performance testing of AHRS sensor fusion algorithms.
+    A benchmark with pure attitude for performance testing of INS/AHRS/VRU
+    sensor fusion algorithms.
 
     The benchmark scenario is 20 minutes long. It generates Euler angles
     (roll, pitch, and yaw), and the corresponding accelerometer and
@@ -482,3 +484,167 @@ def benchmark_ahrs_chirp_202311A(
         duration, amplitude, mean, phase, ChirpSignal(f_max, f_os), fs
     )
     return t, euler, acc, gyro
+
+
+def benchmark_full_pva_beat_202311A(
+    fs: float = 10.24,
+) -> tuple[
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+]:
+    """
+    A benchmark with full position, velocity, and attitude (PVA) for performance
+    testing of INS/AHRS/VRU sensor fusion algorithms.
+
+    The benchmark scenario is 30 minutes long. It generates full position, velocity
+    and attitude (PVA), and the corresponding accelerometer and gyroscope signals.
+
+    The generated position reference signals are characterized by:
+        * "Beating" signal. See ``BeatSignal`` for details.
+        * Maximum amplitude of 0.5 m.
+        * The phases for x-, y-, and z-axis are 0.0, 30.0, and 60.0 degrees respectively.
+
+    The generated Euler reference signals are characterized by:
+        * "Beating" signal. See ``BeatSignal`` for details.
+        * Maximum amplitude of 5 degrees.
+        * The phases for roll, pitch, and yaw are 90.0, 120.0, and 150.0 degrees respectively.
+
+    The other reference signals will be exact analythical derivatives of these signals.
+
+    Parameters
+    ----------
+    fs : float, default 10.24
+        Sampling frequency in hertz of the generated signals.
+
+    Returns
+    -------
+    t : numpy.ndarray, shape (N,)
+        Time in seconds.
+    pos : numpy.ndarray, shape (N, 3)
+        Position [m] of the body relative to the NED frame.
+    vel : numpy.ndarray, shape (N, 3)
+        Velocity [m/s] of the body relative to the NED frame.
+    euler : numpy.ndarray, shape (N, 3)
+        Attitude of the body in Euler angles [rad], see Notes.
+    acc : numpy.ndarray, shape (N, 3)
+        Accelerations [m/s**2] in body frame (corresponding to accelerometer measurements).
+    gyro : numpy.ndarray, shape (N, 3)
+        Angular rates [rad/s] in body frame (corresponding to gyroscope measurements).
+
+    Notes
+    -----
+    The Euler angles describe how to transition from the 'NED' frame to the 'body'
+    frame through three consecutive intrinsic and passive rotations in the ZYX order:
+        1. A rotation by an angle gamma (often called yaw) about the z-axis.
+        2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+        3. A final rotation by an angle alpha (often called roll) about the x-axis.
+
+    This sequence of rotations is used to describe the orientation of the 'body' frame
+    relative to the 'NED' frame in 3D space.
+
+    Intrinsic rotations mean that the rotations are with respect to the changing
+    coordinate system; as one rotation is applied, the next is about the axis of
+    the newly rotated system.
+
+    Passive rotations mean that the frame itself is rotating, not the object
+    within the frame.
+
+    """
+    duration = 1800.0  # 30 minutes
+    amplitude = (0.5, 0.5, 0.5, np.radians(5.0), np.radians(5.0), np.radians(5.0))
+    mean = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    phase = np.radians(np.array([0.0, 30.0, 60.0, 90.0, 120.0, 150.0]))
+
+    f_main = 0.1
+    f_beat = 0.01
+
+    t, pos, vel, euler, acc, gyro = _benchmark_helper(
+        duration, amplitude, mean, phase, BeatSignal(f_main, f_beat), fs
+    )
+    return t, pos, vel, euler, acc, gyro
+
+
+def benchmark_full_pva_chirp_202311A(
+    fs: float = 10.24,
+) -> tuple[
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+]:
+    """
+    A benchmark with full position, velocity, and attitude (PVA) for performance
+    testing of INS/AHRS/VRU sensor fusion algorithms.
+
+    The benchmark scenario is 30 minutes long. It generates full position, velocity
+    and attitude (PVA), and the corresponding accelerometer and gyroscope signals.
+
+    The generated position reference signals are characterized by:
+        * "Chirp" signal. See ``ChirpSignal`` for details.
+        * Maximum amplitude of 0.5 m.
+        * The phases for x-, y-, and z-axis are 0.0, 30.0, and 60.0 degrees respectively.
+
+    The generated Euler reference signals are characterized by:
+        * "Chirp" signal. See ``ChirpSignal`` for details.
+        * Maximum amplitude of 5 degrees.
+        * The phases for roll, pitch, and yaw are 90.0, 120.0, and 150.0 degrees respectively.
+
+    The other reference signals will be exact analythical derivatives of these signals.
+
+    Parameters
+    ----------
+    fs : float, default 10.24
+        Sampling frequency in hertz of the generated signals.
+
+    Returns
+    -------
+    t : numpy.ndarray, shape (N,)
+        Time in seconds.
+    pos : numpy.ndarray, shape (N, 3)
+        Position [m] of the body relative to the NED frame.
+    vel : numpy.ndarray, shape (N, 3)
+        Velocity [m/s] of the body relative to the NED frame.
+    euler : numpy.ndarray, shape (N, 3)
+        Attitude of the body in Euler angles [rad], see Notes.
+    acc : numpy.ndarray, shape (N, 3)
+        Accelerations [m/s**2] in body frame (corresponding to accelerometer measurements).
+    gyro : numpy.ndarray, shape (N, 3)
+        Angular rates [rad/s] in body frame (corresponding to gyroscope measurements).
+
+    Notes
+    -----
+    The Euler angles describe how to transition from the 'NED' frame to the 'body'
+    frame through three consecutive intrinsic and passive rotations in the ZYX order:
+        1. A rotation by an angle gamma (often called yaw) about the z-axis.
+        2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+        3. A final rotation by an angle alpha (often called roll) about the x-axis.
+
+    This sequence of rotations is used to describe the orientation of the 'body' frame
+    relative to the 'NED' frame in 3D space.
+
+    Intrinsic rotations mean that the rotations are with respect to the changing
+    coordinate system; as one rotation is applied, the next is about the axis of
+    the newly rotated system.
+
+    Passive rotations mean that the frame itself is rotating, not the object
+    within the frame.
+
+    """
+    duration = 1800.0  # 30 minutes
+    amplitude = (0.5, 0.5, 0.5, np.radians(5.0), np.radians(5.0), np.radians(5.0))
+    mean = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    phase = np.radians(np.array([0.0, 30.0, 60.0, 90.0, 120.0, 150.0]))
+
+    f_max = 0.25
+    f_os = 0.01
+
+    t, pos, vel, euler, acc, gyro = _benchmark_helper(
+        duration, amplitude, mean, phase, ChirpSignal(f_max, f_os), fs
+    )
+    return t, pos, vel, euler, acc, gyro
