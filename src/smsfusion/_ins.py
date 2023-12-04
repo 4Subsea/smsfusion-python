@@ -91,6 +91,30 @@ class StrapdownINS:
         self._x = self._x0.copy()
         self._g = np.array([0, 0, gravity(lat)]).reshape(3, 1)  # gravity vector in NED
 
+    @property
+    def _p(self) -> NDArray[np.float64]:
+        return self._x[0:3]
+
+    @_p.setter
+    def _p(self, p: ArrayLike) -> None:
+        self._x[0:3] = p
+
+    @property
+    def _v(self) -> NDArray[np.float64]:
+        return self._x[3:6]
+
+    @_v.setter
+    def _v(self, v: ArrayLike) -> None:
+        self._x[3:6] = v
+
+    @property
+    def _q(self) -> NDArray[np.float64]:
+        return self._x[6:9]
+
+    @_q.setter
+    def _q(self, q: ArrayLike) -> None:
+        self._x[6:10] = q
+
 
 class _LegacyStrapdownINS:
     """
