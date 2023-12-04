@@ -15,7 +15,7 @@ import pytest
 from pandas import read_parquet
 from scipy.spatial.transform import Rotation
 
-from smsfusion._ins import AHRS, AidedINS, StrapdownINS, _signed_smallest_angle, gravity
+from smsfusion._ins import AHRS, AidedINS, StrapdownINS, _signed_smallest_angle, gravity, _LegacyStrapdownINS
 from smsfusion._transforms import (
     _angular_matrix_from_euler,
     _quaternion_from_euler,
@@ -64,16 +64,16 @@ def ains_ref_data():
 
 
 @pytest.mark.filterwarnings("ignore")
-class Test_StrapdownINS:
+class Test_LegacyStrapdownINS:
     @pytest.fixture
     def ins(self):
         x0 = np.zeros((9, 1))
-        ins = StrapdownINS(x0)
+        ins = _LegacyStrapdownINS(x0)
         return ins
 
     def test__init__(self):
         x0 = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, np.pi, np.pi / 2.0, np.pi / 4.0])
-        ins = StrapdownINS(x0)
+        ins = _LegacyStrapdownINS(x0)
 
         np.testing.assert_array_equal(ins._x0, x0.reshape(-1, 1))
         np.testing.assert_array_equal(ins._x, x0.reshape(-1, 1))
@@ -154,7 +154,7 @@ class Test_StrapdownINS:
 
     def test_update_return_self(self):
         x0 = np.zeros((9, 1))
-        strapdownins = StrapdownINS(x0)
+        strapdownins = _LegacyStrapdownINS(x0)
 
         dt = 0.1
         g = 9.80665
@@ -166,7 +166,7 @@ class Test_StrapdownINS:
 
     def test_update(self):
         x0 = np.zeros((9, 1))
-        ins = StrapdownINS(x0)
+        ins = _LegacyStrapdownINS(x0)
 
         h = 0.1
         g = ins._g
@@ -185,7 +185,7 @@ class Test_StrapdownINS:
 
     def test_update_deg(self):
         x0 = np.zeros((9, 1))
-        ins = StrapdownINS(x0)
+        ins = _LegacyStrapdownINS(x0)
 
         dt = 0.1
         g = ins._g
@@ -216,7 +216,7 @@ class Test_StrapdownINS:
 
     def test_update_twise(self):
         x0 = np.zeros((9, 1))
-        ins = StrapdownINS(x0)
+        ins = _LegacyStrapdownINS(x0)
 
         dt = 0.1
         g = ins._g
@@ -258,7 +258,7 @@ class Test_StrapdownINS:
         np.testing.assert_array_almost_equal(x2_out, x2_expect.flatten())
 
     def test_update_R_T(self):
-        ins = StrapdownINS(np.zeros((9, 1)))
+        ins = _LegacyStrapdownINS(np.zeros((9, 1)))
 
         h = 0.1
         g = ins._g
@@ -315,7 +315,7 @@ class Test_AidedINS:
         assert ains.ahrs._Kp == 0.050
         assert ains.ahrs._Ki == 0.035
         assert isinstance(ains.ahrs, AHRS)
-        assert isinstance(ains._ins, StrapdownINS)
+        assert isinstance(ains._ins, _LegacyStrapdownINS)
         np.testing.assert_array_almost_equal(ains._x_ins, np.zeros((15, 1)))
         np.testing.assert_array_almost_equal(ains._P_prior, np.eye(15))
 

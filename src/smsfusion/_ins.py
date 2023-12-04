@@ -67,6 +67,10 @@ def gravity(lat: float | None = None, degrees: bool = True) -> float:
 
 
 class StrapdownINS:
+    pass
+
+
+class _LegacyStrapdownINS:
     """
     Inertial navigation system (INS) strapdown algorithm.
 
@@ -399,7 +403,7 @@ class AidedINS:
 
         # Strapdown algorithm
         self._x_ins = self._x0
-        self._ins = StrapdownINS(self._x_ins[0:9])
+        self._ins = _LegacyStrapdownINS(self._x_ins[0:9])
 
         # Initial Kalman filter error covariance
         self._P_prior = np.eye(15)
