@@ -79,8 +79,9 @@ class StrapdownINS:
         Initial state vector, containing the following elements in order:
             - Position in x-, y-, and z-direction (3 elements).
             - Velocity in x-, y-, and z-direction (3 elements).
-            - Attitude as unit quaternion (4 elements). Should be given as [q1, q2, q3, q4],
-              where q1 is the real part and q1, q2 and q3 are the three imaginary parts.
+            - Attitude as unit quaternion (4 elements). Should be given as
+              [q1, q2, q3, q4], where q1 is the real part and q1, q2 and q3 are
+              the three imaginary parts.
     lat : float, optional
         Latitude used to calculate the gravitational acceleration. If `lat` is ``None``,
         the 'standard gravity' (i.e., 9.80665) is used.
@@ -114,6 +115,23 @@ class StrapdownINS:
     @_q.setter
     def _q(self, q: ArrayLike) -> None:
         self._x[6:10] = q
+
+    @property
+    def x(self) -> NDArray[np.float64]:
+        """
+        Current state vector estimate.
+
+        Returns
+        -------
+        x : numpy.ndarray (10,)
+            State vector, containing the following elements in order:
+                - Position in x-, y-, and z-direction (3 elements).
+                - Velocity in x-, y-, and z-direction (3 elements).
+                - Attitude as unit quaternion (4 elements). Should be given as
+                  [q1, q2, q3, q4], where q1 is the real part and q1, q2 and q3
+                  are the three imaginary parts.
+        """
+        return self._x.flatten()
 
 
 class _LegacyStrapdownINS:
