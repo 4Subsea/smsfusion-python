@@ -204,12 +204,12 @@ class Test_StrapdownINS:
         dt = 0.1
         g = ins._g
         f_imu = np.array([1.0, 2.0, 3.0]).reshape(-1, 1) - g
-        w_imu = np.array([4.0, 5.0, 6.0]).reshape(-1, 1)
+        w_imu = np.array([0.004, 0.005, 0.006]).reshape(-1, 1)
 
         x0_out = ins.x
-        ins.update(dt, f_imu, w_imu, degrees=True)
+        ins.update(dt, f_imu, w_imu, degrees=False)
         x1_out = ins.x
-        ins.update(dt, f_imu, w_imu, degrees=True)
+        ins.update(dt, f_imu, w_imu, degrees=False)
         x2_out = ins.x
 
         x0_expect = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]).reshape(-1, 1)
@@ -223,7 +223,7 @@ class Test_StrapdownINS:
             x0_expect[0:3] + dt * x0_expect[3:6] + 0.5 * dt**2 * a0_expect
         )
         x1_expect[3:6] = x0_expect[3:6] + dt * a0_expect
-        x1_expect[6:10] = x0_expect[6:10] + (np.pi / 180.0) * dt * T0_expect @ w_imu
+        x1_expect[6:10] = x0_expect[6:10] + dt * T0_expect @ w_imu
         x1_expect[6:10] = x1_expect[6:10] / np.linalg.norm(x1_expect[6:10])
 
         # Calculate x2 by forward Euler
@@ -235,7 +235,7 @@ class Test_StrapdownINS:
             x1_expect[0:3] + dt * x1_expect[3:6] + 0.5 * dt**2 * a1_expect
         )
         x2_expect[3:6] = x1_expect[3:6] + dt * a1_expect
-        x2_expect[6:10] = x1_expect[6:10] + (np.pi / 180.0) * dt * T1_expect @ w_imu
+        x2_expect[6:10] = x1_expect[6:10] + dt * T1_expect @ w_imu
         x2_expect[6:10] = x2_expect[6:10] / np.linalg.norm(x2_expect[6:10])
 
         np.testing.assert_array_almost_equal(x0_out, x0_expect.flatten())
