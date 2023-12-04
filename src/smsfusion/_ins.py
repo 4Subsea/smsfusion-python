@@ -12,6 +12,14 @@ from ._transforms import (
 )
 
 
+def _signed_smallest_angle(angle, degrees=True):
+    """
+    Return the signed smallest angles between [-pi, pi) or [-180, 180) (default).
+    """
+    base = 180. if degrees else np.pi
+    return (angle + base) % (2. * base) - base
+
+
 def gravity(lat: float | None = None, degrees: bool = True) -> float:
     """
     Calculates the gravitational acceleration based on the World Geodetic System
