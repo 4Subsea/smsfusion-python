@@ -277,7 +277,7 @@ class StrapdownINS:
         w_ins = np.asarray_chkfinite(w_ins, dtype=float).reshape(3, 1)
 
         R_bn = _rot_matrix_from_quaternion(self.quaternion())  # body-to-ned
-        T = _angular_matrix_from_euler(self.quaternion())
+        T = _angular_matrix_from_quaternion(self.quaternion())
 
         if degrees:
             w_ins = (np.pi / 180.0) * w_ins
