@@ -4,12 +4,15 @@ import numpy as np
 from numpy.linalg import inv
 from numpy.typing import ArrayLike, NDArray
 
+from ._vectorops import _normalize
 from ._ahrs import AHRS
 from ._transforms import (
     _angular_matrix_from_euler,
     _quaternion_from_euler,
     _rot_matrix_from_euler,
-    _euler_from_quaternion
+    _euler_from_quaternion,
+    _rot_matrix_from_quaternion,
+    _angular_matrix_from_quaternion,
 )
 
 
@@ -226,6 +229,67 @@ class StrapdownINS:
                   are the three imaginary parts.
         """
         self._x = np.asarray_chkfinite(x_new).reshape(10, 1).copy()
+
+    def update(
+        self,
+        dt: float,
+        f_ins: ArrayLike,
+        w_ins: ArrayLike,
+        degrees: bool = False,
+    ) -> "StrapdownINS":  # TODO: Replace with ``typing.Self`` when Python > 3.11:
+        """
+        Update the INS states by integrating the 'strapdown navigation equations'.
+
+        Assuming constant inputs (i.e., accelerations and angular velocities) over
+        the sampling period.
+
+        The states are updated according to:
+
+            ``p[k+1] = p[k] + h * v[k] + 0.5 * dt * a[k]``
+
+            ``v[k+1] = v[k] + dt * a[k]``
+
+            ``q[k+1] = q[k] + dt * T(q[k]) * w_ins[k]``
+
+        where,
+
+            ``a[k] = R(q[k]) * f_ins[k] + g``
+
+            ``g = [0, 0, 9.81]^T``
+
+        Parameters
+        ----------
+        dt : float
+            Sampling period in seconds.
+        f_imu : array_like
+            IMU specific force measurements (i.e., accelerations + gravity). Given as
+            ``[f_x, f_y, f_z]^T`` where ``f_x``, ``f_y`` and ``f_z`` are
+            acceleration measurements in x-, y-, and z-direction, respectively.
+        w_imu : array_like
+            IMU rotation rate measurements. Given as ``[w_x, w_y, w_z]^T`` where
+            ``w_x``, ``w_y`` and ``w_z`` are rotation rates about the x-, y-,
+            and z-axis, respectively. Unit determined with ``degrees`` keyword argument.
+        degrees : bool, default False
+            Whether the rotation rates are given in `degrees` (``True``) or `radians`
+            (``False``).
+        """
+        f_ins = np.asarray_chkfinite(f_ins, dtype=float).reshape(3, 1)
+        w_ins = np.asarray_chkfinite(w_ins, dtype=float).reshape(3, 1)
+
+        R_bn = _rot_matrix_from_quaternion(self.quaternion())  # body-to-ned
+        T = _angular_matrix_from_euler(self.quaternion())
+
+        if degrees:
+            w_ins = (np.pi / 180.0) * w_ins
+
+        # State propagation (assuming constant linear acceleration and angular velocity)
+        a = R_bn @ f_ins + self._g
+        self._p = self._p + dt * self._v + 0.5 * dt**2 * a
+        self._v = self._v + dt * a
+        self._q = self._q + dt * T @ w_ins
+        self._q = _normalize(self._q)
+
+        return self
 
 
 class _LegacyStrapdownINS:
