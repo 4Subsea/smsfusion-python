@@ -112,6 +112,17 @@ class Test_StrapdownINS:
         assert v_out is not ins._v
         np.testing.assert_array_equal(v_out, v_expect)
 
+    def test_quaternion(self, ins):
+        x0 = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0, 0.0, 0.0, 0.0])
+        ins = StrapdownINS(x0)
+
+        q_out = ins.quaternion()
+        q_expect = np.array([1.0, 0.0, 0.0, 0.0])
+
+        assert q_out.shape == (4,)
+        assert q_out is not ins._q
+        np.testing.assert_array_equal(q_out, q_expect)
+
 
 @pytest.mark.filterwarnings("ignore")
 class Test_LegacyStrapdownINS:

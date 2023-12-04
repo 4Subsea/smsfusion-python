@@ -110,7 +110,7 @@ class StrapdownINS:
 
     @property
     def _q(self) -> NDArray[np.float64]:
-        return self._x[6:9]
+        return self._x[6:10]
 
     @_q.setter
     def _q(self, q: ArrayLike) -> None:
@@ -156,6 +156,18 @@ class StrapdownINS:
             (in that order).
         """
         return self._v.flatten()
+
+    def quaternion(self) -> NDArray[np.float64]:
+        """
+        Current attitude estimate as unit quaternion (from-body-to-NED).
+
+        Returns
+        -------
+        q : numpy.ndarray (4,)
+            Attitude as unit quaternion. Given as [q1, q2, q3, q4], where q1 is
+            the real part and q1, q2 and q3 are the three imaginary parts.
+        """
+        return self._q.flatten()
 
 
 class _LegacyStrapdownINS:
