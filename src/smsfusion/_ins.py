@@ -145,6 +145,18 @@ class StrapdownINS:
         """
         return self._p.flatten()
 
+    def velocity(self) -> NDArray[np.float64]:
+        """
+        Current velocity vector estimate.
+
+        Returns
+        -------
+        v : numpy.ndarray (3,)
+            Velocity state vector, containing (linear) velocity in x-, y-, and z-direction
+            (in that order).
+        """
+        return self._v.flatten()
+
 
 class _LegacyStrapdownINS:
     """
