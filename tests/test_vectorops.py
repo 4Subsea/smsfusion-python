@@ -23,3 +23,17 @@ def test__cross():
 
     expected = np.cross(a, b)
     np.testing.assert_array_equal(out, expected)
+
+
+def test__skew_symmetric():
+    a = np.array([1.0, 0.0, 0.0])
+    b = np.array([0.0, 1.0, 0.0])
+    out = _vectorops._skew_symmetric(a) @ b
+    expected = np.array([0.0, 0.0, 1.0])
+    np.testing.assert_array_equal(out, expected)
+
+    a = np.array([1.0 / np.sqrt(2.0), 1.0 / np.sqrt(2.0), 0.0])
+    b = np.array([0.0, 1.0 / np.sqrt(2.0), 1.0 / np.sqrt(2.0)])
+    out = _vectorops._skew_symmetric(a) @ b
+    expected = np.cross(a, b)
+    np.testing.assert_array_equal(out, expected)
