@@ -101,6 +101,17 @@ class Test_StrapdownINS:
         assert p_out is not ins._p
         np.testing.assert_array_equal(p_out, p_expect)
 
+    def test_velocity(self, ins):
+        x0 = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0, 0.0, 0.0, 0.0])
+        ins = StrapdownINS(x0)
+
+        v_out = ins.velocity()
+        v_expect = np.array([4.0, 5.0, 6.0])
+
+        assert v_out.shape == (3,)
+        assert v_out is not ins._v
+        np.testing.assert_array_equal(v_out, v_expect)
+
 
 @pytest.mark.filterwarnings("ignore")
 class Test_LegacyStrapdownINS:
