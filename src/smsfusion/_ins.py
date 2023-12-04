@@ -75,21 +75,15 @@ class StrapdownINS:
 
     Parameters
     ----------
-    x0 : array_like
-        Initial state vector as 1D array of length 10 (see Notes).
+    x0 : numpy.ndarray (10,)
+        Initial state vector, containing the following elements in order:
+            - Position in x-, y-, and z-direction (3 elements).
+            - Velocity in x-, y-, and z-direction (3 elements).
+            - Attitude as unit quaternion (4 elements). Should be given as [q1, q2, q3, q4],
+              where q1 is the real part and q1, q2 and q3 are the three imaginary parts.
     lat : float, optional
         Latitude used to calculate the gravitational acceleration. If `lat` is ``None``,
         the 'standard gravity' (i.e., 9.80665) is used.
-
-    Notes
-    -----
-    The state vector should be given as:
-
-        ``x = [p_x, p_y, p_z, v_x, v_y, v_z, alpha, beta, gamma]^T``
-
-    where ``p_x``, ``p_y`` and ``p_z`` are position coordinates (in x-, y- and z-direction),
-    ``v_x``, ``v_y`` and ``v_z`` are (linear) velocities (in x-, y- and z-direction),
-    and ``alpha``, ``beta`` and ``gamma`` are Euler angles (given in radians).
     """
 
     def __init__(self, x0: ArrayLike, lat: float | None = None) -> None:
