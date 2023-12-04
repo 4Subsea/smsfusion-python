@@ -67,7 +67,35 @@ def gravity(lat: float | None = None, degrees: bool = True) -> float:
 
 
 class StrapdownINS:
-    pass
+    """
+    Inertial navigation system (INS) strapdown algorithm.
+
+    This class provides an interface for estimating position, velocity and attitude
+    of a moving body by integrating the 'strapdown navigation equations'.
+
+    Parameters
+    ----------
+    x0 : array_like
+        Initial state vector as 1D array of length 10 (see Notes).
+    lat : float, optional
+        Latitude used to calculate the gravitational acceleration. If `lat` is ``None``,
+        the 'standard gravity' (i.e., 9.80665) is used.
+
+    Notes
+    -----
+    The state vector should be given as:
+
+        ``x = [p_x, p_y, p_z, v_x, v_y, v_z, alpha, beta, gamma]^T``
+
+    where ``p_x``, ``p_y`` and ``p_z`` are position coordinates (in x-, y- and z-direction),
+    ``v_x``, ``v_y`` and ``v_z`` are (linear) velocities (in x-, y- and z-direction),
+    and ``alpha``, ``beta`` and ``gamma`` are Euler angles (given in radians).
+    """
+
+    def __init__(self, x0: ArrayLike, lat: float | None = None) -> None:
+        self._x0 = np.asarray_chkfinite(x0).reshape(10, 1).copy()
+        self._x = self._x0.copy()
+        self._g = np.array([0, 0, gravity(lat)]).reshape(3, 1)  # gravity vector in NED
 
 
 class _LegacyStrapdownINS:
