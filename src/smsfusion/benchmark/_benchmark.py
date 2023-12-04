@@ -351,13 +351,14 @@ def _benchmark_helper(
     )
 
 
-def benchmark_ahrs_beat_202311A(
+def benchmark_pure_attitude_beat_202311A(
     fs: float = 10.24,
 ) -> tuple[
     NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]
 ]:
     """
-    A benchmark for performance testing of AHRS sensor fusion algorithms.
+    A benchmark with pure attitude for performance testing of INS/AHRS/VRU
+    sensor fusion algorithms.
 
     The benchmark scenario is 20 minutes long. It generates Euler angles
     (roll, pitch, and yaw), and the corresponding accelerometer and
@@ -417,13 +418,14 @@ def benchmark_ahrs_beat_202311A(
     return t, euler, acc, gyro
 
 
-def benchmark_ahrs_chirp_202311A(
+def benchmark_pure_attitude_chirp_202311A(
     fs: float = 10.24,
 ) -> tuple[
     NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]
 ]:
     """
-    A benchmark for performance testing of AHRS sensor fusion algorithms.
+    A benchmark with pure attitude for performance testing of INS/AHRS/VRU
+    sensor fusion algorithms.
 
     The benchmark scenario is 20 minutes long. It generates Euler angles
     (roll, pitch, and yaw), and the corresponding accelerometer and
@@ -484,17 +486,22 @@ def benchmark_ahrs_chirp_202311A(
     return t, euler, acc, gyro
 
 
-def benchmark_9dof_beat_202311A(
+def benchmark_full_pva_beat_202311A(
     fs: float = 10.24,
 ) -> tuple[
-    NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
 ]:
     """
-    A benchmark for performance testing of INS/AHRS/VRU sensor fusion algorithms.
+    A benchmark with full position, velocity, and attitude (PVA) for performance
+    testing of INS/AHRS/VRU sensor fusion algorithms.
 
-    The benchmark scenario is 30 minutes long. It generates 15 degrees of freedom
-    (i.e., position, velocity and attitude), and the corresponding accelerometer and
-    gyroscope signals.
+    The benchmark scenario is 30 minutes long. It generates full position, velocity
+    and attitude (PVA), and the corresponding accelerometer and gyroscope signals.
 
     The generated position reference signals are characterized by:
         * "Beating" signal. See ``BeatSignal`` for details.
@@ -548,10 +555,8 @@ def benchmark_9dof_beat_202311A(
 
     """
     duration = 1800.0  # 30 minutes
-    amplitude = np.array(
-        [0.5, 0.5, 0.5, np.radians(5.0), np.radians(5.0), np.radians(5.0)]
-    )
-    mean = np.radians(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
+    amplitude = (0.5, 0.5, 0.5, np.radians(5.0), np.radians(5.0), np.radians(5.0))
+    mean = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     phase = np.radians(np.array([0.0, 30.0, 60.0, 90.0, 120.0, 150.0]))
 
     f_main = 0.1
@@ -563,17 +568,22 @@ def benchmark_9dof_beat_202311A(
     return t, pos, vel, euler, acc, gyro
 
 
-def benchmark_9dof_chirp_202311A(
+def benchmark_full_pva_chirp_202311A(
     fs: float = 10.24,
 ) -> tuple[
-    NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
 ]:
     """
-    A benchmark for performance testing of INS/AHRS/VRU sensor fusion algorithms.
+    A benchmark with full position, velocity, and attitude (PVA) for performance
+    testing of INS/AHRS/VRU sensor fusion algorithms.
 
-    The benchmark scenario is 30 minutes long. It generates 15 degrees of freedom
-    (i.e., position, velocity and attitude), and the corresponding accelerometer and
-    gyroscope signals.
+    The benchmark scenario is 30 minutes long. It generates full position, velocity
+    and attitude (PVA), and the corresponding accelerometer and gyroscope signals.
 
     The generated position reference signals are characterized by:
         * "Chirp" signal. See ``ChirpSignal`` for details.
@@ -627,10 +637,8 @@ def benchmark_9dof_chirp_202311A(
 
     """
     duration = 1800.0  # 30 minutes
-    amplitude = np.array(
-        [0.5, 0.5, 0.5, np.radians(5.0), np.radians(5.0), np.radians(5.0)]
-    )
-    mean = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    amplitude = (0.5, 0.5, 0.5, np.radians(5.0), np.radians(5.0), np.radians(5.0))
+    mean = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     phase = np.radians(np.array([0.0, 30.0, 60.0, 90.0, 120.0, 150.0]))
 
     f_max = 0.25

@@ -22,8 +22,8 @@ from smsfusion._transforms import (
     _rot_matrix_from_euler,
 )
 from smsfusion.benchmark import (
-    benchmark_9dof_beat_202311A,
-    benchmark_9dof_chirp_202311A,
+    benchmark_full_pva_beat_202311A,
+    benchmark_full_pva_chirp_202311A,
 )
 from smsfusion.noise import IMUNoise, white_noise
 
@@ -641,7 +641,8 @@ class Test_AidedINS:
         assert all(euler_rms <= 0.04)
 
     @pytest.mark.parametrize(
-        "benchmark_gen", [benchmark_9dof_beat_202311A, benchmark_9dof_chirp_202311A]
+        "benchmark_gen",
+        [benchmark_full_pva_beat_202311A, benchmark_full_pva_chirp_202311A],
     )
     def test_benchmark(self, benchmark_gen):
         fs_imu = 100.0
