@@ -261,14 +261,10 @@ class StrapdownINS:
         ----------
         dt : float
             Sampling period in seconds.
-        f_imu : array_like
-            IMU specific force measurements (i.e., accelerations + gravity). Given as
-            ``[f_x, f_y, f_z]^T`` where ``f_x``, ``f_y`` and ``f_z`` are
-            acceleration measurements in x-, y-, and z-direction, respectively.
-        w_imu : array_like
-            IMU rotation rate measurements. Given as ``[w_x, w_y, w_z]^T`` where
-            ``w_x``, ``w_y`` and ``w_z`` are rotation rates about the x-, y-,
-            and z-axis, respectively. Unit determined with ``degrees`` keyword argument.
+        f_ins : numpy.ndarray (3,)
+            Acceleration / specific force measurements (bias compensated).
+        w_imu : numpy.ndarray (3,)
+            Rotation rate measurements (bias compensated).
         degrees : bool, default False
             Whether the rotation rates are given in `degrees` (``True``) or `radians`
             (``False``).
@@ -479,7 +475,7 @@ class _LegacyStrapdownINS:
         w_imu: ArrayLike,
         degrees: bool = False,
         theta_ext: ArrayLike | None = None,
-    ) -> "StrapdownINS":  # TODO: Replace with ``typing.Self`` when Python > 3.11:
+    ) -> "_LegacyStrapdownINS":  # TODO: Replace with ``typing.Self`` when Python > 3.11:
         """
         Update the INS states by integrating the 'strapdown navigation equations'.
 
