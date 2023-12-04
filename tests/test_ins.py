@@ -67,8 +67,8 @@ def ains_ref_data():
 class Test_StrapdownINS:
     @pytest.fixture
     def ins(self):
-        x0 = np.zeros((10, 1))
-        x0[6:10] = np.array([1.0, 0.0, 0.0])
+        x0 = np.zeros(10)
+        x0[6:10] = np.array([1.0, 0.0, 0.0, 0.0])
         ins = StrapdownINS(x0)
         return ins
 
@@ -78,6 +78,17 @@ class Test_StrapdownINS:
 
         np.testing.assert_array_equal(ins._x0, x0.reshape(-1, 1))
         np.testing.assert_array_equal(ins._x, x0.reshape(-1, 1))
+
+    def test_x(self):
+        x0 = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0, 0.0, 0.0, 0.0])
+        ins = StrapdownINS(x0)
+
+        x_out = ins.x
+        x_expect = x0
+
+        assert x_out.shape == (10,)
+        assert x_out is not ins._x
+        np.testing.assert_array_equal(x_out, x_expect)
 
 
 @pytest.mark.filterwarnings("ignore")
