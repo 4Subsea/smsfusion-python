@@ -15,7 +15,14 @@ import pytest
 from pandas import read_parquet
 from scipy.spatial.transform import Rotation
 
-from smsfusion._ins import AHRS, AidedINS, StrapdownINS, _signed_smallest_angle, gravity, _LegacyStrapdownINS
+from smsfusion._ins import (
+    AHRS,
+    AidedINS,
+    StrapdownINS,
+    _LegacyStrapdownINS,
+    _signed_smallest_angle,
+    gravity,
+)
 from smsfusion._transforms import (
     _angular_matrix_from_euler,
     _quaternion_from_euler,
@@ -67,8 +74,7 @@ def ains_ref_data():
 class Test_StrapdownINS:
     @pytest.fixture
     def ins(self):
-        x0 = np.zeros(10)
-        x0[6:10] = np.array([1.0, 0.0, 0.0, 0.0])
+        x0 = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
         ins = StrapdownINS(x0)
         return ins
 
@@ -147,10 +153,16 @@ class Test_StrapdownINS:
 
         np.testing.assert_array_equal(ins.x, x.flatten())
 
-    def test_update(self):
-        x0 = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
-        ins = StrapdownINS(x0)
+    def test_update_return_self(self, ins):
+        dt = 0.1
+        g = 9.80665
+        f = np.array([0.0, 0.0, -g]).reshape(-1, 1)
+        w = np.array([0.0, 0.0, 0.0]).reshape(-1, 1)
 
+        update_return = ins.update(dt, f, w)
+        assert update_return is ins
+
+    def test_update(self, ins):
         h = 0.1
         g = ins._g
         f = np.array([1.0, 2.0, 3.0]).reshape(-1, 1) - g
@@ -160,8 +172,10 @@ class Test_StrapdownINS:
         ins.update(h, f, w)
         x1_out = ins.x
 
-        x0_expect = x0
-        x1_expect = np.array([0.005, 0.01, 0.015, 0.1, 0.2, 0.3, 0.99999, 0.002, 0.0025, 0.003])
+        x0_expect = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+        x1_expect = np.array(
+            [0.005, 0.01, 0.015, 0.1, 0.2, 0.3, 0.99999, 0.002, 0.0025, 0.003]
+        )
 
         np.testing.assert_array_almost_equal(x0_out, x0_expect)
         np.testing.assert_array_almost_equal(x1_out, x1_expect)

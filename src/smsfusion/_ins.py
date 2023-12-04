@@ -4,16 +4,16 @@ import numpy as np
 from numpy.linalg import inv
 from numpy.typing import ArrayLike, NDArray
 
-from ._vectorops import _normalize
 from ._ahrs import AHRS
 from ._transforms import (
     _angular_matrix_from_euler,
+    _angular_matrix_from_quaternion,
+    _euler_from_quaternion,
     _quaternion_from_euler,
     _rot_matrix_from_euler,
-    _euler_from_quaternion,
     _rot_matrix_from_quaternion,
-    _angular_matrix_from_quaternion,
 )
+from ._vectorops import _normalize
 
 
 def _signed_smallest_angle(angle: float, degrees: bool = True) -> float:
