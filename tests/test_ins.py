@@ -147,6 +147,25 @@ class Test_StrapdownINS:
 
         np.testing.assert_array_equal(ins.x, x.flatten())
 
+    def test_update(self):
+        x0 = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+        ins = StrapdownINS(x0)
+
+        h = 0.1
+        g = ins._g
+        f = np.array([1.0, 2.0, 3.0]).reshape(-1, 1) - g
+        w = np.array([0.04, 0.05, 0.06]).reshape(-1, 1)
+
+        x0_out = ins.x
+        ins.update(h, f, w)
+        x1_out = ins.x
+
+        x0_expect = x0
+        x1_expect = np.array([0.005, 0.01, 0.015, 0.1, 0.2, 0.3, 0.99999, 0.002, 0.0025, 0.003])
+
+        np.testing.assert_array_almost_equal(x0_out, x0_expect)
+        np.testing.assert_array_almost_equal(x1_out, x1_expect)
+
 
 @pytest.mark.filterwarnings("ignore")
 class Test_LegacyStrapdownINS:
