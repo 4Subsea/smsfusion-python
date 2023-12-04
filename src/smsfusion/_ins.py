@@ -245,17 +245,17 @@ class StrapdownINS:
 
         The states are updated according to:
 
-            ``p[k+1] = p[k] + h * v[k] + 0.5 * dt * a[k]``
+            p[k+1] = p[k] + h * v[k] + 0.5 * dt * a[k]
 
-            ``v[k+1] = v[k] + dt * a[k]``
+            v[k+1] = v[k] + dt * a[k]
 
-            ``q[k+1] = q[k] + dt * T(q[k]) * w_ins[k]``
+            q[k+1] = q[k] + dt * T(q[k]) * w_ins[k]
 
         where,
 
-            ``a[k] = R(q[k]) * f_ins[k] + g``
+            a[k] = R(q[k]) * f_ins[k] + g
 
-            ``g = [0, 0, 9.81]^T``
+            g = [0, 0, 9.81]^T
 
         Parameters
         ----------
