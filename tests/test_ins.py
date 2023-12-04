@@ -15,7 +15,7 @@ import pytest
 from pandas import read_parquet
 from scipy.spatial.transform import Rotation
 
-from smsfusion._ins import AHRS, AidedINS, StrapdownINS, gravity, _signed_smallest_angle
+from smsfusion._ins import AHRS, AidedINS, StrapdownINS, _signed_smallest_angle, gravity
 from smsfusion._transforms import (
     _angular_matrix_from_euler,
     _quaternion_from_euler,
@@ -26,20 +26,19 @@ from smsfusion._transforms import (
 @pytest.mark.parametrize(
     "angle, degrees, angle_expect",
     [
-        (0., True, 0.),
-        (-180.0, True, -180.),
-        (180.0, True, -180.),
+        (0.0, True, 0.0),
+        (-180.0, True, -180.0),
+        (180.0, True, -180.0),
         (-np.pi, False, -np.pi),
         (np.pi, False, -np.pi),
-        (90., True, 90.),
-        (-90., True, -90.),
-        (181, True, -179.),
-        (-181, True, 179.)
+        (90.0, True, 90.0),
+        (-90.0, True, -90.0),
+        (181, True, -179.0),
+        (-181, True, 179.0),
     ],
 )
 def test__signed_smallest_angle(angle, degrees, angle_expect):
     assert _signed_smallest_angle(angle, degrees=degrees) == pytest.approx(angle_expect)
-
 
 
 @pytest.mark.parametrize(

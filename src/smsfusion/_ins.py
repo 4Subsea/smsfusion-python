@@ -12,12 +12,12 @@ from ._transforms import (
 )
 
 
-def _signed_smallest_angle(angle : float, degrees : bool = True) -> float:
+def _signed_smallest_angle(angle: float, degrees: bool = True) -> float:
     """
     Return the signed smallest angles between [-pi, pi) or [-180, 180) (default).
     """
-    base = 180. if degrees else np.pi
-    return (angle + base) % (2. * base) - base
+    base = 180.0 if degrees else np.pi
+    return (angle + base) % (2.0 * base) - base
 
 
 def gravity(lat: float | None = None, degrees: bool = True) -> float:
