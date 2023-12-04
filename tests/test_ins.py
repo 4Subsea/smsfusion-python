@@ -90,6 +90,17 @@ class Test_StrapdownINS:
         assert x_out is not ins._x
         np.testing.assert_array_equal(x_out, x_expect)
 
+    def test_position(self, ins):
+        x0 = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0, 0.0, 0.0, 0.0])
+        ins = StrapdownINS(x0)
+
+        p_out = ins.position()
+        p_expect = np.array([1.0, 2.0, 3.0])
+
+        assert p_out.shape == (3,)
+        assert p_out is not ins._p
+        np.testing.assert_array_equal(p_out, p_expect)
+
 
 @pytest.mark.filterwarnings("ignore")
 class Test_LegacyStrapdownINS:
