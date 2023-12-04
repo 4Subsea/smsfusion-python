@@ -30,10 +30,4 @@ def _skew_symmetric(a: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Cross product equivalent skew symmetric matrix from a vector.
     """
-    return np.array(
-        [
-            [0., -a[2], a[1]],
-            [a[2], 0., -a[0]],
-            [-a[1], a[0], 0.]
-        ]
-    )
+    return np.array([[0.0, -a[2], a[1]], [a[2], 0.0, -a[0]], [-a[1], a[0], 0.0]])
