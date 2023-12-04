@@ -475,7 +475,9 @@ class _LegacyStrapdownINS:
         w_imu: ArrayLike,
         degrees: bool = False,
         theta_ext: ArrayLike | None = None,
-    ) -> "_LegacyStrapdownINS":  # TODO: Replace with ``typing.Self`` when Python > 3.11:
+    ) -> (
+        "_LegacyStrapdownINS"
+    ):  # TODO: Replace with ``typing.Self`` when Python > 3.11:
         """
         Update the INS states by integrating the 'strapdown navigation equations'.
 

@@ -25,9 +25,9 @@ from smsfusion._ins import (
 )
 from smsfusion._transforms import (
     _angular_matrix_from_euler,
+    _angular_matrix_from_quaternion,
     _quaternion_from_euler,
     _rot_matrix_from_euler,
-    _angular_matrix_from_quaternion,
     _rot_matrix_from_quaternion,
 )
 
@@ -212,7 +212,9 @@ class Test_StrapdownINS:
         ins.update(dt, f_imu, w_imu, degrees=False)
         x2_out = ins.x
 
-        x0_expect = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]).reshape(-1, 1)
+        x0_expect = np.array(
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]
+        ).reshape(-1, 1)
 
         # Calculate x1
         R0_expect = np.eye(3)
