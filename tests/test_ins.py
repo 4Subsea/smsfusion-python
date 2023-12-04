@@ -133,6 +133,20 @@ class Test_StrapdownINS:
         assert theta_out.shape == (3,)
         np.testing.assert_array_equal(theta_out, theta_expect)
 
+    def test_reset(self, ins):
+        x = np.random.random(10)
+        x[6:10] = x[6:10] / np.linalg.norm(x[6:10])  # unit quaternion
+        ins.reset(x)
+
+        np.testing.assert_array_equal(ins.x, x)
+
+    def test_reset_2d(self, ins):
+        x = np.random.random(10).reshape(-1, 1)
+        x[6:10] = x[6:10] / np.linalg.norm(x[6:10])  # unit quaternion
+        ins.reset(x)
+
+        np.testing.assert_array_equal(ins.x, x.flatten())
+
 
 @pytest.mark.filterwarnings("ignore")
 class Test_LegacyStrapdownINS:

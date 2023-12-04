@@ -181,7 +181,7 @@ class StrapdownINS:
 
         Returns
         -------
-        euler : numpy.ndarray
+        euler : numpy.ndarray (3,)
             Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
             in that order.
 
@@ -210,6 +210,22 @@ class StrapdownINS:
             theta = (180.0 / np.pi) * theta
 
         return theta
+
+    def reset(self, x_new: ArrayLike) -> None:
+        """
+        Reset state.
+
+        Parameters
+        ----------
+        x_new : ndarray (10,)
+            New state vector, containing the following elements in order:
+                - Position in x-, y-, and z-direction (3 elements).
+                - Velocity in x-, y-, and z-direction (3 elements).
+                - Attitude as unit quaternion (4 elements). Should be given as
+                  [q1, q2, q3, q4], where q1 is the real part and q1, q2 and q3
+                  are the three imaginary parts.
+        """
+        self._x = np.asarray_chkfinite(x_new).reshape(10, 1).copy()
 
 
 class _LegacyStrapdownINS:
