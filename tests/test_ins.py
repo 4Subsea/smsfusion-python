@@ -180,6 +180,25 @@ class Test_StrapdownINS:
         np.testing.assert_array_almost_equal(x0_out, x0_expect)
         np.testing.assert_array_almost_equal(x1_out, x1_expect)
 
+    def test_update_deg(self, ins):
+
+        dt = 0.1
+        g = ins._g
+        f_imu = np.array([1.0, 2.0, 3.0]).reshape(-1, 1) - g
+        w_imu = np.array([4.0, 5.0, 6.0]).reshape(-1, 1)
+
+        x0_out = ins.x
+        ins.update(dt, f_imu, w_imu, degrees=True)
+        x1_out = ins.x
+
+        x0_expect = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+        x1_expect = np.array(
+            [0.005, 0.01, 0.015, 0.1, 0.2, 0.3, 0.999971, 0.003491, 0.004363, 0.005236]
+        )
+
+        np.testing.assert_array_almost_equal(x0_out, x0_expect)
+        np.testing.assert_array_almost_equal(x1_out, x1_expect)
+
 
 @pytest.mark.filterwarnings("ignore")
 class Test_LegacyStrapdownINS:
