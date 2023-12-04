@@ -90,7 +90,7 @@ class Test_StrapdownINS:
         assert x_out is not ins._x
         np.testing.assert_array_equal(x_out, x_expect)
 
-    def test_position(self, ins):
+    def test_position(self):
         x0 = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0, 0.0, 0.0, 0.0])
         ins = StrapdownINS(x0)
 
@@ -101,7 +101,7 @@ class Test_StrapdownINS:
         assert p_out is not ins._p
         np.testing.assert_array_equal(p_out, p_expect)
 
-    def test_velocity(self, ins):
+    def test_velocity(self):
         x0 = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0, 0.0, 0.0, 0.0])
         ins = StrapdownINS(x0)
 
@@ -112,7 +112,7 @@ class Test_StrapdownINS:
         assert v_out is not ins._v
         np.testing.assert_array_equal(v_out, v_expect)
 
-    def test_quaternion(self, ins):
+    def test_quaternion(self):
         x0 = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0, 0.0, 0.0, 0.0])
         ins = StrapdownINS(x0)
 
@@ -122,6 +122,16 @@ class Test_StrapdownINS:
         assert q_out.shape == (4,)
         assert q_out is not ins._q
         np.testing.assert_array_equal(q_out, q_expect)
+
+    def test_euler(self):
+        x0 = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0, 0.0, 0.0, 0.0])
+        ins = StrapdownINS(x0)
+
+        theta_out = ins.euler()
+        theta_expect = np.array([0.0, 0.0, 0.0])
+
+        assert theta_out.shape == (3,)
+        np.testing.assert_array_equal(theta_out, theta_expect)
 
 
 @pytest.mark.filterwarnings("ignore")
