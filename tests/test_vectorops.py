@@ -38,7 +38,7 @@ def test__cross():
 
 
 @pytest.mark.parametrize(
-    "euler_a, euler_b", np.random.uniform(0., 360., size=(10, 2, 3)).tolist()
+    "euler_a, euler_b", np.random.uniform(0.0, 360.0, size=(10, 2, 3)).tolist()
 )
 def test___quaternion_product(euler_a, euler_b):
     rot_a = Rotation.from_euler("ZYX", euler_a, degrees=True).inv()
@@ -57,4 +57,3 @@ def test___quaternion_product(euler_a, euler_b):
 
     q_ab_out = _vectorops._quaternion_product(q_a, q_b)
     np.testing.assert_array_almost_equal(q_ab, q_ab_out)
-

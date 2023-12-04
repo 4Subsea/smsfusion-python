@@ -39,5 +39,5 @@ def _quaternion_product(
             qa_w * qb_w - qa_xyz.T @ qb_xyz,
             qa_w * qb_xyz + qb_w * qa_xyz + np.cross(qa_xyz, qb_xyz),
         ),
-        axis=0
+        axis=0,
     )
