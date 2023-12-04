@@ -133,6 +133,18 @@ class StrapdownINS:
         """
         return self._x.flatten()
 
+    def position(self) -> NDArray[np.float64]:
+        """
+        Current position vector estimate.
+
+        Returns
+        -------
+        p : numpy.ndarray (3,)
+            Position state vector, containing position in x-, y-, and z-direction
+            (in that order).
+        """
+        return self._p.flatten()
+
 
 class _LegacyStrapdownINS:
     """
