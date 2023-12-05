@@ -151,14 +151,14 @@ class Test_StrapdownINS:
         x[6:10] = x[6:10] / np.linalg.norm(x[6:10])  # unit quaternion
         ins.reset(x)
 
-        np.testing.assert_array_equal(ins.x, x)
+        np.testing.assert_array_almost_equal(ins.x, x)
 
     def test_reset_2d(self, ins):
         x = np.random.random(10).reshape(-1, 1)
         x[6:10] = x[6:10] / np.linalg.norm(x[6:10])  # unit quaternion
         ins.reset(x)
 
-        np.testing.assert_array_equal(ins.x, x.flatten())
+        np.testing.assert_array_almost_equal(ins.x, x.flatten())
 
     def test_update_return_self(self, ins):
         dt = 0.1

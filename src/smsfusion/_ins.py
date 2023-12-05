@@ -89,11 +89,17 @@ class StrapdownINS:
     lat : float, optional
         Latitude used to calculate the gravitational acceleration. If `lat` is ``None``,
         the 'standard gravity' (i.e., 9.80665) is used.
+
+    Notes
+    -----
+    The quaternion provided as part of the initial state will be normalized to
+    ensure unity.
     """
 
     def __init__(self, x0: ArrayLike, lat: float | None = None) -> None:
         self._x0 = np.asarray_chkfinite(x0).reshape(10, 1).copy()
         self._x = self._x0.copy()
+        self._x[6:] = _normalize(self._x[6:])
         self._g = np.array([0, 0, gravity(lat)]).reshape(3, 1)  # gravity vector in NED
 
     @property
@@ -227,8 +233,14 @@ class StrapdownINS:
                 - Attitude as unit quaternion (4 elements). Should be given as
                   [q1, q2, q3, q4], where q1 is the real part and q1, q2 and q3
                   are the three imaginary parts.
+
+        Notes
+        -----
+        The quaternion provided as part of the new state will be normalized to
+        ensure unity.
         """
         self._x = np.asarray_chkfinite(x_new).reshape(10, 1).copy()
+        self._x[6:] = _normalize(self._x[6:])
 
     def update(
         self,
