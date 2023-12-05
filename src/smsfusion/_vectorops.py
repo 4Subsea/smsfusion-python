@@ -43,7 +43,7 @@ def _cross(a: NDArray[np.float64], b: NDArray[np.float64]) -> NDArray[np.float64
 @njit  # type: ignore[misc]
 def _skew_symmetric(a: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Construct the cross product equivalent skew symmetric matrix.
+    Compute the cross product equivalent skew symmetric matrix.
 
     Parameters
     ----------
