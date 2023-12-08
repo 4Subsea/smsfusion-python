@@ -18,7 +18,19 @@ from ._vectorops import _normalize
 
 def _signed_smallest_angle(angle: float, degrees: bool = True) -> float:
     """
-    Return the signed smallest angle between [-pi, pi) or [-180, 180) (default).
+    Convert the given angle to the smallest angle between [-180., 180) degrees.
+
+    Parameters
+    ----------
+    angle : float
+        Value of angle.
+    degrees : bool, default True
+        Whether ``angle`` is given degrees or radians.
+
+    Returns
+    -------
+    float
+        The smallest angle between [-180., 180) degrees (or  [-pi, pi] radians).
     """
     base = 180.0 if degrees else np.pi
     return (angle + base) % (2.0 * base) - base
@@ -29,31 +41,31 @@ def gravity(lat: float | None = None, degrees: bool = True) -> float:
     Calculates the gravitational acceleration based on the World Geodetic System
     (1984) Ellipsoidal Gravity Formula (WGS-84).
 
-    The WGS-84 formula is given by:
+    The WGS-84 formula is given by::
 
-        ``g = g_e * (1 - k * sin(lat)^2) / sqrt(1 - e^2 * sin(lat)^2)``
+        g = g_e * (1 - k * sin(lat)^2) / sqrt(1 - e^2 * sin(lat)^2)
 
-    where,
+    where,::
 
-        ``g_e = 9.780325335903891718546``
+        g_e = 9.780325335903891718546
 
-        ``k = 0.00193185265245827352087``
+        k = 0.00193185265245827352087
 
-        ``e^2 = 0.006694379990141316996137``
+        e^2 = 0.006694379990141316996137
 
     and ``lat`` is the latitude.
 
     If no latitude is provided, the 'standard gravity', ``g_0``, is returned instead.
-    The standard gravity is by definition of the ISO/IEC 8000 given by:
-
-        ``g_0 = 9.80665``
+    The standard gravity is by definition of the ISO/IEC 8000 given as
+    ``g_0 = 9.80665``.
 
     Parameters
     ----------
-    lat : float (optional)
-        Latitude. If `lat` is ``None``, the 'standard gravity' is returned.
-    degrees : True
-        Whether the latitude, `lat`, is given in degrees (``True``) or radians (``False``).
+    lat : float, optional
+        Latitude. If none provided, the 'standard gravity' is returned.
+    degrees : bool, optional
+        Whether the latitude, ``lat``, is in degrees or radians. Applicapble
+        only if ``lat`` is given.
     """
     if lat is None:
         g_0 = 9.80665  # standard gravity in m/s^2
@@ -72,14 +84,14 @@ def gravity(lat: float | None = None, degrees: bool = True) -> float:
 
 class StrapdownINS:
     """
-    Inertial navigation system (INS) strapdown algorithm.
+    Strapdown inertial navigation system (INS).
 
     This class provides an interface for estimating position, velocity and attitude
-    of a moving body by integrating the 'strapdown navigation equations'.
+    of a moving body by integrating the *strapdown navigation equations*.
 
     Parameters
     ----------
-    x0 : numpy.ndarray (10,)
+    x0 : numpy.ndarray, shape (10,)
         Initial state vector, containing the following elements in order:
             - Position in x-, y-, and z-direction (3 elements).
             - Velocity in x-, y-, and z-direction (3 elements).
@@ -87,15 +99,14 @@ class StrapdownINS:
               [q1, q2, q3, q4], where q1 is the real part and q1, q2 and q3 are
               the three imaginary parts.
     lat : float, optional
-        Latitude used to calculate the gravitational acceleration. If `lat` is ``None``,
-        the 'standard gravity' (i.e., 9.80665) is used.
+        Latitude used to calculate the gravitational acceleration. If none
+        provided, the 'standard gravity' is assumed.
 
     Notes
     -----
     The quaternion provided as part of the initial state will be normalized to
     ensure unity.
     """
-
     def __init__(self, x0: ArrayLike, lat: float | None = None) -> None:
         self._x0 = np.asarray_chkfinite(x0).reshape(10, 1).copy()
         self._x = self._x0.copy()
@@ -129,11 +140,11 @@ class StrapdownINS:
     @property
     def x(self) -> NDArray[np.float64]:
         """
-        Current state vector estimate.
+        Get current state vector estimate.
 
         Returns
         -------
-        x : numpy.ndarray (10,)
+        numpy.ndarray, shape (10,)
             State vector, containing the following elements in order:
                 - Position in x-, y-, and z-direction (3 elements).
                 - Velocity in x-, y-, and z-direction (3 elements).
@@ -145,11 +156,11 @@ class StrapdownINS:
 
     def position(self) -> NDArray[np.float64]:
         """
-        Current position vector estimate.
+        Get current position estimate.
 
         Returns
         -------
-        p : numpy.ndarray (3,)
+        numpy.ndarray, shape (3,)
             Position state vector, containing position in x-, y-, and z-direction
             (in that order).
         """
@@ -157,11 +168,11 @@ class StrapdownINS:
 
     def velocity(self) -> NDArray[np.float64]:
         """
-        Current velocity vector estimate.
+        Get current velocity estimate.
 
         Returns
         -------
-        v : numpy.ndarray (3,)
+        numpy.ndarray, shape (3,)
             Velocity state vector, containing (linear) velocity in x-, y-, and z-direction
             (in that order).
         """
@@ -169,28 +180,29 @@ class StrapdownINS:
 
     def quaternion(self) -> NDArray[np.float64]:
         """
-        Current attitude estimate as unit quaternion (from-body-to-NED).
+        Get current attitude estimate as unit quaternion (from-body-to-NED).
 
         Returns
         -------
-        q : numpy.ndarray (4,)
-            Attitude as unit quaternion. Given as [q1, q2, q3, q4], where q1 is
-            the real part and q1, q2 and q3 are the three imaginary parts.
+        numpy.ndarray, shape (4,)
+            Attitude as unit quaternion. Given as ``[q1, q2, q3, q4]``, where
+            ``q1`` is the real part and ``q1``, ``q2`` and ``q3`` are the three
+            imaginary parts.
         """
         return self._q.flatten()
 
     def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
-        Current attitude estimate as Euler angles (see Notes).
+        Get current attitude estimate as Euler angles (see Notes).
 
         Parameters
         ----------
-        degrees : bool
-            Whether to return the Euler angles in degrees (`True`) or radians (`False`).
+        degrees : bool, default False
+            Whether to return the Euler angles in degrees or radians.
 
         Returns
         -------
-        euler : numpy.ndarray (3,)
+        numpy.ndarray, shape (3,)
             Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
             in that order.
 
@@ -222,11 +234,11 @@ class StrapdownINS:
 
     def reset(self, x_new: ArrayLike) -> None:
         """
-        Reset state.
+        Reset current state with a new one.
 
         Parameters
         ----------
-        x_new : ndarray (10,)
+        x_new : numpy.ndarray, shape (10,)
             New state vector, containing the following elements in order:
                 - Position in x-, y-, and z-direction (3 elements).
                 - Velocity in x-, y-, and z-direction (3 elements).
@@ -250,12 +262,12 @@ class StrapdownINS:
         degrees: bool = False,
     ) -> "StrapdownINS":  # TODO: Replace with ``typing.Self`` when Python > 3.11:
         """
-        Update the INS states by integrating the 'strapdown navigation equations'.
+        Update the INS states by integrating the *strapdown navigation equations*.
 
         Assuming constant inputs (i.e., accelerations and angular velocities) over
         the sampling period.
 
-        The states are updated according to:
+        The states are updated according to::
 
             p[k+1] = p[k] + h * v[k] + 0.5 * dt * a[k]
 
@@ -263,7 +275,7 @@ class StrapdownINS:
 
             q[k+1] = q[k] + dt * T(q[k]) * w_ins[k]
 
-        where,
+        where,::
 
             a[k] = R(q[k]) * f_ins[k] + g
 
@@ -273,13 +285,22 @@ class StrapdownINS:
         ----------
         dt : float
             Sampling period in seconds.
-        f_ins : numpy.ndarray (3,)
-            Acceleration / specific force measurements (bias compensated).
-        w_imu : numpy.ndarray (3,)
-            Rotation rate measurements (bias compensated).
+        f_imu : array_like, shape (3,)
+            Specific force (bias compansated) measurements (i.e., accelerations
+            + gravity), given as ``[f_x, f_y, f_z]^T`` where ``f_x``, ``f_y``
+            and ``f_z`` are acceleration measurements in x-, y-, and
+            z-direction, respectively.
+        w_imu : array_like, shape (3,)
+            Angular rate (bias compansated) measurements, given as
+            ``[w_x, w_y, w_z]^T`` where ``w_x``, ``w_y`` and ``w_z`` are angular
+            rates about the x-, y-, and z-axis, respectively.
         degrees : bool, default False
-            Whether the rotation rates are given in `degrees` (``True``) or `radians`
-            (``False``).
+            Whether the angular rates are given in degrees or radians.
+
+        Returns
+        -------
+        AidedINS
+            A reference to the instance itself after the update.
         """
         f_ins = np.asarray_chkfinite(f_ins, dtype=float).reshape(3, 1)
         w_ins = np.asarray_chkfinite(w_ins, dtype=float).reshape(3, 1)
@@ -302,30 +323,23 @@ class StrapdownINS:
 
 class _LegacyStrapdownINS:
     """
-    Inertial navigation system (INS) strapdown algorithm.
+    Strapdown inertial navigation system (INS).
 
     This class provides an interface for estimating position, velocity and attitude
-    of a moving body by integrating the 'strapdown navigation equations'.
+    of a moving body by integrating the *strapdown navigation equations*.
 
     Parameters
     ----------
-    x0 : array_like
-        Initial state vector as 1D array of length 9 (see Notes).
+    x0 : numpy.ndarray, shape (9,)
+        Initial state vector, containing the following elements in order:
+            - Position in x-, y-, and z-direction (3 elements).
+            - Velocity in x-, y-, and z-direction (3 elements).
+            - Euler angles in radians (3 elements), specifically: alpha (roll),
+              beta (pitch) and gamma (yaw) in that order.
     lat : float, optional
-        Latitude used to calculate the gravitational acceleration. If `lat` is ``None``,
-        the 'standard gravity' (i.e., 9.80665) is used.
-
-    Notes
-    -----
-    The state vector should be given as:
-
-        ``x = [p_x, p_y, p_z, v_x, v_y, v_z, alpha, beta, gamma]^T``
-
-    where ``p_x``, ``p_y`` and ``p_z`` are position coordinates (in x-, y- and z-direction),
-    ``v_x``, ``v_y`` and ``v_z`` are (linear) velocities (in x-, y- and z-direction),
-    and ``alpha``, ``beta`` and ``gamma`` are Euler angles (given in radians).
+        Latitude used to calculate the gravitational acceleration. If none
+        provided, the 'standard gravity' is assumed.
     """
-
     def __init__(self, x0: ArrayLike, lat: float | None = None) -> None:
         self._x0 = np.asarray_chkfinite(x0).reshape(9, 1).copy()
         self._x = self._x0.copy()
@@ -358,72 +372,55 @@ class _LegacyStrapdownINS:
     @property
     def x(self) -> NDArray[np.float64]:
         """
-        Current state vector estimate.
-
-        Given as as:
-
-            ``x = [p_x, p_y, p_z, v_x, v_y, v_z, alpha, beta, gamma]^T``
-
-        where ``p_x``, ``p_y`` and ``p_z`` are position coordinates
-        (in x-, y- and z-direction), ``v_x``, ``v_y`` and ``v_z`` are (linear) velocities
-        (in x-, y- and z-direction), and ``alpha``, ``beta`` and ``gamma`` are Euler angles
-        (given in radians).
+        Get current state vector estimate.
 
         Returns
         -------
-        x : numpy.ndarray
-            State as array of shape (9,).
+        numpy.ndarray, shape (9,)
+            State vector, containing the following elements in order:
+                - Position in x-, y-, and z-direction (3 elements).
+                - Velocity in x-, y-, and z-direction (3 elements).
+                - Euler angles in radians (3 elements), specifically: alpha (roll),
+                  beta (pitch) and gamma (yaw) in that order.
         """
         return self._x.flatten()
 
     def position(self) -> NDArray[np.float64]:
         """
-        Current position vector estimate.
-
-        Given as as:
-
-            ``p = [p_x, p_y, p_z]^T``
-
-        where ``p_x``, ``p_y`` and ``p_z`` are position coordinates in x-, y-, and
-        z-direction respectively.
+        Get current position estimate.
 
         Returns
         -------
-        p : numpy.ndarray
-            Position as array of shape (3,).
+        numpy.ndarray, shape (3,)
+            Position state vector, containing position in x-, y-, and z-direction
+            (in that order).
         """
         return self._p.flatten()
 
     def velocity(self) -> NDArray[np.float64]:
         """
-        Current velocity vector estimate.
-
-        Given as as:
-
-            ``v = [v_x, v_y, v_z]^T``
-
-        where ``v_x``, ``v_y`` and ``v_z`` are (linear) velocity components in x-, y-,
-        and z-direction respectively.
+        Get current velocity estimate.
 
         Returns
         -------
-        v : numpy.ndarray
-            Velocity as array of shape (3,).
+        numpy.ndarray, shape (3,)
+            Velocity state vector, containing (linear) velocity in x-, y-, and z-direction
+            (in that order).
         """
         return self._v.flatten()
 
     def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
-        Current attitude estimate as Euler angles in ZYX convention, see Notes.
+        Get current attitude estimate as Euler angles (see Notes).
 
         Parameters
         ----------
-        degrees : bool
-            Whether to return the Euler angles in degrees (`True`) or radians (`False`).
+        degrees : bool, default False
+            Whether to return the Euler angles in degrees or radians.
 
         Returns
         -------
-        euler : numpy.ndarray
+        numpy.ndarray, shape (3,)
             Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
             in that order.
 
@@ -454,29 +451,29 @@ class _LegacyStrapdownINS:
 
     def quaternion(self) -> NDArray[np.float64]:
         """
-        Current attitude estimate as unit quaternion (from-body-to-NED).
+        Get current attitude estimate as unit quaternion (from-body-to-NED).
+
+        Returns
+        -------
+        numpy.ndarray, shape (4,)
+            Attitude as unit quaternion. Given as ``[q1, q2, q3, q4]``, where
+            ``q1`` is the real part and ``q1``, ``q2`` and ``q3`` are the three
+            imaginary parts.
         """
         return _quaternion_from_euler(self._theta.flatten())  # type: ignore[no-any-return]
 
     def reset(self, x_new: ArrayLike) -> None:
         """
-        Reset state.
+        Reset current state with a new one.
 
         Parameters
         ----------
-        x_new : array_like
-            New state as 1D array of length 9 (see Notes).
-
-        Notes
-        -----
-        The state vector should be given as:
-
-            ``x = [p_x, p_y, p_z, v_x, v_y, v_z, alpha, beta, gamma]^T``
-
-        where ``p_x``, ``p_y`` and ``p_z`` are position coordinates
-        (in x-, y- and z-direction), ``v_x``, ``v_y`` and ``v_z`` are (linear) velocities
-        (in x-, y- and z-direction), and ``alpha``, ``beta`` and ``gamma`` are Euler angles
-        (given in radians).
+        x_new : numpy.ndarray, shape (10,)
+            New state vector, containing the following elements in order:
+                - Position in x-, y-, and z-direction (3 elements).
+                - Velocity in x-, y-, and z-direction (3 elements).
+                - Euler angles in radians (3 elements), specifically: alpha (roll),
+                  beta (pitch) and gamma (yaw) in that order.
         """
         self._x = np.asarray_chkfinite(x_new).reshape(9, 1).copy()
 
@@ -491,45 +488,50 @@ class _LegacyStrapdownINS:
         "_LegacyStrapdownINS"
     ):  # TODO: Replace with ``typing.Self`` when Python > 3.11:
         """
-        Update the INS states by integrating the 'strapdown navigation equations'.
+        Update the INS states by integrating the *strapdown navigation equations*.
 
-        Assuming constant inputs (i.e., accelerations and angular velocity) over
+        Assuming constant inputs (i.e., accelerations and angular velocities) over
         the sampling period.
 
-        The states are updated according to:
+        The states are updated according to::
 
-            ``p[k+1] = p[k] + h * v[k] + 0.5 * dt * a[k]``
+            p[k+1] = p[k] + h * v[k] + 0.5 * dt * a[k]
 
-            ``v[k+1] = v[k] + dt * a[k]``
+            v[k+1] = v[k] + dt * a[k]
 
-            ``theta[k+1] = theta[k] + dt * T[k] * w[k]``
+            theta[k+1] = theta[k] + dt * T[k] * w[k]
 
-        where,
+        where,::
 
-            ``a[k] = R[k] * f_imu[k] + g``
+            a[k] = R(q[k]) * f_ins[k] + g
 
-            ``g = [0, 0, 9.81]^T``
+            g = [0, 0, 9.81]^T
 
         Parameters
         ----------
         dt : float
             Sampling period in seconds.
-        f_imu : array_like
-            IMU specific force measurements (i.e., accelerations + gravity). Given as
-            ``[f_x, f_y, f_z]^T`` where ``f_x``, ``f_y`` and ``f_z`` are
-            acceleration measurements in x-, y-, and z-direction, respectively.
-        w_imu : array_like
-            IMU rotation rate measurements. Given as ``[w_x, w_y, w_z]^T`` where
-            ``w_x``, ``w_y`` and ``w_z`` are rotation rates about the x-, y-,
-            and z-axis, respectively. Unit determined with ``degrees`` keyword argument.
+        f_imu : array_like, shape (3,)
+            Specific force (bias compansated) measurements (i.e., accelerations
+            + gravity), given as ``[f_x, f_y, f_z]^T`` where ``f_x``, ``f_y``
+            and ``f_z`` are acceleration measurements in x-, y-, and
+            z-direction, respectively.
+        w_imu : array_like, shape (3,)
+            Angular rate (bias compansated) measurements, given as
+            ``[w_x, w_y, w_z]^T`` where ``w_x``, ``w_y`` and ``w_z`` are angular
+            rates about the x-, y-, and z-axis, respectively.
         degrees : bool, default False
-            Whether the rotation rates are given in `degrees` (``True``) or `radians`
-            (``False``).
-        theta_ext : array_like, optional
-            Externally provided IMU orientation as Euler angles according to the
-            ned-to-body `z-y-x` convention, which is used to calculate the
-            ``R`` and ``T`` matrices. If ``None`` (default), the most recent orientation state
-            is used instead. Unit must be in `radians`.
+            Whether the angular rates are given in degrees or radians.
+        theta_ext : array_like, shape (3,) optional
+            Externally provided IMU orientation as Euler angles (in radians)
+            according to the ned-to-body `z-y-x` convention, which is used to
+            calculate the ``R`` and ``T`` matrices. If ``None``, the most recent
+            orientation state is used instead.
+
+        Returns
+        -------
+        AidedINS
+            A reference to the instance itself after the update.
         """
         theta = (
             self._theta.flatten()
@@ -563,28 +565,34 @@ class AidedINS:
     ----------
     fs : float
         Sampling rate in Hz.
-    x0 : array-like (15,)
+    x0 : array-like, shape (15,)
         Initial state vector containing the following elements in order:
             - Position in x, y, z directions (3 elements).
             - Velocity in x, y, z directions (3 elements).
-            - Euler angles: alpha (roll), beta (pitch), and gamma (yaw) (3 elements).
+            - Euler angles in radians (3 elements), specifically: alpha (roll),
+              beta (pitch) and gamma (yaw) in that order.
             - Accelerometer bias in x, y, z directions (3 elements).
             - Gyroscope bias in x, y, z directions (3 elements).
-    err_acc : dict
-        Dictionary containing accelerometer noise parameters:
-            - N: White noise power spectral density in (m/s^2)/sqrt(Hz).
-            - B: Bias stability in m/s^2.
-            - tau_cb: Bias correlation time in seconds.
-    err_gyro : dict
-        Dictionary containing gyroscope noise parameters:
-            - N: White noise power spectral density in (rad/s)/sqrt(Hz).
-            - B: Bias stability in rad/s.
-            - tau_cb: Bias correlation time in seconds.
-    var_pos : array-like (3,)
+    err_acc : dict of {str: float}
+        Dictionary containing accelerometer noise parameters with keys:
+            - ``N``: White noise power spectral density in (m/s^2)/sqrt(Hz).
+            - ``B``: Bias stability in m/s^2.
+            - ``tau_cb``: Bias correlation time in seconds.
+    err_gyro : dict of {str: float}
+        Dictionary containing gyroscope noise parameters with keys:
+            - ``N``: White noise power spectral density in (rad/s)/sqrt(Hz).
+            - ``B``: Bias stability in rad/s.
+            - ``tau_cb``: Bias correlation time in seconds.
+    var_pos : array-like, shape (3,)
         Variance of position measurement noise in m^2
-    var_ahrs : array-like (3,)
-        Variance of attitude measurements in rad^2. Specifically, it refers to the
-        variance of the AHRS error.
+    var_ahrs : array-like, shape (3,)
+        Variance of attitude measurements in rad^2. Specifically, it refers to
+        the variance of the AHRS error.
+    ahrs : AHRS
+        A configured instance of :class:`AHRS`.
+
+    Attributes
+    ----------
     ahrs : AHRS
         A configured instance of :class:`AHRS`.
 
@@ -599,13 +607,7 @@ class AidedINS:
         - Does not correct for sensor installation offsets.
         - Estimates the system states at the 'sensor location'.
         - IMU error models are the same for all axes.
-
-    Attributes
-    ----------
-    ahrs : AHRS
-        A configured instance of :class:`AHRS`.
     """
-
     _I15 = np.eye(15)
 
     def __init__(
@@ -667,15 +669,16 @@ class AidedINS:
     @property
     def x(self) -> NDArray[np.float64]:
         """
-        Current AINS state estimate.
+        Get current state vector estimate.
 
         Returns
         -------
-        x : numpy.ndarray (15,)
-            The current state vector, containing the following elements in order:
-                - Position in x, y, z directions (3 elements).
-                - Velocity in x, y, z directions (3 elements).
-                - Euler angles: alpha (roll), beta (pitch), and gamma (yaw) (3 elements).
+        numpy.ndarray, shape (15,)
+            State vector, containing the following elements in order:
+                - Position in x-, y-, and z-direction (3 elements).
+                - Velocity in x-, y-, and z-direction (3 elements).
+                - Euler angles in radians (3 elements), specifically: alpha (roll),
+                  beta (pitch) and gamma (yaw) in that order.
                 - Accelerometer bias in x, y, z directions (3 elements).
                 - Gyroscope bias in x, y, z directions (3 elements).
         """
@@ -683,44 +686,40 @@ class AidedINS:
 
     def position(self) -> NDArray[np.float64]:
         """
-        Current AINS position estimate.
+        Get current position estimate.
 
         Returns
         -------
-        position : numpy.ndarray (3,)
-            The current position vector, containing the following elements:
-                - Position in x direction.
-                - Position in y direction.
-                - Position in z direction.
+        numpy.ndarray, shape (3,)
+            Position state vector, containing position in x-, y-, and z-direction
+            (in that order).
         """
         return self._p.flatten()
 
     def velocity(self) -> NDArray[np.float64]:
         """
-        Current AINS velocity estimate.
+        Get current velocity estimate.
 
         Returns
         -------
-        position : numpy.ndarray (3,)
-            The current velocity vector, containing the following elements:
-                - Velocity in x direction.
-                - Velocity in y direction.
-                - Velocity in z direction.
+        numpy.ndarray, shape (3,)
+            Velocity state vector, containing (linear) velocity in x-, y-, and z-direction
+            (in that order).
         """
         return self._v.flatten()
 
     def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
-        Current attitude estimate as Euler angles in ZYX convention, see Notes.
+        Get current attitude estimate as Euler angles (see Notes).
 
         Parameters
         ----------
-        degrees : bool
-            Whether to return the Euler angles in degrees (`True`) or radians (`False`).
+        degrees : bool, default False
+            Whether to return the Euler angles in degrees or radians.
 
         Returns
         -------
-        euler : numpy.ndarray
+        numpy.ndarray, shape (3,)
             Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
             in that order.
 
@@ -749,14 +748,17 @@ class AidedINS:
 
         return theta
 
+    # TODO: Continue from here
     def quaternion(self) -> NDArray[np.float64]:
         """
-        Current attitude estimate as unit quaternion (from-body-to-NED).
+        Get current attitude estimate as unit quaternion (from-body-to-NED).
 
         Returns
         -------
-        quaternion : numpy.ndarray (3,)
-            The current attitude estimate as a unit quaternion.
+        numpy.ndarray, shape (4,)
+            Attitude as unit quaternion. Given as ``[q1, q2, q3, q4]``, where
+            ``q1`` is the real part and ``q1``, ``q2`` and ``q3`` are the three
+            imaginary parts.
         """
         return _quaternion_from_euler(self._theta.flatten())  # type: ignore[no-any-return]
 
@@ -766,7 +768,9 @@ class AidedINS:
         err_gyro: dict[str, float],
         theta_rad: NDArray[np.float64],
     ) -> NDArray[np.float64]:
-        """Prepare state matrix"""
+        """
+        Prepare F (state) matrix.
+        """
 
         beta_acc = 1.0 / err_acc["tau_cb"]
         beta_gyro = 1.0 / err_gyro["tau_cb"]
@@ -786,7 +790,9 @@ class AidedINS:
 
     @staticmethod
     def _prep_G_matrix(theta_rad: NDArray[np.float64]) -> NDArray[np.float64]:
-        """Prepare (white noise) input matrix"""
+        """
+        Prepare G (white noise) input matrix.
+        """
 
         R_bn = _rot_matrix_from_euler(theta_rad)
         T = _angular_matrix_from_euler(theta_rad)
@@ -804,7 +810,9 @@ class AidedINS:
     def _prep_W_matrix(
         err_acc: dict[str, float], err_gyro: dict[str, float]
     ) -> NDArray[np.float64]:
-        """Prepare white noise power spectral density matrix"""
+        """
+        Prepare W (white noise power spectral density) matrix.
+        """
         N_acc = err_acc["N"]
         sigma_acc = err_acc["B"]
         beta_acc = 1.0 / err_acc["tau_cb"]
@@ -823,7 +831,9 @@ class AidedINS:
 
     @staticmethod
     def _prep_H_matrix() -> NDArray[np.float64]:
-        """Prepare measurement matrix"""
+        """
+        Prepare H (measurement) matrix.
+        """
         H = np.zeros((6, 15))
         H[0:3, 0:3] = np.eye(3)  # position
         H[3:6, 6:9] = np.eye(3)  # attitude
@@ -832,6 +842,9 @@ class AidedINS:
     def _update_system_matrices(
         self, R_bn: NDArray[np.float64], T: NDArray[np.float64]
     ) -> None:
+        """
+        Update F and G (system) matrices with new rotation and angular transformation matrices.
+        """
         self._F[3:6, 9:12] = -R_bn
         self._F[6:9, 12:15] = -T
         self._G[3:6, 0:3] = -R_bn
@@ -847,29 +860,31 @@ class AidedINS:
         head_degrees: bool = True,
     ) -> "AidedINS":  # TODO: Replace with ``typing.Self`` when Python > 3.11
         """
-        Update the AINS state estimates based on measurements, and project ahead.
+        Update the AINS state estimates based on measurements.
 
         Parameters
         ----------
-        f_imu : array-like (3,)
-            IMU specific force measurements (i.e., accelerations + gravity). Given
-            as `[f_x, f_y, f_z]^T` where `f_x`, `f_y`, and `f_z` are acceleration
-            measurements in the x-, y-, and z-directions, respectively.
-        w_imu : array-like (3,)
-            IMU rotation rate measurements. Given as `[w_x, w_y, w_z]^T` where `w_x`,
-            `w_y`, and `w_z` are rotation rates about the x-, y-, and z-axes, respectively.
-            The unit is determined by the `degrees` keyword argument.
+        f_imu : array-like, shape (3,)
+            Specific force measurements (i.e., accelerations + gravity), given
+            as ``[f_x, f_y, f_z]^T`` where ``f_x``, ``f_y`` and ``f_z`` are
+            acceleration measurements in x-, y-, and z-direction, respectively.
+        w_imu : array-like, shape (3,)
+            Angular rate measurements, given as ``[w_x, w_y, w_z]^T`` where
+            ``w_x``, ``w_y`` and ``w_z`` are angular rates about the x-, y-,
+            and z-axis, respectively.
         head : float
-            Heading measurement, i.e., yaw angle. If `head_degrees` is `True`, the
-            heading is assumed to be in degrees; otherwise, in radians.
+            Heading measurement, i.e., yaw angle.
         pos : array-like (3,), default=None
             Position aiding measurement. If `None`, no position aiding is used.
         degrees : bool, default=False
-            Specifies the units of the `w_imu` parameter. If `True`, the rotation
-            rates are assumed to be in degrees; otherwise, in radians.
+            Specifies whether the unit of the ``w_imu`` are in degrees or radians.
         head_degrees : bool, default=True
-            Specifies the unit of the `head` parameter. If `True`, the heading is
-            in degrees; otherwise, in radians.
+            Specifies whether the unit ``head`` are in degrees or radians.
+
+        Returns
+        -------
+        AidedINS
+            A reference to the instance itself after the update.
         """
         f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3, 1).copy()
         w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3, 1).copy()

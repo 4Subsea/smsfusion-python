@@ -188,6 +188,11 @@ class AHRS:
             Whether the angular rates, ``w_imu``, are in degrees/s or radians/s.
         head_degrees : bool, default True.
             Whether the compass heading, ``head`` is in degrees or radians.
+
+        Returns
+        -------
+        AidedINS
+            A reference to the instance itself after the update.
         """
         f_imu = np.asarray_chkfinite(f_imu, dtype=np.float64).reshape(3)
         w_imu = np.asarray_chkfinite(w_imu, dtype=np.float64).reshape(3)
@@ -220,7 +225,7 @@ class AHRS:
 
     def euler(self, degrees: bool = True) -> NDArray[np.float64]:
         """
-        Current attitude estimate as Euler angles in ZYX convention, see Notes.
+        Get current attitude estimate as Euler angles in ZYX convention, see Notes.
 
         Parameters
         ----------
