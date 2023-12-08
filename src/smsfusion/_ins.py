@@ -107,6 +107,7 @@ class StrapdownINS:
     The quaternion provided as part of the initial state will be normalized to
     ensure unity.
     """
+
     def __init__(self, x0: ArrayLike, lat: float | None = None) -> None:
         self._x0 = np.asarray_chkfinite(x0).reshape(10, 1).copy()
         self._x = self._x0.copy()
@@ -340,6 +341,7 @@ class _LegacyStrapdownINS:
         Latitude used to calculate the gravitational acceleration. If none
         provided, the 'standard gravity' is assumed.
     """
+
     def __init__(self, x0: ArrayLike, lat: float | None = None) -> None:
         self._x0 = np.asarray_chkfinite(x0).reshape(9, 1).copy()
         self._x = self._x0.copy()
@@ -608,6 +610,7 @@ class AidedINS:
         - Estimates the system states at the 'sensor location'.
         - IMU error models are the same for all axes.
     """
+
     _I15 = np.eye(15)
 
     def __init__(

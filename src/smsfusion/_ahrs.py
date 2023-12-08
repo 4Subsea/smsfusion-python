@@ -43,6 +43,7 @@ class AHRS:
        Filters on the Special Orthogonal Group", IEEE Transactions on Automatic
        Control, vol. 53(5), pp. 1203-1218, 2008.
     """
+
     def __init__(
         self,
         fs: float,

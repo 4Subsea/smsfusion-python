@@ -84,6 +84,7 @@ class BeatSignal(_Signal):
 
         y = sin(f_beat / 2.0 * t) * cos(f_main * t + phase)
     """
+
     def __init__(self, f_main: float, f_beat: float, freq_hz: bool = True) -> None:
         self._f_main = f_main
         self._f_beat = f_beat
@@ -154,6 +155,7 @@ class ChirpSignal(_Signal):
         phi = 2 * f_max / f_os * sin(f_os * t)
         y = sin(phi + phase)
     """
+
     def __init__(self, f_max: float, f_os: float, freq_hz: bool = True) -> None:
         self._f_max = f_max
         self._f_os = f_os

@@ -255,6 +255,7 @@ class NoiseModel:
     --------
     smsfusion.gauss_markov, smsfusion.random_walk, smsfusion.white_noise
     """
+
     def __init__(
         self,
         N: float,
@@ -402,6 +403,7 @@ class IMUNoise:
                            signal.
     smsfusion.gauss_markov, smsfusion.random_walk, smsfusion.white_noise
     """
+
     _DEFAULT_ACC_NOISE = {
         "bc": (0.0, 0.0, 0.0),
         "N": (4.0e-4, 4.0e-4, 4.5e-4),
