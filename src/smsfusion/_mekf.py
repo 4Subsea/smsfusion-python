@@ -1,9 +1,10 @@
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
+from numpy.linalg import inv
 
-from ._ins import StrapdownINS
+from ._ins import StrapdownINS, gravity
 from ._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
-from ._vectorops import _skew_symmetric
+from ._vectorops import _skew_symmetric, _normalize, _quaternion_product
 
 
 class MEKF:
@@ -38,8 +39,7 @@ class MEKF:
         Variance of compass measurement noise in deg^2.
     """
 
-    _O3 = np.zeros((3, 3))
-    _I3 = np.eye(3)
+    _I15 = np.eye(15)
 
     def __init__(
         self,
@@ -61,11 +61,15 @@ class MEKF:
         self._x_ins = self._x0
         self._ins = StrapdownINS(self._x_ins[0:10])
 
+        # Initial Kalman filter error covariance
+        self._P_prior = np.eye(15)
+
         # Prepare system matrices
         q0 = self._x0[6:10].flatten()
         self._dfdx = self._prep_dfdx_matrix(err_acc, err_gyro, q0)
         self._dfdw = self._prep_dfdw_matrix(q0)
         self._dhdx = self._prep_dhdx_matrix(q0)
+        self._W = self._prep_W_matrix(err_acc, err_gyro)
 
     @property
     def _x(self) -> NDArray[np.float64]:
@@ -311,11 +315,32 @@ class MEKF:
         )  # gravity reference vector
         self._dhdx[9:10, 6:9] = self._h_gamma(q)  # compass
 
+    @staticmethod
+    def _prep_W_matrix(
+        err_acc: dict[str, float], err_gyro: dict[str, float]
+    ) -> NDArray[np.float64]:
+        """Prepare white noise power spectral density matrix"""
+        N_acc = err_acc["N"]
+        sigma_acc = err_acc["B"]
+        beta_acc = 1.0 / err_acc["tau_cb"]
+        N_gyro = err_gyro["N"]
+        sigma_gyro = err_gyro["B"]
+        beta_gyro = 1.0 / err_gyro["tau_cb"]
+
+        # White noise power spectral density matrix
+        W = np.eye(12)
+        W[0:3, 0:3] *= N_acc**2
+        W[3:6, 3:6] *= N_gyro**2
+        W[6:9, 6:9] *= 2.0 * sigma_acc**2 * beta_acc
+        W[9:12, 9:12] *= 2.0 * sigma_gyro**2 * beta_gyro
+
+        return W
+
     def update(
         self,
         f_imu: ArrayLike,
         w_imu: ArrayLike,
-        head: float,
+        head: float | None = None,
         pos: ArrayLike | None = None,
         degrees: bool = False,
         head_degrees: bool = True,
@@ -353,7 +378,58 @@ class MEKF:
         if head_degrees:
             head = np.radians(head)
 
+        # Update INS state
+        self._x_ins[0:10] = self._ins.x.reshape(10, 1)
+
+        # Bias compensated IMU measurements
+        b_acc_ins = self._x_ins[10:13]
+        b_gyro_ins = self._x_ins[13:16]
+        f_ins = f_imu - b_acc_ins
+        w_ins = f_imu - b_gyro_ins
+
+        # Update system matrices
+        q = self._q.reshape(4)
+        self._update_dfdx_matrix(q, f_ins, w_ins)
+        self._update_dfdw_matrix(q)
+        self._update_dhdx_matrix(q)
+
+        dfdx = self._dfdx  # state matrix
+        dfdw = self._dfdw  # (white noise) input matrix
+        dhdx = self._dhdx  # measurement matrix
+        W = self._W  # white noise power spectral density matrix
+        P_prior = self._P_prior  # error covariance matrix
+        I15 = self._I15  # 15x15 identity matrix
+
+        # Gravity vector measured
+        v1 = -f_ins / gravity()  # gravity vector measured
+        v1 = _normalize(v1)
+
+        # Discretize system
+        phi = I15 + self._dt * dfdx  # state transition matrix
+        Q = self._dt * dfdw @ W @ dfdw.T  # process noise covariance matrix
+
+        # Compute Kalman gain
+        K = P_prior @ dhdx.T @ inv(dhdx @ P_prior @ dhdx.T + R)
+
+        # Update error-state estimate with measurement
+        dz = z - H @ self._x_ins  # TODO
+        dx = K @ dz
+
+        # Compute error covariance for updated estimate
+        P = (I15 - K @ dhdx) @ P_prior @ (I15 - K @ dhdx).T + K @ R @ K.T
+
+        # Error quaternion from 2x Gibbs vector
+        da = dx[6:9]
+        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.vstack([2.0, da])
+
+        # Reset
+        self._x_ins[0:6] = self._x_ins[0:6] + dx[0:6]
+        self._x_ins[6:10] = _quaternion_product(self._x_ins[6:10].flatten(), dq.flatten()).reshape(4, 1)
+        self._x_ins[10:] = self._x_ins[10:] + dx[9:]
+        self._ins.reset(self._x_ins[0:10])
+
         # Project ahead
         f_ins = f_imu - self._x_ins[9:12]
         w_ins = w_imu - self._x_ins[12:15]
         self._ins.update(self._dt, f_ins, w_ins, degrees=False)
+        self._P_prior = phi @ P @ phi.T + Q
