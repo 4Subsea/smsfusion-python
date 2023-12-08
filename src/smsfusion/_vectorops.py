@@ -28,8 +28,13 @@ def _cross(a: NDArray[np.float64], b: NDArray[np.float64]) -> NDArray[np.float64
 
     Parameters
     ----------
-    a, b : numpy.ndarray
+    a, b : numpy.ndarray, shape (3,)
         Vector to cross, such that ``a x b``.
+
+    Returns
+    -------
+    numpy.ndarray, shape (3,)
+        Vector result of the cross product.
     """
     return np.array(
         [
@@ -45,7 +50,17 @@ def _quaternion_product(
     qa: NDArray[np.float64], qb: NDArray[np.float64]
 ) -> NDArray[np.float64]:
     """
-    Unit quaternion (Schur) product.
+    Unit quaternion (Schur) product: ``qa * qb``.
+
+    Parameters
+    ----------
+    qa, qb : numpy.ndarray, shape (4,)
+        Unit quaternions.
+
+    Returns
+    -------
+    numpy.ndarray, shape (4,)
+        Unit quaternions result of the product.
     """
     qa_w, qa_xyz = np.split(qa, [1])
     qb_w, qb_xyz = np.split(qb, [1])
@@ -65,8 +80,13 @@ def _skew_symmetric(a: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    a : numpy.ndarray
+    a : numpy.ndarray, shape (3,)
         Vector in which the skew symmetric matrix is based on, such that
         ``a x b = S(a) b``.
+
+    Returns
+    -------
+    numpy.ndarray, shape (3, 3)
+        Skew symmetric matrix.
     """
     return np.array([[0.0, -a[2], a[1]], [a[2], 0.0, -a[0]], [-a[1], a[0], 0.0]])
