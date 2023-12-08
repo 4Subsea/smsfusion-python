@@ -25,7 +25,7 @@ def _signed_smallest_angle(angle: float, degrees: bool = True) -> float:
     angle : float
         Value of angle.
     degrees : bool, default True
-        Whether ``angle`` is given degrees or radians.
+        Specify whether ``angle`` is given degrees or radians.
 
     Returns
     -------
@@ -45,12 +45,10 @@ def gravity(lat: float | None = None, degrees: bool = True) -> float:
 
         g = g_e * (1 - k * sin(lat)^2) / sqrt(1 - e^2 * sin(lat)^2)
 
-    where,::
+    where, ::
 
         g_e = 9.780325335903891718546
-
         k = 0.00193185265245827352087
-
         e^2 = 0.006694379990141316996137
 
     and ``lat`` is the latitude.
@@ -64,8 +62,8 @@ def gravity(lat: float | None = None, degrees: bool = True) -> float:
     lat : float, optional
         Latitude. If none provided, the 'standard gravity' is returned.
     degrees : bool, optional
-        Whether the latitude, ``lat``, is in degrees or radians. Applicapble
-        only if ``lat`` is given.
+        Specify whether the latitude, ``lat``, is in degrees or radians.
+        Applicapble only if ``lat`` is provided.
     """
     if lat is None:
         g_0 = 9.80665  # standard gravity in m/s^2
@@ -93,11 +91,12 @@ class StrapdownINS:
     ----------
     x0 : numpy.ndarray, shape (10,)
         Initial state vector, containing the following elements in order:
-            - Position in x-, y-, and z-direction (3 elements).
-            - Velocity in x-, y-, and z-direction (3 elements).
-            - Attitude as unit quaternion (4 elements). Should be given as
-              [q1, q2, q3, q4], where q1 is the real part and q1, q2 and q3 are
-              the three imaginary parts.
+
+        * Position in x-, y-, and z-direction (3 elements).
+        * Velocity in x-, y-, and z-direction (3 elements).
+        * Attitude as unit quaternion (4 elements). Should be given as
+          [q1, q2, q3, q4], where q1 is the real part and q1, q2 and q3 are
+          the three imaginary parts.
     lat : float, optional
         Latitude used to calculate the gravitational acceleration. If none
         provided, the 'standard gravity' is assumed.
@@ -147,11 +146,12 @@ class StrapdownINS:
         -------
         numpy.ndarray, shape (10,)
             State vector, containing the following elements in order:
-                - Position in x-, y-, and z-direction (3 elements).
-                - Velocity in x-, y-, and z-direction (3 elements).
-                - Attitude as unit quaternion (4 elements). Should be given as
-                  [q1, q2, q3, q4], where q1 is the real part and q1, q2 and q3
-                  are the three imaginary parts.
+
+            * Position in x-, y-, and z-direction (3 elements).
+            * Velocity in x-, y-, and z-direction (3 elements).
+            * Attitude as unit quaternion (4 elements). Should be given as
+              [q1, q2, q3, q4], where q1 is the real part and q1, q2 and q3
+              are the three imaginary parts.
         """
         return self._x.flatten()
 
@@ -186,8 +186,8 @@ class StrapdownINS:
         Returns
         -------
         numpy.ndarray, shape (4,)
-            Attitude as unit quaternion. Given as ``[q1, q2, q3, q4]``, where
-            ``q1`` is the real part and ``q1``, ``q2`` and ``q3`` are the three
+            Attitude as unit quaternion. Given as [q1, q2, q3, q4], where
+            q1 is the real part and q1, q2 and q3 are the three
             imaginary parts.
         """
         return self._q.flatten()
@@ -199,7 +199,7 @@ class StrapdownINS:
         Parameters
         ----------
         degrees : bool, default False
-            Whether to return the Euler angles in degrees or radians.
+            Specify whether to return the Euler angles in degrees or radians.
 
         Returns
         -------
@@ -211,9 +211,10 @@ class StrapdownINS:
         -----
         The Euler angles describe how to transition from the 'NED' frame to the 'body'
         frame through three consecutive intrinsic and passive rotations in the ZYX order:
-            1. A rotation by an angle gamma (often called yaw) about the z-axis.
-            2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
-            3. A final rotation by an angle alpha (often called roll) about the x-axis.
+
+        #. A rotation by an angle gamma (often called yaw) about the z-axis.
+        #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+        #. A final rotation by an angle alpha (often called roll) about the x-axis.
 
         This sequence of rotations is used to describe the orientation of the 'body' frame
         relative to the 'NED' frame in 3D space.
@@ -231,7 +232,7 @@ class StrapdownINS:
         if degrees:
             theta = (180.0 / np.pi) * theta
 
-        return theta
+        return theta  # type: ignore[no-any-return]
 
     def reset(self, x_new: ArrayLike) -> None:
         """
@@ -241,11 +242,12 @@ class StrapdownINS:
         ----------
         x_new : numpy.ndarray, shape (10,)
             New state vector, containing the following elements in order:
-                - Position in x-, y-, and z-direction (3 elements).
-                - Velocity in x-, y-, and z-direction (3 elements).
-                - Attitude as unit quaternion (4 elements). Should be given as
-                  [q1, q2, q3, q4], where q1 is the real part and q1, q2 and q3
-                  are the three imaginary parts.
+
+            * Position in x-, y-, and z-direction (3 elements).
+            * Velocity in x-, y-, and z-direction (3 elements).
+            * Attitude as unit quaternion (4 elements). Should be given as
+              [q1, q2, q3, q4], where q1 is the real part and q1, q2 and q3
+              are the three imaginary parts.
 
         Notes
         -----
@@ -288,15 +290,14 @@ class StrapdownINS:
             Sampling period in seconds.
         f_imu : array_like, shape (3,)
             Specific force (bias compansated) measurements (i.e., accelerations
-            + gravity), given as ``[f_x, f_y, f_z]^T`` where ``f_x``, ``f_y``
-            and ``f_z`` are acceleration measurements in x-, y-, and
-            z-direction, respectively.
+            + gravity), given as [f_x, f_y, f_z]^T where f_x, f_y and f_z are
+            acceleration measurements in x-, y-, and z-direction, respectively.
         w_imu : array_like, shape (3,)
             Angular rate (bias compansated) measurements, given as
-            ``[w_x, w_y, w_z]^T`` where ``w_x``, ``w_y`` and ``w_z`` are angular
-            rates about the x-, y-, and z-axis, respectively.
+            [w_x, w_y, w_z]^T where w_x, w_y and w_z are angular rates about
+            the x-, y-, and z-axis, respectively.
         degrees : bool, default False
-            Whether the angular rates are given in degrees or radians.
+            Specify whether the angular rates are given in degrees or radians.
 
         Returns
         -------
@@ -333,10 +334,11 @@ class _LegacyStrapdownINS:
     ----------
     x0 : numpy.ndarray, shape (9,)
         Initial state vector, containing the following elements in order:
-            - Position in x-, y-, and z-direction (3 elements).
-            - Velocity in x-, y-, and z-direction (3 elements).
-            - Euler angles in radians (3 elements), specifically: alpha (roll),
-              beta (pitch) and gamma (yaw) in that order.
+
+        * Position in x-, y-, and z-direction (3 elements).
+        * Velocity in x-, y-, and z-direction (3 elements).
+        * Euler angles in radians (3 elements), specifically: alpha (roll),
+          beta (pitch) and gamma (yaw) in that order.
     lat : float, optional
         Latitude used to calculate the gravitational acceleration. If none
         provided, the 'standard gravity' is assumed.
@@ -380,10 +382,11 @@ class _LegacyStrapdownINS:
         -------
         numpy.ndarray, shape (9,)
             State vector, containing the following elements in order:
-                - Position in x-, y-, and z-direction (3 elements).
-                - Velocity in x-, y-, and z-direction (3 elements).
-                - Euler angles in radians (3 elements), specifically: alpha (roll),
-                  beta (pitch) and gamma (yaw) in that order.
+
+            * Position in x-, y-, and z-direction (3 elements).
+            * Velocity in x-, y-, and z-direction (3 elements).
+            * Euler angles in radians (3 elements), specifically: alpha (roll),
+              beta (pitch) and gamma (yaw) in that order.
         """
         return self._x.flatten()
 
@@ -430,9 +433,10 @@ class _LegacyStrapdownINS:
         -----
         The Euler angles describe how to transition from the 'NED' frame to the 'body'
         frame through three consecutive intrinsic and passive rotations in the ZYX order:
-            1. A rotation by an angle gamma (often called yaw) about the z-axis.
-            2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
-            3. A final rotation by an angle alpha (often called roll) about the x-axis.
+
+        #. A rotation by an angle gamma (often called yaw) about the z-axis.
+        #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+        #. A final rotation by an angle alpha (often called roll) about the x-axis.
 
         This sequence of rotations is used to describe the orientation of the 'body' frame
         relative to the 'NED' frame in 3D space.
@@ -458,8 +462,8 @@ class _LegacyStrapdownINS:
         Returns
         -------
         numpy.ndarray, shape (4,)
-            Attitude as unit quaternion. Given as ``[q1, q2, q3, q4]``, where
-            ``q1`` is the real part and ``q1``, ``q2`` and ``q3`` are the three
+            Attitude as unit quaternion. Given as [q1, q2, q3, q4], where
+            q1 is the real part and q1, q2 and q3 are the three
             imaginary parts.
         """
         return _quaternion_from_euler(self._theta.flatten())  # type: ignore[no-any-return]
@@ -472,10 +476,11 @@ class _LegacyStrapdownINS:
         ----------
         x_new : numpy.ndarray, shape (10,)
             New state vector, containing the following elements in order:
-                - Position in x-, y-, and z-direction (3 elements).
-                - Velocity in x-, y-, and z-direction (3 elements).
-                - Euler angles in radians (3 elements), specifically: alpha (roll),
-                  beta (pitch) and gamma (yaw) in that order.
+
+            * Position in x-, y-, and z-direction (3 elements).
+            * Velocity in x-, y-, and z-direction (3 elements).
+            * Euler angles in radians (3 elements), specifically: alpha (roll),
+              beta (pitch) and gamma (yaw) in that order.
         """
         self._x = np.asarray_chkfinite(x_new).reshape(9, 1).copy()
 
@@ -515,19 +520,18 @@ class _LegacyStrapdownINS:
             Sampling period in seconds.
         f_imu : array_like, shape (3,)
             Specific force (bias compansated) measurements (i.e., accelerations
-            + gravity), given as ``[f_x, f_y, f_z]^T`` where ``f_x``, ``f_y``
-            and ``f_z`` are acceleration measurements in x-, y-, and
-            z-direction, respectively.
+            + gravity), given as [f_x, f_y, f_z]^T where f_x, f_y and f_z are
+            acceleration measurements in x-, y-, and z-direction, respectively.
         w_imu : array_like, shape (3,)
             Angular rate (bias compansated) measurements, given as
-            ``[w_x, w_y, w_z]^T`` where ``w_x``, ``w_y`` and ``w_z`` are angular
-            rates about the x-, y-, and z-axis, respectively.
+            [w_x, w_y, w_z]^T where w_x, w_y and w_z are angular rates about
+            the x-, y-, and z-axis, respectively.
         degrees : bool, default False
             Whether the angular rates are given in degrees or radians.
         theta_ext : array_like, shape (3,) optional
             Externally provided IMU orientation as Euler angles (in radians)
             according to the ned-to-body `z-y-x` convention, which is used to
-            calculate the ``R`` and ``T`` matrices. If ``None``, the most recent
+            calculate the R and T matrices. If ``None``, the most recent
             orientation state is used instead.
 
         Returns
@@ -569,22 +573,25 @@ class AidedINS:
         Sampling rate in Hz.
     x0 : array-like, shape (15,)
         Initial state vector containing the following elements in order:
-            - Position in x, y, z directions (3 elements).
-            - Velocity in x, y, z directions (3 elements).
-            - Euler angles in radians (3 elements), specifically: alpha (roll),
-              beta (pitch) and gamma (yaw) in that order.
-            - Accelerometer bias in x, y, z directions (3 elements).
-            - Gyroscope bias in x, y, z directions (3 elements).
+
+        * Position in x, y, z directions (3 elements).
+        * Velocity in x, y, z directions (3 elements).
+        * Euler angles in radians (3 elements), specifically: alpha (roll),
+          beta (pitch) and gamma (yaw) in that order.
+        * Accelerometer bias in x, y, z directions (3 elements).
+        * Gyroscope bias in x, y, z directions (3 elements).
     err_acc : dict of {str: float}
         Dictionary containing accelerometer noise parameters with keys:
-            - ``N``: White noise power spectral density in (m/s^2)/sqrt(Hz).
-            - ``B``: Bias stability in m/s^2.
-            - ``tau_cb``: Bias correlation time in seconds.
+
+        * ``N``: White noise power spectral density in (m/s^2)/sqrt(Hz).
+        * ``B``: Bias stability in m/s^2.
+        * ``tau_cb``: Bias correlation time in seconds.
     err_gyro : dict of {str: float}
         Dictionary containing gyroscope noise parameters with keys:
-            - ``N``: White noise power spectral density in (rad/s)/sqrt(Hz).
-            - ``B``: Bias stability in rad/s.
-            - ``tau_cb``: Bias correlation time in seconds.
+
+        * ``N``: White noise power spectral density in (rad/s)/sqrt(Hz).
+        * ``B``: Bias stability in rad/s.
+        * ``tau_cb``: Bias correlation time in seconds.
     var_pos : array-like, shape (3,)
         Variance of position measurement noise in m^2
     var_ahrs : array-like, shape (3,)
@@ -601,16 +608,16 @@ class AidedINS:
     Notes
     -----
     This AINS model has the following limitations:
-        - Supports only position and AHRS aiding.
-        - Operates at a constant sampling rate.
-        - Initial error covariance matrix, P, is fixed to the identity matrix, and
-          cannot be set during initialization.
-        - Update method is not properly tested.
-        - Does not correct for sensor installation offsets.
-        - Estimates the system states at the 'sensor location'.
-        - IMU error models are the same for all axes.
-    """
 
+    * Supports only position and AHRS aiding.
+    * Operates at a constant sampling rate.
+    * Initial error covariance matrix, P, is fixed to the identity matrix, and
+      cannot be set during initialization.
+    * Update method is not properly tested.
+    * Does not correct for sensor installation offsets.
+    * Estimates the system states at the 'sensor location'.
+    * IMU error models are the same for all axes.
+    """
     _I15 = np.eye(15)
 
     def __init__(
@@ -678,12 +685,13 @@ class AidedINS:
         -------
         numpy.ndarray, shape (15,)
             State vector, containing the following elements in order:
-                - Position in x-, y-, and z-direction (3 elements).
-                - Velocity in x-, y-, and z-direction (3 elements).
-                - Euler angles in radians (3 elements), specifically: alpha (roll),
-                  beta (pitch) and gamma (yaw) in that order.
-                - Accelerometer bias in x, y, z directions (3 elements).
-                - Gyroscope bias in x, y, z directions (3 elements).
+
+            * Position in x-, y-, and z-direction (3 elements).
+            * Velocity in x-, y-, and z-direction (3 elements).
+            * Euler angles in radians (3 elements), specifically: alpha (roll),
+              beta (pitch) and gamma (yaw) in that order.
+            * Accelerometer bias in x, y, z directions (3 elements).
+            * Gyroscope bias in x, y, z directions (3 elements).
         """
         return self._x.flatten()
 
@@ -730,9 +738,10 @@ class AidedINS:
         -----
         The Euler angles describe how to transition from the 'NED' frame to the 'body'
         frame through three consecutive intrinsic and passive rotations in the ZYX order:
-            1. A rotation by an angle gamma (often called yaw) about the z-axis.
-            2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
-            3. A final rotation by an angle alpha (often called roll) about the x-axis.
+
+        #. A rotation by an angle gamma (often called yaw) about the z-axis.
+        #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+        #. A final rotation by an angle alpha (often called roll) about the x-axis.
 
         This sequence of rotations is used to describe the orientation of the 'body' frame
         relative to the 'NED' frame in 3D space.
@@ -751,7 +760,6 @@ class AidedINS:
 
         return theta
 
-    # TODO: Continue from here
     def quaternion(self) -> NDArray[np.float64]:
         """
         Get current attitude estimate as unit quaternion (from-body-to-NED).
@@ -869,11 +877,11 @@ class AidedINS:
         ----------
         f_imu : array-like, shape (3,)
             Specific force measurements (i.e., accelerations + gravity), given
-            as ``[f_x, f_y, f_z]^T`` where ``f_x``, ``f_y`` and ``f_z`` are
+            as [f_x, f_y, f_z]^T where f_x, f_y and f_z are
             acceleration measurements in x-, y-, and z-direction, respectively.
         w_imu : array-like, shape (3,)
-            Angular rate measurements, given as ``[w_x, w_y, w_z]^T`` where
-            ``w_x``, ``w_y`` and ``w_z`` are angular rates about the x-, y-,
+            Angular rate measurements, given as [w_x, w_y, w_z]^T where
+            w_x, w_y and w_z are angular rates about the x-, y-,
             and z-axis, respectively.
         head : float
             Heading measurement, i.e., yaw angle.

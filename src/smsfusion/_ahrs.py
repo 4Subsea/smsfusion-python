@@ -175,20 +175,19 @@ class AHRS:
         ----------
         f_imu : array_like, shape (3,)
             Specific force measurements (i.e., accelerations + gravity), given
-            as ``[f_x, f_y, f_z]^T`` where ``f_x``, ``f_y`` and ``f_z`` are
+            as [f_x, f_y, f_z]^T where f_x, f_y and f_z are
             acceleration measurements in x-, y-, and z-direction, respectively.
         w_imu : array_like, shape (3,)
-            Angular rate measurements, given as ``[w_x, w_y, w_z]^T`` where
-            ``w_x``, ``w_y`` and ``w_z`` are angular rates about the x-, y-,
-            and z-axis, respectively. Unit determined by ``degrees``.
+            Angular rate measurements, given as [w_x, w_y, w_z]^T where
+            w_x, w_y and w_z are angular rates about the x-, y-,
+            and z-axis, respectively.
         head : float
             Compass heading measurement. Assumes right-hand rule about the NED
-            z-axis. Thus, the commonly used clockwise compass heading. Unit
-            determined by ``head_degrees``.
+            z-axis. Thus, the commonly used clockwise compass heading.
         degrees : bool, default True, meaning degrees/s
-            Whether the angular rates, ``w_imu``, are in degrees/s or radians/s.
+            Specify whether the angular rates, ``w_imu``, are in degrees/s or radians/s.
         head_degrees : bool, default True.
-            Whether the compass heading, ``head`` is in degrees or radians.
+            Specify whether the compass heading, ``head`` is in degrees or radians.
 
         Returns
         -------
@@ -231,11 +230,11 @@ class AHRS:
         Parameters
         ----------
         degrees : bool, default True.
-            Whether to return the Euler angles in degrees or radians.
+            Specify whether to return the Euler angles in degrees or radians.
 
         Returns
         -------
-        euler : numpy.ndarray, shape (3,)
+        numpy.ndarray, shape (3,)
             Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
             in that order.
 
@@ -244,9 +243,9 @@ class AHRS:
         The Euler angles describe how to transition from the 'NED' frame to the 'body'
         frame through three consecutive intrinsic and passive rotations in the ZYX order:
 
-            1. A rotation by an angle gamma (often called yaw) about the z-axis.
-            2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
-            3. A final rotation by an angle alpha (often called roll) about the x-axis.
+        #. A rotation by an angle gamma (often called yaw) about the z-axis.
+        #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+        #. A final rotation by an angle alpha (often called roll) about the x-axis.
 
         This sequence of rotations is used to describe the orientation of the 'body' frame
         relative to the 'NED' frame in 3D space.
@@ -258,10 +257,12 @@ class AHRS:
         Passive rotations mean that the frame itself is rotating, not the object
         within the frame.
         """
-        euler = _euler_from_quaternion(self._q)
+        theta = _euler_from_quaternion(self._q)
+
         if degrees:
-            euler = np.degrees(euler)
-        return euler  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
+            theta = (180.0 / np.pi) * theta
+
+        return theta  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
 
     def quaternion(self) -> NDArray[np.float64]:
         """
