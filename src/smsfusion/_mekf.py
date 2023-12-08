@@ -65,6 +65,7 @@ class MEKF:
         q0 = self._x0[6:10].flatten()
         self._dfdx = self._prep_dfdx_matrix(err_acc, err_gyro, q0)
         self._dfdw = self._prep_dfdw_matrix(q0)
+        self._dhdx = self._prep_dhdx_matrix(q0)
 
     @property
     def _x(self) -> NDArray[np.float64]:
@@ -227,6 +228,48 @@ class MEKF:
         dfdw[12:15, 9:12] = np.eye(3)
 
         return dfdw
+
+    @staticmethod
+    def _h_gamma(q: NDArray[np.float64]) -> NDArray[np.float64]:
+        """Linearization of compass measurement"""
+
+        q_w, q_xyz = np.split(q, [1])
+
+        a = (2.0 / q_w) * q_xyz  # 2 x Gibbs vector (Eq. 14.257 in Fossen)
+
+        a_x, a_y, a_z = a
+        u_n = 2.0 * (a_x * a_y + 2.0 * a_z)
+        u_d = (4.0 + a_x**2 - a_y**2 - a_z**2)
+        u = u_n / u_d  # (Eq. 14.255 in Fossen)
+
+        duda_scale = (1.0 / (4.0 + a_x**2 - a_y**2 - a_z**2)**2)
+        duda_x = -2.0 * ((a_x**2 + a_z**2 - 4.0) * a_y + a_y**3 + 4.0*a_y*a_z)
+        duda_y = 2.0 * ((a_y**2 - a_z**2 + 4.0)*a_x + a_x**3 + 4.0*a_y*a_z)
+        duda_z = 4.0 * (a_z**2 + a_x*a_y*a_z + a_x**2 - a_y**2 + 4.0)
+        duda = duda_scale * np.array([duda_x, duda_y, duda_z])  # (Eq. 14.256 in Fossen)
+
+        dhda = 1.0 / (1.0 + np.sum(u**2)) * duda  # (Eq. 14.254 in Fossen)
+        return dhda
+
+    def _prep_dhdx_matrix(self, q: NDArray[np.float64]) -> NDArray[np.float64]:
+        """Prepare measurement matrix"""
+
+        # Reference vector
+        v01_ned = np.array([0.0, 0.0, 1.0]).reshape(3, 1)
+
+        # Aliases for transformation matrices
+        R = _rot_matrix_from_quaternion  # body-to-ned rotation matrix
+        S = _skew_symmetric  # skew symmetric matrix
+
+        # Linearization of compass measurement
+        h_gamma = self._h_gamma(q)#.reshape(1, 3)
+
+        dhdx = np.zeros((10, 15))
+        dhdx[0:3, 0:3] = np.eye(3)  # position
+        dhdx[3:6, 3:6] = np.eye(3)  # velocity
+        dhdx[6:9, 6:9] = S((R(q).T @ v01_ned).flatten())  # gravity reference vector
+        dhdx[9:10, 6:9] = h_gamma  # compass
+        return dhdx
 
     def update(
         self,
