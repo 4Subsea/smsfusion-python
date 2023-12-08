@@ -213,3 +213,8 @@ class MEKF:
             w_imu = np.radians(w_imu)
         if head_degrees:
             head = np.radians(head)
+
+        # Project ahead
+        f_ins = f_imu - self._x_ins[9:12]
+        w_ins = w_imu - self._x_ins[12:15]
+        self._ins.update(self._dt, f_ins, w_ins, degrees=False)
