@@ -213,7 +213,12 @@ class MEKF:
 
         return dfdx
 
-    def _update_dfdx_matrix(self, q: NDArray[np.float64], f_ins: NDArray[np.float64], w_ins: NDArray[np.float64]) -> None:
+    def _update_dfdx_matrix(
+        self,
+        q: NDArray[np.float64],
+        f_ins: NDArray[np.float64],
+        w_ins: NDArray[np.float64],
+    ) -> None:
         """Update linearized state transition matrix"""
         # Aliases for transformation matrices
         R = _rot_matrix_from_quaternion  # body-to-ned rotation matrix
@@ -259,13 +264,13 @@ class MEKF:
 
         a_x, a_y, a_z = a
         u_n = 2.0 * (a_x * a_y + 2.0 * a_z)
-        u_d = (4.0 + a_x**2 - a_y**2 - a_z**2)
+        u_d = 4.0 + a_x**2 - a_y**2 - a_z**2
         u = u_n / u_d  # (Eq. 14.255 in Fossen)
 
-        duda_scale = (1.0 / (4.0 + a_x**2 - a_y**2 - a_z**2)**2)
-        duda_x = -2.0 * ((a_x**2 + a_z**2 - 4.0) * a_y + a_y**3 + 4.0*a_y*a_z)
-        duda_y = 2.0 * ((a_y**2 - a_z**2 + 4.0)*a_x + a_x**3 + 4.0*a_y*a_z)
-        duda_z = 4.0 * (a_z**2 + a_x*a_y*a_z + a_x**2 - a_y**2 + 4.0)
+        duda_scale = 1.0 / (4.0 + a_x**2 - a_y**2 - a_z**2) ** 2
+        duda_x = -2.0 * ((a_x**2 + a_z**2 - 4.0) * a_y + a_y**3 + 4.0 * a_y * a_z)
+        duda_y = 2.0 * ((a_y**2 - a_z**2 + 4.0) * a_x + a_x**3 + 4.0 * a_y * a_z)
+        duda_z = 4.0 * (a_z**2 + a_x * a_y * a_z + a_x**2 - a_y**2 + 4.0)
         duda = duda_scale * np.array([duda_x, duda_y, duda_z])  # (Eq. 14.256 in Fossen)
 
         dhda = 1.0 / (1.0 + np.sum(u**2)) * duda  # (Eq. 14.254 in Fossen)
@@ -301,7 +306,9 @@ class MEKF:
         R = _rot_matrix_from_quaternion  # body-to-ned rotation matrix
         S = _skew_symmetric  # skew symmetric matrix
 
-        self._dhdx[6:9, 6:9] = S((R(q).T @ v01_ned).flatten())  # gravity reference vector
+        self._dhdx[6:9, 6:9] = S(
+            (R(q).T @ v01_ned).flatten()
+        )  # gravity reference vector
         self._dhdx[9:10, 6:9] = self._h_gamma(q)  # compass
 
     def update(
