@@ -188,7 +188,7 @@ class MEKF:
         err_gyro: dict[str, float],
         q: NDArray[np.float64],
     ) -> NDArray[np.float64]:
-        """Prepare state matrix"""
+        """Prepare linearized state matrix"""
 
         beta_acc = 1.0 / err_acc["tau_cb"]
         beta_gyro = 1.0 / err_gyro["tau_cb"]
@@ -213,11 +213,22 @@ class MEKF:
 
         return dfdx
 
+    def _update_dfdx_matrix(self, q: NDArray[np.float64], f_ins: NDArray[np.float64], w_ins: NDArray[np.float64]) -> None:
+        """Update linearized state transition matrix"""
+        # Aliases for transformation matrices
+        R = _rot_matrix_from_quaternion  # body-to-ned rotation matrix
+        S = _skew_symmetric  # skew symmetric matrix
+
+        # Update matrix
+        self._dfdx[3:6, 6:9] = -R(q) @ S(f_ins)  # NB! update each time step
+        self._dfdx[3:6, 9:12] = -R(q)  # NB! update each time step
+        self._dfdx[6:9, 6:9] = -S(w_ins)  # NB! update each time step
+
     @staticmethod
     def _prep_dfdw_matrix(q: NDArray[np.float64]) -> NDArray[np.float64]:
         """Prepare (white noise) input matrix"""
 
-        # Aliases for transformation matrices
+        # Alias for transformation matrix
         R = _rot_matrix_from_quaternion  # body-to-ned rotation matrix
 
         # Input (white noise) matrix
@@ -228,6 +239,15 @@ class MEKF:
         dfdw[12:15, 9:12] = np.eye(3)
 
         return dfdw
+
+    def _update_dfdw_matrix(self, q: NDArray[np.float64]) -> None:
+        """Update (white noise) input matrix"""
+
+        # Alias for transformation matrix
+        R = _rot_matrix_from_quaternion  # body-to-ned rotation matrix alias
+
+        # Update matrix
+        self._dfdw[3:6, 0:3] = -R(q)
 
     @staticmethod
     def _h_gamma(q: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -252,7 +272,7 @@ class MEKF:
         return dhda
 
     def _prep_dhdx_matrix(self, q: NDArray[np.float64]) -> NDArray[np.float64]:
-        """Prepare measurement matrix"""
+        """Prepare linearized measurement matrix"""
 
         # Reference vector
         v01_ned = np.array([0.0, 0.0, 1.0]).reshape(3, 1)
@@ -262,7 +282,7 @@ class MEKF:
         S = _skew_symmetric  # skew symmetric matrix
 
         # Linearization of compass measurement
-        h_gamma = self._h_gamma(q)#.reshape(1, 3)
+        h_gamma = self._h_gamma(q)
 
         dhdx = np.zeros((10, 15))
         dhdx[0:3, 0:3] = np.eye(3)  # position
@@ -270,6 +290,19 @@ class MEKF:
         dhdx[6:9, 6:9] = S((R(q).T @ v01_ned).flatten())  # gravity reference vector
         dhdx[9:10, 6:9] = h_gamma  # compass
         return dhdx
+
+    def _update_dhdx_matrix(self, q: NDArray[np.float64]) -> None:
+        """Update linearized measurement matrix"""
+
+        # Reference vector
+        v01_ned = np.array([0.0, 0.0, 1.0]).reshape(3, 1)
+
+        # Aliases for transformation matrices
+        R = _rot_matrix_from_quaternion  # body-to-ned rotation matrix
+        S = _skew_symmetric  # skew symmetric matrix
+
+        self._dhdx[6:9, 6:9] = S((R(q).T @ v01_ned).flatten())  # gravity reference vector
+        self._dhdx[9:10, 6:9] = self._h_gamma(q)  # compass
 
     def update(
         self,
