@@ -171,3 +171,45 @@ class MEKF:
             theta = (180.0 / np.pi) * theta
 
         return theta
+
+    def update(
+        self,
+        f_imu: ArrayLike,
+        w_imu: ArrayLike,
+        head: float,
+        pos: ArrayLike | None = None,
+        degrees: bool = False,
+        head_degrees: bool = True,
+    ) -> "MEKF":  # TODO: Replace with ``typing.Self`` when Python > 3.11
+        """
+        Update the AINS state estimates based on measurements, and project ahead.
+
+        Parameters
+        ----------
+        f_imu : array-like (3,)
+            IMU specific force measurements (i.e., accelerations + gravity). Given
+            as `[f_x, f_y, f_z]^T` where `f_x`, `f_y`, and `f_z` are acceleration
+            measurements in the x-, y-, and z-directions, respectively.
+        w_imu : array-like (3,)
+            IMU rotation rate measurements. Given as `[w_x, w_y, w_z]^T` where `w_x`,
+            `w_y`, and `w_z` are rotation rates about the x-, y-, and z-axes, respectively.
+            The unit is determined by the `degrees` keyword argument.
+        head : float
+            Heading measurement, i.e., yaw angle. If `head_degrees` is `True`, the
+            heading is assumed to be in degrees; otherwise, in radians.
+        pos : array-like (3,), default=None
+            Position aiding measurement. If `None`, no position aiding is used.
+        degrees : bool, default=False
+            Specifies the units of the `w_imu` parameter. If `True`, the rotation
+            rates are assumed to be in degrees; otherwise, in radians.
+        head_degrees : bool, default=True
+            Specifies the unit of the `head` parameter. If `True`, the heading is
+            in degrees; otherwise, in radians.
+        """
+        f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3, 1).copy()
+        w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3, 1).copy()
+
+        if degrees:
+            w_imu = np.radians(w_imu)
+        if head_degrees:
+            head = np.radians(head)
