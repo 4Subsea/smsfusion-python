@@ -618,6 +618,7 @@ class AidedINS:
     * Estimates the system states at the 'sensor location'.
     * IMU error models are the same for all axes.
     """
+
     _I15 = np.eye(15)
 
     def __init__(
