@@ -2,7 +2,8 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from ._ins import StrapdownINS
-from ._transforms import _euler_from_quaternion
+from ._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
+from ._vectorops import _skew_symmetric
 
 
 class MEKF:
@@ -37,6 +38,9 @@ class MEKF:
         Variance of compass measurement noise in deg^2.
     """
 
+    _O3 = np.zeros((3, 3))
+    _I3 = np.eye(3)
+
     def __init__(
         self,
         fs: float,
@@ -56,6 +60,9 @@ class MEKF:
         # Strapdown algorithm
         self._x_ins = self._x0
         self._ins = StrapdownINS(self._x_ins[0:10])
+
+        # Prepare system matrices
+        self._F = self._prep_F_matrix(err_acc, err_gyro)
 
     @property
     def _x(self) -> NDArray[np.float64]:
@@ -171,6 +178,37 @@ class MEKF:
             theta = (180.0 / np.pi) * theta
 
         return theta
+
+    @staticmethod
+    def _prep_F_matrix(
+        err_acc: dict[str, float],
+        err_gyro: dict[str, float],
+    ) -> NDArray[np.float64]:
+        """Prepare state matrix"""
+
+        beta_acc = 1.0 / err_acc["tau_cb"]
+        beta_gyro = 1.0 / err_gyro["tau_cb"]
+
+        # Temporary placeholder vectors (to be replaced each timestep)
+        q = np.array([1.0, 0.0, 0.0, 0.0])
+        f_ins = np.array([0.0, 0.0, 0.0])
+        w_ins = np.array([0.0, 0.0, 0.0])
+
+        # Aliases for transformation matrices
+        R = _rot_matrix_from_quaternion  # body-to-ned rotation matrix
+        S = _skew_symmetric  # skew symmetric matrix
+
+        # State transition matrix
+        F = np.zeros((15, 15))
+        F[0:3, 3:6] = np.eye(3)
+        F[3:6, 6:9] = -R(q) @ S(f_ins)  # NB! update each time step
+        F[3:6, 9:12] = -R(q)  # NB! update each time step
+        F[6:9, 6:9] = -S(w_ins)  # NB! update each time step
+        F[6:9, 12:15] = -np.eye(3)
+        F[9:12, 9:12] = -beta_acc * np.eye(3)
+        F[12:15, 12:15] = -beta_gyro * np.eye(3)
+
+        return F
 
     def update(
         self,
