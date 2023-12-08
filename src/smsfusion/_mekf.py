@@ -1,10 +1,10 @@
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
 from numpy.linalg import inv
+from numpy.typing import ArrayLike, NDArray
 
 from ._ins import StrapdownINS, gravity
 from ._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
-from ._vectorops import _skew_symmetric, _normalize, _quaternion_product
+from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
 
 class MEKF:
@@ -452,7 +452,9 @@ class MEKF:
 
         # Reset
         self._x_ins[0:6] = self._x_ins[0:6] + dx[0:6]
-        self._x_ins[6:10] = _quaternion_product(self._x_ins[6:10].flatten(), dq.flatten()).reshape(4, 1)
+        self._x_ins[6:10] = _quaternion_product(
+            self._x_ins[6:10].flatten(), dq.flatten()
+        ).reshape(4, 1)
         self._x_ins[10:] = self._x_ins[10:] + dx[9:]
         self._ins.reset(self._x_ins[0:10])
 
