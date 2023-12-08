@@ -342,6 +342,7 @@ class MEKF:
         w_imu: ArrayLike,
         head: float | None = None,
         pos: ArrayLike | None = None,
+        vel: ArrayLike | None = None,
         degrees: bool = False,
         head_degrees: bool = True,
     ) -> "MEKF":  # TODO: Replace with ``typing.Self`` when Python > 3.11
@@ -395,14 +396,41 @@ class MEKF:
 
         dfdx = self._dfdx  # state matrix
         dfdw = self._dfdw  # (white noise) input matrix
-        dhdx = self._dhdx  # measurement matrix
+        dhdx_ = self._dhdx  # measurement matrix
         W = self._W  # white noise power spectral density matrix
         P_prior = self._P_prior  # error covariance matrix
         I15 = self._I15  # 15x15 identity matrix
 
         # Gravity vector measured
+        v01 = np.array([0.0, 0.0, 1.0]).reshape(3, 1)
         v1 = -f_ins / gravity()  # gravity vector measured
         v1 = _normalize(v1)
+
+        R = _rot_matrix_from_quaternion(self._x_ins[6:10].reshape(4))
+
+        dz = []
+        dhdx = []
+        if pos is not None:
+            pos = np.asarray_chkfinite(pos, dtype=float).reshape(3, 1).copy()
+            dz.append(pos - self._x_ins[0:3])
+            dhdx.append(dhdx_[0:3])
+        if vel is not None:
+            vel = np.asarray_chkfinite(vel, dtype=float).reshape(3, 1).copy()
+            dz.append(vel - self._x_ins[3:6])
+            dhdx.append(dhdx_[3:6])
+        dz.append(v1 - R.T * v01)
+        dhdx.append(dhdx_[6:9])
+        if head is not None:
+            q_w, q_xyz = np.split(q, [1])
+            a = (2.0 / q_w) * q_xyz  # 2 x Gibbs vector (Eq. 14.257 in Fossen)
+            a_x, a_y, a_z = a
+            u_n = 2.0 * (a_x * a_y + 2.0 * a_z)
+            u_d = 4.0 + a_x**2 - a_y**2 - a_z**2
+            head = np.asarray_chkfinite(head, dtype=float).reshape(1, 1).copy()
+            dz.append(head - np.arctan2(u_n, u_d))
+            dhdx.append(dhdx_[-1:])
+        dz = np.vstack(dz)
+        dhdx = np.vstack(dhdx)
 
         # Discretize system
         phi = I15 + self._dt * dfdx  # state transition matrix
@@ -412,7 +440,7 @@ class MEKF:
         K = P_prior @ dhdx.T @ inv(dhdx @ P_prior @ dhdx.T + R)
 
         # Update error-state estimate with measurement
-        dz = z - H @ self._x_ins  # TODO
+        # dz = z - H @ self._x_ins  # TODO
         dx = K @ dz
 
         # Compute error covariance for updated estimate
