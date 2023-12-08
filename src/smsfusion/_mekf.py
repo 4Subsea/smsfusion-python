@@ -62,7 +62,9 @@ class MEKF:
         self._ins = StrapdownINS(self._x_ins[0:10])
 
         # Prepare system matrices
-        self._F = self._prep_F_matrix(err_acc, err_gyro)
+        q0 = self._x0[6:10].flatten()
+        self._dfdx = self._prep_dfdx_matrix(err_acc, err_gyro, q0)
+        self._dfdw = self._prep_dfdw_matrix(q0)
 
     @property
     def _x(self) -> NDArray[np.float64]:
@@ -180,9 +182,10 @@ class MEKF:
         return theta
 
     @staticmethod
-    def _prep_F_matrix(
+    def _prep_dfdx_matrix(
         err_acc: dict[str, float],
         err_gyro: dict[str, float],
+        q: NDArray[np.float64],
     ) -> NDArray[np.float64]:
         """Prepare state matrix"""
 
@@ -190,7 +193,6 @@ class MEKF:
         beta_gyro = 1.0 / err_gyro["tau_cb"]
 
         # Temporary placeholder vectors (to be replaced each timestep)
-        q = np.array([1.0, 0.0, 0.0, 0.0])
         f_ins = np.array([0.0, 0.0, 0.0])
         w_ins = np.array([0.0, 0.0, 0.0])
 
@@ -199,16 +201,32 @@ class MEKF:
         S = _skew_symmetric  # skew symmetric matrix
 
         # State transition matrix
-        F = np.zeros((15, 15))
-        F[0:3, 3:6] = np.eye(3)
-        F[3:6, 6:9] = -R(q) @ S(f_ins)  # NB! update each time step
-        F[3:6, 9:12] = -R(q)  # NB! update each time step
-        F[6:9, 6:9] = -S(w_ins)  # NB! update each time step
-        F[6:9, 12:15] = -np.eye(3)
-        F[9:12, 9:12] = -beta_acc * np.eye(3)
-        F[12:15, 12:15] = -beta_gyro * np.eye(3)
+        dfdx = np.zeros((15, 15))
+        dfdx[0:3, 3:6] = np.eye(3)
+        dfdx[3:6, 6:9] = -R(q) @ S(f_ins)  # NB! update each time step
+        dfdx[3:6, 9:12] = -R(q)  # NB! update each time step
+        dfdx[6:9, 6:9] = -S(w_ins)  # NB! update each time step
+        dfdx[6:9, 12:15] = -np.eye(3)
+        dfdx[9:12, 9:12] = -beta_acc * np.eye(3)
+        dfdx[12:15, 12:15] = -beta_gyro * np.eye(3)
 
-        return F
+        return dfdx
+
+    @staticmethod
+    def _prep_dfdw_matrix(q: NDArray[np.float64]) -> NDArray[np.float64]:
+        """Prepare (white noise) input matrix"""
+
+        # Aliases for transformation matrices
+        R = _rot_matrix_from_quaternion  # body-to-ned rotation matrix
+
+        # Input (white noise) matrix
+        dfdw = np.zeros((15, 12))
+        dfdw[3:6, 0:3] = -R(q)  # NB! update each time step
+        dfdw[6:9, 3:6] = -np.eye(3)
+        dfdw[9:12, 6:9] = np.eye(3)
+        dfdw[12:15, 9:12] = np.eye(3)
+
+        return dfdw
 
     def update(
         self,
