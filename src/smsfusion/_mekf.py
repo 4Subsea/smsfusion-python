@@ -390,7 +390,7 @@ class MEKF:
 
         # Update system matrices
         q = self._q.reshape(4)
-        self._update_dfdx_matrix(q, f_ins, w_ins)
+        self._update_dfdx_matrix(q, f_ins.reshape(3), w_ins.reshape(3))
         self._update_dfdw_matrix(q)
         self._update_dhdx_matrix(q)
 
@@ -418,7 +418,7 @@ class MEKF:
             vel = np.asarray_chkfinite(vel, dtype=float).reshape(3, 1).copy()
             dz.append(vel - self._x_ins[3:6])
             dhdx.append(dhdx_[3:6])
-        dz.append(v1 - R.T * v01)
+        dz.append(v1 - R.T @ v01)
         dhdx.append(dhdx_[6:9])
         if head is not None:
             q_w, q_xyz = np.split(q, [1])
