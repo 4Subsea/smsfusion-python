@@ -67,7 +67,7 @@ class MEKF:
         self._ins = StrapdownINS(self._x_ins[0:10])
 
         # Initial Kalman filter error covariance
-        self._P_prior = np.eye(15)
+        self._P_prior = 1e6 * np.eye(15)
 
         # Prepare system matrices
         q0 = self._x0[6:10].flatten()
@@ -278,7 +278,7 @@ class MEKF:
         u = u_n / u_d  # (Eq. 14.255 in Fossen)
 
         duda_scale = 1.0 / (4.0 + a_x**2 - a_y**2 - a_z**2) ** 2
-        duda_x = -2.0 * ((a_x**2 + a_z**2 - 4.0) * a_y + a_y**3 + 4.0 * a_y * a_z)
+        duda_x = -2.0 * ((a_x**2 + a_z**2 - 4.0) * a_y + a_y**3 + 4.0 * a_x * a_z)
         duda_y = 2.0 * ((a_y**2 - a_z**2 + 4.0) * a_x + a_x**3 + 4.0 * a_y * a_z)
         duda_z = 4.0 * (a_z**2 + a_x * a_y * a_z + a_x**2 - a_y**2 + 4.0)
         duda = duda_scale * np.array([duda_x, duda_y, duda_z])  # (Eq. 14.256 in Fossen)
@@ -467,6 +467,7 @@ class MEKF:
         self._x_ins[6:10] = _quaternion_product(
             self._x_ins[6:10].flatten(), dq.flatten()
         ).reshape(4, 1)
+        self._x_ins[6:10] = _normalize(self._x_ins[6:10])
         self._x_ins[10:] = self._x_ins[10:] + dx[9:]
         self._ins.reset(self._x_ins[0:10])
 
@@ -474,4 +475,5 @@ class MEKF:
         f_ins = f_imu - self._x_ins[9:12]
         w_ins = w_imu - self._x_ins[12:15]
         self._ins.update(self._dt, f_ins, w_ins, degrees=False)
+        # self._ins.update(self._dt, f_imu, w_imu, degrees=False)
         self._P_prior = phi @ P @ phi.T + Q
