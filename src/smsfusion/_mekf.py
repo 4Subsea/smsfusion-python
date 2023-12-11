@@ -7,6 +7,37 @@ from ._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
 from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
 
+def _gibbs(q: NDArray[np.float64]) -> NDArray[np.float64]:
+    q_w, q_xyz = np.split(q, [1])
+    a_g = (1.0 / q_w) * q_xyz  # Gibbs vector (Eq. 14.228 in Fossen)
+    return a_g
+
+
+def _h(a: NDArray[np.float64]) -> float:
+    a_x, a_y, a_z = a
+    u_y = 2.0 * (a_x * a_y + 2.0 * a_z)
+    u_x = 4.0 + a_x**2 - a_y**2 - a_z**2
+    return np.arctan2(u_y, u_x)
+
+
+def _dhda(a: NDArray[np.float64]) -> NDArray[np.float64]:
+    a_x, a_y, a_z = a
+
+    u_y = 2.0 * (a_x * a_y + 2.0 * a_z)
+    u_x = 4.0 + a_x**2 - a_y**2 - a_z**2
+    u = u_y / u_x
+
+    duda_scale = 1.0 / (4.0 + a_x**2 - a_y**2 - a_z**2) ** 2
+    duda_x = -2.0 * ((a_x**2 + a_z**2 - 4.0) * a_y + a_y**3 + 4.0 * a_x * a_z)
+    duda_y = 2.0 * ((a_y**2 - a_z**2 + 4.0) * a_x + a_x**3 + 4.0 * a_y * a_z)
+    duda_z = 4.0 * (a_z**2 + a_x * a_y * a_z + a_x**2 - a_y**2 + 4.0)
+    duda = duda_scale * np.array([duda_x, duda_y, duda_z])  # (Eq. 14.256 in Fossen)
+
+    dhda = 1.0 / (1.0 + np.sum(u**2)) * duda  # (Eq. 14.254 in Fossen)
+
+    return dhda
+
+
 class MEKF:
     """
     Aided inertial navigation system (AINS) using a multiplicative extended
