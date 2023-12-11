@@ -67,7 +67,7 @@ class MEKF:
         self._ins = StrapdownINS(self._x_ins[0:10])
 
         # Initial Kalman filter error covariance
-        self._P_prior = 1e6 * np.eye(15)
+        self._P_prior = np.eye(15)
 
         # Prepare system matrices
         q0 = self._x0[6:10].flatten()
@@ -445,7 +445,8 @@ class MEKF:
         R = np.diag(np.concatenate(var_z))
 
         # Discretize system
-        phi = I15 + self._dt * dfdx  # state transition matrix
+        # phi = I15 + self._dt * dfdx  # state transition matrix
+        phi = I15 + self._dt * dfdx + 0.5 * (self._dt * dfdx)**2  # state transition matrix
         Q = self._dt * dfdw @ W @ dfdw.T  # process noise covariance matrix
 
         # Compute Kalman gain
