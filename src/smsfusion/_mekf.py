@@ -392,7 +392,7 @@ class MEKF:
         b_acc_ins = self._x_ins[10:13]
         b_gyro_ins = self._x_ins[13:16]
         f_ins = f_imu - b_acc_ins
-        w_ins = f_imu - b_gyro_ins
+        w_ins = w_imu - b_gyro_ins
 
         # Update system matrices
         q = self._q.reshape(4)
