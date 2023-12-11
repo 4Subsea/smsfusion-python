@@ -273,9 +273,9 @@ class MEKF:
         a = (2.0 / q_w) * q_xyz  # 2 x Gibbs vector (Eq. 14.257 in Fossen)
 
         a_x, a_y, a_z = a
-        u_n = 2.0 * (a_x * a_y + 2.0 * a_z)
-        u_d = 4.0 + a_x**2 - a_y**2 - a_z**2
-        u = u_n / u_d  # (Eq. 14.255 in Fossen)
+        u_y = 2.0 * (a_x * a_y + 2.0 * a_z)
+        u_x = 4.0 + a_x**2 - a_y**2 - a_z**2
+        u = u_y / u_x  # (Eq. 14.255 in Fossen)
 
         duda_scale = 1.0 / (4.0 + a_x**2 - a_y**2 - a_z**2) ** 2
         duda_x = -2.0 * ((a_x**2 + a_z**2 - 4.0) * a_y + a_y**3 + 4.0 * a_x * a_z)
@@ -434,10 +434,10 @@ class MEKF:
             q_w, q_xyz = np.split(q, [1])
             a = (2.0 / q_w) * q_xyz  # 2 x Gibbs vector (Eq. 14.257 in Fossen)
             a_x, a_y, a_z = a
-            u_n = 2.0 * (a_x * a_y + 2.0 * a_z)
-            u_d = 4.0 + a_x**2 - a_y**2 - a_z**2
+            u_y = 2.0 * (a_x * a_y + 2.0 * a_z)
+            u_x = 4.0 + a_x**2 - a_y**2 - a_z**2
             head = np.asarray_chkfinite(head, dtype=float).reshape(1, 1).copy()
-            dz.append(_signed_smallest_angle(head - np.arctan2(u_n, u_d)))
+            dz.append(_signed_smallest_angle(head - np.arctan2(u_y, u_x)))
             var_z.append(self._var_compass)
             dhdx.append(dhdx_[-1:])
         dz = np.vstack(dz)
