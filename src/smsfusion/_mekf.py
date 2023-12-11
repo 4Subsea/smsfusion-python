@@ -2,7 +2,7 @@ import numpy as np
 from numpy.linalg import inv
 from numpy.typing import ArrayLike, NDArray
 
-from ._ins import StrapdownINS, gravity
+from ._ins import StrapdownINS, gravity, _signed_smallest_angle
 from ._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
 from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
@@ -437,7 +437,7 @@ class MEKF:
             u_n = 2.0 * (a_x * a_y + 2.0 * a_z)
             u_d = 4.0 + a_x**2 - a_y**2 - a_z**2
             head = np.asarray_chkfinite(head, dtype=float).reshape(1, 1).copy()
-            dz.append(head - np.arctan2(u_n, u_d))
+            dz.append(_signed_smallest_angle(head - np.arctan2(u_n, u_d)))
             var_z.append(self._var_compass)
             dhdx.append(dhdx_[-1:])
         dz = np.vstack(dz)
