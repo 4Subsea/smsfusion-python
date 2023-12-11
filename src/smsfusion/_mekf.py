@@ -437,7 +437,7 @@ class MEKF:
             u_y = 2.0 * (a_x * a_y + 2.0 * a_z)
             u_x = 4.0 + a_x**2 - a_y**2 - a_z**2
             head = np.asarray_chkfinite(head, dtype=float).reshape(1, 1).copy()
-            dz.append(_signed_smallest_angle(head - np.arctan2(u_y, u_x)))
+            dz.append(_signed_smallest_angle(head - np.arctan2(u_y, u_x), degrees=False))
             var_z.append(self._var_compass)
             dhdx.append(dhdx_[-1:])
         dz = np.vstack(dz)
