@@ -48,6 +48,8 @@ class MEKF:
         err_acc: dict[str, float],
         err_gyro: dict[str, float],
         var_pos: ArrayLike,
+        var_vel: ArrayLike,
+        var_g: ArrayLike,
         var_compass: float,
     ) -> None:
         self._fs = fs
@@ -55,7 +57,10 @@ class MEKF:
         self._err_acc = err_acc
         self._err_gyro = err_gyro
         self._x0 = np.asarray_chkfinite(x0).reshape(16, 1).copy()
-        var_pos = np.asarray_chkfinite(var_pos).reshape(3).copy()
+        self._var_pos = np.asarray_chkfinite(var_pos).reshape(3).copy()
+        self._var_vel = np.asarray_chkfinite(var_vel).reshape(3).copy()
+        self._var_g = np.asarray_chkfinite(var_g).reshape(3).copy()
+        self._var_compass = np.asarray_chkfinite(var_compass).reshape(1).copy()
 
         # Strapdown algorithm
         self._x_ins = self._x0
@@ -70,6 +75,7 @@ class MEKF:
         self._dfdw = self._prep_dfdw_matrix(q0)
         self._dhdx = self._prep_dhdx_matrix(q0)
         self._W = self._prep_W_matrix(err_acc, err_gyro)
+        # self._R = np.diag(np.r_[var_pos, var_vel, var_g, var_compass])
 
     @property
     def _x(self) -> NDArray[np.float64]:
@@ -409,16 +415,20 @@ class MEKF:
         R_bn = _rot_matrix_from_quaternion(self._x_ins[6:10].reshape(4))
 
         dz = []
+        var_z = []
         dhdx = []
         if pos is not None:
             pos = np.asarray_chkfinite(pos, dtype=float).reshape(3, 1).copy()
             dz.append(pos - self._x_ins[0:3])
+            var_z.append(self._var_pos)
             dhdx.append(dhdx_[0:3])
         if vel is not None:
             vel = np.asarray_chkfinite(vel, dtype=float).reshape(3, 1).copy()
             dz.append(vel - self._x_ins[3:6])
+            var_z.append(self._var_vel)
             dhdx.append(dhdx_[3:6])
         dz.append(v1 - R_bn.T @ v01)
+        var_z.append(self._var_g)
         dhdx.append(dhdx_[6:9])
         if head is not None:
             q_w, q_xyz = np.split(q, [1])
@@ -428,9 +438,11 @@ class MEKF:
             u_d = 4.0 + a_x**2 - a_y**2 - a_z**2
             head = np.asarray_chkfinite(head, dtype=float).reshape(1, 1).copy()
             dz.append(head - np.arctan2(u_n, u_d))
+            var_z.append(self._var_compass)
             dhdx.append(dhdx_[-1:])
         dz = np.vstack(dz)
         dhdx = np.vstack(dhdx)
+        R = np.diag(np.concatenate(var_z))
 
         # Discretize system
         phi = I15 + self._dt * dfdx  # state transition matrix
