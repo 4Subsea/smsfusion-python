@@ -406,7 +406,7 @@ class MEKF:
         v1 = -f_ins / gravity()  # gravity vector measured
         v1 = _normalize(v1)
 
-        R = _rot_matrix_from_quaternion(self._x_ins[6:10].reshape(4))
+        R_bn = _rot_matrix_from_quaternion(self._x_ins[6:10].reshape(4))
 
         dz = []
         dhdx = []
@@ -418,7 +418,7 @@ class MEKF:
             vel = np.asarray_chkfinite(vel, dtype=float).reshape(3, 1).copy()
             dz.append(vel - self._x_ins[3:6])
             dhdx.append(dhdx_[3:6])
-        dz.append(v1 - R.T @ v01)
+        dz.append(v1 - R_bn.T @ v01)
         dhdx.append(dhdx_[6:9])
         if head is not None:
             q_w, q_xyz = np.split(q, [1])
