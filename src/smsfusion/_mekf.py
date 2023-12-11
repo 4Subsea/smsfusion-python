@@ -13,6 +13,10 @@ def _gibbs(q: NDArray[np.float64]) -> NDArray[np.float64]:
     return a_g
 
 
+def _gibbs_scaled(q: NDArray[np.float64]) -> NDArray[np.float64]:
+    return 2.0 * _gibbs(q)
+
+
 def _h(a: NDArray[np.float64]) -> float:
     a_x, a_y, a_z = a
     u_y = 2.0 * (a_x * a_y + 2.0 * a_z)
@@ -295,27 +299,27 @@ class MEKF:
         # Update matrix
         self._dfdw[3:6, 0:3] = -R(q)
 
-    @staticmethod
-    def _h_gamma(q: NDArray[np.float64]) -> NDArray[np.float64]:
-        """Linearization of compass measurement"""
+    # @staticmethod
+    # def _h_gamma(q: NDArray[np.float64]) -> NDArray[np.float64]:
+    #     """Linearization of compass measurement"""
 
-        q_w, q_xyz = np.split(q, [1])
+    #     q_w, q_xyz = np.split(q, [1])
 
-        a = (2.0 / q_w) * q_xyz  # 2 x Gibbs vector (Eq. 14.257 in Fossen)
+    #     a = (2.0 / q_w) * q_xyz  # 2 x Gibbs vector (Eq. 14.257 in Fossen)
 
-        a_x, a_y, a_z = a
-        u_y = 2.0 * (a_x * a_y + 2.0 * a_z)
-        u_x = 4.0 + a_x**2 - a_y**2 - a_z**2
-        u = u_y / u_x  # (Eq. 14.255 in Fossen)
+    #     a_x, a_y, a_z = a
+    #     u_y = 2.0 * (a_x * a_y + 2.0 * a_z)
+    #     u_x = 4.0 + a_x**2 - a_y**2 - a_z**2
+    #     u = u_y / u_x  # (Eq. 14.255 in Fossen)
 
-        duda_scale = 1.0 / (4.0 + a_x**2 - a_y**2 - a_z**2) ** 2
-        duda_x = -2.0 * ((a_x**2 + a_z**2 - 4.0) * a_y + a_y**3 + 4.0 * a_x * a_z)
-        duda_y = 2.0 * ((a_y**2 - a_z**2 + 4.0) * a_x + a_x**3 + 4.0 * a_y * a_z)
-        duda_z = 4.0 * (a_z**2 + a_x * a_y * a_z + a_x**2 - a_y**2 + 4.0)
-        duda = duda_scale * np.array([duda_x, duda_y, duda_z])  # (Eq. 14.256 in Fossen)
+    #     duda_scale = 1.0 / (4.0 + a_x**2 - a_y**2 - a_z**2) ** 2
+    #     duda_x = -2.0 * ((a_x**2 + a_z**2 - 4.0) * a_y + a_y**3 + 4.0 * a_x * a_z)
+    #     duda_y = 2.0 * ((a_y**2 - a_z**2 + 4.0) * a_x + a_x**3 + 4.0 * a_y * a_z)
+    #     duda_z = 4.0 * (a_z**2 + a_x * a_y * a_z + a_x**2 - a_y**2 + 4.0)
+    #     duda = duda_scale * np.array([duda_x, duda_y, duda_z])  # (Eq. 14.256 in Fossen)
 
-        dhda = 1.0 / (1.0 + np.sum(u**2)) * duda  # (Eq. 14.254 in Fossen)
-        return dhda
+    #     dhda = 1.0 / (1.0 + np.sum(u**2)) * duda  # (Eq. 14.254 in Fossen)
+    #     return dhda
 
     def _prep_dhdx_matrix(self, q: NDArray[np.float64]) -> NDArray[np.float64]:
         """Prepare linearized measurement matrix"""
@@ -327,14 +331,11 @@ class MEKF:
         R = _rot_matrix_from_quaternion  # body-to-ned rotation matrix
         S = _skew_symmetric  # skew symmetric matrix
 
-        # Linearization of compass measurement
-        h_gamma = self._h_gamma(q)
-
         dhdx = np.zeros((10, 15))
         dhdx[0:3, 0:3] = np.eye(3)  # position
         dhdx[3:6, 3:6] = np.eye(3)  # velocity
         dhdx[6:9, 6:9] = S((R(q).T @ v01_ned).flatten())  # gravity reference vector
-        dhdx[9:10, 6:9] = h_gamma  # compass
+        dhdx[9:10, 6:9] = _dhda(_gibbs_scaled(q))  # compass
         return dhdx
 
     def _update_dhdx_matrix(self, q: NDArray[np.float64]) -> None:
@@ -350,7 +351,7 @@ class MEKF:
         self._dhdx[6:9, 6:9] = S(
             (R(q).T @ v01_ned).flatten()
         )  # gravity reference vector
-        self._dhdx[9:10, 6:9] = self._h_gamma(q)  # compass
+        self._dhdx[9:10, 6:9] = _dhda(_gibbs_scaled(q))  # compass
 
     @staticmethod
     def _prep_W_matrix(
@@ -462,13 +463,8 @@ class MEKF:
         var_z.append(self._var_g)
         dhdx.append(dhdx_[6:9])
         if head is not None:
-            q_w, q_xyz = np.split(q, [1])
-            a = (2.0 / q_w) * q_xyz  # 2 x Gibbs vector (Eq. 14.257 in Fossen)
-            a_x, a_y, a_z = a
-            u_y = 2.0 * (a_x * a_y + 2.0 * a_z)
-            u_x = 4.0 + a_x**2 - a_y**2 - a_z**2
             head = np.asarray_chkfinite(head, dtype=float).reshape(1, 1).copy()
-            dz.append(_signed_smallest_angle(head - np.arctan2(u_y, u_x), degrees=False))
+            dz.append(_signed_smallest_angle(head - _h(_gibbs_scaled(q)), degrees=False))
             var_z.append(self._var_compass)
             dhdx.append(dhdx_[-1:])
         dz = np.vstack(dz)
