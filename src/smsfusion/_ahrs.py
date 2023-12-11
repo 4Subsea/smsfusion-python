@@ -17,8 +17,10 @@ from smsfusion._vectorops import _cross, _normalize
 
 class AHRS:
     """
-    AHRS algorithm using accelerometer and gyroscope (IMU), and compass heading
-    based on the non-linear observer filter by Mahony et. al.
+    AHRS algorithm based on the non-linear observer filter by Mahony et. al. [1]_.
+
+    The algorithm use specific force (acceleration), angular rate,
+    and compass heading measurements.
 
     Parameters
     ----------
@@ -29,9 +31,17 @@ class AHRS:
     Ki : float
         Bias gain factor.
     q_init : array_like, optional
-        Quaternion initial value. If ``None`` (default), ``q_init = [1., 0., 0., 0.]`` is used.
+        Initial value of unit quaternion represeting attitude. If ``None``,
+        initial attitude is set to align with NED frame.
     bias_init : array_like, optional
-        Bias initial value. If ``None`` (default), ``bias_init = [0., 0., 0.]`` is used.
+        Initial value of angular rate bias. If ``None``, inital bias is set to
+        zero.
+
+    References
+    ----------
+    .. [1] Mahony, R., T. Hamel and J.M. Pflimlin, "Nonlinear Complementary
+       Filters on the Special Orthogonal Group", IEEE Transactions on Automatic
+       Control, vol. 53(5), pp. 1203-1218, 2008.
     """
 
     def __init__(
@@ -54,7 +64,19 @@ class AHRS:
 
     @staticmethod
     def _q_init(q_init: ArrayLike | None) -> NDArray[np.float64]:
-        """Initiate quaternion."""
+        """
+        Compute initial value for the unit quaternion.
+
+        Parameters
+        ----------
+        q_init : numpy.ndarray or None
+            Initial value for the unit quaternion.
+
+        Returns
+        -------
+        numpy.ndarray
+            Checked and normalized unit quaternion.
+        """
         if q_init is not None:
             q_init = np.asarray_chkfinite(q_init, dtype=np.float64).reshape(4)
             q_abs = np.sqrt(np.dot(q_init, q_init))
@@ -67,7 +89,19 @@ class AHRS:
 
     @staticmethod
     def _bias_init(bias_init: ArrayLike | None) -> NDArray[np.float64]:
-        """Initiate bias."""
+        """
+        Compute initial value of the angular rate bias.
+
+        Parameters
+        ----------
+        bias_init : numpy.ndarray or None
+            Initial value for the bias.
+
+        Returns
+        -------
+        numpy.ndarray
+            Checked bias.
+        """
         if bias_init is not None:
             bias_init = np.asarray_chkfinite(bias_init, dtype=np.float64).reshape(3)
         else:
@@ -86,7 +120,7 @@ class AHRS:
         Ki: np.float64,
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
         """
-        Attitude (quaternion) update.
+        Update the attitude estimate with new measurements.
 
         Implemented as static method so that Numba JIT compiler can be used.
 
@@ -94,31 +128,29 @@ class AHRS:
         ----------
         dt : float
             Increment step size in time.
-        q : ndarray
-            Current quaternion estimate as 1D array.
-        bias : ndarray
-            Current quaternion estimate as 1D array.
-        w_imu : ndarray
-            Gyroscope based rotation rate measurements in radians as 1D array.
-            Measurements are assumed to be in the body frame of reference.
-        w_mes : ndarray
-            "Corrective" rotation rate measured by other sensors
-            (accelerometer, magnetometer, compass) as 1D array.
+        q : numpy.ndarray, shape (4,)
+            Current attitude as unit quaternion.
+        bias : numpy.ndarray, shape (3,)
+            Current angular rate bias.
+        w_imu : numpy.ndarray, shape (3,)
+            Angular rate measurements in radians. Assumed to be measured by
+            a strapdown gyroscope, and thus to be in the body frame of reference.
+        w_mes : numpy.ndarray, shape (3,)
+            "Corrective" angular rate measurements by other sensors, i.e.,
+            accelerometer and compass.
         Kp : float
-            Error gain factor.
+            Error gain factor (cf. proportional).
         Ki : float
-            Bias gain factor.
+            Bias gain factor (cf. integral).
 
         Returns
         -------
-        q : ndarray
-            Updated quaternion estimate as 1D array.
-        bias : ndarray
-            Updated bias estimate as 1D array.
-        omega_corr : ndarray
-            Error measurement. I.e., "corrective" rotation rate measured by other
-            sensors (accelerometer, magnetometer, compass) as 1D array.
-
+        q : numpy.ndarray, shape (4,)
+            Updated attitude as unit quaternion.
+        bias : numpy.ndarray, shape (3,)
+            Updated angular rate bias.
+        w_mes : numpy.ndarray, shape (3,)
+            ``w_mes`` passed through for convinience downstream.
         """
         bias = bias - Ki * w_mes * dt
 
@@ -137,28 +169,30 @@ class AHRS:
         head_degrees: bool = True,
     ) -> "AHRS":  # TODO: Replace with ``typing.Self`` when Python > 3.11
         """
-        Update the attitude estimate with new measurements from the IMU and compass.
+        Update the attitude estimate with new measurements.
 
         Parameters
         ----------
-        f_imu : array_like
-            IMU specific force measurements (i.e., accelerations + gravity). Given as
-            ``[f_x, f_y, f_z]^T`` where ``f_x``, ``f_y`` and ``f_z`` are
-            acceleration measurements in x-, y-, and z-direction, respectively. See Notes.
-        w_imu : array_like
-            IMU rotation rate measurements. Given as ``[w_x, w_y, w_z]^T`` where
-            ``w_x``, ``w_y`` and ``w_z`` are rotation rates about the x-, y-,
-            and z-axis, respectively. Unit determined with ``degrees`` keyword argument.
-            See Notes.
+        f_imu : array_like, shape (3,)
+            Specific force measurements (i.e., accelerations + gravity), given
+            as [f_x, f_y, f_z]^T where f_x, f_y and f_z are
+            acceleration measurements in x-, y-, and z-direction, respectively.
+        w_imu : array_like, shape (3,)
+            Angular rate measurements, given as [w_x, w_y, w_z]^T where
+            w_x, w_y and w_z are angular rates about the x-, y-,
+            and z-axis, respectively.
         head : float
-            Compass heading measurement. Assumes right-hand rule about the NED z-axis.
-            Thus, the commonly used clockwise compass heading.
-        degrees : bool
-            If ``True`` (default), the rotation rates are assumed to be in
-            degrees/s. Otherwise in radians/s.
-        head_degrees : bool
-            If ``True`` (default), the heading is assumed to be in
-            degrees. Otherwise in radians.
+            Compass heading measurement. Assumes right-hand rule about the NED
+            z-axis. Thus, the commonly used clockwise compass heading.
+        degrees : bool, default True, meaning degrees/s
+            Specify whether the angular rates, ``w_imu``, are in degrees/s or radians/s.
+        head_degrees : bool, default True.
+            Specify whether the compass heading, ``head`` is in degrees or radians.
+
+        Returns
+        -------
+        AidedINS
+            A reference to the instance itself after the update.
         """
         f_imu = np.asarray_chkfinite(f_imu, dtype=np.float64).reshape(3)
         w_imu = np.asarray_chkfinite(w_imu, dtype=np.float64).reshape(3)
@@ -191,27 +225,27 @@ class AHRS:
 
     def euler(self, degrees: bool = True) -> NDArray[np.float64]:
         """
-        Current attitude estimate as Euler angles in ZYX convention, see Notes.
+        Get current attitude estimate as Euler angles in ZYX convention, see Notes.
 
         Parameters
         ----------
-        degrees : bool
-            Whether to return the Euler angles in degrees (`True`) or radians (`False`).
+        degrees : bool, default True.
+            Specify whether to return the Euler angles in degrees or radians.
 
         Returns
         -------
-        euler : numpy.ndarray
-        Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
-        in that order.
+        numpy.ndarray, shape (3,)
+            Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
+            in that order.
 
         Notes
         -----
         The Euler angles describe how to transition from the 'NED' frame to the 'body'
         frame through three consecutive intrinsic and passive rotations in the ZYX order:
 
-            1. A rotation by an angle gamma (often called yaw) about the z-axis.
-            2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
-            3. A final rotation by an angle alpha (often called roll) about the x-axis.
+        #. A rotation by an angle gamma (often called yaw) about the z-axis.
+        #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+        #. A final rotation by an angle alpha (often called roll) about the x-axis.
 
         This sequence of rotations is used to describe the orientation of the 'body' frame
         relative to the 'NED' frame in 3D space.
@@ -223,25 +257,42 @@ class AHRS:
         Passive rotations mean that the frame itself is rotating, not the object
         within the frame.
         """
-        euler = _euler_from_quaternion(self._q)
+        theta = _euler_from_quaternion(self._q)
+
         if degrees:
-            euler = np.degrees(euler)
-        return euler  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
+            theta = (180.0 / np.pi) * theta
+
+        return theta  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
 
     def quaternion(self) -> NDArray[np.float64]:
         """
-        Current attitude estimate as unit quaternion (from-body-to-NED).
+        Get the current attitude estimate as unit quaternion (from-body-to-NED).
+
+        Returns
+        -------
+        numpy.ndarray, shape (4,)
+            Attitude as unit quaternion (from-body-to-NED).
         """
         return self._q.copy()
 
     def error(self) -> NDArray[np.float64]:
         """
-        Current error estimate.
+        Get the current error estimate.
+
+        Returns
+        -------
+        numpy.ndarray, shape (3,)
+            Current error.
         """
         return self._error.copy()
 
     def bias(self) -> NDArray[np.float64]:
         """
-        Current bias estimate.
+        Get the current angular rate bias estimate.
+
+        Returns
+        -------
+        numpy.ndarray, shape (3,)
+            Current angular rate bias.
         """
         return self._bias.copy()
