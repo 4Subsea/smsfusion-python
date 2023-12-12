@@ -474,8 +474,8 @@ class MEKF:
         R = np.diag(np.concatenate(var_z))
 
         # Discretize system
-        # phi = I15 + self._dt * dfdx  # state transition matrix
-        phi = I15 + self._dt * dfdx + 0.5 * (self._dt * dfdx)**2  # state transition matrix
+        # phi = I15 + self._dt * dfdx + 0.5 * (self._dt * dfdx)**2  # state transition matrix
+        phi = I15 + self._dt * dfdx  # state transition matrix
         Q = self._dt * dfdw @ W @ dfdw.T  # process noise covariance matrix
 
         # Compute Kalman gain
@@ -502,8 +502,5 @@ class MEKF:
         self._ins.reset(self._x_ins[0:10])
 
         # Project ahead
-        f_ins = f_imu - self._x_ins[9:12]
-        w_ins = w_imu - self._x_ins[12:15]
         self._ins.update(self._dt, f_ins, w_ins, degrees=False)
-        # self._ins.update(self._dt, f_imu, w_imu, degrees=False)
         self._P_prior = phi @ P @ phi.T + Q
