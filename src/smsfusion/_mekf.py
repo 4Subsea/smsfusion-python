@@ -304,7 +304,7 @@ class MEKF:
         """Prepare linearized measurement matrix"""
 
         # Reference vector
-        v01_ned = np.array([0.0, 0.0, 1.0]).reshape(3, 1)
+        v01_ned = np.array([0.0, 0.0, 1.0])
 
         # Aliases for transformation matrices
         R = _rot_matrix_from_quaternion  # body-to-ned rotation matrix
@@ -313,7 +313,7 @@ class MEKF:
         dhdx = np.zeros((10, 15))
         dhdx[0:3, 0:3] = np.eye(3)  # position
         dhdx[3:6, 3:6] = np.eye(3)  # velocity
-        dhdx[6:9, 6:9] = S((R(q).T @ v01_ned).flatten())  # gravity reference vector
+        dhdx[6:9, 6:9] = S(R(q).T @ v01_ned)  # gravity reference vector
         dhdx[9:10, 6:9] = _dhda(_gibbs_scaled(q))  # compass
         return dhdx
 
@@ -321,15 +321,13 @@ class MEKF:
         """Update linearized measurement matrix"""
 
         # Reference vector
-        v01_ned = np.array([0.0, 0.0, 1.0]).reshape(3, 1)
+        v01_ned = np.array([0.0, 0.0, 1.0])
 
         # Aliases for transformation matrices
         R = _rot_matrix_from_quaternion  # body-to-ned rotation matrix
         S = _skew_symmetric  # skew symmetric matrix
 
-        self._dhdx[6:9, 6:9] = S(
-            (R(q).T @ v01_ned).flatten()
-        )  # gravity reference vector
+        self._dhdx[6:9, 6:9] = S(R(q).T @ v01_ned)  # gravity reference vector
         self._dhdx[9:10, 6:9] = _dhda(_gibbs_scaled(q))  # compass
 
     @staticmethod
