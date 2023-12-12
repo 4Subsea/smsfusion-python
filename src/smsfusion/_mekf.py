@@ -390,8 +390,8 @@ class MEKF:
             Specifies the unit of the `head` parameter. If `True`, the heading is
             in degrees; otherwise, in radians.
         """
-        f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3, 1).copy()
-        w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3, 1).copy()
+        f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3).copy()
+        w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3).copy()
 
         if degrees:
             w_imu = np.radians(w_imu)
@@ -402,30 +402,31 @@ class MEKF:
         self._x_ins[0:10] = self._ins.x.reshape(10, 1)
 
         # Current state estimates
-        p_ins = self._x_ins[0:3]
-        v_ins = self._x_ins[3:6]
-        q_ins = self._x_ins[6:10]
-        b_acc_ins = self._x_ins[10:13]
-        b_gyro_ins = self._x_ins[13:16]
+        p_ins = self._x_ins[0:3].reshape(3)
+        v_ins = self._x_ins[3:6].reshape(3)
+        q_ins = self._x_ins[6:10].reshape(4)
+        b_acc_ins = self._x_ins[10:13].reshape(3)
+        b_gyro_ins = self._x_ins[13:16].reshape(3)
 
         # Rotation matrix (body-to-ned)
-        R_bn = _rot_matrix_from_quaternion(q_ins.reshape(4))
+        R_bn = _rot_matrix_from_quaternion(q_ins)
 
         # Bias compensated IMU measurements
         f_ins = f_imu - b_acc_ins
         w_ins = w_imu - b_gyro_ins
 
         # Gravity reference vector
-        v01 = np.array([0.0, 0.0, 1.0]).reshape(3, 1)
+        v01 = np.array([0.0, 0.0, 1.0])
 
         # Measured gravity vector
-        v1 = -f_ins / gravity()  # gravity vector measured
-        v1 = _normalize(v1)
+        # v1 = -f_ins / gravity()  # gravity vector measured
+        # v1 = _normalize(v1)
+        v1 = -_normalize(f_ins)
 
         # Update system matrices
-        self._update_dfdx_matrix(q_ins.reshape(4), f_ins.reshape(3), w_ins.reshape(3))
-        self._update_dfdw_matrix(q_ins.reshape(4))
-        self._update_dhdx_matrix(q_ins.reshape(4))
+        self._update_dfdx_matrix(q_ins, f_ins, w_ins)
+        self._update_dfdw_matrix(q_ins)
+        self._update_dhdx_matrix(q_ins)
 
         dfdx = self._dfdx  # state matrix
         dfdw = self._dfdw  # (white noise) input matrix
@@ -438,12 +439,12 @@ class MEKF:
         var_z = []
         dhdx = []
         if pos is not None:
-            pos = np.asarray_chkfinite(pos, dtype=float).reshape(3, 1).copy()
+            pos = np.asarray_chkfinite(pos, dtype=float).reshape(3).copy()
             dz.append(pos - p_ins)
             var_z.append(self._var_pos)
             dhdx.append(dhdx_[0:3])
         if vel is not None:
-            vel = np.asarray_chkfinite(vel, dtype=float).reshape(3, 1).copy()
+            vel = np.asarray_chkfinite(vel, dtype=float).reshape(3).copy()
             dz.append(vel - v_ins)
             var_z.append(self._var_vel)
             dhdx.append(dhdx_[3:6])
@@ -451,13 +452,13 @@ class MEKF:
         var_z.append(self._var_g)
         dhdx.append(dhdx_[6:9])
         if head is not None:
-            head = np.asarray_chkfinite(head, dtype=float).reshape(1, 1).copy()
+            head = np.asarray_chkfinite(head, dtype=float).reshape(1).copy()
             dz.append(
                 _signed_smallest_angle(head - _h(_gibbs_scaled(q_ins)), degrees=False)
             )
             var_z.append(self._var_compass)
             dhdx.append(dhdx_[-1:])
-        dz = np.vstack(dz)
+        dz = np.concatenate(dz)
         dhdx = np.vstack(dhdx)
         R = np.diag(np.concatenate(var_z))
 
@@ -476,16 +477,17 @@ class MEKF:
 
         # Error quaternion from 2x Gibbs vector
         da = dx[6:9]
-        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.vstack([2.0, da])
+        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
 
         # Reset
         p_ins = p_ins + dx[0:3]
         v_ins = v_ins + dx[3:6]
-        q_ins = _quaternion_product(q_ins.flatten(), dq.flatten()).reshape(4, 1)
+        q_ins = _quaternion_product(q_ins, dq)
         q_ins = _normalize(q_ins)
         b_acc_ins = b_acc_ins + dx[9:12]
         b_gyro_ins = b_gyro_ins + dx[12:15]
-        self._x_ins = np.vstack([p_ins, v_ins, q_ins, b_acc_ins, b_gyro_ins])
+        x_ins = np.r_[p_ins, v_ins, q_ins, b_acc_ins, b_gyro_ins]
+        self._x_ins = x_ins.reshape(16, 1)
         self._ins.reset(self._x_ins[:10])
 
         # Project ahead
