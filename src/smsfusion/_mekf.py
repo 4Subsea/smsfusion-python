@@ -478,13 +478,14 @@ class MEKF:
         dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.vstack([2.0, da])
 
         # Reset
-        self._x_ins[0:6] = self._x_ins[0:6] + dx[0:6]
-        self._x_ins[6:10] = _quaternion_product(q_ins.flatten(), dq.flatten()).reshape(
-            4, 1
-        )
-        self._x_ins[6:10] = _normalize(self._x_ins[6:10])
-        self._x_ins[10:] = self._x_ins[10:] + dx[9:]
-        self._ins.reset(self._x_ins[0:10])
+        p_ins = p_ins + dx[0:3]
+        v_ins = v_ins + dx[3:6]
+        q_ins = _quaternion_product(q_ins.flatten(), dq.flatten()).reshape(4, 1)
+        q_ins = _normalize(q_ins)
+        b_acc_ins = b_acc_ins + dx[9:12]
+        b_gyro_ins = b_gyro_ins + dx[12:15]
+        self._x_ins = np.vstack([p_ins, v_ins, q_ins, b_acc_ins, b_gyro_ins])
+        self._ins.reset(self._x_ins[:10])
 
         # Project ahead
         self._ins.update(self._dt, f_ins, w_ins, degrees=False)
