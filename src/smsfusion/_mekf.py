@@ -2,7 +2,7 @@ import numpy as np
 from numpy.linalg import inv
 from numpy.typing import ArrayLike, NDArray
 
-from ._ins import StrapdownINS, gravity, _signed_smallest_angle
+from ._ins import StrapdownINS, _signed_smallest_angle, gravity
 from ._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
 from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
@@ -400,17 +400,31 @@ class MEKF:
         # Update INS state
         self._x_ins[0:10] = self._ins.x.reshape(10, 1)
 
-        # Bias compensated IMU measurements
+        # Current state estimates
+        p_ins = self._x_ins[0:3]
+        v_ins = self._x_ins[3:6]
+        q_ins = self._x_ins[6:10]
         b_acc_ins = self._x_ins[10:13]
         b_gyro_ins = self._x_ins[13:16]
+
+        # Rotation matrix (body-to-ned)
+        R_bn = _rot_matrix_from_quaternion(q_ins.reshape(4))
+
+        # Bias compensated IMU measurements
         f_ins = f_imu - b_acc_ins
         w_ins = w_imu - b_gyro_ins
 
+        # Gravity reference vector
+        v01 = np.array([0.0, 0.0, 1.0]).reshape(3, 1)
+
+        # Measured gravity vector
+        v1 = -f_ins / gravity()  # gravity vector measured
+        v1 = _normalize(v1)
+
         # Update system matrices
-        q = self._q.reshape(4)
-        self._update_dfdx_matrix(q, f_ins.reshape(3), w_ins.reshape(3))
-        self._update_dfdw_matrix(q)
-        self._update_dhdx_matrix(q)
+        self._update_dfdx_matrix(q_ins.reshape(4), f_ins.reshape(3), w_ins.reshape(3))
+        self._update_dfdw_matrix(q_ins.reshape(4))
+        self._update_dhdx_matrix(q_ins.reshape(4))
 
         dfdx = self._dfdx  # state matrix
         dfdw = self._dfdw  # (white noise) input matrix
@@ -419,24 +433,17 @@ class MEKF:
         P_prior = self._P_prior  # error covariance matrix
         I15 = self._I15  # 15x15 identity matrix
 
-        # Gravity vector measured
-        v01 = np.array([0.0, 0.0, 1.0]).reshape(3, 1)
-        v1 = -f_ins / gravity()  # gravity vector measured
-        v1 = _normalize(v1)
-
-        R_bn = _rot_matrix_from_quaternion(self._x_ins[6:10].reshape(4))
-
         dz = []
         var_z = []
         dhdx = []
         if pos is not None:
             pos = np.asarray_chkfinite(pos, dtype=float).reshape(3, 1).copy()
-            dz.append(pos - self._x_ins[0:3])
+            dz.append(pos - p_ins)
             var_z.append(self._var_pos)
             dhdx.append(dhdx_[0:3])
         if vel is not None:
             vel = np.asarray_chkfinite(vel, dtype=float).reshape(3, 1).copy()
-            dz.append(vel - self._x_ins[3:6])
+            dz.append(vel - v_ins)
             var_z.append(self._var_vel)
             dhdx.append(dhdx_[3:6])
         dz.append(v1 - R_bn.T @ v01)
@@ -444,7 +451,9 @@ class MEKF:
         dhdx.append(dhdx_[6:9])
         if head is not None:
             head = np.asarray_chkfinite(head, dtype=float).reshape(1, 1).copy()
-            dz.append(_signed_smallest_angle(head - _h(_gibbs_scaled(q)), degrees=False))
+            dz.append(
+                _signed_smallest_angle(head - _h(_gibbs_scaled(q_ins)), degrees=False)
+            )
             var_z.append(self._var_compass)
             dhdx.append(dhdx_[-1:])
         dz = np.vstack(dz)
@@ -470,9 +479,9 @@ class MEKF:
 
         # Reset
         self._x_ins[0:6] = self._x_ins[0:6] + dx[0:6]
-        self._x_ins[6:10] = _quaternion_product(
-            self._x_ins[6:10].flatten(), dq.flatten()
-        ).reshape(4, 1)
+        self._x_ins[6:10] = _quaternion_product(q_ins.flatten(), dq.flatten()).reshape(
+            4, 1
+        )
         self._x_ins[6:10] = _normalize(self._x_ins[6:10])
         self._x_ins[10:] = self._x_ins[10:] + dx[9:]
         self._ins.reset(self._x_ins[0:10])
