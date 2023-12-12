@@ -431,29 +431,37 @@ class MEKF:
         P_prior = self._P_prior  # error covariance matrix
         I15 = self._I15  # 15x15 identity matrix
 
-        dz = []
-        var_z = []
-        dhdx = []
+        # Position aiding
+        dz, var_z, dhdx = [], [], []
         if pos is not None:
             pos = np.asarray_chkfinite(pos, dtype=float).reshape(3).copy()
-            dz.append(pos - p_ins)
+            delta_pos = pos - p_ins
+            dz.append(delta_pos)
             var_z.append(self._var_pos)
             dhdx.append(dhdx_[0:3])
+
+        # Velocity aiding
         if vel is not None:
             vel = np.asarray_chkfinite(vel, dtype=float).reshape(3).copy()
-            dz.append(vel - v_ins)
+            delta_vel = vel - v_ins
+            dz.append(delta_vel)
             var_z.append(self._var_vel)
             dhdx.append(dhdx_[3:6])
-        dz.append(v1 - R_bn.T @ v01)
+
+        # Gravity reference vector aiding
+        delta_g = v1 - R_bn.T @ v01
+        dz.append(delta_g)
         var_z.append(self._var_g)
         dhdx.append(dhdx_[6:9])
+
+        # Compass aiding
         if head is not None:
             head = np.asarray_chkfinite(head, dtype=float).reshape(1).copy()
-            dz.append(
-                _signed_smallest_angle(head - _h(_gibbs_scaled(q_ins)), degrees=False)
-            )
+            delta_head = head - _h(_gibbs_scaled(q_ins))
+            dz.append(_signed_smallest_angle(delta_head, degrees=False))
             var_z.append(self._var_compass)
             dhdx.append(dhdx_[-1:])
+
         dz = np.concatenate(dz)
         dhdx = np.vstack(dhdx)
         R = np.diag(np.concatenate(var_z))
