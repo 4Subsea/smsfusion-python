@@ -100,7 +100,7 @@ class MEKF:
         self._var_compass = np.asarray_chkfinite(var_compass).reshape(1).copy()
 
         # Strapdown algorithm
-        self._x_ins = self._x0
+        self._x_ins = self._x0.copy()
         self._ins = StrapdownINS(self._x_ins[0:10])
 
         # Initial Kalman filter error covariance
