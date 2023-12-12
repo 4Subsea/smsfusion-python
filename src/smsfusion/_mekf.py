@@ -107,12 +107,11 @@ class MEKF:
         self._P_prior = np.eye(15)
 
         # Prepare system matrices
-        q0 = self._x0[6:10].flatten()
+        q0 = self._x0[6:10].reshape(4)
         self._dfdx = self._prep_dfdx_matrix(err_acc, err_gyro, q0)
         self._dfdw = self._prep_dfdw_matrix(q0)
         self._dhdx = self._prep_dhdx_matrix(q0)
         self._W = self._prep_W_matrix(err_acc, err_gyro)
-        # self._R = np.diag(np.r_[var_pos, var_vel, var_g, var_compass])
 
     @property
     def _x(self) -> NDArray[np.float64]:
@@ -358,9 +357,9 @@ class MEKF:
         self,
         f_imu: ArrayLike,
         w_imu: ArrayLike,
-        head: float | None = None,
         pos: ArrayLike | None = None,
         vel: ArrayLike | None = None,
+        head: float | None = None,
         degrees: bool = False,
         head_degrees: bool = True,
     ) -> "MEKF":  # TODO: Replace with ``typing.Self`` when Python > 3.11
@@ -377,11 +376,13 @@ class MEKF:
             IMU rotation rate measurements. Given as `[w_x, w_y, w_z]^T` where `w_x`,
             `w_y`, and `w_z` are rotation rates about the x-, y-, and z-axes, respectively.
             The unit is determined by the `degrees` keyword argument.
+        pos : array-like (3,), default=None
+            Position aiding measurement. If `None`, no position aiding is used.
+        vel : array-like (3,), default=None
+            Velocity aiding measurement. If `None`, no velocity aiding is used.
         head : float
             Heading measurement, i.e., yaw angle. If `head_degrees` is `True`, the
             heading is assumed to be in degrees; otherwise, in radians.
-        pos : array-like (3,), default=None
-            Position aiding measurement. If `None`, no position aiding is used.
         degrees : bool, default=False
             Specifies the units of the `w_imu` parameter. If `True`, the rotation
             rates are assumed to be in degrees; otherwise, in radians.
