@@ -301,28 +301,6 @@ class MEKF:
         # Update matrix
         self._dfdw[3:6, 0:3] = -R(q)
 
-    # @staticmethod
-    # def _h_gamma(q: NDArray[np.float64]) -> NDArray[np.float64]:
-    #     """Linearization of compass measurement"""
-
-    #     q_w, q_xyz = np.split(q, [1])
-
-    #     a = (2.0 / q_w) * q_xyz  # 2 x Gibbs vector (Eq. 14.257 in Fossen)
-
-    #     a_x, a_y, a_z = a
-    #     u_y = 2.0 * (a_x * a_y + 2.0 * a_z)
-    #     u_x = 4.0 + a_x**2 - a_y**2 - a_z**2
-    #     u = u_y / u_x  # (Eq. 14.255 in Fossen)
-
-    #     duda_scale = 1.0 / (4.0 + a_x**2 - a_y**2 - a_z**2) ** 2
-    #     duda_x = -2.0 * ((a_x**2 + a_z**2 - 4.0) * a_y + a_y**3 + 4.0 * a_x * a_z)
-    #     duda_y = 2.0 * ((a_y**2 - a_z**2 + 4.0) * a_x + a_x**3 + 4.0 * a_y * a_z)
-    #     duda_z = 4.0 * (a_z**2 + a_x * a_y * a_z + a_x**2 - a_y**2 + 4.0)
-    #     duda = duda_scale * np.array([duda_x, duda_y, duda_z])  # (Eq. 14.256 in Fossen)
-
-    #     dhda = 1.0 / (1.0 + np.sum(u**2)) * duda  # (Eq. 14.254 in Fossen)
-    #     return dhda
-
     def _prep_dhdx_matrix(self, q: NDArray[np.float64]) -> NDArray[np.float64]:
         """Prepare linearized measurement matrix"""
 
@@ -474,7 +452,6 @@ class MEKF:
         R = np.diag(np.concatenate(var_z))
 
         # Discretize system
-        # phi = I15 + self._dt * dfdx + 0.5 * (self._dt * dfdx)**2  # state transition matrix
         phi = I15 + self._dt * dfdx  # state transition matrix
         Q = self._dt * dfdw @ W @ dfdw.T  # process noise covariance matrix
 
@@ -482,7 +459,6 @@ class MEKF:
         K = P_prior @ dhdx.T @ inv(dhdx @ P_prior @ dhdx.T + R)
 
         # Update error-state estimate with measurement
-        # dz = z - H @ self._x_ins  # TODO
         dx = K @ dz
 
         # Compute error covariance for updated estimate
