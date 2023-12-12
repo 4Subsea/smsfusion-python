@@ -2,7 +2,7 @@ import numpy as np
 from numpy.linalg import inv
 from numpy.typing import ArrayLike, NDArray
 
-from ._ins import StrapdownINS, _signed_smallest_angle, gravity
+from ._ins import StrapdownINS, _signed_smallest_angle
 from ._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
 from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
@@ -417,8 +417,6 @@ class MEKF:
         v01 = np.array([0.0, 0.0, 1.0])
 
         # Measured gravity vector
-        # v1 = -f_ins / gravity()  # gravity vector measured
-        # v1 = _normalize(v1)
         v1 = -_normalize(f_ins)
 
         # Update system matrices
