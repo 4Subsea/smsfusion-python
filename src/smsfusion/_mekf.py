@@ -133,6 +133,14 @@ class MEKF:
         return self._x[6:10]
 
     @property
+    def _b_acc(self) -> NDArray[np.float64]:
+        return self._x[10:13]
+
+    @property
+    def _b_gyro(self) -> NDArray[np.float64]:
+        return self._x[13:16]
+
+    @property
     def x(self) -> NDArray[np.float64]:
         """
         Current AINS state estimate.
@@ -147,7 +155,7 @@ class MEKF:
                 - Accelerometer bias in x, y, z directions (3 elements).
                 - Gyroscope bias in x, y, z directions (3 elements).
         """
-        return self._x.flatten()
+        return self._x.copy()
 
     def position(self) -> NDArray[np.float64]:
         """
@@ -161,7 +169,7 @@ class MEKF:
                 - Position in y direction.
                 - Position in z direction.
         """
-        return self._p.flatten()
+        return self._p.copy()
 
     def velocity(self) -> NDArray[np.float64]:
         """
@@ -175,7 +183,7 @@ class MEKF:
                 - Velocity in y direction.
                 - Velocity in z direction.
         """
-        return self._v.flatten()
+        return self._v.copy()
 
     def quaternion(self) -> NDArray[np.float64]:
         """
@@ -187,7 +195,7 @@ class MEKF:
             Attitude as unit quaternion. Given as [q1, q2, q3, q4], where q1 is
             the real part and q1, q2 and q3 are the three imaginary parts.
         """
-        return self._q.flatten()
+        return self._q.copy()
 
     def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
@@ -229,6 +237,34 @@ class MEKF:
             theta = (180.0 / np.pi) * theta
 
         return theta
+
+    def bias_acc(self) -> NDArray[np.float64]:
+        """
+        Current accelerometer bias estimate.
+
+        Returns
+        -------
+        b_acc : numpy.ndarray (3,)
+            The current accelerometer bias vector, containing the following elements:
+                - x-axis acceleration bias.
+                - y-axis acceleration bias.
+                - z-axis acceleration bias.
+        """
+        return self._b_acc.copy()
+
+    def bias_gyro(self) -> NDArray[np.float64]:
+        """
+        Current gyroscope bias estimate.
+
+        Returns
+        -------
+        b_gyro : numpy.ndarray (3,)
+            The current gyroscope bias vector, containing the following elements:
+                - x-axis rotation rate bias.
+                - y-axis rotation rate bias.
+                - z-axis rotation rate bias.
+        """
+        return self._b_acc.copy()
 
     @staticmethod
     def _prep_dfdx_matrix(
@@ -398,11 +434,11 @@ class MEKF:
         self._x_ins[0:10] = self._ins.x
 
         # Current state estimates
-        p_ins = self._x_ins[0:3]
-        v_ins = self._x_ins[3:6]
-        q_ins = self._x_ins[6:10]
-        b_acc_ins = self._x_ins[10:13]
-        b_gyro_ins = self._x_ins[13:16]
+        p_ins = self._p
+        v_ins = self._v
+        q_ins = self._q
+        b_acc_ins = self._b_acc
+        b_gyro_ins = self._b_gyro
 
         # Rotation matrix (body-to-ned)
         R_bn = _rot_matrix_from_quaternion(q_ins)
