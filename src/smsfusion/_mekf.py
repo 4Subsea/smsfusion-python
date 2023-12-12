@@ -8,12 +8,14 @@ from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
 
 def _gibbs(q: NDArray[np.float64]) -> NDArray[np.float64]:
+    """Gibbs vector"""
     q_w, q_xyz = np.split(q, [1])
     a_g = (1.0 / q_w) * q_xyz  # Gibbs vector (Eq. 14.228 in Fossen)
     return a_g
 
 
 def _gibbs_scaled(q: NDArray[np.float64]) -> NDArray[np.float64]:
+    """2 x Gibbs vector"""
     return 2.0 * _gibbs(q)
 
 
