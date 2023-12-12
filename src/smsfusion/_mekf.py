@@ -20,6 +20,7 @@ def _gibbs_scaled(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 def _h(a: NDArray[np.float64]) -> float:
+    """See Eq. 14.251 in Fossen"""
     a_x, a_y, a_z = a
     u_y = 2.0 * (a_x * a_y + 2.0 * a_z)
     u_x = 4.0 + a_x**2 - a_y**2 - a_z**2
@@ -27,6 +28,7 @@ def _h(a: NDArray[np.float64]) -> float:
 
 
 def _dhda(a: NDArray[np.float64]) -> NDArray[np.float64]:
+    """See Eq. 14.254 in Fossen"""
     a_x, a_y, a_z = a
 
     u_y = 2.0 * (a_x * a_y + 2.0 * a_z)
@@ -37,9 +39,9 @@ def _dhda(a: NDArray[np.float64]) -> NDArray[np.float64]:
     duda_x = -2.0 * ((a_x**2 + a_z**2 - 4.0) * a_y + a_y**3 + 4.0 * a_x * a_z)
     duda_y = 2.0 * ((a_y**2 - a_z**2 + 4.0) * a_x + a_x**3 + 4.0 * a_y * a_z)
     duda_z = 4.0 * (a_z**2 + a_x * a_y * a_z + a_x**2 - a_y**2 + 4.0)
-    duda = duda_scale * np.array([duda_x, duda_y, duda_z])  # (Eq. 14.256 in Fossen)
+    duda = duda_scale * np.array([duda_x, duda_y, duda_z])
 
-    dhda = 1.0 / (1.0 + np.sum(u**2)) * duda  # (Eq. 14.254 in Fossen)
+    dhda = 1.0 / (1.0 + np.sum(u**2)) * duda
 
     return dhda
 
