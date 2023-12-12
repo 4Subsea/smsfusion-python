@@ -93,7 +93,7 @@ class MEKF:
         self._dt = 1.0 / fs
         self._err_acc = err_acc
         self._err_gyro = err_gyro
-        self._x0 = np.asarray_chkfinite(x0).reshape(16, 1).copy()
+        self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
         self._var_pos = np.asarray_chkfinite(var_pos).reshape(3).copy()
         self._var_vel = np.asarray_chkfinite(var_vel).reshape(3).copy()
         self._var_g = np.asarray_chkfinite(var_g).reshape(3).copy()
@@ -107,7 +107,7 @@ class MEKF:
         self._P_prior = np.eye(15)
 
         # Prepare system matrices
-        q0 = self._x0[6:10].reshape(4)
+        q0 = self._x0[6:10]
         self._dfdx = self._prep_dfdx_matrix(err_acc, err_gyro, q0)
         self._dfdw = self._prep_dfdw_matrix(q0)
         self._dhdx = self._prep_dhdx_matrix(q0)
@@ -399,14 +399,14 @@ class MEKF:
             head = np.radians(head)
 
         # Update INS state
-        self._x_ins[0:10] = self._ins.x.reshape(10, 1)
+        self._x_ins[0:10] = self._ins.x
 
         # Current state estimates
-        p_ins = self._x_ins[0:3].reshape(3)
-        v_ins = self._x_ins[3:6].reshape(3)
-        q_ins = self._x_ins[6:10].reshape(4)
-        b_acc_ins = self._x_ins[10:13].reshape(3)
-        b_gyro_ins = self._x_ins[13:16].reshape(3)
+        p_ins = self._x_ins[0:3]
+        v_ins = self._x_ins[3:6]
+        q_ins = self._x_ins[6:10]
+        b_acc_ins = self._x_ins[10:13]
+        b_gyro_ins = self._x_ins[13:16]
 
         # Rotation matrix (body-to-ned)
         R_bn = _rot_matrix_from_quaternion(q_ins)
@@ -487,7 +487,7 @@ class MEKF:
         b_acc_ins = b_acc_ins + dx[9:12]
         b_gyro_ins = b_gyro_ins + dx[12:15]
         x_ins = np.r_[p_ins, v_ins, q_ins, b_acc_ins, b_gyro_ins]
-        self._x_ins = x_ins.reshape(16, 1)
+        self._x_ins = x_ins
         self._ins.reset(self._x_ins[:10])
 
         # Project ahead
