@@ -367,20 +367,16 @@ class MEKF:
         Parameters
         ----------
         f_imu : array-like (3,)
-            IMU specific force measurements (i.e., accelerations + gravity). Given
-            as `[f_x, f_y, f_z]^T` where `f_x`, `f_y`, and `f_z` are acceleration
-            measurements in the x-, y-, and z-directions, respectively.
+            Acceleration / specific force measurements.
         w_imu : array-like (3,)
-            IMU rotation rate measurements. Given as `[w_x, w_y, w_z]^T` where `w_x`,
-            `w_y`, and `w_z` are rotation rates about the x-, y-, and z-axes, respectively.
-            The unit is determined by the `degrees` keyword argument.
+            Rotation rate measurements.
         pos : array-like (3,), default=None
             Position aiding measurement. If `None`, no position aiding is used.
         vel : array-like (3,), default=None
             Velocity aiding measurement. If `None`, no velocity aiding is used.
         head : float
-            Heading measurement, i.e., yaw angle. If `head_degrees` is `True`, the
-            heading is assumed to be in degrees; otherwise, in radians.
+            Heading (i.e., yaw angle) aiding measurement. If `head_degrees` is
+            `True`, the heading is assumed to be in degrees; otherwise, in radians.
         degrees : bool, default=False
             Specifies the units of the `w_imu` parameter. If `True`, the rotation
             rates are assumed to be in degrees; otherwise, in radians.
