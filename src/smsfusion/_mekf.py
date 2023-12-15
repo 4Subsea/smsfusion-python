@@ -264,7 +264,7 @@ class MEKF:
                 - y-axis rotation rate bias.
                 - z-axis rotation rate bias.
         """
-        return self._b_acc.copy()
+        return self._b_gyro.copy()
 
     @staticmethod
     def _prep_dfdx_matrix(
