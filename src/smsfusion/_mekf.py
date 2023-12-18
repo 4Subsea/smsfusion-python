@@ -531,3 +531,5 @@ class MEKF:
         # Project ahead
         self._ins.update(self._dt, f_ins, w_ins, degrees=False)
         self._P_prior = phi @ P @ phi.T + Q
+
+        return self
