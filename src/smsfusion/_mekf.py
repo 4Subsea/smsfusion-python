@@ -106,7 +106,8 @@ class MEKF:
         self._ins = StrapdownINS(self._x_ins[0:10])
 
         # Initial Kalman filter error covariance
-        self._P_prior = np.eye(15)
+        self._P_prior = 1e-9 * np.eye(15)
+        self._P = self._P_prior.copy()
 
         # Prepare system matrices
         q0 = self._x0[6:10]
@@ -265,6 +266,10 @@ class MEKF:
                 - z-axis rotation rate bias.
         """
         return self._b_gyro.copy()
+
+    @property
+    def P(self):
+        return self._P.copy()
 
     @staticmethod
     def _prep_dfdx_matrix(
@@ -512,6 +517,7 @@ class MEKF:
 
         # Compute error covariance for updated estimate
         P = (I15 - K @ dhdx) @ P_prior @ (I15 - K @ dhdx).T + K @ R @ K.T
+        self._P = P
 
         # Error quaternion from 2x Gibbs vector
         da = dx[6:9]
