@@ -8,6 +8,7 @@ __all__ = [
     "AidedINS",
     "benchmark",
     "gravity",
+    "MEKF",
     "noise",
     "StrapdownINS",
 ]
