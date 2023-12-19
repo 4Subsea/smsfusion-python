@@ -432,8 +432,6 @@ class MEKF:
 
         if degrees:
             w_imu = np.radians(w_imu)
-        if head_degrees:
-            head = np.radians(head)
 
         # Update INS state
         self._x_ins[0:10] = self._ins.x
@@ -495,6 +493,9 @@ class MEKF:
 
         # Compass aiding
         if head is not None:
+            if head_degrees:
+                head = np.radians(head)
+
             head = np.asarray_chkfinite(head, dtype=float).reshape(1).copy()
             delta_head = head - _h(_gibbs_scaled(q_ins))
             dz.append(_signed_smallest_angle(delta_head, degrees=False))
