@@ -93,29 +93,36 @@ class MEKF:
     ----------
     fs : float
         Sampling rate in Hz.
-    x0 : array-like (16,)
+    x0 : array-like, shape (16,)
         Initial state vector containing the following elements in order:
-            - Position in x, y, z directions (3 elements).
-            - Velocity in x, y, z directions (3 elements).
-            - Attitude as unit quaternion (4 elements).
-            - Accelerometer bias in x, y, z directions (3 elements).
-            - Gyroscope bias in x, y, z directions (3 elements).
-    err_acc : dict
-        Dictionary containing accelerometer noise parameters:
-            - N: White noise power spectral density in (m/s^2)/sqrt(Hz).
-            - B: Bias stability in m/s^2.
-            - tau_cb: Bias correlation time in seconds.
-    err_gyro : dict
-        Dictionary containing gyroscope noise parameters:
-            - N: White noise power spectral density in (rad/s)/sqrt(Hz).
-            - B: Bias stability in rad/s.
-            - tau_cb: Bias correlation time in seconds.
-    var_pos : array-like (3,)
+
+        * Position in x, y, z directions (3 elements).
+        * Velocity in x, y, z directions (3 elements).
+        * Attitude as unit quaternion (4 elements).
+        * Accelerometer bias in x, y, z directions (3 elements).
+        * Gyroscope bias in x, y, z directions (3 elements).
+    err_acc : dict of {str: float}
+        Dictionary containing accelerometer noise parameters with keys:
+
+        * ``N``: White noise power spectral density in (m/s^2)/sqrt(Hz).
+        * ``B``: Bias stability in m/s^2.
+        * ``tau_cb``: Bias correlation time in seconds.
+    err_gyro : dict of {str: float}
+        Dictionary containing gyroscope noise parameters with keys:
+
+        * ``N``: White noise power spectral density in (rad/s)/sqrt(Hz).
+        * ``B``: Bias stability in rad/s.
+        * ``tau_cb``: Bias correlation time in seconds.
+    var_pos : array-like, shape (3,)
         Variance of position measurement noise in m^2.
+    var_vel : array-like, shape (3,)
+        Variance of velocity measurement noise in (m/s)^2.
+    var_g : array-like, shape (3,)
+        Variance of gravitational reference vector measurement noise in m^2.
     var_compass : float
-        Variance of compass measurement noise in deg^2.
-    cov_error : array-like (15, 15)
-        A priori estimate of error covariance matrix, P. Defaults to the identity matrix.
+        Variance of compass measurement noise in rad^2.
+    cov_error : array-like, shape (15, 15), optional, default identidy matrix
+        A priori estimate of error covariance matrix, **P**.
     """
 
     _I15 = np.eye(15)
@@ -188,72 +195,57 @@ class MEKF:
     @property
     def x(self) -> NDArray[np.float64]:
         """
-        Current AINS state estimate.
+        Get current state vector estimate.
 
         Returns
         -------
-        x : numpy.ndarray (16,)
-            The current state vector, containing the following elements in order:
-                - Position in x, y, z directions (3 elements).
-                - Velocity in x, y, z directions (3 elements).
-                - Attitude as unit quaternion (4 elements).
-                - Accelerometer bias in x, y, z directions (3 elements).
-                - Gyroscope bias in x, y, z directions (3 elements).
+        numpy.ndarray, shape (16,)
+            State vector, containing the following elements in order:
+
+            * Position in x, y, z directions (3 elements).
+            * Velocity in x, y, z directions (3 elements).
+            * Attitude as unit quaternion (4 elements).
+            * Accelerometer bias in x, y, z directions (3 elements).
+            * Gyroscope bias in x, y, z directions (3 elements).
         """
         return self._x.copy()
 
     def position(self) -> NDArray[np.float64]:
         """
-        Current AINS position estimate.
+        Get current position estimate.
 
         Returns
         -------
-        position : numpy.ndarray (3,)
-            The current position vector, containing the following elements:
-                - Position in x direction.
-                - Position in y direction.
-                - Position in z direction.
+        numpy.ndarray, shape (3,)
+            Position state vector, containing position in x-, y-, and z-direction
+            (in that order).
         """
         return self._p.copy()
 
     def velocity(self) -> NDArray[np.float64]:
         """
-        Current AINS velocity estimate.
+        Get current velocity estimate.
 
         Returns
         -------
-        position : numpy.ndarray (3,)
-            The current velocity vector, containing the following elements:
-                - Velocity in x direction.
-                - Velocity in y direction.
-                - Velocity in z direction.
+        numpy.ndarray, shape (3,)
+            Velocity state vector, containing (linear) velocity in x-, y-, and z-direction
+            (in that order).
         """
         return self._v.copy()
 
-    def quaternion(self) -> NDArray[np.float64]:
-        """
-        Current attitude estimate as unit quaternion (from-body-to-NED).
-
-        Returns
-        -------
-        q : numpy.ndarray (4,)
-            Attitude as unit quaternion. Given as [q1, q2, q3, q4], where q1 is
-            the real part and q1, q2 and q3 are the three imaginary parts.
-        """
-        return self._q.copy()
-
     def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
-        Current attitude estimate as Euler angles (see Notes).
+        Get current attitude estimate as Euler angles (see Notes).
 
         Parameters
         ----------
-        degrees : bool
-            Whether to return the Euler angles in degrees (`True`) or radians (`False`).
+        degrees : bool, default False
+            Whether to return the Euler angles in degrees or radians.
 
         Returns
         -------
-        euler : numpy.ndarray (3,)
+        numpy.ndarray, shape (3,)
             Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
             in that order.
 
@@ -261,9 +253,10 @@ class MEKF:
         -----
         The Euler angles describe how to transition from the 'NED' frame to the 'body'
         frame through three consecutive intrinsic and passive rotations in the ZYX order:
-            1. A rotation by an angle gamma (often called yaw) about the z-axis.
-            2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
-            3. A final rotation by an angle alpha (often called roll) about the x-axis.
+
+        #. A rotation by an angle gamma (often called yaw) about the z-axis.
+        #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+        #. A final rotation by an angle alpha (often called roll) about the x-axis.
 
         This sequence of rotations is used to describe the orientation of the 'body' frame
         relative to the 'NED' frame in 3D space.
@@ -283,36 +276,45 @@ class MEKF:
 
         return theta
 
-    def bias_acc(self) -> NDArray[np.float64]:
+    def quaternion(self) -> NDArray[np.float64]:
         """
-        Current accelerometer bias estimate.
+        Get current attitude estimate as unit quaternion (from-body-to-NED).
 
         Returns
         -------
-        b_acc : numpy.ndarray (3,)
-            The current accelerometer bias vector, containing the following elements:
-                - x-axis acceleration bias.
-                - y-axis acceleration bias.
-                - z-axis acceleration bias.
+        numpy.ndarray, shape (4,)
+            Attitude as unit quaternion. Given as ``[q1, q2, q3, q4]``, where
+            ``q1`` is the real part and ``q1``, ``q2`` and ``q3`` are the three
+            imaginary parts.
+        """
+        return self._q.copy()
+
+    def bias_acc(self) -> NDArray[np.float64]:
+        """
+        Get current accelerometer bias estimate.
+
+        Returns
+        -------
+        numpy.ndarray, shape (3,)
+            Accelerometer bias vector, containing biases in x-, y-, and z-direction
+            (in that order).
         """
         return self._b_acc.copy()
 
     def bias_gyro(self, degrees=False) -> NDArray[np.float64]:
         """
-        Current gyroscope bias estimate.
+        Get current gyroscope bias estimate.
 
         Parameters
         ----------
-        degrees : bool
-            Whether to return the gyroscope bias in deg/s (`True`) or rad/s (`False`).
+        degrees : bool, default False
+            Whether to return the bias in deg/s or rad/s.
 
         Returns
         -------
-        b_gyro : numpy.ndarray (3,)
-            The current gyroscope bias vector, containing the following elements:
-                - x-axis rotation rate bias.
-                - y-axis rotation rate bias.
-                - z-axis rotation rate bias.
+        numpy.ndarray, shape (3,)
+            Gyroscope bias vector, containing biases in x-, y-, and z-direction
+            (in that order).
         """
         b_gyro = self._b_gyro.copy()
         if degrees:
@@ -458,27 +460,33 @@ class MEKF:
         head_degrees: bool = True,
     ) -> "MEKF":  # TODO: Replace with ``typing.Self`` when Python > 3.11
         """
-        Update the AINS state estimates based on measurements, and project ahead.
+        Update the AINS state estimates based on measurements.
 
         Parameters
         ----------
-        f_imu : array-like (3,)
-            Acceleration / specific force measurements.
-        w_imu : array-like (3,)
-            Rotation rate measurements.
-        pos : array-like (3,), default=None
-            Position aiding measurement. If `None`, no position aiding is used.
-        vel : array-like (3,), default=None
-            Velocity aiding measurement. If `None`, no velocity aiding is used.
-        head : float
-            Heading (i.e., yaw angle) aiding measurement. If `head_degrees` is
-            `True`, the heading is assumed to be in degrees; otherwise, in radians.
-        degrees : bool, default=False
-            Specifies the units of the `w_imu` parameter. If `True`, the rotation
-            rates are assumed to be in degrees; otherwise, in radians.
-        head_degrees : bool, default=True
-            Specifies the unit of the `head` parameter. If `True`, the heading is
-            in degrees; otherwise, in radians.
+        f_imu : array-like, shape (3,)
+            Specific force measurements (i.e., accelerations + gravity), given
+            as [f_x, f_y, f_z]^T where f_x, f_y and f_z are
+            acceleration measurements in x-, y-, and z-direction, respectively.
+        w_imu : array-like, shape (3,)
+            Angular rate measurements, given as [w_x, w_y, w_z]^T where
+            w_x, w_y and w_z are angular rates about the x-, y-,
+            and z-axis, respectively.
+        pos : array-like, shape (3,), optional
+            Position aiding measurement. If ``None``, position aiding is not used.
+        vel : array-like, shape (3,), optional
+            Velocity aiding measurement. If ``None``, velocity aiding is not used.
+        head : float, optional
+            Heading measurement, i.e., yaw angle. If ``None``, compass aiding is not used.
+        degrees : bool, default False
+            Specifies whether the unit of ``w_imu`` are in degrees or radians.
+        head_degrees : bool, default True
+            Specifies whether the unit of ``head`` are in degrees or radians.
+
+        Returns
+        -------
+        MEKF
+            A reference to the instance itself after the update.
         """
         f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3).copy()
         w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3).copy()
