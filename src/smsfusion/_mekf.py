@@ -20,7 +20,7 @@ def _gibbs(q: NDArray[np.float64]) -> NDArray[np.float64]:
     numpy.ndarray, shape (3,)
         Scaled Gibbs vector.
     """
-    return (2.0 / q[0]) * q[1:]
+    return (2.0 / q[0]) * q[1:]  # type: ignore[no-any-return]
 
 
 def _h(a: NDArray[np.float64]) -> float:
@@ -45,7 +45,7 @@ def _h(a: NDArray[np.float64]) -> float:
     a_x, a_y, a_z = a
     u_y = 2.0 * (a_x * a_y + 2.0 * a_z)
     u_x = 4.0 + a_x**2 - a_y**2 - a_z**2
-    return np.arctan2(u_y, u_x)
+    return np.arctan2(u_y, u_x)  # type: ignore[no-any-return]
 
 
 def _dhda(a: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -81,7 +81,7 @@ def _dhda(a: NDArray[np.float64]) -> NDArray[np.float64]:
 
     dhda = 1.0 / (1.0 + np.sum(u**2)) * duda
 
-    return dhda
+    return dhda  # type: ignore[no-any-return]
 
 
 class MEKF:
@@ -274,7 +274,7 @@ class MEKF:
         if degrees:
             theta = (180.0 / np.pi) * theta
 
-        return theta
+        return theta  # type: ignore[no-any-return]
 
     def quaternion(self) -> NDArray[np.float64]:
         """
@@ -301,7 +301,7 @@ class MEKF:
         """
         return self._b_acc.copy()
 
-    def bias_gyro(self, degrees=False) -> NDArray[np.float64]:
+    def bias_gyro(self, degrees: bool = False) -> NDArray[np.float64]:
         """
         Get current gyroscope bias estimate.
 
@@ -322,7 +322,10 @@ class MEKF:
         return b_gyro
 
     @property
-    def P(self):
+    def P(self) -> NDArray[np.float64]:
+        """
+        Get current error covariance matrix, **P**.
+        """
         return self._P.copy()
 
     @staticmethod
@@ -331,7 +334,9 @@ class MEKF:
         err_gyro: dict[str, float],
         q: NDArray[np.float64],
     ) -> NDArray[np.float64]:
-        """Prepare linearized state matrix"""
+        """
+        Prepare linearized state matrix
+        """
 
         beta_acc = 1.0 / err_acc["tau_cb"]
         beta_gyro = 1.0 / err_gyro["tau_cb"]
@@ -492,7 +497,7 @@ class MEKF:
         w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3).copy()
 
         if degrees:
-            w_imu = np.radians(w_imu)
+            w_imu = (np.pi / 180.0) * w_imu
 
         # Update INS state
         self._x_ins[0:10] = self._ins.x
@@ -530,42 +535,42 @@ class MEKF:
         I15 = self._I15  # 15x15 identity matrix
 
         # Position aiding
-        dz, var_z, dhdx = [], [], []
+        dz_temp, var_z_temp, dhdx_temp = [], [], []
         if pos is not None:
             pos = np.asarray_chkfinite(pos, dtype=float).reshape(3).copy()
             delta_pos = pos - p_ins
-            dz.append(delta_pos)
-            var_z.append(self._var_pos)
-            dhdx.append(dhdx_[0:3])
+            dz_temp.append(delta_pos)
+            var_z_temp.append(self._var_pos)
+            dhdx_temp.append(dhdx_[0:3])
 
         # Velocity aiding
         if vel is not None:
             vel = np.asarray_chkfinite(vel, dtype=float).reshape(3).copy()
             delta_vel = vel - v_ins
-            dz.append(delta_vel)
-            var_z.append(self._var_vel)
-            dhdx.append(dhdx_[3:6])
+            dz_temp.append(delta_vel)
+            var_z_temp.append(self._var_vel)
+            dhdx_temp.append(dhdx_[3:6])
 
         # Gravity reference vector aiding
         delta_g = v1 - R_bn.T @ v01
-        dz.append(delta_g)
-        var_z.append(self._var_g)
-        dhdx.append(dhdx_[6:9])
+        dz_temp.append(delta_g)
+        var_z_temp.append(self._var_g)
+        dhdx_temp.append(dhdx_[6:9])
 
         # Compass aiding
         if head is not None:
             if head_degrees:
-                head = np.radians(head)
+                head = (np.pi / 180.0) * head
 
-            head = np.asarray_chkfinite(head, dtype=float).reshape(1).copy()
-            delta_head = head - _h(_gibbs(q_ins))
-            dz.append(_signed_smallest_angle(delta_head, degrees=False))
-            var_z.append(self._var_compass)
-            dhdx.append(dhdx_[-1:])
+            # head = np.asarray_chkfinite([head], dtype=float).reshape(1).copy()
+            delta_head = _signed_smallest_angle(head - _h(_gibbs(q_ins)), degrees=False)
+            dz_temp.append(np.array([delta_head]))
+            var_z_temp.append(self._var_compass)
+            dhdx_temp.append(dhdx_[-1:])
 
-        dz = np.concatenate(dz)
-        dhdx = np.vstack(dhdx)
-        R = np.diag(np.concatenate(var_z))
+        dz = np.concatenate(dz_temp, axis=0)
+        dhdx = np.concatenate(dhdx_temp, axis=0)
+        R = np.diag(np.concatenate(var_z_temp, axis=0))
 
         # Discretize system
         phi = I15 + self._dt * dfdx  # state transition matrix
