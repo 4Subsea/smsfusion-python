@@ -3,7 +3,7 @@ import pytest
 from scipy.spatial.transform import Rotation
 
 from smsfusion import MEKF, StrapdownINS, gravity
-from smsfusion._mekf import _gibbs, _h
+from smsfusion._mekf import _dhda, _gibbs, _h
 from smsfusion._transforms import _rot_matrix_from_quaternion
 from smsfusion._vectorops import _skew_symmetric
 
@@ -42,6 +42,22 @@ def test__h(angles):
 
     gamma_expect = _h(gibbs_vector)
     assert gamma_expect == pytest.approx(gamma)
+
+
+@pytest.mark.parametrize(
+    "gibbs_vector, dhda_expect",
+    [
+        (np.array([1.0, 0.0, 0.0]), np.array([0.0, 10.0, 20.0]) / (4.0 + 1.0) ** 2),
+        (np.array([0.0, 1.0, 0.0]), np.array([6.0, 0.0, 12.0]) / (4.0 - 1.0) ** 2),
+        (
+            np.array([0.0, 0.0, 1.0]),
+            np.array([0.0, 0.0, 20.0]) / ((4.0 - 1.0) ** 2 * (1 + (4.0 / 3.0) ** 2)),
+        ),
+    ],
+)
+def test__dhda(gibbs_vector, dhda_expect):
+    dhda_out = _dhda(gibbs_vector)
+    np.testing.assert_array_almost_equal(dhda_out, dhda_expect)
 
 
 class Test_MEKF:

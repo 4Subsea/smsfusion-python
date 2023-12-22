@@ -41,8 +41,6 @@ def _h(a: NDArray[np.float64]) -> float:
     ----------
     .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
     2nd Edition, equation 14.251, John Wiley & Sons, 2021.
-
-    See Eq. 14.251 in Fossen
     """
     a_x, a_y, a_z = a
     u_y = 2.0 * (a_x * a_y + 2.0 * a_z)
@@ -51,7 +49,24 @@ def _h(a: NDArray[np.float64]) -> float:
 
 
 def _dhda(a: NDArray[np.float64]) -> NDArray[np.float64]:
-    """See Eq. 14.254 in Fossen"""
+    """
+    Compute yaw angle gradient wrt to the scaled Gibbs vector, see ref [1]_.
+
+    Parameters
+    ----------
+    a : numpy.ndarray, shape (3,)
+        Scaled Gibbs vector
+
+    Returns
+    -------
+    numpy.ndarray, shape (3,)
+        Yaw angle gradient vector.
+
+    References
+    ----------
+    .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
+    2nd Edition, equation 14.254, John Wiley & Sons, 2021.
+    """
     a_x, a_y, a_z = a
 
     u_y = 2.0 * (a_x * a_y + 2.0 * a_z)
