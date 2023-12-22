@@ -71,6 +71,8 @@ class MEKF:
         Variance of position measurement noise in m^2.
     var_compass : float
         Variance of compass measurement noise in deg^2.
+    cov_error : array-like (15, 15)
+        A priori estimate of error covariance matrix, P. Defaults to the identity matrix.
     """
 
     _I15 = np.eye(15)
@@ -85,6 +87,7 @@ class MEKF:
         var_vel: ArrayLike,
         var_g: ArrayLike,
         var_compass: float,
+        cov_error: ArrayLike | None = None,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
@@ -101,7 +104,10 @@ class MEKF:
         self._ins = StrapdownINS(self._x_ins[0:10])
 
         # Initial Kalman filter error covariance
-        self._P_prior = 1e-9 * np.eye(15)
+        if cov_error is not None:
+            self._P_prior = np.asarray_chkfinite(cov_error).reshape(15, 15).copy()
+        else:
+            self._P_prior = np.eye(15)
         self._P = self._P_prior.copy()
 
         # Prepare system matrices
