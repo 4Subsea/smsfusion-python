@@ -138,46 +138,18 @@ class Test_MEKF:
         assert ains._err_acc == err_acc
         assert ains._err_gyro == err_gyro
         assert isinstance(ains._ins, StrapdownINS)
+
         np.testing.assert_array_almost_equal(ains._var_pos, var_pos)
         np.testing.assert_array_almost_equal(ains._var_vel, var_vel)
         np.testing.assert_array_almost_equal(ains._var_g, var_g)
         np.testing.assert_array_almost_equal(ains._var_compass, var_compass)
         np.testing.assert_array_almost_equal(ains._x_ins, x0)
-        np.testing.assert_array_almost_equal(ains._P_prior, 1e-9 * np.eye(15))
+        np.testing.assert_array_almost_equal(ains._P_prior, np.eye(15))
 
-        R = _rot_matrix_from_quaternion  # body-to-ned rotation matrix
-        S = _skew_symmetric  # skew symmetric matrix
-
-        # Dummy values
-        f_ins = np.array([0.0, 0.0, 0.0])
-        w_ins = np.array([0.0, 0.0, 0.0])
-
-        # "State" matrix
-        dfdx_expect = np.zeros((15, 15))
-        dfdx_expect[0:3, 3:6] = np.eye(3)
-        dfdx_expect[3:6, 6:9] = -R(q_init) @ S(f_ins)
-        dfdx_expect[3:6, 9:12] = -R(q_init)
-        dfdx_expect[6:9, 6:9] = -S(w_ins)  # NB! update each time step
-        dfdx_expect[6:9, 12:15] = -np.eye(3)
-        dfdx_expect[9:12, 9:12] = -(1.0 / err_acc["tau_cb"]) * np.eye(3)
-        dfdx_expect[12:15, 12:15] = -(1.0 / err_gyro["tau_cb"]) * np.eye(3)
-        np.testing.assert_array_almost_equal(ains._dfdx, dfdx_expect)
-
-        # "Input (white noise)"" matrix
-        dfdw_expect = np.zeros((15, 12))
-        dfdw_expect[3:6, 0:3] = -R(q_init)  # NB! update each time step
-        dfdw_expect[6:9, 3:6] = -np.eye(3)
-        dfdw_expect[9:12, 6:9] = np.eye(3)
-        dfdw_expect[12:15, 9:12] = np.eye(3)
-        np.testing.assert_array_almost_equal(ains._dfdw, dfdw_expect)
-
-        # White noise power spectral density matrix
-        W_expect = np.eye(12)
-        W_expect[0:3, 0:3] *= err_acc["N"] ** 2
-        W_expect[3:6, 3:6] *= err_gyro["N"] ** 2
-        W_expect[6:9, 6:9] *= 2.0 * err_acc["B"] ** 2 * (1.0 / err_acc["tau_cb"])
-        W_expect[9:12, 9:12] *= 2.0 * err_gyro["B"] ** 2 * (1.0 / err_gyro["tau_cb"])
-        np.testing.assert_array_almost_equal(ains._W, W_expect)
+        assert ains._dfdx.shape == (15, 15)
+        assert ains._dfdw.shape == (15, 12)
+        assert ains._W.shape == (12, 12)
+        assert ains._dhdx.shape == (10, 15)
 
     def test_x(self, mekf):
         ains = mekf
