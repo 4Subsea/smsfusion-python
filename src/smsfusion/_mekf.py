@@ -381,7 +381,8 @@ class MEKF:
         # Update matrix
         self._dfdw[3:6, 0:3] = -R(q)
 
-    def _prep_dhdx_matrix(self, q: NDArray[np.float64]) -> NDArray[np.float64]:
+    @staticmethod
+    def _prep_dhdx_matrix(q: NDArray[np.float64]) -> NDArray[np.float64]:
         """Prepare linearized measurement matrix"""
 
         # Reference vector

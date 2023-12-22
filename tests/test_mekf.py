@@ -249,7 +249,7 @@ class Test_MEKF:
             "tau_cb": 50,
         }
 
-        quaternion = self.quaternion()
+        quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
 
         dfdw_out = MEKF._prep_dfdx_matrix(err_acc, err_gyro, quaternion)
 
@@ -285,7 +285,7 @@ class Test_MEKF:
 
         dfdx_init = ains._dfdx.copy()
 
-        quaternion = self.quaternion()
+        quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
 
         f_ins = np.array([0.0, 0.0, -gravity()])
         w_ins = np.array([0.01, -0.01, 0.01])
@@ -302,7 +302,7 @@ class Test_MEKF:
         np.testing.assert_array_almost_equal(ains._dfdx - dfdx_init, delta_dfdx_expect)
 
     def test__prep_dfdw_matrix(self):
-        quaternion = self.quaternion()
+        quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
 
         dfdw_out = MEKF._prep_dfdw_matrix(quaternion)
 
@@ -324,7 +324,7 @@ class Test_MEKF:
 
         dfdw_init = ains._dfdw.copy()
 
-        quaternion = self.quaternion()
+        quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
 
         ains._update_dfdw_matrix(quaternion)
 
@@ -348,8 +348,45 @@ class Test_MEKF:
         np.testing.assert_array_almost_equal(W_out, W_expect)
 
     def test__prep_dhdx_matrix(self):
-        # TODO: add tests for dhdx + all supporting functions.
-        raise Exception
+        R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
+        S = _skew_symmetric  # skew symmetric matrix
+
+        q = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
+
+        v01_ned = np.array([0.0, 0.0, 1.0])
+
+        dhdx_expected = np.zeros((10, 15))
+        dhdx_expected[0:3, 0:3] = np.eye(3)  # position
+        dhdx_expected[3:6, 3:6] = np.eye(3)  # velocity
+        dhdx_expected[6:9, 6:9] = S(R(q).T @ v01_ned)  # gravity reference vector
+        dhdx_expected[9:10, 6:9] = _dhda(_gibbs(q))  # compass
+
+        dhdx_out = MEKF._prep_dhdx_matrix(q)
+        np.testing.assert_array_almost_equal(dhdx_out, dhdx_expected)
+
+    def test__update_dhdx_matrix(self, mekf):
+        ains = mekf
+        quaternion_init = ains.quaternion()
+
+        v01_ned = np.array([0.0, 0.0, 1.0])
+
+        R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
+        S = _skew_symmetric  # skew symmetric matrix
+
+        dhdx_init = ains._dhdx.copy()
+
+        quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
+
+        ains._update_dhdx_matrix(quaternion)
+
+        delta_dhdx_expect = np.zeros_like(dhdx_init)
+        delta_dhdx_expect[6:9, 6:9] = S(R(quaternion).T @ v01_ned) - S(
+            R(quaternion_init).T @ v01_ned
+        )
+        delta_dhdx_expect[9:10, 6:9] = _dhda(_gibbs(quaternion)) - _dhda(
+            _gibbs(quaternion_init)
+        )
+        np.testing.assert_array_almost_equal(ains._dhdx - dhdx_init, delta_dhdx_expect)
 
     def test_update_return_self(self, mekf):
         ains = mekf
