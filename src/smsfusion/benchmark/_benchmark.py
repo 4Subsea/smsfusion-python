@@ -25,20 +25,20 @@ class _Signal(abc.ABC):
 
         Parameters
         ----------
-        t : array-like
+        t : array-like, shape (N,)
             A time array in seconds.
         phase : float, defualt 0.0
             The phase of the main sinusiodal signal.
         phase_degrees : bool, default True
-            If ``True``, ``phase`` is in degrees. Otherwise, rad/s is assumed.
+            Whether ``phase`` is in degrees or radians.
 
         Return
         ------
-        y : numpy.ndarray
+        y : numpy.ndarray, shape (N,)
             The generated signal.
-        dydt : numpy.ndarray
+        dydt : numpy.ndarray, shape (N,)
             The time derivative of the signal.
-        d2ydt2 : numpy.ndarray
+        d2ydt2 : numpy.ndarray, shape (N,)
             The second time derivative of the signal.
         """
         t = np.asarray_chkfinite(t)
@@ -61,8 +61,8 @@ class _Signal(abc.ABC):
 
 class BeatSignal(_Signal):
     """
-    Generate a unit amplitude sinusoidal signal, and its time derivative, with
-    a beating effect.
+    Generate a unit amplitude beating sinusoidal signal, and its first and second
+    time derivatives.
 
     This function creates a signal with a main frequency and a beating
     frequency, resulting in a wave that appears to "beat" or vary in
@@ -76,16 +76,13 @@ class BeatSignal(_Signal):
         The beating frequency, which controls the
         variation in amplitude.
     freq_hz : bool, default True.
-        If ``True``, ``f_main`` and ``f_beat`` are in Hz. Otherwise,
-        rad/s is assumed.
+        Whether the frequencies, ``f_main`` and ``f_beat``, are in Hz or rad/s.
 
     Notes
     -----
-    The signal may be expressed as:
+    The signal may be expressed as::
 
-        ```
         y = sin(f_beat / 2.0 * t) * cos(f_main * t + phase)
-        ```
     """
 
     def __init__(self, f_main: float, f_beat: float, freq_hz: bool = True) -> None:
@@ -98,7 +95,7 @@ class BeatSignal(_Signal):
 
     def _y(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         """
-        Generate a beating signal with a unit amplitude.
+        Generate a unit amplitude beating signal.
         """
         main = np.cos(self._f_main * t + phase)
         beat = np.sin(self._f_beat / 2.0 * t)
@@ -107,8 +104,7 @@ class BeatSignal(_Signal):
 
     def _dydt(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         """
-        Generate the time derivative of a beating signal with a unit
-        amplitude.
+        Generate the first time derivative of a unit amplitue beating signal.
         """
         main = np.cos(self._f_main * t + phase)
         beat = np.sin(self._f_beat / 2.0 * t)
@@ -120,8 +116,7 @@ class BeatSignal(_Signal):
 
     def _d2ydt2(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         """
-        Generate the second time derivative of a beating signal with a unit
-        amplitude.
+        Generate the second time derivative of a unit amplitue beating signal.
         """
         main = np.cos(self._f_main * t + phase)
         beat = np.sin(self._f_beat / 2.0 * t)
@@ -137,8 +132,8 @@ class BeatSignal(_Signal):
 
 class ChirpSignal(_Signal):
     """
-    Generate a unit amplitude sinusoidal signal, and its time derivative, with
-    a chirp effect
+    Generate a unit amplitude chirp sinusoidal signal, and its first and second
+    time derivative.
 
     This function creates a signal with a frequency that appears to vary in time.
     The frequency oscillates between 0. and a maximum frequency at a specific
@@ -151,17 +146,14 @@ class ChirpSignal(_Signal):
     f_os : float
         The frequency oscillation rate.
     freq_hz : bool, default True.
-        If ``True``, ``f_max`` and ``f_os`` are in Hz. Otherwise,
-        rad/s is assumed.
+        Whether the frequencies, ``f_max`` and ``f_os``, are in Hz or radians.
 
     Notes
     -----
-    The signal may be expressed as:
+    The signal may be expressed as::
 
-        ```
         phi = 2 * f_max / f_os * sin(f_os * t)
         y = sin(phi + phase)
-        ```
     """
 
     def __init__(self, f_max: float, f_os: float, freq_hz: bool = True) -> None:
@@ -174,8 +166,7 @@ class ChirpSignal(_Signal):
 
     def _y(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         """
-        Generate a chirp signal with oscillating frequency given an amplitude
-        and phase.
+        Generate a unit amplitude chirp signal with oscillating frequency.
         """
         phi = 2.0 * self._f_max / self._f_os * np.sin(self._f_os / 2.0 * t)
         y = np.sin(phi + phase)
@@ -183,8 +174,8 @@ class ChirpSignal(_Signal):
 
     def _dydt(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         """
-        Generate the time derivative of a chirp signal with oscillating frequency
-        given an amplitude and phase.
+        Generate the time derivative of a unit amplitude chirp signal with
+        oscillating frequency.
         """
         phi = 2.0 * self._f_max / self._f_os * np.sin(self._f_os / 2.0 * t)
         dphi = self._f_max * np.cos(self._f_os / 2.0 * t)
@@ -193,8 +184,8 @@ class ChirpSignal(_Signal):
 
     def _d2ydt2(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         """
-        Generate the second time derivative of a chirp signal with oscillating frequency
-        given an amplitude and phase.
+        Generate the second time derivative of a unit amplitude chirp signal with
+        oscillating frequency.
         """
         phi = 2.0 * self._f_max / self._f_os * np.sin(self._f_os / 2.0 * t)
         dphi = self._f_max * np.cos(self._f_os / 2.0 * t)
@@ -219,22 +210,21 @@ def _benchmark_helper(
     NDArray[np.float64],
 ]:
     """
-    A general helper function for generating benchmark scenarios for INS sensor
-    fusion performance evaluation.
+    Generate benchmark scenarios for INS sensor fusion performance evaluation.
 
-    The function works by first generating position and attitude based on the
-    provided input, and then derives the remaining variables. The final output
-    consists of:
+    The general helper function works by first generating position and attitude
+    based on the provided input, and then derives the remaining variables. The
+    final output consists of:
 
-        - Time [s]
-        - Position [m]
-        - Velocity [m/s]
-        - Attitude [rad] (Euler angles, see Notes)
-        - Accelerations [m/s**2] in body frame (corresponding to accelerometer measurements)
-        - Angular rates [rad/s] in body frame (corresponding to gyroscope measurements)
+    * Time [s]
+    * Position [m]
+    * Velocity [m/s]
+    * Attitude [rad] (Euler angles, see Notes)
+    * Accelerations [m/s**2] in body frame (corresponding to accelerometer measurements)
+    * Angular rates [rad/s] in body frame (corresponding to gyroscope measurements)
 
-    Position, velocity, and attitude are relative to the 'NED' frame and expressed
-    in the 'NED' frame. The position origin is at (0., 0., 0.).
+    Position, velocity, and attitude are relative to the *NED* frame and expressed
+    in the *NED* frame. The position origin is at (0., 0., 0.).
 
     Parameters
     ----------
@@ -244,7 +234,7 @@ def _benchmark_helper(
         Amplitude of the signals generated by the generator defined in ``signal_family``.
         The values represent the amplitude of postions in x, y, and z directions in
         meters, and Euler angles as roll, pitch, and yaw in radians (see Notes).
-        The order is given as ``(pos_x, pos_y, pos_z, roll, pitch, yaw)``.
+        The order is given as [pos_x, pos_y, pos_z, roll, pitch, yaw].
     mean : tuple of (float, float, float, float, float, float)
         Mean values of the generated signals. Follows the same conventions as
         ``amplitude``.
@@ -252,9 +242,8 @@ def _benchmark_helper(
         Phase values in radians passed on to the signal generator in
         ``signal_family``. Otherwise, follows the same conventions as
         ``amplitude``.
-    signal_family : instance
-        Instance of ``BeatSignal`` or ``ChirpSignal`` classes. This instance
-        is used to generate the signals.
+    signal_family : {:clas:`smsfusion.benchmark.BeatSignal`, :clas:`smsfusion.benchmark.BeatSignal`}
+        Instance of a class used to generate the signals.
     fs : float
         Sampling rate of the outputs in hertz.
 
@@ -275,11 +264,14 @@ def _benchmark_helper(
 
     Notes
     -----
+    The length of the signals are determined by ``np.arange(0.0, duration, 1.0 / fs)``.
+
     The Euler angles describe how to transition from the 'NED' frame to the 'body'
     frame through three consecutive intrinsic and passive rotations in the ZYX order:
-        1. A rotation by an angle gamma (often called yaw) about the z-axis.
-        2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
-        3. A final rotation by an angle alpha (often called roll) about the x-axis.
+
+    #. A rotation by an angle gamma (often called yaw) about the z-axis.
+    #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+    #. A final rotation by an angle alpha (often called roll) about the x-axis.
 
     This sequence of rotations is used to describe the orientation of the 'body' frame
     relative to the 'NED' frame in 3D space.
@@ -291,7 +283,6 @@ def _benchmark_helper(
     Passive rotations mean that the frame itself is rotating, not the object
     within the frame.
     """
-
     t = np.arange(0.0, duration, 1.0 / fs)
 
     amp_x, amp_y, amp_z, amp_roll, amp_pitch, amp_yaw = amplitude
@@ -357,7 +348,7 @@ def benchmark_pure_attitude_beat_202311A(
     NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]
 ]:
     """
-    A benchmark with pure attitude for performance testing of INS/AHRS/VRU
+    Generate a benchmark with pure attitude for performance testing of INS/AHRS/VRU
     sensor fusion algorithms.
 
     The benchmark scenario is 20 minutes long. It generates Euler angles
@@ -367,7 +358,7 @@ def benchmark_pure_attitude_beat_202311A(
     The generated signals are "beating" with maximum amplitudes corresponding to
     5 degrees. The main signal frequency is 0.1 Hz while the "beating" frequency
     is 0.01 Hz. The phases for roll, pitch, and yaw are 0.0, 45.0, and 90.0 degrees
-    respectively. See ``BeatSignal`` for details.
+    respectively. See :class:`smsfusion.benchmark.BeatSignal` for details.
 
     Parameters
     ----------
@@ -389,9 +380,10 @@ def benchmark_pure_attitude_beat_202311A(
     -----
     The Euler angles describe how to transition from the 'NED' frame to the 'body'
     frame through three consecutive intrinsic and passive rotations in the ZYX order:
-        1. A rotation by an angle gamma (often called yaw) about the z-axis.
-        2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
-        3. A final rotation by an angle alpha (often called roll) about the x-axis.
+
+    #. A rotation by an angle gamma (often called yaw) about the z-axis.
+    #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+    #. A final rotation by an angle alpha (often called roll) about the x-axis.
 
     This sequence of rotations is used to describe the orientation of the 'body' frame
     relative to the 'NED' frame in 3D space.
@@ -402,7 +394,6 @@ def benchmark_pure_attitude_beat_202311A(
 
     Passive rotations mean that the frame itself is rotating, not the object
     within the frame.
-
     """
     duration = 1200.0  # 20 minutes
     amplitude = np.radians(np.array([0.0, 0.0, 0.0, 5.0, 5.0, 5.0]))
@@ -424,7 +415,7 @@ def benchmark_pure_attitude_chirp_202311A(
     NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]
 ]:
     """
-    A benchmark with pure attitude for performance testing of INS/AHRS/VRU
+    Generate a benchmark with pure attitude for performance testing of INS/AHRS/VRU
     sensor fusion algorithms.
 
     The benchmark scenario is 20 minutes long. It generates Euler angles
@@ -434,8 +425,8 @@ def benchmark_pure_attitude_chirp_202311A(
     The generated signals have a frequency that appears to vary in time and
     amplitudes corresponding to 5 degrees. The signal frequency oscillates
     between 0.0 Hz and 0.25 Hz every 100 seconds. The phases for roll, pitch,
-    and yaw are 0.0, 45.0, and 90.0 degrees respectively. See ``ChirpSignal``
-    for details.
+    and yaw are 0.0, 45.0, and 90.0 degrees respectively. See
+    :class:`smsfusion.benchmark.ChirpSignal` for details.
 
     Parameters
     ----------
@@ -457,9 +448,10 @@ def benchmark_pure_attitude_chirp_202311A(
     -----
     The Euler angles describe how to transition from the 'NED' frame to the 'body'
     frame through three consecutive intrinsic and passive rotations in the ZYX order:
-        1. A rotation by an angle gamma (often called yaw) about the z-axis.
-        2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
-        3. A final rotation by an angle alpha (often called roll) about the x-axis.
+
+    #. A rotation by an angle gamma (often called yaw) about the z-axis.
+    #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+    #. A final rotation by an angle alpha (often called roll) about the x-axis.
 
     This sequence of rotations is used to describe the orientation of the 'body' frame
     relative to the 'NED' frame in 3D space.
@@ -470,7 +462,6 @@ def benchmark_pure_attitude_chirp_202311A(
 
     Passive rotations mean that the frame itself is rotating, not the object
     within the frame.
-
     """
     duration = 1200.0  # 20 minutes
     amplitude = np.radians(np.array([0.0, 0.0, 0.0, 5.0, 5.0, 5.0]))
@@ -497,21 +488,23 @@ def benchmark_full_pva_beat_202311A(
     NDArray[np.float64],
 ]:
     """
-    A benchmark with full position, velocity, and attitude (PVA) for performance
-    testing of INS/AHRS/VRU sensor fusion algorithms.
+    Generate a benchmark with full position, velocity, and attitude (PVA) for
+    performance testing of INS/AHRS/VRU sensor fusion algorithms.
 
     The benchmark scenario is 30 minutes long. It generates full position, velocity
     and attitude (PVA), and the corresponding accelerometer and gyroscope signals.
 
     The generated position reference signals are characterized by:
-        * "Beating" signal. See ``BeatSignal`` for details.
-        * Maximum amplitude of 0.5 m.
-        * The phases for x-, y-, and z-axis are 0.0, 30.0, and 60.0 degrees respectively.
+
+    * "Beating" signal. See ``BeatSignal`` for details.
+    * Maximum amplitude of 0.5 m.
+    * The phases for x-, y-, and z-axis are 0.0, 30.0, and 60.0 degrees respectively.
 
     The generated Euler reference signals are characterized by:
-        * "Beating" signal. See ``BeatSignal`` for details.
-        * Maximum amplitude of 5 degrees.
-        * The phases for roll, pitch, and yaw are 90.0, 120.0, and 150.0 degrees respectively.
+
+    * "Beating" signal. See :class:`smsfusion.benchmark.BeatSignal` for details.
+    * Maximum amplitude of 5 degrees.
+    * The phases for roll, pitch, and yaw are 90.0, 120.0, and 150.0 degrees respectively.
 
     The other reference signals will be exact analythical derivatives of these signals.
 
@@ -539,9 +532,10 @@ def benchmark_full_pva_beat_202311A(
     -----
     The Euler angles describe how to transition from the 'NED' frame to the 'body'
     frame through three consecutive intrinsic and passive rotations in the ZYX order:
-        1. A rotation by an angle gamma (often called yaw) about the z-axis.
-        2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
-        3. A final rotation by an angle alpha (often called roll) about the x-axis.
+
+    #. A rotation by an angle gamma (often called yaw) about the z-axis.
+    #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+    #. A final rotation by an angle alpha (often called roll) about the x-axis.
 
     This sequence of rotations is used to describe the orientation of the 'body' frame
     relative to the 'NED' frame in 3D space.
@@ -552,7 +546,6 @@ def benchmark_full_pva_beat_202311A(
 
     Passive rotations mean that the frame itself is rotating, not the object
     within the frame.
-
     """
     duration = 1800.0  # 30 minutes
     amplitude = (0.5, 0.5, 0.5, np.radians(5.0), np.radians(5.0), np.radians(5.0))
@@ -579,21 +572,23 @@ def benchmark_full_pva_chirp_202311A(
     NDArray[np.float64],
 ]:
     """
-    A benchmark with full position, velocity, and attitude (PVA) for performance
-    testing of INS/AHRS/VRU sensor fusion algorithms.
+    Generate a benchmark with full position, velocity, and attitude (PVA) for
+    performance testing of INS/AHRS/VRU sensor fusion algorithms.
 
     The benchmark scenario is 30 minutes long. It generates full position, velocity
     and attitude (PVA), and the corresponding accelerometer and gyroscope signals.
 
     The generated position reference signals are characterized by:
-        * "Chirp" signal. See ``ChirpSignal`` for details.
-        * Maximum amplitude of 0.5 m.
-        * The phases for x-, y-, and z-axis are 0.0, 30.0, and 60.0 degrees respectively.
+
+    * "Chirp" signal. See :class:`smsfusion.benchmark.ChirpSignal` for details.
+    * Maximum amplitude of 0.5 m.
+    * The phases for x-, y-, and z-axis are 0.0, 30.0, and 60.0 degrees respectively.
 
     The generated Euler reference signals are characterized by:
-        * "Chirp" signal. See ``ChirpSignal`` for details.
-        * Maximum amplitude of 5 degrees.
-        * The phases for roll, pitch, and yaw are 90.0, 120.0, and 150.0 degrees respectively.
+
+    * "Chirp" signal. See :class:`smsfusion.benchmark.ChirpSignal` for details.
+    * Maximum amplitude of 5 degrees.
+    * The phases for roll, pitch, and yaw are 90.0, 120.0, and 150.0 degrees respectively.
 
     The other reference signals will be exact analythical derivatives of these signals.
 
@@ -621,9 +616,10 @@ def benchmark_full_pva_chirp_202311A(
     -----
     The Euler angles describe how to transition from the 'NED' frame to the 'body'
     frame through three consecutive intrinsic and passive rotations in the ZYX order:
-        1. A rotation by an angle gamma (often called yaw) about the z-axis.
-        2. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
-        3. A final rotation by an angle alpha (often called roll) about the x-axis.
+
+    #. A rotation by an angle gamma (often called yaw) about the z-axis.
+    #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+    #. A final rotation by an angle alpha (often called roll) about the x-axis.
 
     This sequence of rotations is used to describe the orientation of the 'body' frame
     relative to the 'NED' frame in 3D space.
@@ -634,7 +630,6 @@ def benchmark_full_pva_chirp_202311A(
 
     Passive rotations mean that the frame itself is rotating, not the object
     within the frame.
-
     """
     duration = 1800.0  # 30 minutes
     amplitude = (0.5, 0.5, 0.5, np.radians(5.0), np.radians(5.0), np.radians(5.0))
