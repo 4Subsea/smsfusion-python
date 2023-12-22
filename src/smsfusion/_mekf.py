@@ -114,6 +114,8 @@ class MEKF:
         Variance of position measurement noise in m^2.
     var_compass : float
         Variance of compass measurement noise in deg^2.
+    cov_error : array-like (15, 15)
+        A priori estimate of error covariance matrix, P. Defaults to the identity matrix.
     """
 
     _I15 = np.eye(15)
@@ -128,6 +130,7 @@ class MEKF:
         var_vel: ArrayLike,
         var_g: ArrayLike,
         var_compass: float,
+        cov_error: ArrayLike | None = None,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
@@ -144,7 +147,10 @@ class MEKF:
         self._ins = StrapdownINS(self._x_ins[0:10])
 
         # Initial Kalman filter error covariance
-        self._P_prior = 1e-9 * np.eye(15)
+        if cov_error is not None:
+            self._P_prior = np.asarray_chkfinite(cov_error).reshape(15, 15).copy()
+        else:
+            self._P_prior = np.eye(15)
         self._P = self._P_prior.copy()
 
         # Prepare system matrices
@@ -291,9 +297,14 @@ class MEKF:
         """
         return self._b_acc.copy()
 
-    def bias_gyro(self) -> NDArray[np.float64]:
+    def bias_gyro(self, degrees=False) -> NDArray[np.float64]:
         """
         Current gyroscope bias estimate.
+
+        Parameters
+        ----------
+        degrees : bool
+            Whether to return the gyroscope bias in deg/s (`True`) or rad/s (`False`).
 
         Returns
         -------
@@ -303,7 +314,10 @@ class MEKF:
                 - y-axis rotation rate bias.
                 - z-axis rotation rate bias.
         """
-        return self._b_gyro.copy()
+        b_gyro = self._b_gyro.copy()
+        if degrees:
+            b_gyro = (180.0 / np.pi) * b_gyro
+        return b_gyro
 
     @property
     def P(self):
