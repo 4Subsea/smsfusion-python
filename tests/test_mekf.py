@@ -1,19 +1,56 @@
 import numpy as np
 import pytest
+from scipy.spatial.transform import Rotation
 
-from smsfusion import MEKF, StrapdownINS
+from smsfusion import MEKF, StrapdownINS, gravity
+from smsfusion._mekf import _gibbs
 from smsfusion._transforms import _rot_matrix_from_quaternion
 from smsfusion._vectorops import _skew_symmetric
 
 
+@pytest.mark.parametrize(
+    "angle, axis",
+    [
+        (np.radians([0.0, 0.0, 35.0]), np.array([0.0, 0.0, 1.0])),
+        (np.radians([0.0, -35.0, 0.0]), np.array([0.0, 1.0, 0.0])),
+        (np.radians([-10.0, 0.0, 0.0]), np.array([1.0, 0.0, 0.0])),
+    ],
+)
+def test__gibbs(angle, axis):
+    q = Rotation.from_euler("ZYX", angle[::-1], degrees=False).as_quat()
+    q = np.r_[q[3], q[:3]]
+
+    gibbs_expected = 2.0 * axis * np.tan(angle / 2)
+    np.testing.assert_almost_equal(_gibbs(q), gibbs_expected)
+
+
 class Test_MEKF:
+    @staticmethod
+    def quaternion(alpha=-10.0, beta=5.0, gamma=25.0, degrees=True):
+        """
+        Convert Euler to quaternions using SciPy.
+        """
+        q = Rotation.from_euler("ZYX", (gamma, beta, alpha), degrees=degrees).as_quat()
+        q = np.r_[q[3], q[:3]]
+        return q
+
+    @staticmethod
+    def rot_matrix_from_quaternion(q):
+        """
+        Convert quaternion to rotation matrix using SciPy.
+        """
+        q = np.r_[q[1:], q[0]]
+        return Rotation.from_quat(q).as_matrix()
+
     @pytest.fixture
     def mekf(self):
         fs = 10.24
 
         p_init = np.array([0.1, 0.0, 0.0])
         v_init = np.array([0.0, -0.1, 0.0])
-        q_init = np.array([1.0, 0.0, 0.0, 0.0])
+
+        q_init = self.quaternion()
+
         bias_acc_init = np.array([0.0, 0.0, 0.1])
         bias_gyro_init = np.array([-0.1, 0.0, 0.0])
 
@@ -116,10 +153,7 @@ class Test_MEKF:
                 0.0,
                 -0.1,
                 0.0,
-                1.0,
-                0.0,
-                0.0,
-                0.0,
+                *self.quaternion(),
                 0.0,
                 0.0,
                 0.1,
@@ -129,6 +163,7 @@ class Test_MEKF:
             ]
         )
         x_out = ains.x
+
         np.testing.assert_array_almost_equal(x_out, x_expect)
         assert x_out is not ains._x
 
@@ -136,6 +171,7 @@ class Test_MEKF:
         ains = mekf
         pos_out = ains.position()
         pos_expect = np.array([0.1, 0.0, 0.0])
+
         np.testing.assert_array_almost_equal(pos_out, pos_expect)
         assert pos_out is not ains._p
 
@@ -143,168 +179,227 @@ class Test_MEKF:
         ains = mekf
         vel_out = ains.velocity()
         vel_expect = np.array([0.0, -0.1, 0.0])
+
         np.testing.assert_array_almost_equal(vel_out, vel_expect)
         assert vel_out is not ains._v
 
-    # def test_euler_radians(self, ains):
-    #     theta_out = ains.euler(degrees=False)
-    #     theta_expect = np.array([np.pi / 4, np.pi / 8, np.pi / 16])
+    def test_euler_radians(self, mekf):
+        ains = mekf
+        theta_out = ains.euler(degrees=False)
+        theta_expect = np.radians(np.array([-10.0, 5.0, 25.0]))
 
-    #     assert theta_out.shape == (3,)
-    #     assert theta_out is not ains._theta
-    #     np.testing.assert_array_almost_equal(theta_out, theta_expect)
+        np.testing.assert_array_almost_equal(theta_out, theta_expect)
 
-    # def test_euler_degrees(self, ains):
-    #     theta_out = ains.euler(degrees=True)
-    #     theta_expect = (180.0 / np.pi) * np.array([np.pi / 4, np.pi / 8, np.pi / 16])
+    def test_euler_degrees(self, mekf):
+        ains = mekf
+        theta_out = ains.euler(degrees=True)
+        theta_expect = np.array([-10.0, 5.0, 25.0])
 
-    #     assert theta_out.shape == (3,)
-    #     assert theta_out is not ains._theta
-    #     np.testing.assert_array_almost_equal(theta_out, theta_expect)
+        np.testing.assert_array_almost_equal(theta_out, theta_expect)
 
-    # def test_quaternion(self, ains):
-    #     quaternion_out = ains.quaternion()
+    def test_quaternion(self, mekf):
+        ains = mekf
+        quaternion_out = ains.quaternion()
+        quaternion_expect = self.quaternion()
 
-    #     theta_expect = np.array([np.pi / 4, np.pi / 8, np.pi / 16])
-    #     q_expected = Rotation.from_euler(
-    #         "ZYX", theta_expect[::-1], degrees=False
-    #     ).as_quat()
-    #     q_expected = np.r_[q_expected[-1], q_expected[0:-1]]  # scipy rearrange
+        np.testing.assert_array_almost_equal(quaternion_out, quaternion_expect)
+        assert quaternion_out is not ains._q
 
-    #     assert quaternion_out.shape == (4,)
-    #     np.testing.assert_array_almost_equal(quaternion_out, q_expected)
+    def test__prep_dfdx_matrix(self):
+        err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
+        err_gyro = {
+            "N": (np.pi) / 180.0 * 2.0e-3,
+            "B": (np.pi) / 180.0 * 8.0e-4,
+            "tau_cb": 50,
+        }
 
-    # def test__prep_F_matrix(self):
-    #     err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-    #     err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-    #     theta = np.array([np.pi / 8, np.pi / 16, 0.0])
+        quaternion = self.quaternion()
 
-    #     F_out = AidedINS._prep_F_matrix(err_acc, err_gyro, theta)
+        dfdw_out = MEKF._prep_dfdx_matrix(err_acc, err_gyro, quaternion)
 
-    #     # State matrix
-    #     R_bn = _rot_matrix_from_euler(theta)
-    #     T = _angular_matrix_from_euler(theta)
-    #     F_expect = np.zeros((15, 15))
-    #     F_expect[0:3, 3:6] = np.eye(3)
-    #     F_expect[3:6, 9:12] = -R_bn
-    #     F_expect[6:9, 12:15] = -T
-    #     F_expect[9:12, 9:12] = -(1.0 / err_acc["tau_cb"]) * np.eye(3)
-    #     F_expect[12:15, 12:15] = -(1.0 / err_gyro["tau_cb"]) * np.eye(3)
+        R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
+        S = _skew_symmetric  # skew symmetric matrix
 
-    #     np.testing.assert_array_almost_equal(F_out, F_expect)
+        # Dummy values
+        f_ins = np.array([0.0, 0.0, 0.0])
+        w_ins = np.array([0.0, 0.0, 0.0])
 
-    # def test__prep_G_matrix(self):
-    #     theta = np.array([np.pi / 8, np.pi / 16, 0.0])
+        # "State" matrix
+        dfdx_expect = np.zeros((15, 15))
+        dfdx_expect[0:3, 3:6] = np.eye(3)
+        dfdx_expect[3:6, 6:9] = -R(quaternion) @ S(f_ins)
+        dfdx_expect[3:6, 9:12] = -R(quaternion)
+        dfdx_expect[6:9, 6:9] = -S(w_ins)  # NB! update each time step
+        dfdx_expect[6:9, 12:15] = -np.eye(3)
+        dfdx_expect[9:12, 9:12] = -(1.0 / err_acc["tau_cb"]) * np.eye(3)
+        dfdx_expect[12:15, 12:15] = -(1.0 / err_gyro["tau_cb"]) * np.eye(3)
 
-    #     G_out = AidedINS._prep_G_matrix(theta)
+        np.testing.assert_array_almost_equal(dfdw_out, dfdx_expect)
 
-    #     # Input (white noise) matrix
-    #     R_bn = _rot_matrix_from_euler(theta)
-    #     T = _angular_matrix_from_euler(theta)
-    #     G_expect = np.zeros((15, 12))
-    #     G_expect[3:6, 0:3] = -R_bn
-    #     G_expect[6:9, 3:6] = -T
-    #     G_expect[9:12, 6:9] = np.eye(3)
-    #     G_expect[12:15, 9:12] = np.eye(3)
+    def test__update_dfdx_matrix(self, mekf):
+        ains = mekf
+        quaternion_init = ains.quaternion()
 
-    #     np.testing.assert_array_almost_equal(G_out, G_expect)
+        R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
+        S = _skew_symmetric  # skew symmetric matrix
 
-    # def test__prep_W_matrix(self):
-    #     err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-    #     err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+        # Dummy values
+        f_ins_init = np.array([0.0, 0.0, 0.0])
+        w_ins_init = np.array([0.0, 0.0, 0.0])
 
-    #     W_out = AidedINS._prep_W_matrix(err_acc, err_gyro)
+        dfdx_init = ains._dfdx.copy()
 
-    #     # White noise power spectral density matrix
-    #     W_expect = np.eye(12)
-    #     W_expect[0:3, 0:3] *= err_acc["N"] ** 2
-    #     W_expect[3:6, 3:6] *= err_gyro["N"] ** 2
-    #     W_expect[6:9, 6:9] *= 2.0 * err_acc["B"] ** 2 * (1.0 / err_acc["tau_cb"])
-    #     W_expect[9:12, 9:12] *= 2.0 * err_gyro["B"] ** 2 * (1.0 / err_gyro["tau_cb"])
+        quaternion = self.quaternion()
 
-    #     np.testing.assert_array_almost_equal(W_out, W_expect)
+        f_ins = np.array([0.0, 0.0, -gravity()])
+        w_ins = np.array([0.01, -0.01, 0.01])
 
-    # def test__prep_H_matrix(self):
-    #     H_out = AidedINS._prep_H_matrix()
+        ains._update_dfdx_matrix(quaternion, f_ins, w_ins)
 
-    #     H_expect = np.zeros((6, 15))
-    #     H_expect[0:3, 0:3] = np.eye(3)
-    #     H_expect[3:6, 6:9] = np.eye(3)
+        delta_dfdx_expect = np.zeros_like(dfdx_init)
+        delta_dfdx_expect[3:6, 6:9] = -R(quaternion) @ S(f_ins) - (
+            -R(quaternion_init) @ S(f_ins_init)
+        )
+        delta_dfdx_expect[3:6, 9:12] = -R(quaternion) - (-R(quaternion_init))
+        delta_dfdx_expect[6:9, 6:9] = -S(w_ins) - (-S(w_ins_init))
 
-    #     np.testing.assert_array_almost_equal(H_out, H_expect)
+        np.testing.assert_array_almost_equal(ains._dfdx - dfdx_init, delta_dfdx_expect)
 
-    # def test_update_return_self(self):
-    #     fs = 10.24
-    #     Kp = 0.5
-    #     Ki = 0.1
+    def test__prep_dfdw_matrix(self):
+        quaternion = self.quaternion()
 
-    #     x0 = np.zeros(15)
-    #     err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-    #     err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-    #     var_pos = np.ones(3)
-    #     var_ahrs = np.ones(3)
+        dfdw_out = MEKF._prep_dfdw_matrix(quaternion)
 
-    #     ahrs = AHRS(fs, Kp, Ki)
-    #     ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
+        R = self.rot_matrix_from_quaternion
 
-    #     g = gravity()
-    #     f_imu = np.array([0.0, 0.0, -g])
-    #     w_imu = np.zeros(3)
-    #     head = 0.0
-    #     pos = np.zeros(3)
+        dfdw_expect = np.zeros((15, 12))
+        dfdw_expect[3:6, 0:3] = -R(quaternion)  # NB! update each time step
+        dfdw_expect[6:9, 3:6] = -np.eye(3)
+        dfdw_expect[9:12, 6:9] = np.eye(3)
+        dfdw_expect[12:15, 9:12] = np.eye(3)
 
-    #     update_return = ains.update(
-    #         f_imu, w_imu, head, pos, degrees=True, head_degrees=True
-    #     )
-    #     assert update_return is ains
+        np.testing.assert_array_almost_equal(dfdw_out, dfdw_expect)
 
-    # def test_update_standstill(self):
-    #     fs = 10.24
+    def test__update_dfdw_matrix(self, mekf):
+        ains = mekf
+        quaternion_init = ains.quaternion()
 
-    #     x0 = np.zeros(15)
-    #     err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-    #     err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-    #     var_pos = np.ones(3)
-    #     var_ahrs = np.ones(3)
+        R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
 
-    #     ahrs = AHRS(fs, 0.050, 0.035)
-    #     ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
+        dfdw_init = ains._dfdw.copy()
 
-    #     g = gravity()
-    #     f_imu = np.array([0.0, 0.0, -g])
-    #     w_imu = np.zeros(3)
-    #     head = 0.0
-    #     pos = np.zeros(3)
+        quaternion = self.quaternion()
 
-    #     ains.update(f_imu, w_imu, head, pos, degrees=True, head_degrees=True)
-    #     np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
-    #     ains.update(f_imu, w_imu, head, pos, degrees=True, head_degrees=True)
-    #     np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
+        ains._update_dfdw_matrix(quaternion)
 
-    # def test_update_irregular_position_aiding(self):
-    #     fs = 10.24
+        delta_dfdw_expect = np.zeros_like(dfdw_init)
+        delta_dfdw_expect[3:6, 0:3] = -R(quaternion) - (-R(quaternion_init))
+        np.testing.assert_array_almost_equal(ains._dfdw - dfdw_init, delta_dfdw_expect)
 
-    #     x0 = np.zeros(15)
-    #     err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-    #     err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-    #     var_pos = np.ones(3)
-    #     var_ahrs = np.ones(3)
+    def test__prep_W_matrix(self):
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
 
-    #     ahrs = AHRS(fs, 0.050, 0.035)
-    #     ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
+        W_out = MEKF._prep_W_matrix(err_acc, err_gyro)
 
-    #     g = gravity()
-    #     f_imu = np.array([0.0, 0.0, -g])
-    #     w_imu = np.zeros(3)
-    #     head = 0.0
-    #     pos = np.zeros(3)
+        # White noise power spectral density matrix
+        W_expect = np.eye(12)
+        W_expect[0:3, 0:3] *= err_acc["N"] ** 2
+        W_expect[3:6, 3:6] *= err_gyro["N"] ** 2
+        W_expect[6:9, 6:9] *= 2.0 * err_acc["B"] ** 2 * (1.0 / err_acc["tau_cb"])
+        W_expect[9:12, 9:12] *= 2.0 * err_gyro["B"] ** 2 * (1.0 / err_gyro["tau_cb"])
 
-    #     ains.update(f_imu, w_imu, head, None, degrees=True, head_degrees=True)  # no pos
-    #     np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
-    #     ains.update(f_imu, w_imu, head, pos, degrees=True, head_degrees=True)  # pos
-    #     np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
-    #     ains.update(f_imu, w_imu, head, degrees=True, head_degrees=True)  # no pos
-    #     np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
+        np.testing.assert_array_almost_equal(W_out, W_expect)
+
+    def test__prep_dhdx_matrix(self):
+        # TODO: add tests for dhdx + all supporting functions.
+        raise Exception
+
+    def test_update_return_self(self, mekf):
+        ains = mekf
+
+        g = gravity()
+        f_imu = np.array([0.0, 0.0, -g])
+        w_imu = np.zeros(3)
+        head = 0.0
+        pos = np.zeros(3)
+        vel = np.zeros(3)
+
+        update_return = ains.update(
+            f_imu, w_imu, pos, vel, head, degrees=True, head_degrees=True
+        )
+        assert update_return is ains
+
+    def test_update_standstill(self):
+        fs = 10.24
+
+        x0 = np.zeros(16)
+        x0[6] = 1.0
+
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+        var_pos = np.ones(3)
+        var_vel = np.ones(3)
+        var_g = np.ones(3)
+        var_compass = 1.0
+
+        ains = MEKF(fs, x0, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass)
+
+        g = gravity()
+        f_imu = np.array([0.0, 0.0, -g])
+        w_imu = np.zeros(3)
+        head = 0.0
+        pos = np.zeros(3)
+        vel = np.zeros(3)
+
+        for _ in range(5):
+            ains.update(f_imu, w_imu, pos, vel, head, degrees=True, head_degrees=True)
+            np.testing.assert_array_almost_equal(ains.x, x0)
+
+    def test_update_irregular_aiding(self):
+        fs = 10.24
+
+        x0 = np.zeros(16)
+        x0[6] = 1.0
+
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+        var_pos = np.ones(3)
+        var_vel = np.ones(3)
+        var_g = np.ones(3)
+        var_compass = 1.0
+
+        ains = MEKF(fs, x0, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass)
+
+        g = gravity()
+        f_imu = np.array([0.0, 0.0, -g])
+        w_imu = np.zeros(3)
+        head = 0.0
+        pos = np.zeros(3)
+        vel = np.zeros(3)
+
+        ains.update(f_imu, w_imu, pos, vel, head, degrees=True, head_degrees=True)
+        np.testing.assert_array_almost_equal(ains.x, x0)
+
+        ains.update(
+            f_imu, w_imu, pos=None, vel=None, head=None, degrees=True, head_degrees=True
+        )
+        np.testing.assert_array_almost_equal(ains.x, x0)
+
+        ains.update(
+            f_imu, w_imu, pos=None, vel=vel, head=head, degrees=True, head_degrees=True
+        )
+        np.testing.assert_array_almost_equal(ains.x, x0)
+
+        ains.update(
+            f_imu, w_imu, pos=pos, vel=None, head=head, degrees=True, head_degrees=True
+        )
+        np.testing.assert_array_almost_equal(ains.x, x0)
+
+        ains.update(
+            f_imu, w_imu, pos=None, vel=None, head=head, degrees=True, head_degrees=True
+        )
+        np.testing.assert_array_almost_equal(ains.x, x0)
 
     # def test_update_reference_case(self, ains_ref_data):
     #     """Test that succesive calls goes through"""

@@ -8,15 +8,10 @@ from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
 
 def _gibbs(q: NDArray[np.float64]) -> NDArray[np.float64]:
-    """Gibbs vector"""
-    q_w, q_xyz = np.split(q, [1])
-    a_g = (1.0 / q_w) * q_xyz  # Gibbs vector (Eq. 14.228 in Fossen)
-    return a_g
-
-
-def _gibbs_scaled(q: NDArray[np.float64]) -> NDArray[np.float64]:
-    """2 x Gibbs vector"""
-    return 2.0 * _gibbs(q)
+    """
+    Compute the scaled Gibbs vector.
+    """
+    return (2.0 / q[0]) * q[1:]
 
 
 def _h(a: NDArray[np.float64]) -> float:
@@ -357,7 +352,7 @@ class MEKF:
         dhdx[0:3, 0:3] = np.eye(3)  # position
         dhdx[3:6, 3:6] = np.eye(3)  # velocity
         dhdx[6:9, 6:9] = S(R(q).T @ v01_ned)  # gravity reference vector
-        dhdx[9:10, 6:9] = _dhda(_gibbs_scaled(q))  # compass
+        dhdx[9:10, 6:9] = _dhda(_gibbs(q))  # compass
         return dhdx
 
     def _update_dhdx_matrix(self, q: NDArray[np.float64]) -> None:
@@ -371,7 +366,7 @@ class MEKF:
         S = _skew_symmetric  # skew symmetric matrix
 
         self._dhdx[6:9, 6:9] = S(R(q).T @ v01_ned)  # gravity reference vector
-        self._dhdx[9:10, 6:9] = _dhda(_gibbs_scaled(q))  # compass
+        self._dhdx[9:10, 6:9] = _dhda(_gibbs(q))  # compass
 
     @staticmethod
     def _prep_W_matrix(
@@ -497,7 +492,7 @@ class MEKF:
                 head = np.radians(head)
 
             head = np.asarray_chkfinite(head, dtype=float).reshape(1).copy()
-            delta_head = head - _h(_gibbs_scaled(q_ins))
+            delta_head = head - _h(_gibbs(q_ins))
             dz.append(_signed_smallest_angle(delta_head, degrees=False))
             var_z.append(self._var_compass)
             dhdx.append(dhdx_[-1:])
