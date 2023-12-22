@@ -248,9 +248,14 @@ class MEKF:
         """
         return self._b_acc.copy()
 
-    def bias_gyro(self) -> NDArray[np.float64]:
+    def bias_gyro(self, degrees=False) -> NDArray[np.float64]:
         """
         Current gyroscope bias estimate.
+
+        Parameters
+        ----------
+        degrees : bool
+            Whether to return the gyroscope bias in deg/s (`True`) or rad/s (`False`).
 
         Returns
         -------
@@ -260,7 +265,10 @@ class MEKF:
                 - y-axis rotation rate bias.
                 - z-axis rotation rate bias.
         """
-        return self._b_gyro.copy()
+        b_gyro = self._b_gyro.copy()
+        if degrees:
+            b_gyro = (180.0 / np.pi) * b_gyro
+        return b_gyro
 
     @property
     def P(self):
