@@ -10,12 +10,40 @@ from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 def _gibbs(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the scaled Gibbs vector.
+
+    Parameters
+    ----------
+    q : numpy.ndarray, shape (4,)
+
+    Returns
+    -------
+    numpy.ndarray, shape (3,)
+        Scaled Gibbs vector.
     """
     return (2.0 / q[0]) * q[1:]
 
 
 def _h(a: NDArray[np.float64]) -> float:
-    """See Eq. 14.251 in Fossen"""
+    """
+    Compute yaw angle from scaled Gibbs vector, see ref [1]_.
+
+    Parameters
+    ----------
+    a : numpy.ndarray, shape (3,)
+        Scaled Gibbs vector
+
+    Returns
+    -------
+    float
+        Yaw angle in the NED reference frame.
+
+    References
+    ----------
+    .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
+    2nd Edition, equation 14.251, John Wiley & Sons, 2021.
+
+    See Eq. 14.251 in Fossen
+    """
     a_x, a_y, a_z = a
     u_y = 2.0 * (a_x * a_y + 2.0 * a_z)
     u_x = 4.0 + a_x**2 - a_y**2 - a_z**2

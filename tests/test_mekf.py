@@ -3,7 +3,7 @@ import pytest
 from scipy.spatial.transform import Rotation
 
 from smsfusion import MEKF, StrapdownINS, gravity
-from smsfusion._mekf import _gibbs
+from smsfusion._mekf import _gibbs, _h
 from smsfusion._transforms import _rot_matrix_from_quaternion
 from smsfusion._vectorops import _skew_symmetric
 
@@ -22,6 +22,26 @@ def test__gibbs(angle, axis):
 
     gibbs_expected = 2.0 * axis * np.tan(angle / 2)
     np.testing.assert_almost_equal(_gibbs(q), gibbs_expected)
+
+
+@pytest.mark.parametrize(
+    "angles",
+    [
+        np.radians([0.0, 0.0, 35.0]),
+        np.radians([25.0, 180.0, -125.0]),
+        np.radians([10.0, 95.0, 1.0]),
+    ],
+)
+def test__h(angles):
+    alpha, beta, gamma = np.radians((0.0, 0.0, 15.0))
+
+    quaternion = Rotation.from_euler(
+        "ZYX", (gamma, beta, alpha), degrees=False
+    ).as_quat()
+    gibbs_vector = 2.0 * quaternion[:3] / quaternion[3]
+
+    gamma_expect = _h(gibbs_vector)
+    assert gamma_expect == pytest.approx(gamma)
 
 
 class Test_MEKF:
