@@ -4,8 +4,13 @@ from scipy.spatial.transform import Rotation
 
 from smsfusion import MEKF, StrapdownINS, gravity
 from smsfusion._mekf import _dhda, _gibbs, _h
-from smsfusion._transforms import _rot_matrix_from_quaternion
+from smsfusion._transforms import _quaternion_from_euler
 from smsfusion._vectorops import _skew_symmetric
+from smsfusion.benchmark import (
+    benchmark_full_pva_beat_202311A,
+    benchmark_full_pva_chirp_202311A,
+)
+from smsfusion.noise import IMUNoise, white_noise
 
 
 @pytest.mark.parametrize(
@@ -446,170 +451,151 @@ class Test_MEKF:
         )
         np.testing.assert_array_almost_equal(ains.x, x0)
 
-    # def test_update_reference_case(self, ains_ref_data):
-    #     """Test that succesive calls goes through"""
-    #     fs = 10.24
+    @pytest.mark.parametrize(
+        "benchmark_gen",
+        [benchmark_full_pva_beat_202311A, benchmark_full_pva_chirp_202311A],
+    )
+    def test_benchmark(self, benchmark_gen):
+        fs_imu = 100.0
+        fs_aiding = 1.0
+        fs_ratio = np.ceil(fs_imu / fs_aiding)
+        warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
+        compass_noise_std = 0.5
+        gps_noise_std = 0.1
+        vel_noise_std = 0.1
 
-    #     # Measurement data
-    #     f_imu = ains_ref_data[["Ax_meas", "Ay_meas", "Az_meas"]].values
-    #     w_imu = ains_ref_data[["Gx_meas", "Gy_meas", "Gz_meas"]].values
-    #     head = ains_ref_data[["Gamma_meas"]].values
+        # Reference signals (without noise)
+        t, pos_ref, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
+        euler_ref = np.degrees(euler_ref)
+        gyro_ref = np.degrees(gyro_ref)
 
-    #     pos_gnss = ains_ref_data[["X_meas", "Y_meas", "Z_meas"]].values
+        # IMU measurements (with noise)
+        err_acc_true = {
+            "bc": (0.0, 0.0, 0.0),
+            "N": (4.0e-4, 4.0e-4, 4.5e-4),
+            "B": (1.5e-4, 1.5e-4, 3.0e-4),
+            "K": (4.5e-6, 4.5e-6, 1.5e-5),
+            "tau_cb": (50, 50, 30),
+            "tau_ck": (5e5, 5e5, 5e5),
+        }
+        err_gyro_true = {
+            "bc": (0.1, 0.2, 0.3),
+            "N": (1.9e-3, 1.9e-3, 1.7e-3),
+            "B": (7.5e-4, 4.0e-4, 8.8e-4),
+            "K": (2.5e-5, 2.5e-5, 4.0e-5),
+            "tau_cb": (50, 50, 50),
+            "tau_ck": (5e5, 5e5, 5e5),
+        }
+        noise_model = IMUNoise(acc_err=err_acc_true, gyro_err=err_gyro_true, seed=0)
+        imu_noise = noise_model(fs_imu, len(t))
+        acc_noise = acc_ref + imu_noise[:, :3]
+        gyro_noise = gyro_ref + imu_noise[:, 3:]
 
-    #     # Measurement noise uncertainty
-    #     var_pos = 0.05**2 * np.ones(3)  # 5 cm std uncertainity
-    #     var_ahrs = np.radians(2.0) ** 2 * np.ones(3)  # 2 deg std uncertainity
+        # Compass / heading (aiding) measurements
+        head_meas = euler_ref[:, 2] + white_noise(
+            compass_noise_std / np.sqrt(fs_aiding), fs_aiding, len(t), seed=1
+        )
 
-    #     # AHRS
-    #     Kp = 0.27
-    #     Ki = 0.025
+        # GPS / position (aiding) measurements
+        pos_noise = np.column_stack(
+            [
+                white_noise(
+                    gps_noise_std / np.sqrt(fs_aiding), fs_aiding, len(t), seed=2
+                ),
+                white_noise(
+                    gps_noise_std / np.sqrt(fs_aiding), fs_aiding, len(t), seed=3
+                ),
+                white_noise(
+                    gps_noise_std / np.sqrt(fs_aiding), fs_aiding, len(t), seed=4
+                ),
+            ]
+        )
+        pos_meas = pos_ref + pos_noise
 
-    #     q_init = _quaternion_from_euler(
-    #         np.radians(ains_ref_data[["Alpha", "Beta", "Gamma"]].values[0])
-    #     )
-    #     ahrs = AHRS(fs, Kp, Ki, q_init=q_init)
+        # Velocity (aiding) measurements
+        vel_noise = np.column_stack(
+            [
+                white_noise(
+                    vel_noise_std / np.sqrt(fs_aiding), fs_aiding, len(t), seed=5
+                ),
+                white_noise(
+                    vel_noise_std / np.sqrt(fs_aiding), fs_aiding, len(t), seed=6
+                ),
+                white_noise(
+                    vel_noise_std / np.sqrt(fs_aiding), fs_aiding, len(t), seed=7
+                ),
+            ]
+        )
+        vel_meas = vel_ref + vel_noise
 
-    #     # AINS
-    #     ACC_NOISE = {"N": 5.0e-1, "B": 5.0e-1, "tau_cb": 50.0}
+        # MEKF
+        err_acc = {"N": 4.0e-4, "B": 1.5e-4, "K": 4.5e-6, "tau_cb": 50}
+        err_gyro = {
+            "N": (np.pi / 180.0) * 1.9e-3,
+            "B": (np.pi / 180.0) * 7.5e-4,
+            "tau_cb": 50,
+        }
+        var_pos = gps_noise_std**2 * np.ones(3)
+        var_vel = vel_noise_std**2 * np.ones(3)
+        var_compass = ((np.pi / 180.0) * compass_noise_std) ** 2
+        var_g = 0.1**2 * np.ones(3)
+        P_prior = np.eye(15)
+        P_prior[9:12, 9:12] *= 1e-9
+        x0 = np.zeros(16)
+        x0[0:3] = pos_ref[0]
+        x0[3:6] = vel_ref[0]
+        x0[6:10] = _quaternion_from_euler(np.radians(euler_ref[0].flatten()))
+        mekf = MEKF(
+            fs_imu,
+            x0,
+            err_acc,
+            err_gyro,
+            var_pos,
+            var_vel,
+            var_g,
+            var_compass,
+            cov_error=P_prior,
+        )
 
-    #     GYRO_NOISE = {
-    #         "N": (np.pi / 180.0) * 5e-3,
-    #         "B": (np.pi / 180.0) * 5e-3,
-    #         "tau_cb": 50.0,
-    #     }
+        # Apply filter
+        pos_out, vel_out, euler_out, bias_acc_out, bias_gyro_out = [], [], [], [], []
+        for i, (acc_i, gyro_i, pos_i, vel_i, head_i) in enumerate(
+            zip(acc_noise, gyro_noise, pos_meas, vel_meas, head_meas)
+        ):
+            if not (i % fs_ratio):  # with aiding
+                mekf.update(
+                    acc_i,
+                    gyro_i,
+                    pos=pos_i,
+                    vel=vel_i,
+                    head=head_i,
+                    degrees=True,
+                    head_degrees=True,
+                )
+            else:  # without aiding
+                mekf.update(acc_i, gyro_i, degrees=True, head_degrees=True)
+            pos_out.append(mekf.position())
+            vel_out.append(mekf.velocity())
+            euler_out.append(mekf.euler(degrees=True))
+            bias_acc_out.append(mekf.bias_acc())
+            bias_gyro_out.append(mekf.bias_gyro(degrees=True))
 
-    #     x0 = np.r_[
-    #         ains_ref_data[["X", "Y", "Z", "VX", "VY", "VZ"]].values[0],
-    #         np.radians(ains_ref_data[["Alpha", "Beta", "Gamma"]].values[0]),
-    #         np.zeros(6),
-    #     ].reshape(15, 1)
-    #     ains = AidedINS(fs, x0, ACC_NOISE, GYRO_NOISE, var_pos, var_ahrs, ahrs)
+        pos_out = np.array(pos_out)
+        vel_out = np.array(vel_out)
+        euler_out = np.array(euler_out)
+        bias_acc_out = np.array(bias_acc_out)
+        bias_gyro_out = np.array(bias_gyro_out)
 
-    #     pos_aiding_inc = 10  # Position aiding every N update step
+        pos_x_rms, pos_y_rms, pos_z_rms = np.std((pos_out - pos_ref)[warmup:], axis=0)
+        vel_x_rms, vel_y_rms, vel_z_rms = np.std((vel_out - vel_ref)[warmup:], axis=0)
+        roll_rms, pitch_rms, yaw_rms = np.std((euler_out - euler_ref)[warmup:], axis=0)
 
-    #     pos_out = []
-    #     vel_out = []
-    #     euler_out = []
-    #     for k, (f_imu_k, w_imu_k, head_k, pos_k) in enumerate(
-    #         zip(f_imu, w_imu, head, pos_gnss)
-    #     ):
-    #         if k % pos_aiding_inc:
-    #             pos_k = None
-
-    #         ains.update(
-    #             f_imu_k, w_imu_k, head_k, pos_k, degrees=True, head_degrees=True
-    #         )
-    #         pos_out.append(ains.position().flatten())
-    #         vel_out.append(ains.velocity().flatten())
-    #         euler_out.append(ains.euler(degrees=True).flatten())
-
-    #     pos_out = np.asarray(pos_out)[600:]
-    #     vel_out = np.asarray(vel_out)[600:]
-    #     euler_out = np.asarray(euler_out)[600:]
-
-    #     pos_expected = ains_ref_data.loc[:, ["X", "Y", "Z"]].iloc[600:]
-    #     vel_expected = ains_ref_data.loc[:, ["VX", "VY", "VZ"]].iloc[600:]
-    #     euler_expected = ains_ref_data.loc[:, ["Alpha", "Beta", "Gamma"]].iloc[600:]
-
-    #     pos_rms = (pos_out - pos_expected).std(axis=0)
-    #     assert pos_rms.shape == (3,)
-    #     assert all(pos_rms <= 0.10)
-
-    #     vel_rms = (vel_out - vel_expected).std(axis=0)
-    #     assert vel_rms.shape == (3,)
-    #     assert all(vel_rms <= 0.15)
-
-    #     euler_rms = (euler_out - euler_expected).std(axis=0)
-    #     assert euler_rms.shape == (3,)
-    #     assert all(euler_rms <= 0.04)
-
-    # @pytest.mark.parametrize(
-    #     "benchmark_gen",
-    #     [benchmark_full_pva_beat_202311A, benchmark_full_pva_chirp_202311A],
-    # )
-    # def test_benchmark(self, benchmark_gen):
-    #     fs_imu = 100.0
-    #     fs_gps = 1.0
-    #     fs_ratio = np.ceil(fs_imu / fs_gps)
-    #     warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
-    #     compass_noise_std = 0.5
-    #     gps_noise_std = 0.1
-
-    #     # Reference signals (without noise)
-    #     t, pos_ref, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
-    #     euler_ref = np.degrees(euler_ref)
-    #     gyro_ref = np.degrees(gyro_ref)
-
-    #     # Add measurement noise
-    #     noise_model = IMUNoise(seed=96)
-    #     imu_noise = noise_model(fs_imu, len(t))
-
-    #     acc_noise = acc_ref + imu_noise[:, :3]
-    #     gyro_noise = gyro_ref + imu_noise[:, 3:]
-
-    #     compass = euler_ref[:, 2] + white_noise(
-    #         compass_noise_std / np.sqrt(fs_imu), fs_imu, len(t)
-    #     )
-
-    #     gps_noise = np.column_stack(
-    #         [
-    #             white_noise(gps_noise_std / np.sqrt(fs_gps), fs_gps, len(t))
-    #             for _ in range(3)
-    #         ]
-    #     )
-    #     gps = pos_ref + gps_noise
-
-    #     omega_e = 2.0 * np.pi / 40.0
-    #     delta = np.sqrt(3.0) / 2
-
-    #     # AHRS
-    #     Ki = omega_e**2
-    #     Kp = delta * omega_e
-    #     ahrs = AHRS(fs_imu, Kp, Ki)
-
-    #     # AINS
-    #     err_acc = {"N": 4.0e-4, "B": 1.5e-4, "K": 4.5e-6, "tau_cb": 50}
-    #     err_gyro = {
-    #         "N": (np.pi / 180.0) * 1.9e-3,
-    #         "B": (np.pi / 180.0) * 7.5e-4,
-    #         "tau_cb": 50,
-    #     }
-    #     var_pos = gps_noise_std**2 * np.ones(3)
-    #     var_ahrs = 0.01 * np.ones(3)
-    #     x0 = np.zeros(15)
-    #     x0[0:3] = pos_ref[0]
-    #     x0[3:6] = vel_ref[0]
-    #     x0[6:9] = np.degrees(euler_ref[0])
-    #     ains = AidedINS(fs_imu, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
-
-    #     # Apply filter
-    #     pos_out = []
-    #     vel_out = []
-    #     euler_out = []
-    #     for i, (acc_i, gyro_i, head_i, pos_i) in enumerate(
-    #         zip(acc_noise, gyro_noise, compass, gps)
-    #     ):
-    #         if not (i % fs_ratio):  # GPS aiding
-    #             ains.update(
-    #                 acc_i, gyro_i, head_i, pos_i, degrees=True, head_degrees=True
-    #             )
-    #         else:  # no GPS aiding
-    #             ains.update(acc_i, gyro_i, head_i, degrees=True, head_degrees=True)
-    #         pos_out.append(ains.position())
-    #         vel_out.append(ains.velocity())
-    #         euler_out.append(ains.euler(degrees=True))
-
-    #     pos_out = np.array(pos_out)
-    #     vel_out = np.array(vel_out)
-    #     euler_out = np.array(euler_out)
-
-    #     pos_x_rms, pos_y_rms, pos_z_rms = np.std((pos_out - pos_ref)[warmup:], axis=0)
-    #     vel_x_rms, vel_y_rms, vel_z_rms = np.std((vel_out - vel_ref)[warmup:], axis=0)
-    #     roll_rms, pitch_rms, yaw_rms = np.std((euler_out - euler_ref)[warmup:], axis=0)
-
-    #     assert pos_z_rms <= 0.2
-    #     assert vel_z_rms <= 0.02
-    #     assert roll_rms <= 0.3
-    #     assert pitch_rms <= 0.3
-    #     assert yaw_rms <= 0.3
+        assert pos_x_rms <= 0.1
+        assert pos_y_rms <= 0.1
+        assert pos_z_rms <= 0.1
+        assert vel_x_rms <= 0.02
+        assert vel_y_rms <= 0.02
+        assert vel_z_rms <= 0.02
+        assert roll_rms <= 0.03
+        assert pitch_rms <= 0.03
+        assert yaw_rms <= 0.1
