@@ -590,10 +590,10 @@ class Test_MEKF:
         vel_x_rms, vel_y_rms, vel_z_rms = np.std((vel_out - vel_ref)[warmup:], axis=0)
         roll_rms, pitch_rms, yaw_rms = np.std((euler_out - euler_ref)[warmup:], axis=0)
         bias_acc_x_rms, bias_acc_y_rms, bias_acc_z_rms = np.std(
-            (bias_acc_out - np.array(err_acc_true["bc"]))[warmup:], axis=0
+            (bias_acc_out - err_acc_true["bc"])[warmup:], axis=0
         )
         bias_gyro_x_rms, bias_gyro_y_rms, bias_gyro_z_rms = np.std(
-            (bias_gyro_out - np.array(err_gyro_true["bc"]))[warmup:], axis=0
+            (bias_gyro_out - err_gyro_true["bc"])[warmup:], axis=0
         )
 
         assert pos_x_rms <= 0.1
