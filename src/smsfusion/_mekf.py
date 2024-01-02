@@ -9,11 +9,12 @@ from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
 def _gibbs(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Compute the scaled Gibbs vector.
+    Compute the scaled Gibbs vector (i.e., 2 x Gibbs vector) from a unit quaternion.
 
     Parameters
     ----------
     q : numpy.ndarray, shape (4,)
+        Unit quaternion.
 
     Returns
     -------
@@ -30,7 +31,7 @@ def _h(a: NDArray[np.float64]) -> float:
     Parameters
     ----------
     a : numpy.ndarray, shape (3,)
-        Scaled Gibbs vector
+        Scaled Gibbs vector.
 
     Returns
     -------
@@ -55,7 +56,7 @@ def _dhda(a: NDArray[np.float64]) -> NDArray[np.float64]:
     Parameters
     ----------
     a : numpy.ndarray, shape (3,)
-        Scaled Gibbs vector
+        Scaled Gibbs vector.
 
     Returns
     -------
