@@ -593,7 +593,7 @@ class AidedINS:
         * ``B``: Bias stability in rad/s.
         * ``tau_cb``: Bias correlation time in seconds.
     var_pos : array-like, shape (3,)
-        Variance of position measurement noise in m^2
+        Variance of position measurement noise in m^2,
     var_ahrs : array-like, shape (3,)
         Variance of attitude measurements in rad^2. Specifically, it refers to
         the variance of the AHRS error.
@@ -884,14 +884,14 @@ class AidedINS:
             Angular rate measurements, given as [w_x, w_y, w_z]^T where
             w_x, w_y and w_z are angular rates about the x-, y-,
             and z-axis, respectively.
-        head : float
-            Heading measurement, i.e., yaw angle.
-        pos : array-like (3,), default=None
-            Position aiding measurement. If `None`, no position aiding is used.
-        degrees : bool, default=False
-            Specifies whether the unit of the ``w_imu`` are in degrees or radians.
-        head_degrees : bool, default=True
-            Specifies whether the unit ``head`` are in degrees or radians.
+        head : float, optional
+            Heading measurement, i.e., yaw angle. If ``None``, compass aiding is not used.
+        pos : array-like, shape (3,), optional
+            Position aiding measurement. If ``None``, position aiding is not used.
+        degrees : bool, default False
+            Specifies whether the unit of ``w_imu`` are in degrees or radians.
+        head_degrees : bool, default True
+            Specifies whether the unit of ``head`` are in degrees or radians.
 
         Returns
         -------
