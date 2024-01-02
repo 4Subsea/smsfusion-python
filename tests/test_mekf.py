@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from scipy.signal import resample_poly
 from scipy.spatial.transform import Rotation
 
 from smsfusion import MEKF, StrapdownINS, gravity
@@ -586,6 +587,14 @@ class Test_MEKF:
         bias_acc_out = np.array(bias_acc_out)
         bias_gyro_out = np.array(bias_gyro_out)
 
+        # Half-sample shift (compensates for the delay introduced by Euler integration)
+        pos_out = resample_poly(pos_out, 2, 1)[1:-1:2]
+        pos_ref = pos_ref[:-1, :]
+        vel_out = resample_poly(vel_out, 2, 1)[1:-1:2]
+        vel_ref = vel_ref[:-1, :]
+        euler_out = resample_poly(euler_out, 2, 1)[1:-1:2]
+        euler_ref = euler_ref[:-1, :]
+
         pos_x_rms, pos_y_rms, pos_z_rms = np.std((pos_out - pos_ref)[warmup:], axis=0)
         vel_x_rms, vel_y_rms, vel_z_rms = np.std((vel_out - vel_ref)[warmup:], axis=0)
         roll_rms, pitch_rms, yaw_rms = np.std((euler_out - euler_ref)[warmup:], axis=0)
@@ -602,8 +611,8 @@ class Test_MEKF:
         assert vel_x_rms <= 0.02
         assert vel_y_rms <= 0.02
         assert vel_z_rms <= 0.02
-        assert roll_rms <= 0.03
-        assert pitch_rms <= 0.03
+        assert roll_rms <= 0.02
+        assert pitch_rms <= 0.02
         assert yaw_rms <= 0.1
         assert bias_acc_x_rms <= 1e-3
         assert bias_acc_y_rms <= 1e-3
