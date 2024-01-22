@@ -83,15 +83,11 @@ class BaseINS(ABC):
     Abstract class for inertial navigation systems (INSs).
     """
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def _x(self) -> NDArray[np.float64]:
         """
-        Current state vector estimate.
-
-        Returns
-        -------
-        numpy.ndarray, shape (16,)
-            State vector, containing the following elements in order:
+        State vector, containing the following elements in order:
 
             * Position in x, y, z directions (3 elements).
             * Velocity in x, y, z directions (3 elements).
@@ -99,6 +95,11 @@ class BaseINS(ABC):
             * Accelerometer bias in x, y, z directions (3 elements).
             * Gyroscope bias in x, y, z directions (3 elements).
         """
+        raise NotImplementedError()
+
+    @_x.setter
+    @abstractmethod
+    def _x(self) -> NDArray[np.float64]:
         raise NotImplementedError()
 
     @property
