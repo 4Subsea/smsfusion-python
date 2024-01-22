@@ -278,14 +278,14 @@ class StrapdownINS(BaseINS):
 
     Parameters
     ----------
-    x0 : numpy.ndarray, shape (10,)
-        Initial state vector, containing the following elements in order:
+    x0 : array-like, shape (16,)
+        Initial state vector containing the following elements in order:
 
-        * Position in x-, y-, and z-direction (3 elements).
-        * Velocity in x-, y-, and z-direction (3 elements).
-        * Attitude as unit quaternion (4 elements). Should be given as
-          [q1, q2, q3, q4], where q1 is the real part and q1, q2 and q3 are
-          the three imaginary parts.
+        * Position in x, y, z directions (3 elements).
+        * Velocity in x, y, z directions (3 elements).
+        * Attitude as unit quaternion (4 elements).
+        * Accelerometer bias in x, y, z directions (3 elements).
+        * Gyroscope bias in x, y, z directions (3 elements).
     lat : float, optional
         Latitude used to calculate the gravitational acceleration. If none
         provided, the 'standard gravity' is assumed.
@@ -344,11 +344,21 @@ class StrapdownINS(BaseINS):
 
             q[k+1] = q[k] + dt * T(q[k]) * w_ins[k]
 
-        where,::
+        with bias compensated IMU measurements,::
+
+            f_ins[k] = f_imu[k] - b_acc[k]
+
+            w_ins[k] = w_imu[k] - b_gyro[k]
+
+        and,::
 
             a[k] = R(q[k]) * f_ins[k] + g
 
             g = [0, 0, 9.81]^T
+
+            f_ins[k] = f_imu[k] - b_acc[k]
+
+            w_ins[k] = w_imu[k] - b_gyro[k]
 
         Parameters
         ----------
