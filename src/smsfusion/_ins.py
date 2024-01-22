@@ -83,24 +83,9 @@ class BaseINS(ABC):
     Abstract class for inertial navigation systems (INSs).
     """
 
-    @property
-    @abstractmethod
-    def _x(self) -> NDArray[np.float64]:
-        """
-        State vector, containing the following elements in order:
-
-            * Position in x, y, z directions (3 elements).
-            * Velocity in x, y, z directions (3 elements).
-            * Attitude as unit quaternion (4 elements).
-            * Accelerometer bias in x, y, z directions (3 elements).
-            * Gyroscope bias in x, y, z directions (3 elements).
-        """
-        raise NotImplementedError()
-
-    @_x.setter
-    @abstractmethod
-    def _x(self) -> NDArray[np.float64]:
-        raise NotImplementedError()
+    def __init__(self, x0):
+        self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
+        self._x = self._x0.copy()
 
     @property
     def _p(self) -> NDArray[np.float64]:
