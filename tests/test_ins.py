@@ -18,6 +18,7 @@ from scipy.spatial.transform import Rotation
 
 from smsfusion._ins import (
     AidedINS,
+    BaseINS,
     StrapdownINS,
     _dhda,
     _gibbs,
@@ -95,6 +96,95 @@ def ains_ref_data():
 
 
 @pytest.mark.filterwarnings("ignore")
+class Test_BaseINS:
+    @pytest.fixture
+    def x0_nonzero(self):
+        p0 = np.array([1.0, 2.0, 3.0])
+        v0 = np.array([4.0, 5.0, 6.0])
+        q0 = np.array([1.0, 0.0, 0.0, 0.0])
+        ba0 = np.array([7.0, 8.0, 9.0])
+        bg0 = np.array([10.0, 11.0, 12.0])
+        x0 = np.r_[p0, v0, q0, ba0, bg0]
+        return x0
+
+    def test__init__(self, x0_nonzero):
+        ins = BaseINS(x0_nonzero)
+
+        assert isinstance(ins, BaseINS)
+        np.testing.assert_array_equal(ins._x0, x0_nonzero)
+        np.testing.assert_array_equal(ins._x, x0_nonzero)
+
+    def test_x(self, x0_nonzero):
+        ins = BaseINS(x0_nonzero)
+
+        x_out = ins.x
+        x_expect = x0_nonzero
+
+        assert x_out.shape == (16,)
+        assert x_out is not ins._x
+        np.testing.assert_array_equal(x_out, x_expect)
+
+    def test_position(self, x0_nonzero):
+        ins = BaseINS(x0_nonzero)
+
+        p_out = ins.position()
+        p_expect = np.array([1.0, 2.0, 3.0])
+
+        assert p_out.shape == (3,)
+        assert p_out is not ins._p
+        np.testing.assert_array_equal(p_out, p_expect)
+
+    def test_velocity(self, x0_nonzero):
+        ins = BaseINS(x0_nonzero)
+
+        v_out = ins.velocity()
+        v_expect = np.array([4.0, 5.0, 6.0])
+
+        assert v_out.shape == (3,)
+        assert v_out is not ins._v
+        np.testing.assert_array_equal(v_out, v_expect)
+
+    def test_quaternion(self, x0_nonzero):
+        ins = BaseINS(x0_nonzero)
+
+        q_out = ins.quaternion()
+        q_expect = np.array([1.0, 0.0, 0.0, 0.0])
+
+        assert q_out.shape == (4,)
+        assert q_out is not ins._q
+        np.testing.assert_array_equal(q_out, q_expect)
+
+    def test_euler(self, x0_nonzero):
+        ins = BaseINS(x0_nonzero)
+
+        theta_out = ins.euler()
+        theta_expect = np.array([0.0, 0.0, 0.0])
+
+        assert theta_out.shape == (3,)
+        np.testing.assert_array_equal(theta_out, theta_expect)
+
+    def test_bias_acc(self, x0_nonzero):
+        ins = BaseINS(x0_nonzero)
+
+        ba_out = ins.bias_acc()
+        ba_expect = np.array([7.0, 8.0, 9.0])
+
+        assert ba_out.shape == (3,)
+        assert ba_out is not ins._v
+        np.testing.assert_array_equal(ba_out, ba_expect)
+
+    def test_bias_gyro(self, x0_nonzero):
+        ins = BaseINS(x0_nonzero)
+
+        bg_out = ins.bias_gyro()
+        bg_expect = np.array([10.0, 11.0, 12.0])
+
+        assert bg_out.shape == (3,)
+        assert bg_out is not ins._v
+        np.testing.assert_array_equal(bg_out, bg_expect)
+
+
+@pytest.mark.filterwarnings("ignore")
 class Test_StrapdownINS:
     @pytest.fixture
     def x0(self):
@@ -121,14 +211,10 @@ class Test_StrapdownINS:
         x0 = np.r_[p0, v0, q0, ba0, bg0]
         return x0
 
-    # @pytest.fixture
-    # def ins_nonzero(self, x0_nonzero):
-    #     ins = StrapdownINS(x0_nonzero)
-    #     return ins
-
     def test__init__(self, x0_nonzero):
         ins = StrapdownINS(x0_nonzero)
 
+        assert isinstance(ins, BaseINS)
         np.testing.assert_array_equal(ins._x0, x0_nonzero)
         np.testing.assert_array_equal(ins._x, x0_nonzero)
 
@@ -562,6 +648,7 @@ class Test_AidedINS:
         ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass)
 
         assert isinstance(ains, AidedINS)
+        assert isinstance(ains, BaseINS)
         assert ains._fs == 10.24
         assert ains._dt == 1.0 / 10.24
         assert ains._err_acc == err_acc
