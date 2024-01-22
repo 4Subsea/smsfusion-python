@@ -86,42 +86,6 @@ def test__gibbs(angle, axis):
     np.testing.assert_almost_equal(_gibbs(q), gibbs_expected)
 
 
-@pytest.mark.parametrize(
-    "angles",
-    [
-        np.radians([0.0, 0.0, 35.0]),
-        np.radians([25.0, 180.0, -125.0]),
-        np.radians([10.0, 95.0, 1.0]),
-    ],
-)
-def test__h(angles):
-    alpha, beta, gamma = np.radians((0.0, 0.0, 15.0))
-
-    quaternion = Rotation.from_euler(
-        "ZYX", (gamma, beta, alpha), degrees=False
-    ).as_quat()
-    gibbs_vector = 2.0 * quaternion[:3] / quaternion[3]
-
-    gamma_expect = _h(gibbs_vector)
-    assert gamma_expect == pytest.approx(gamma)
-
-
-@pytest.mark.parametrize(
-    "gibbs_vector, dhda_expect",
-    [
-        (np.array([1.0, 0.0, 0.0]), np.array([0.0, 10.0, 20.0]) / (4.0 + 1.0) ** 2),
-        (np.array([0.0, 1.0, 0.0]), np.array([6.0, 0.0, 12.0]) / (4.0 - 1.0) ** 2),
-        (
-            np.array([0.0, 0.0, 1.0]),
-            np.array([0.0, 0.0, 20.0]) / ((4.0 - 1.0) ** 2 * (1 + (4.0 / 3.0) ** 2)),
-        ),
-    ],
-)
-def test__dhda(gibbs_vector, dhda_expect):
-    dhda_out = _dhda(gibbs_vector)
-    np.testing.assert_array_almost_equal(dhda_out, dhda_expect)
-
-
 @pytest.fixture
 def ains_ref_data():
     """Reference data for AINS testing."""
@@ -301,6 +265,42 @@ class Test_StrapdownINS:
         np.testing.assert_array_almost_equal(x0_out, x0_expect.flatten())
         np.testing.assert_array_almost_equal(x1_out, x1_expect.flatten())
         np.testing.assert_array_almost_equal(x2_out, x2_expect.flatten())
+
+
+@pytest.mark.parametrize(
+    "angles",
+    [
+        np.radians([0.0, 0.0, 35.0]),
+        np.radians([25.0, 180.0, -125.0]),
+        np.radians([10.0, 95.0, 1.0]),
+    ],
+)
+def test__h(angles):
+    alpha, beta, gamma = np.radians((0.0, 0.0, 15.0))
+
+    quaternion = Rotation.from_euler(
+        "ZYX", (gamma, beta, alpha), degrees=False
+    ).as_quat()
+    gibbs_vector = 2.0 * quaternion[:3] / quaternion[3]
+
+    gamma_expect = _h(gibbs_vector)
+    assert gamma_expect == pytest.approx(gamma)
+
+
+@pytest.mark.parametrize(
+    "gibbs_vector, dhda_expect",
+    [
+        (np.array([1.0, 0.0, 0.0]), np.array([0.0, 10.0, 20.0]) / (4.0 + 1.0) ** 2),
+        (np.array([0.0, 1.0, 0.0]), np.array([6.0, 0.0, 12.0]) / (4.0 - 1.0) ** 2),
+        (
+            np.array([0.0, 0.0, 1.0]),
+            np.array([0.0, 0.0, 20.0]) / ((4.0 - 1.0) ** 2 * (1 + (4.0 / 3.0) ** 2)),
+        ),
+    ],
+)
+def test__dhda(gibbs_vector, dhda_expect):
+    dhda_out = _dhda(gibbs_vector)
+    np.testing.assert_array_almost_equal(dhda_out, dhda_expect)
 
 
 class Test_AidedINS:
