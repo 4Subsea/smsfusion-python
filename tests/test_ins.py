@@ -97,32 +97,53 @@ def ains_ref_data():
 @pytest.mark.filterwarnings("ignore")
 class Test_StrapdownINS:
     @pytest.fixture
-    def ins(self):
-        x0 = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+    def x0(self):
+        p0 = np.array([0.0, 0.0, 0.0])
+        v0 = np.array([0.0, 0.0, 0.0])
+        q0 = np.array([1.0, 0.0, 0.0, 0.0])
+        ba0 = np.array([0.0, 0.0, 0.0])
+        bg0 = np.array([0.0, 0.0, 0.0])
+        x0 = np.r_[p0, v0, q0, ba0, bg0]
+        return x0
+
+    @pytest.fixture
+    def ins(self, x0):
         ins = StrapdownINS(x0)
         return ins
 
-    def test__init__(self):
-        x0 = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0, 0.0, 0.0, 0.0])
-        ins = StrapdownINS(x0)
+    @pytest.fixture
+    def x0_nonzero(self):
+        p0 = np.array([1.0, 2.0, 3.0])
+        v0 = np.array([4.0, 5.0, 6.0])
+        q0 = np.array([1.0, 0.0, 0.0, 0.0])
+        ba0 = np.array([7.0, 8.0, 9.0])
+        bg0 = np.array([10.0, 11.0, 12.0])
+        x0 = np.r_[p0, v0, q0, ba0, bg0]
+        return x0
 
-        np.testing.assert_array_equal(ins._x0, x0.reshape(-1, 1))
-        np.testing.assert_array_equal(ins._x, x0.reshape(-1, 1))
+    # @pytest.fixture
+    # def ins_nonzero(self, x0_nonzero):
+    #     ins = StrapdownINS(x0_nonzero)
+    #     return ins
 
-    def test_x(self):
-        x0 = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0, 0.0, 0.0, 0.0])
-        ins = StrapdownINS(x0)
+    def test__init__(self, x0_nonzero):
+        ins = StrapdownINS(x0_nonzero)
+
+        np.testing.assert_array_equal(ins._x0, x0_nonzero)
+        np.testing.assert_array_equal(ins._x, x0_nonzero)
+
+    def test_x(self, x0_nonzero):
+        ins = StrapdownINS(x0_nonzero)
 
         x_out = ins.x
-        x_expect = x0
+        x_expect = x0_nonzero
 
-        assert x_out.shape == (10,)
+        assert x_out.shape == (16,)
         assert x_out is not ins._x
         np.testing.assert_array_equal(x_out, x_expect)
 
-    def test_position(self):
-        x0 = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0, 0.0, 0.0, 0.0])
-        ins = StrapdownINS(x0)
+    def test_position(self, x0_nonzero):
+        ins = StrapdownINS(x0_nonzero)
 
         p_out = ins.position()
         p_expect = np.array([1.0, 2.0, 3.0])
@@ -131,9 +152,8 @@ class Test_StrapdownINS:
         assert p_out is not ins._p
         np.testing.assert_array_equal(p_out, p_expect)
 
-    def test_velocity(self):
-        x0 = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0, 0.0, 0.0, 0.0])
-        ins = StrapdownINS(x0)
+    def test_velocity(self, x0_nonzero):
+        ins = StrapdownINS(x0_nonzero)
 
         v_out = ins.velocity()
         v_expect = np.array([4.0, 5.0, 6.0])
@@ -142,9 +162,8 @@ class Test_StrapdownINS:
         assert v_out is not ins._v
         np.testing.assert_array_equal(v_out, v_expect)
 
-    def test_quaternion(self):
-        x0 = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0, 0.0, 0.0, 0.0])
-        ins = StrapdownINS(x0)
+    def test_quaternion(self, x0_nonzero):
+        ins = StrapdownINS(x0_nonzero)
 
         q_out = ins.quaternion()
         q_expect = np.array([1.0, 0.0, 0.0, 0.0])
@@ -153,9 +172,8 @@ class Test_StrapdownINS:
         assert q_out is not ins._q
         np.testing.assert_array_equal(q_out, q_expect)
 
-    def test_euler(self):
-        x0 = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0, 0.0, 0.0, 0.0])
-        ins = StrapdownINS(x0)
+    def test_euler(self, x0_nonzero):
+        ins = StrapdownINS(x0_nonzero)
 
         theta_out = ins.euler()
         theta_expect = np.array([0.0, 0.0, 0.0])
@@ -164,14 +182,14 @@ class Test_StrapdownINS:
         np.testing.assert_array_equal(theta_out, theta_expect)
 
     def test_reset(self, ins):
-        x = np.random.random(10)
+        x = np.random.random(16)
         x[6:10] = x[6:10] / np.linalg.norm(x[6:10])  # unit quaternion
         ins.reset(x)
 
         np.testing.assert_array_almost_equal(ins.x, x)
 
     def test_reset_2d(self, ins):
-        x = np.random.random(10).reshape(-1, 1)
+        x = np.random.random(16).reshape(-1, 1)
         x[6:10] = x[6:10] / np.linalg.norm(x[6:10])  # unit quaternion
         ins.reset(x)
 
