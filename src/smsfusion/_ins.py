@@ -85,6 +85,7 @@ class BaseINS(ABC):
 
     def __init__(self, x0):
         self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
+        self._x0[6:] = _normalize(self._x0[6:])
         self._x = self._x0.copy()
 
     @property
