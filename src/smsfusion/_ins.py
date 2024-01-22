@@ -690,7 +690,7 @@ class AidedINS(BaseINS):
         head: float | None = None,
         degrees: bool = False,
         head_degrees: bool = True,
-    ) -> "MEKF":  # TODO: Replace with ``typing.Self`` when Python > 3.11
+    ) -> "AidedINS":  # TODO: Replace with ``typing.Self`` when Python > 3.11
         """
         Update the AINS state estimates based on measurements.
 
