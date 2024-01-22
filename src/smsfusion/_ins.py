@@ -286,18 +286,8 @@ class StrapdownINS(BaseINS):
     """
 
     def __init__(self, x0: ArrayLike, lat: float | None = None) -> None:
-        self._x0 = np.asarray_chkfinite(x0).reshape(10, 1).copy()
-        self._x = self._x0.copy()
-        self._x[6:] = _normalize(self._x[6:])
         self._g = np.array([0, 0, gravity(lat)]).reshape(3, 1)  # gravity vector in NED
-
-    @property
-    def _x(self):
-        return self._state_vector
-
-    @_x.setter
-    def _x(self, x):
-        self._state_vector = x
+        super().__init__(x0)
 
     def reset(self, x_new: ArrayLike) -> None:
         """
