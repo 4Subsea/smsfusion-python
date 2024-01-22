@@ -519,7 +519,6 @@ class AidedINS(BaseINS):
         self._dt = 1.0 / fs
         self._err_acc = err_acc
         self._err_gyro = err_gyro
-        # self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
         self._var_pos = np.asarray_chkfinite(var_pos).reshape(3).copy()
         self._var_vel = np.asarray_chkfinite(var_vel).reshape(3).copy()
         self._var_g = np.asarray_chkfinite(var_g).reshape(3).copy()
@@ -542,11 +541,6 @@ class AidedINS(BaseINS):
         self._dfdw = self._prep_dfdw_matrix(q0)
         self._dhdx = self._prep_dhdx_matrix(q0)
         self._W = self._prep_W_matrix(err_acc, err_gyro)
-
-    # @property
-    # def _x(self) -> NDArray[np.float64]:
-    #     """Full state (i.e., INS state + error state)"""
-    #     return self._ins._x  # error state is zero due to reset
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -726,8 +720,7 @@ class AidedINS(BaseINS):
         if degrees:
             w_imu = (np.pi / 180.0) * w_imu
 
-        # Update INS state
-        # self._x_ins[0:10] = self._ins.x
+        # Update current state estimate
         self._x = self._ins.x
 
         # Current state estimates
