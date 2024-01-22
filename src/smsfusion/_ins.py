@@ -94,7 +94,7 @@ class BaseINS(ABC):
         * Gyroscope bias in x, y, z directions (3 elements).
     """
 
-    def __init__(self, x0):
+    def __init__(self, x0: ArrayLike) -> None:
         self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
         self._x0[6:10] = _normalize(self._x0[6:10])
         self._x = self._x0.copy()
