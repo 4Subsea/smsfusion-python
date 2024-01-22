@@ -343,14 +343,14 @@ class StrapdownINS(BaseINS):
         ----------
         dt : float
             Sampling period in seconds.
-        f_imu : array_like, shape (3,)
-            Specific force (bias compansated) measurements (i.e., accelerations
-            + gravity), given as [f_x, f_y, f_z]^T where f_x, f_y and f_z are
+        f_imu : array-like, shape (3,)
+            Specific force measurements (i.e., accelerations + gravity), given
+            as [f_x, f_y, f_z]^T where f_x, f_y and f_z are
             acceleration measurements in x-, y-, and z-direction, respectively.
-        w_imu : array_like, shape (3,)
-            Angular rate (bias compansated) measurements, given as
-            [w_x, w_y, w_z]^T where w_x, w_y and w_z are angular rates about
-            the x-, y-, and z-axis, respectively.
+        w_imu : array-like, shape (3,)
+            Angular rate measurements, given as [w_x, w_y, w_z]^T where
+            w_x, w_y and w_z are angular rates about the x-, y-,
+            and z-axis, respectively.
         degrees : bool, default False
             Specify whether the angular rates are given in degrees or radians.
 
