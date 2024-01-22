@@ -13,23 +13,24 @@ from pathlib import Path
 import numpy as np
 import pytest
 from pandas import read_parquet
+from scipy.signal import resample_poly
 from scipy.spatial.transform import Rotation
 
 from smsfusion._ins import (
-    AHRS,
     AidedINS,
     StrapdownINS,
-    _LegacyStrapdownINS,
+    _dhda,
+    _gibbs,
+    _h,
     _signed_smallest_angle,
     gravity,
 )
 from smsfusion._transforms import (
-    _angular_matrix_from_euler,
     _angular_matrix_from_quaternion,
     _quaternion_from_euler,
-    _rot_matrix_from_euler,
     _rot_matrix_from_quaternion,
 )
+from smsfusion._vectorops import _skew_symmetric
 from smsfusion.benchmark import (
     benchmark_full_pva_beat_202311A,
     benchmark_full_pva_chirp_202311A,
@@ -67,6 +68,22 @@ def test__signed_smallest_angle(angle, degrees, angle_expect):
 def test_gravity(mu, g_expect):
     g_out = gravity(mu)
     assert g_out == pytest.approx(g_expect)
+
+
+@pytest.mark.parametrize(
+    "angle, axis",
+    [
+        (np.radians([0.0, 0.0, 35.0]), np.array([0.0, 0.0, 1.0])),
+        (np.radians([0.0, -35.0, 0.0]), np.array([0.0, 1.0, 0.0])),
+        (np.radians([-10.0, 0.0, 0.0]), np.array([1.0, 0.0, 0.0])),
+    ],
+)
+def test__gibbs(angle, axis):
+    q = Rotation.from_euler("ZYX", angle[::-1], degrees=False).as_quat()
+    q = np.r_[q[3], q[:3]]
+
+    gibbs_expected = 2.0 * axis * np.tan(angle / 2)
+    np.testing.assert_almost_equal(_gibbs(q), gibbs_expected)
 
 
 @pytest.fixture
@@ -250,420 +267,277 @@ class Test_StrapdownINS:
         np.testing.assert_array_almost_equal(x2_out, x2_expect.flatten())
 
 
-@pytest.mark.filterwarnings("ignore")
-class Test_LegacyStrapdownINS:
-    @pytest.fixture
-    def ins(self):
-        x0 = np.zeros((9, 1))
-        ins = _LegacyStrapdownINS(x0)
-        return ins
+@pytest.mark.parametrize(
+    "angles",
+    [
+        np.radians([0.0, 0.0, 35.0]),
+        np.radians([25.0, 180.0, -125.0]),
+        np.radians([10.0, 95.0, 1.0]),
+    ],
+)
+def test__h(angles):
+    alpha, beta, gamma = np.radians((0.0, 0.0, 15.0))
 
-    def test__init__(self):
-        x0 = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, np.pi, np.pi / 2.0, np.pi / 4.0])
-        ins = _LegacyStrapdownINS(x0)
+    quaternion = Rotation.from_euler(
+        "ZYX", (gamma, beta, alpha), degrees=False
+    ).as_quat()
+    gibbs_vector = 2.0 * quaternion[:3] / quaternion[3]
 
-        np.testing.assert_array_equal(ins._x0, x0.reshape(-1, 1))
-        np.testing.assert_array_equal(ins._x, x0.reshape(-1, 1))
+    gamma_expect = _h(gibbs_vector)
+    assert gamma_expect == pytest.approx(gamma)
 
-    def test_reset(self, ins):
-        x = np.random.random((9, 1))
-        ins.reset(x)
 
-        np.testing.assert_array_equal(ins._x, x)
-
-    def test_x(self, ins):
-        x = np.random.random(9)
-        ins.reset(x)
-
-        x_out = ins.x
-        x_expect = x
-
-        assert x_out.shape == (9,)
-        assert x_out is not ins._x
-        np.testing.assert_array_equal(x_out, x_expect)
-
-    def test_position(self, ins):
-        x = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, np.pi, np.pi / 2.0, np.pi / 4.0])
-        ins.reset(x)
-
-        p_out = ins.position()
-        assert p_out is not ins._p
-        p_expect = np.array([1.0, 2.0, 3.0])
-
-        assert p_out.shape == (3,)
-        np.testing.assert_array_almost_equal(p_out, p_expect)
-
-    def test_velocity(self, ins):
-        x = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, np.pi, np.pi / 2.0, np.pi / 4.0])
-        ins.reset(x)
-
-        v_out = ins.velocity()
-        assert v_out is not ins._v
-        v_expect = np.array([4.0, 5.0, 6.0])
-
-        assert v_out.shape == (3,)
-        np.testing.assert_array_almost_equal(v_out, v_expect)
-
-    def test_euler_rad(self, ins):
-        x = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, np.pi, np.pi / 2.0, np.pi / 4.0])
-        ins.reset(x)
-
-        theta_out = ins.euler(degrees=False)
-        theta_expect = np.array([np.pi, np.pi / 2.0, np.pi / 4.0])
-
-        assert theta_out.shape == (3,)
-        assert theta_out is not ins._theta
-        np.testing.assert_array_almost_equal(theta_out, theta_expect)
-
-    def test_euler_deg(self, ins):
-        x = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, np.pi, np.pi / 2.0, np.pi / 4.0])
-        ins.reset(x)
-
-        theta_out = ins.euler(degrees=True)
-        theta_expect = np.array([180.0, 90.0, 45.0])
-
-        assert theta_out.shape == (3,)
-        assert theta_out is not ins._theta
-        np.testing.assert_array_almost_equal(theta_out, theta_expect)
-
-    def test_quaternion(self, ins):
-        x = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, np.pi, np.pi / 2.0, np.pi / 4.0])
-        ins.reset(x)
-
-        quaternion_out = ins.quaternion()
-        q_expected = Rotation.from_euler(
-            "ZYX", np.array([np.pi, np.pi / 2.0, np.pi / 4.0])[::-1], degrees=False
-        ).as_quat()
-        q_expected = np.r_[q_expected[-1], q_expected[:-1]]
-
-        assert quaternion_out.shape == (4,)
-        np.testing.assert_array_almost_equal(quaternion_out, q_expected)
-
-    def test_update_return_self(self):
-        x0 = np.zeros((9, 1))
-        strapdownins = _LegacyStrapdownINS(x0)
-
-        dt = 0.1
-        g = 9.80665
-        f = np.array([0.0, 0.0, -g]).reshape(-1, 1)
-        w = np.array([0.0, 0.0, 0.0]).reshape(-1, 1)
-
-        update_return = strapdownins.update(dt, f, w)
-        assert update_return is strapdownins
-
-    def test_update(self):
-        x0 = np.zeros((9, 1))
-        ins = _LegacyStrapdownINS(x0)
-
-        h = 0.1
-        g = ins._g
-        f = np.array([1.0, 2.0, 3.0]).reshape(-1, 1) - g
-        w = np.array([4.0, 5.0, 6.0]).reshape(-1, 1)
-
-        x0_out = ins.x
-        ins.update(h, f, w)
-        x1_out = ins.x
-
-        x0_expect = np.zeros(9)
-        x1_expect = np.array([0.005, 0.01, 0.015, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
-
-        np.testing.assert_array_almost_equal(x0_out, x0_expect)
-        np.testing.assert_array_almost_equal(x1_out, x1_expect)
-
-    def test_update_deg(self):
-        x0 = np.zeros((9, 1))
-        ins = _LegacyStrapdownINS(x0)
-
-        dt = 0.1
-        g = ins._g
-        f_imu = np.array([1.0, 2.0, 3.0]).reshape(-1, 1) - g
-        w_imu = np.array([4.0, 5.0, 6.0]).reshape(-1, 1)
-
-        x0_out = ins.x
-        ins.update(dt, f_imu, w_imu, degrees=True)
-        x1_out = ins.x
-
-        x0_expect = np.zeros(9)
-        x1_expect = np.array(
-            [
-                0.005,
-                0.01,
-                0.015,
-                0.1,
-                0.2,
-                0.3,
-                (np.pi / 180.0) * 0.4,
-                (np.pi / 180.0) * 0.5,
-                (np.pi / 180.0) * 0.6,
-            ]
-        )
-
-        np.testing.assert_array_almost_equal(x0_out, x0_expect)
-        np.testing.assert_array_almost_equal(x1_out, x1_expect)
-
-    def test_update_twise(self):
-        x0 = np.zeros((9, 1))
-        ins = _LegacyStrapdownINS(x0)
-
-        dt = 0.1
-        g = ins._g
-        f_imu = np.array([1.0, 2.0, 3.0]).reshape(-1, 1) - g
-        w_imu = np.array([4.0, 5.0, 6.0]).reshape(-1, 1)
-
-        x0_out = ins.x
-        ins.update(dt, f_imu, w_imu)
-        x1_out = ins.x
-        ins.update(dt, f_imu, w_imu)
-        x2_out = ins.x
-
-        x0_expect = np.zeros((9, 1))
-
-        # Calculate x1
-        R0_expect = np.eye(3)
-        T0_expect = np.eye(3)
-        a0_expect = R0_expect @ f_imu + g
-        x1_expect = np.zeros((9, 1))
-        x1_expect[0:3] = (
-            x0_expect[0:3] + dt * x0_expect[3:6] + 0.5 * dt**2 * a0_expect
-        )
-        x1_expect[3:6] = x0_expect[3:6] + dt * a0_expect
-        x1_expect[6:9] = x0_expect[6:9] + dt * T0_expect @ w_imu
-
-        # Calculate x2 by forward Euler
-        R1_expect = Rotation.from_euler("ZYX", x1_expect[8:5:-1].flatten()).as_matrix()
-        T1_expect = _angular_matrix_from_euler(x1_expect[6:9].flatten())
-        a1_expect = R1_expect @ f_imu + g
-        x2_expect = np.zeros((9, 1))
-        x2_expect[0:3] = (
-            x1_expect[0:3] + dt * x1_expect[3:6] + 0.5 * dt**2 * a1_expect
-        )
-        x2_expect[3:6] = x1_expect[3:6] + dt * a1_expect
-        x2_expect[6:9] = x1_expect[6:9] + dt * T1_expect @ w_imu
-
-        np.testing.assert_array_almost_equal(x0_out, x0_expect.flatten())
-        np.testing.assert_array_almost_equal(x1_out, x1_expect.flatten())
-        np.testing.assert_array_almost_equal(x2_out, x2_expect.flatten())
-
-    def test_update_R_T(self):
-        ins = _LegacyStrapdownINS(np.zeros((9, 1)))
-
-        h = 0.1
-        g = ins._g
-        f_imu = np.array([1.0, 2.0, 3.0]).reshape(-1, 1) - g
-        w_imu = np.array([4.0, 5.0, 6.0])
-        ins.update(h, f_imu, w_imu, theta_ext=(0.0, 0.0, 0.0))
-
-        x_out = ins.x
-        x_expect = np.array([0.005, 0.01, 0.015, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
-        np.testing.assert_array_almost_equal(x_out, x_expect)
-
-        ins.update(h, f_imu, w_imu, theta_ext=(0.0, 0.0, 0.0))
-
-        x_out = ins.x
-        x_expect = np.array([0.02, 0.04, 0.06, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2])
-        np.testing.assert_array_almost_equal(x_out, x_expect)
+@pytest.mark.parametrize(
+    "gibbs_vector, dhda_expect",
+    [
+        (np.array([1.0, 0.0, 0.0]), np.array([0.0, 10.0, 20.0]) / (4.0 + 1.0) ** 2),
+        (np.array([0.0, 1.0, 0.0]), np.array([6.0, 0.0, 12.0]) / (4.0 - 1.0) ** 2),
+        (
+            np.array([0.0, 0.0, 1.0]),
+            np.array([0.0, 0.0, 20.0]) / ((4.0 - 1.0) ** 2 * (1 + (4.0 / 3.0) ** 2)),
+        ),
+    ],
+)
+def test__dhda(gibbs_vector, dhda_expect):
+    dhda_out = _dhda(gibbs_vector)
+    np.testing.assert_array_almost_equal(dhda_out, dhda_expect)
 
 
 class Test_AidedINS:
+    @staticmethod
+    def quaternion(alpha=-10.0, beta=5.0, gamma=25.0, degrees=True):
+        """
+        Convert Euler to quaternions using SciPy.
+        """
+        q = Rotation.from_euler("ZYX", (gamma, beta, alpha), degrees=degrees).as_quat()
+        q = np.r_[q[3], q[:3]]
+        return q
+
+    @staticmethod
+    def rot_matrix_from_quaternion(q):
+        """
+        Convert quaternion to rotation matrix using SciPy.
+        """
+        q = np.r_[q[1:], q[0]]
+        return Rotation.from_quat(q).as_matrix()
+
     @pytest.fixture
     def ains(self):
         fs = 10.24
 
-        p0 = np.array([1.0, 2.0, 3.0])
-        v0 = np.array([0.1, 0.2, 0.3])
-        theta0 = np.array([np.pi / 4, np.pi / 8, np.pi / 16])
-        b_acc0 = np.array([0.001, 0.002, 0.003])
-        b_gyro0 = np.array([0.004, 0.005, 0.006])
-        x0 = np.r_[p0, v0, theta0, b_acc0, b_gyro0]
-        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-        var_pos = [1.0, 2.0, 3.0]
-        var_ahrs = [4.0, 5.0, 6.0]
-        ahrs = AHRS(fs, 0.050, 0.035)
-        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
+        p_init = np.array([0.1, 0.0, 0.0])
+        v_init = np.array([0.0, -0.1, 0.0])
+
+        q_init = self.quaternion()
+
+        bias_acc_init = np.array([0.0, 0.0, 0.1])
+        bias_gyro_init = np.array([-0.1, 0.0, 0.0])
+
+        x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
+
+        err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
+        err_gyro = {
+            "N": (np.pi) / 180.0 * 2.0e-3,
+            "B": (np.pi) / 180.0 * 8.0e-4,
+            "tau_cb": 50,
+        }
+
+        var_pos = [0.1, 0.1, 0.1]
+        var_vel = [0.1, 0.1, 0.1]
+        var_g = (0.1) ** 2 * np.ones(3)
+        var_compass = ((np.pi / 180.0) * 0.5) ** 2
+
+        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass)
         return ains
 
     def test__init__(self):
         fs = 10.24
 
-        x0 = np.zeros(15)
-        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-        var_pos = [1.0, 2.0, 3.0]
-        var_ahrs = [4.0, 5.0, 6.0]
-        ahrs = AHRS(fs, 0.050, 0.035)
-        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
+        p_init = np.array([0.0, 0.0, 0.0])
+        v_init = np.array([0.0, 0.0, 0.0])
+        q_init = np.array([1.0, 0.0, 0.0, 0.0])
+        bias_acc_init = np.array([0.0, 0.0, 0.0])
+        bias_gyro_init = np.array([0.0, 0.0, 0.0])
+
+        x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
+
+        err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
+        err_gyro = {
+            "N": (np.pi) / 180.0 * 2.0e-3,
+            "B": (np.pi) / 180.0 * 8.0e-4,
+            "tau_cb": 50,
+        }
+
+        var_pos = [0.1, 0.1, 0.1]
+        var_vel = [0.1, 0.1, 0.1]
+        var_g = (0.1) ** 2 * np.ones(3)
+        var_compass = ((np.pi / 180.0) * 0.5) ** 2
+
+        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass)
 
         assert isinstance(ains, AidedINS)
         assert ains._fs == 10.24
         assert ains._dt == 1.0 / 10.24
         assert ains._err_acc == err_acc
         assert ains._err_gyro == err_gyro
-        assert ains.ahrs._Kp == 0.050
-        assert ains.ahrs._Ki == 0.035
-        assert isinstance(ains.ahrs, AHRS)
-        assert isinstance(ains._ins, _LegacyStrapdownINS)
-        np.testing.assert_array_almost_equal(ains._x_ins, np.zeros((15, 1)))
+        assert isinstance(ains._ins, StrapdownINS)
+
+        np.testing.assert_array_almost_equal(ains._var_pos, var_pos)
+        np.testing.assert_array_almost_equal(ains._var_vel, var_vel)
+        np.testing.assert_array_almost_equal(ains._var_g, var_g)
+        np.testing.assert_array_almost_equal(ains._var_compass, var_compass)
+        np.testing.assert_array_almost_equal(ains._x_ins, x0)
         np.testing.assert_array_almost_equal(ains._P_prior, np.eye(15))
 
-        # State matrix
-        F_expect = np.zeros((15, 15))
-        F_expect[0:3, 3:6] = np.eye(3)
-        F_expect[3:6, 9:12] = -np.eye(3)
-        F_expect[6:9, 12:15] = -np.eye(3)
-        F_expect[9:12, 9:12] = -(1.0 / err_acc["tau_cb"]) * np.eye(3)
-        F_expect[12:15, 12:15] = -(1.0 / err_gyro["tau_cb"]) * np.eye(3)
-        np.testing.assert_array_almost_equal(ains._F, F_expect)
-
-        # Input (white noise) matrix
-        G_expect = np.zeros((15, 12))
-        G_expect[3:6, 0:3] = -np.eye(3)
-        G_expect[6:9, 3:6] = -np.eye(3)
-        G_expect[9:12, 6:9] = np.eye(3)
-        G_expect[12:15, 9:12] = np.eye(3)
-        np.testing.assert_array_almost_equal(ains._G, G_expect)
-
-        # White noise power spectral density matrix
-        W_expect = np.eye(12)
-        W_expect[0:3, 0:3] *= err_acc["N"] ** 2
-        W_expect[3:6, 3:6] *= err_gyro["N"] ** 2
-        W_expect[6:9, 6:9] *= 2.0 * err_acc["B"] ** 2 * (1.0 / err_acc["tau_cb"])
-        W_expect[9:12, 9:12] *= 2.0 * err_gyro["B"] ** 2 * (1.0 / err_gyro["tau_cb"])
-        np.testing.assert_array_almost_equal(ains._W, W_expect)
-
-        # Measurement noise covariance matrix
-        R_expect = np.diag(np.r_[var_pos, var_ahrs])
-        np.testing.assert_array_almost_equal(ains._R, R_expect)
-
-    def test__init__wrong_ahrs_type(self):
-        fs = 10.24
-
-        x0 = np.zeros(15)
-        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-        var_pos = [1.0, 2.0, 3.0]
-        var_ahrs = [4.0, 5.0, 6.0]
-        ahrs = None
-        with pytest.raises(TypeError):
-            _ = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
-
-    def test__init__ahrs_fs_mismatch(self):
-        fs = 10.24
-
-        x0 = np.zeros(15)
-        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-        var_pos = [1.0, 2.0, 3.0]
-        var_ahrs = [4.0, 5.0, 6.0]
-        ahrs = AHRS(2.0 * fs, 0.050, 0.035)
-        with pytest.raises(ValueError):
-            _ = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
+        assert ains._dfdx.shape == (15, 15)
+        assert ains._dfdw.shape == (15, 12)
+        assert ains._W.shape == (12, 12)
+        assert ains._dhdx.shape == (10, 15)
 
     def test_x(self, ains):
         x_expect = np.array(
             [
-                1.0,
-                2.0,
-                3.0,
                 0.1,
-                0.2,
-                0.3,
-                np.pi / 4,
-                np.pi / 8,
-                np.pi / 16,
-                0.001,
-                0.002,
-                0.003,
-                0.004,
-                0.005,
-                0.006,
+                0.0,
+                0.0,
+                0.0,
+                -0.1,
+                0.0,
+                *self.quaternion(),
+                0.0,
+                0.0,
+                0.1,
+                -0.1,
+                0.0,
+                0.0,
             ]
         )
         x_out = ains.x
 
-        assert x_out.shape == (15,)
-        assert x_out is not ains._x
         np.testing.assert_array_almost_equal(x_out, x_expect)
         assert x_out is not ains._x
 
     def test_position(self, ains):
         pos_out = ains.position()
-        pos_expect = np.array([1.0, 2.0, 3.0])
+        pos_expect = np.array([0.1, 0.0, 0.0])
 
-        assert pos_out.shape == (3,)
-        assert pos_out is not ains._p
         np.testing.assert_array_almost_equal(pos_out, pos_expect)
+        assert pos_out is not ains._p
 
     def test_velocity(self, ains):
         vel_out = ains.velocity()
-        vel_expect = np.array([0.1, 0.2, 0.3])
+        vel_expect = np.array([0.0, -0.1, 0.0])
 
-        assert vel_out.shape == (3,)
-        assert vel_out is not ains._v
         np.testing.assert_array_almost_equal(vel_out, vel_expect)
+        assert vel_out is not ains._v
 
     def test_euler_radians(self, ains):
         theta_out = ains.euler(degrees=False)
-        theta_expect = np.array([np.pi / 4, np.pi / 8, np.pi / 16])
+        theta_expect = np.radians(np.array([-10.0, 5.0, 25.0]))
 
-        assert theta_out.shape == (3,)
-        assert theta_out is not ains._theta
         np.testing.assert_array_almost_equal(theta_out, theta_expect)
 
     def test_euler_degrees(self, ains):
         theta_out = ains.euler(degrees=True)
-        theta_expect = (180.0 / np.pi) * np.array([np.pi / 4, np.pi / 8, np.pi / 16])
+        theta_expect = np.array([-10.0, 5.0, 25.0])
 
-        assert theta_out.shape == (3,)
-        assert theta_out is not ains._theta
         np.testing.assert_array_almost_equal(theta_out, theta_expect)
 
     def test_quaternion(self, ains):
         quaternion_out = ains.quaternion()
+        quaternion_expect = self.quaternion()
 
-        theta_expect = np.array([np.pi / 4, np.pi / 8, np.pi / 16])
-        q_expected = Rotation.from_euler(
-            "ZYX", theta_expect[::-1], degrees=False
-        ).as_quat()
-        q_expected = np.r_[q_expected[-1], q_expected[0:-1]]  # scipy rearrange
+        np.testing.assert_array_almost_equal(quaternion_out, quaternion_expect)
+        assert quaternion_out is not ains._q
 
-        assert quaternion_out.shape == (4,)
-        np.testing.assert_array_almost_equal(quaternion_out, q_expected)
+    def test__prep_dfdx_matrix(self):
+        err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
+        err_gyro = {
+            "N": (np.pi) / 180.0 * 2.0e-3,
+            "B": (np.pi) / 180.0 * 8.0e-4,
+            "tau_cb": 50,
+        }
 
-    def test__prep_F_matrix(self):
-        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-        theta = np.array([np.pi / 8, np.pi / 16, 0.0])
+        quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
 
-        F_out = AidedINS._prep_F_matrix(err_acc, err_gyro, theta)
+        dfdw_out = AidedINS._prep_dfdx_matrix(err_acc, err_gyro, quaternion)
 
-        # State matrix
-        R_bn = _rot_matrix_from_euler(theta)
-        T = _angular_matrix_from_euler(theta)
-        F_expect = np.zeros((15, 15))
-        F_expect[0:3, 3:6] = np.eye(3)
-        F_expect[3:6, 9:12] = -R_bn
-        F_expect[6:9, 12:15] = -T
-        F_expect[9:12, 9:12] = -(1.0 / err_acc["tau_cb"]) * np.eye(3)
-        F_expect[12:15, 12:15] = -(1.0 / err_gyro["tau_cb"]) * np.eye(3)
+        R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
+        S = _skew_symmetric  # skew symmetric matrix
 
-        np.testing.assert_array_almost_equal(F_out, F_expect)
+        # Dummy values
+        f_ins = np.array([0.0, 0.0, 0.0])
+        w_ins = np.array([0.0, 0.0, 0.0])
 
-    def test__prep_G_matrix(self):
-        theta = np.array([np.pi / 8, np.pi / 16, 0.0])
+        # "State" matrix
+        dfdx_expect = np.zeros((15, 15))
+        dfdx_expect[0:3, 3:6] = np.eye(3)
+        dfdx_expect[3:6, 6:9] = -R(quaternion) @ S(f_ins)
+        dfdx_expect[3:6, 9:12] = -R(quaternion)
+        dfdx_expect[6:9, 6:9] = -S(w_ins)  # NB! update each time step
+        dfdx_expect[6:9, 12:15] = -np.eye(3)
+        dfdx_expect[9:12, 9:12] = -(1.0 / err_acc["tau_cb"]) * np.eye(3)
+        dfdx_expect[12:15, 12:15] = -(1.0 / err_gyro["tau_cb"]) * np.eye(3)
 
-        G_out = AidedINS._prep_G_matrix(theta)
+        np.testing.assert_array_almost_equal(dfdw_out, dfdx_expect)
 
-        # Input (white noise) matrix
-        R_bn = _rot_matrix_from_euler(theta)
-        T = _angular_matrix_from_euler(theta)
-        G_expect = np.zeros((15, 12))
-        G_expect[3:6, 0:3] = -R_bn
-        G_expect[6:9, 3:6] = -T
-        G_expect[9:12, 6:9] = np.eye(3)
-        G_expect[12:15, 9:12] = np.eye(3)
+    def test__update_dfdx_matrix(self, ains):
+        quaternion_init = ains.quaternion()
 
-        np.testing.assert_array_almost_equal(G_out, G_expect)
+        R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
+        S = _skew_symmetric  # skew symmetric matrix
+
+        # Dummy values
+        f_ins_init = np.array([0.0, 0.0, 0.0])
+        w_ins_init = np.array([0.0, 0.0, 0.0])
+
+        dfdx_init = ains._dfdx.copy()
+
+        quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
+
+        f_ins = np.array([0.0, 0.0, -gravity()])
+        w_ins = np.array([0.01, -0.01, 0.01])
+
+        ains._update_dfdx_matrix(quaternion, f_ins, w_ins)
+
+        delta_dfdx_expect = np.zeros_like(dfdx_init)
+        delta_dfdx_expect[3:6, 6:9] = -R(quaternion) @ S(f_ins) - (
+            -R(quaternion_init) @ S(f_ins_init)
+        )
+        delta_dfdx_expect[3:6, 9:12] = -R(quaternion) - (-R(quaternion_init))
+        delta_dfdx_expect[6:9, 6:9] = -S(w_ins) - (-S(w_ins_init))
+
+        np.testing.assert_array_almost_equal(ains._dfdx - dfdx_init, delta_dfdx_expect)
+
+    def test__prep_dfdw_matrix(self):
+        quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
+
+        dfdw_out = AidedINS._prep_dfdw_matrix(quaternion)
+
+        R = self.rot_matrix_from_quaternion
+
+        dfdw_expect = np.zeros((15, 12))
+        dfdw_expect[3:6, 0:3] = -R(quaternion)  # NB! update each time step
+        dfdw_expect[6:9, 3:6] = -np.eye(3)
+        dfdw_expect[9:12, 6:9] = np.eye(3)
+        dfdw_expect[12:15, 9:12] = np.eye(3)
+
+        np.testing.assert_array_almost_equal(dfdw_out, dfdw_expect)
+
+    def test__update_dfdw_matrix(self, ains):
+        quaternion_init = ains.quaternion()
+
+        R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
+
+        dfdw_init = ains._dfdw.copy()
+
+        quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
+
+        ains._update_dfdw_matrix(quaternion)
+
+        delta_dfdw_expect = np.zeros_like(dfdw_init)
+        delta_dfdw_expect[3:6, 0:3] = -R(quaternion) - (-R(quaternion_init))
+        np.testing.assert_array_almost_equal(ains._dfdw - dfdw_init, delta_dfdw_expect)
 
     def test__prep_W_matrix(self):
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
@@ -680,165 +554,129 @@ class Test_AidedINS:
 
         np.testing.assert_array_almost_equal(W_out, W_expect)
 
-    def test__prep_H_matrix(self):
-        H_out = AidedINS._prep_H_matrix()
+    def test__prep_dhdx_matrix(self):
+        R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
+        S = _skew_symmetric  # skew symmetric matrix
 
-        H_expect = np.zeros((6, 15))
-        H_expect[0:3, 0:3] = np.eye(3)
-        H_expect[3:6, 6:9] = np.eye(3)
+        q = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
 
-        np.testing.assert_array_almost_equal(H_out, H_expect)
+        v01_ned = np.array([0.0, 0.0, 1.0])
 
-    def test_update_return_self(self):
-        fs = 10.24
-        Kp = 0.5
-        Ki = 0.1
+        dhdx_expected = np.zeros((10, 15))
+        dhdx_expected[0:3, 0:3] = np.eye(3)  # position
+        dhdx_expected[3:6, 3:6] = np.eye(3)  # velocity
+        dhdx_expected[6:9, 6:9] = S(R(q).T @ v01_ned)  # gravity reference vector
+        dhdx_expected[9:10, 6:9] = _dhda(_gibbs(q))  # compass
 
-        x0 = np.zeros(15)
-        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-        var_pos = np.ones(3)
-        var_ahrs = np.ones(3)
+        dhdx_out = AidedINS._prep_dhdx_matrix(q)
+        np.testing.assert_array_almost_equal(dhdx_out, dhdx_expected)
 
-        ahrs = AHRS(fs, Kp, Ki)
-        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
+    def test__update_dhdx_matrix(self, ains):
+        quaternion_init = ains.quaternion()
 
+        v01_ned = np.array([0.0, 0.0, 1.0])
+
+        R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
+        S = _skew_symmetric  # skew symmetric matrix
+
+        dhdx_init = ains._dhdx.copy()
+
+        quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
+
+        ains._update_dhdx_matrix(quaternion)
+
+        delta_dhdx_expect = np.zeros_like(dhdx_init)
+        delta_dhdx_expect[6:9, 6:9] = S(R(quaternion).T @ v01_ned) - S(
+            R(quaternion_init).T @ v01_ned
+        )
+        delta_dhdx_expect[9:10, 6:9] = _dhda(_gibbs(quaternion)) - _dhda(
+            _gibbs(quaternion_init)
+        )
+        np.testing.assert_array_almost_equal(ains._dhdx - dhdx_init, delta_dhdx_expect)
+
+    def test_update_return_self(self, ains):
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
         w_imu = np.zeros(3)
         head = 0.0
         pos = np.zeros(3)
+        vel = np.zeros(3)
 
         update_return = ains.update(
-            f_imu, w_imu, head, pos, degrees=True, head_degrees=True
+            f_imu, w_imu, pos, vel, head, degrees=True, head_degrees=True
         )
         assert update_return is ains
 
     def test_update_standstill(self):
         fs = 10.24
 
-        x0 = np.zeros(15)
+        x0 = np.zeros(16)
+        x0[6] = 1.0
+
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
         var_pos = np.ones(3)
-        var_ahrs = np.ones(3)
+        var_vel = np.ones(3)
+        var_g = np.ones(3)
+        var_compass = 1.0
 
-        ahrs = AHRS(fs, 0.050, 0.035)
-        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
+        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass)
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
         w_imu = np.zeros(3)
         head = 0.0
         pos = np.zeros(3)
+        vel = np.zeros(3)
 
-        ains.update(f_imu, w_imu, head, pos, degrees=True, head_degrees=True)
-        np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
-        ains.update(f_imu, w_imu, head, pos, degrees=True, head_degrees=True)
-        np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
+        for _ in range(5):
+            ains.update(f_imu, w_imu, pos, vel, head, degrees=True, head_degrees=True)
+            np.testing.assert_array_almost_equal(ains.x, x0)
 
-    def test_update_irregular_position_aiding(self):
+    def test_update_irregular_aiding(self):
         fs = 10.24
 
-        x0 = np.zeros(15)
+        x0 = np.zeros(16)
+        x0[6] = 1.0
+
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
         var_pos = np.ones(3)
-        var_ahrs = np.ones(3)
+        var_vel = np.ones(3)
+        var_g = np.ones(3)
+        var_compass = 1.0
 
-        ahrs = AHRS(fs, 0.050, 0.035)
-        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
+        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass)
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
         w_imu = np.zeros(3)
         head = 0.0
         pos = np.zeros(3)
+        vel = np.zeros(3)
 
-        ains.update(f_imu, w_imu, head, None, degrees=True, head_degrees=True)  # no pos
-        np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
-        ains.update(f_imu, w_imu, head, pos, degrees=True, head_degrees=True)  # pos
-        np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
-        ains.update(f_imu, w_imu, head, degrees=True, head_degrees=True)  # no pos
-        np.testing.assert_array_almost_equal(ains.x, np.zeros(15))
+        ains.update(f_imu, w_imu, pos, vel, head, degrees=True, head_degrees=True)
+        np.testing.assert_array_almost_equal(ains.x, x0)
 
-    def test_update_reference_case(self, ains_ref_data):
-        """Test that succesive calls goes through"""
-        fs = 10.24
-
-        # Measurement data
-        f_imu = ains_ref_data[["Ax_meas", "Ay_meas", "Az_meas"]].values
-        w_imu = ains_ref_data[["Gx_meas", "Gy_meas", "Gz_meas"]].values
-        head = ains_ref_data[["Gamma_meas"]].values
-
-        pos_gnss = ains_ref_data[["X_meas", "Y_meas", "Z_meas"]].values
-
-        # Measurement noise uncertainty
-        var_pos = 0.05**2 * np.ones(3)  # 5 cm std uncertainity
-        var_ahrs = np.radians(2.0) ** 2 * np.ones(3)  # 2 deg std uncertainity
-
-        # AHRS
-        Kp = 0.27
-        Ki = 0.025
-
-        q_init = _quaternion_from_euler(
-            np.radians(ains_ref_data[["Alpha", "Beta", "Gamma"]].values[0])
+        ains.update(
+            f_imu, w_imu, pos=None, vel=None, head=None, degrees=True, head_degrees=True
         )
-        ahrs = AHRS(fs, Kp, Ki, q_init=q_init)
+        np.testing.assert_array_almost_equal(ains.x, x0)
 
-        # AINS
-        ACC_NOISE = {"N": 5.0e-1, "B": 5.0e-1, "tau_cb": 50.0}
+        ains.update(
+            f_imu, w_imu, pos=None, vel=vel, head=head, degrees=True, head_degrees=True
+        )
+        np.testing.assert_array_almost_equal(ains.x, x0)
 
-        GYRO_NOISE = {
-            "N": (np.pi / 180.0) * 5e-3,
-            "B": (np.pi / 180.0) * 5e-3,
-            "tau_cb": 50.0,
-        }
+        ains.update(
+            f_imu, w_imu, pos=pos, vel=None, head=head, degrees=True, head_degrees=True
+        )
+        np.testing.assert_array_almost_equal(ains.x, x0)
 
-        x0 = np.r_[
-            ains_ref_data[["X", "Y", "Z", "VX", "VY", "VZ"]].values[0],
-            np.radians(ains_ref_data[["Alpha", "Beta", "Gamma"]].values[0]),
-            np.zeros(6),
-        ].reshape(15, 1)
-        ains = AidedINS(fs, x0, ACC_NOISE, GYRO_NOISE, var_pos, var_ahrs, ahrs)
-
-        pos_aiding_inc = 10  # Position aiding every N update step
-
-        pos_out = []
-        vel_out = []
-        euler_out = []
-        for k, (f_imu_k, w_imu_k, head_k, pos_k) in enumerate(
-            zip(f_imu, w_imu, head, pos_gnss)
-        ):
-            if k % pos_aiding_inc:
-                pos_k = None
-
-            ains.update(
-                f_imu_k, w_imu_k, head_k, pos_k, degrees=True, head_degrees=True
-            )
-            pos_out.append(ains.position().flatten())
-            vel_out.append(ains.velocity().flatten())
-            euler_out.append(ains.euler(degrees=True).flatten())
-
-        pos_out = np.asarray(pos_out)[600:]
-        vel_out = np.asarray(vel_out)[600:]
-        euler_out = np.asarray(euler_out)[600:]
-
-        pos_expected = ains_ref_data.loc[:, ["X", "Y", "Z"]].iloc[600:]
-        vel_expected = ains_ref_data.loc[:, ["VX", "VY", "VZ"]].iloc[600:]
-        euler_expected = ains_ref_data.loc[:, ["Alpha", "Beta", "Gamma"]].iloc[600:]
-
-        pos_rms = (pos_out - pos_expected).std(axis=0)
-        assert pos_rms.shape == (3,)
-        assert all(pos_rms <= 0.10)
-
-        vel_rms = (vel_out - vel_expected).std(axis=0)
-        assert vel_rms.shape == (3,)
-        assert all(vel_rms <= 0.15)
-
-        euler_rms = (euler_out - euler_expected).std(axis=0)
-        assert euler_rms.shape == (3,)
-        assert all(euler_rms <= 0.04)
+        ains.update(
+            f_imu, w_imu, pos=None, vel=None, head=head, degrees=True, head_degrees=True
+        )
+        np.testing.assert_array_almost_equal(ains.x, x0)
 
     @pytest.mark.parametrize(
         "benchmark_gen",
@@ -846,45 +684,78 @@ class Test_AidedINS:
     )
     def test_benchmark(self, benchmark_gen):
         fs_imu = 100.0
-        fs_gps = 1.0
-        fs_ratio = np.ceil(fs_imu / fs_gps)
+        fs_aiding = 1.0
+        fs_ratio = np.ceil(fs_imu / fs_aiding)
         warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
         compass_noise_std = 0.5
         gps_noise_std = 0.1
+        vel_noise_std = 0.1
 
         # Reference signals (without noise)
         t, pos_ref, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
         euler_ref = np.degrees(euler_ref)
         gyro_ref = np.degrees(gyro_ref)
 
-        # Add measurement noise
-        noise_model = IMUNoise(seed=96)
+        # IMU measurements (with noise)
+        err_acc_true = {
+            "bc": (0.0, 0.0, 0.0),
+            "N": (4.0e-4, 4.0e-4, 4.5e-4),
+            "B": (1.5e-4, 1.5e-4, 3.0e-4),
+            "K": (4.5e-6, 4.5e-6, 1.5e-5),
+            "tau_cb": (50, 50, 30),
+            "tau_ck": (5e5, 5e5, 5e5),
+        }
+        err_gyro_true = {
+            "bc": (0.1, 0.2, 0.3),
+            "N": (1.9e-3, 1.9e-3, 1.7e-3),
+            "B": (7.5e-4, 4.0e-4, 8.8e-4),
+            "K": (2.5e-5, 2.5e-5, 4.0e-5),
+            "tau_cb": (50, 50, 50),
+            "tau_ck": (5e5, 5e5, 5e5),
+        }
+        noise_model = IMUNoise(acc_err=err_acc_true, gyro_err=err_gyro_true, seed=0)
         imu_noise = noise_model(fs_imu, len(t))
-
         acc_noise = acc_ref + imu_noise[:, :3]
         gyro_noise = gyro_ref + imu_noise[:, 3:]
 
-        compass = euler_ref[:, 2] + white_noise(
-            compass_noise_std / np.sqrt(fs_imu), fs_imu, len(t)
+        # Compass / heading (aiding) measurements
+        head_meas = euler_ref[:, 2] + white_noise(
+            compass_noise_std / np.sqrt(fs_aiding), fs_aiding, len(t), seed=1
         )
 
-        gps_noise = np.column_stack(
+        # GPS / position (aiding) measurements
+        pos_noise = np.column_stack(
             [
-                white_noise(gps_noise_std / np.sqrt(fs_gps), fs_gps, len(t))
-                for _ in range(3)
+                white_noise(
+                    gps_noise_std / np.sqrt(fs_aiding), fs_aiding, len(t), seed=2
+                ),
+                white_noise(
+                    gps_noise_std / np.sqrt(fs_aiding), fs_aiding, len(t), seed=3
+                ),
+                white_noise(
+                    gps_noise_std / np.sqrt(fs_aiding), fs_aiding, len(t), seed=4
+                ),
             ]
         )
-        gps = pos_ref + gps_noise
+        pos_meas = pos_ref + pos_noise
 
-        omega_e = 2.0 * np.pi / 40.0
-        delta = np.sqrt(3.0) / 2
+        # Velocity (aiding) measurements
+        vel_noise = np.column_stack(
+            [
+                white_noise(
+                    vel_noise_std / np.sqrt(fs_aiding), fs_aiding, len(t), seed=5
+                ),
+                white_noise(
+                    vel_noise_std / np.sqrt(fs_aiding), fs_aiding, len(t), seed=6
+                ),
+                white_noise(
+                    vel_noise_std / np.sqrt(fs_aiding), fs_aiding, len(t), seed=7
+                ),
+            ]
+        )
+        vel_meas = vel_ref + vel_noise
 
-        # AHRS
-        Ki = omega_e**2
-        Kp = delta * omega_e
-        ahrs = AHRS(fs_imu, Kp, Ki)
-
-        # AINS
+        # MEKF
         err_acc = {"N": 4.0e-4, "B": 1.5e-4, "K": 4.5e-6, "tau_cb": 50}
         err_gyro = {
             "N": (np.pi / 180.0) * 1.9e-3,
@@ -892,40 +763,86 @@ class Test_AidedINS:
             "tau_cb": 50,
         }
         var_pos = gps_noise_std**2 * np.ones(3)
-        var_ahrs = 0.01 * np.ones(3)
-        x0 = np.zeros(15)
+        var_vel = vel_noise_std**2 * np.ones(3)
+        var_compass = ((np.pi / 180.0) * compass_noise_std) ** 2
+        var_g = 0.1**2 * np.ones(3)
+        P_prior = np.eye(15)
+        P_prior[9:12, 9:12] *= 1e-9
+        x0 = np.zeros(16)
         x0[0:3] = pos_ref[0]
         x0[3:6] = vel_ref[0]
-        x0[6:9] = np.degrees(euler_ref[0])
-        ains = AidedINS(fs_imu, x0, err_acc, err_gyro, var_pos, var_ahrs, ahrs)
+        x0[6:10] = _quaternion_from_euler(np.radians(euler_ref[0].flatten()))
+        mekf = AidedINS(
+            fs_imu,
+            x0,
+            err_acc,
+            err_gyro,
+            var_pos,
+            var_vel,
+            var_g,
+            var_compass,
+            cov_error=P_prior,
+        )
 
         # Apply filter
-        pos_out = []
-        vel_out = []
-        euler_out = []
-        for i, (acc_i, gyro_i, head_i, pos_i) in enumerate(
-            zip(acc_noise, gyro_noise, compass, gps)
+        pos_out, vel_out, euler_out, bias_acc_out, bias_gyro_out = [], [], [], [], []
+        for i, (acc_i, gyro_i, pos_i, vel_i, head_i) in enumerate(
+            zip(acc_noise, gyro_noise, pos_meas, vel_meas, head_meas)
         ):
-            if not (i % fs_ratio):  # GPS aiding
-                ains.update(
-                    acc_i, gyro_i, head_i, pos_i, degrees=True, head_degrees=True
+            if not (i % fs_ratio):  # with aiding
+                mekf.update(
+                    acc_i,
+                    gyro_i,
+                    pos=pos_i,
+                    vel=vel_i,
+                    head=head_i,
+                    degrees=True,
+                    head_degrees=True,
                 )
-            else:  # no GPS aiding
-                ains.update(acc_i, gyro_i, head_i, degrees=True, head_degrees=True)
-            pos_out.append(ains.position())
-            vel_out.append(ains.velocity())
-            euler_out.append(ains.euler(degrees=True))
+            else:  # without aiding
+                mekf.update(acc_i, gyro_i, degrees=True, head_degrees=True)
+            pos_out.append(mekf.position())
+            vel_out.append(mekf.velocity())
+            euler_out.append(mekf.euler(degrees=True))
+            bias_acc_out.append(mekf.bias_acc())
+            bias_gyro_out.append(mekf.bias_gyro(degrees=True))
 
         pos_out = np.array(pos_out)
         vel_out = np.array(vel_out)
         euler_out = np.array(euler_out)
+        bias_acc_out = np.array(bias_acc_out)
+        bias_gyro_out = np.array(bias_gyro_out)
+
+        # Half-sample shift (compensates for the delay introduced by Euler integration)
+        pos_out = resample_poly(pos_out, 2, 1)[1:-1:2]
+        pos_ref = pos_ref[:-1, :]
+        vel_out = resample_poly(vel_out, 2, 1)[1:-1:2]
+        vel_ref = vel_ref[:-1, :]
+        euler_out = resample_poly(euler_out, 2, 1)[1:-1:2]
+        euler_ref = euler_ref[:-1, :]
 
         pos_x_rms, pos_y_rms, pos_z_rms = np.std((pos_out - pos_ref)[warmup:], axis=0)
         vel_x_rms, vel_y_rms, vel_z_rms = np.std((vel_out - vel_ref)[warmup:], axis=0)
         roll_rms, pitch_rms, yaw_rms = np.std((euler_out - euler_ref)[warmup:], axis=0)
+        bias_acc_x_rms, bias_acc_y_rms, bias_acc_z_rms = np.std(
+            (bias_acc_out - err_acc_true["bc"])[warmup:], axis=0
+        )
+        bias_gyro_x_rms, bias_gyro_y_rms, bias_gyro_z_rms = np.std(
+            (bias_gyro_out - err_gyro_true["bc"])[warmup:], axis=0
+        )
 
-        assert pos_z_rms <= 0.2
+        assert pos_x_rms <= 0.1
+        assert pos_y_rms <= 0.1
+        assert pos_z_rms <= 0.1
+        assert vel_x_rms <= 0.02
+        assert vel_y_rms <= 0.02
         assert vel_z_rms <= 0.02
-        assert roll_rms <= 0.3
-        assert pitch_rms <= 0.3
-        assert yaw_rms <= 0.3
+        assert roll_rms <= 0.02
+        assert pitch_rms <= 0.02
+        assert yaw_rms <= 0.1
+        assert bias_acc_x_rms <= 1e-3
+        assert bias_acc_y_rms <= 1e-3
+        assert bias_acc_z_rms <= 1e-3
+        assert bias_gyro_x_rms <= 1e-3
+        assert bias_gyro_y_rms <= 1e-3
+        assert bias_gyro_z_rms <= 1e-3
