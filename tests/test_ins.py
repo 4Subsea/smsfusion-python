@@ -181,6 +181,26 @@ class Test_StrapdownINS:
         assert theta_out.shape == (3,)
         np.testing.assert_array_equal(theta_out, theta_expect)
 
+    def test_bias_acc(self, x0_nonzero):
+        ins = StrapdownINS(x0_nonzero)
+
+        ba_out = ins.bias_acc()
+        ba_expect = np.array([7.0, 8.0, 9.0])
+
+        assert ba_out.shape == (3,)
+        assert ba_out is not ins._v
+        np.testing.assert_array_equal(ba_out, ba_expect)
+
+    def test_bias_gyro(self, x0_nonzero):
+        ins = StrapdownINS(x0_nonzero)
+
+        bg_out = ins.bias_gyro()
+        bg_expect = np.array([10.0, 11.0, 12.0])
+
+        assert bg_out.shape == (3,)
+        assert bg_out is not ins._v
+        np.testing.assert_array_equal(bg_out, bg_expect)
+
     def test_reset(self, ins):
         x = np.random.random(16)
         x[6:10] = x[6:10] / np.linalg.norm(x[6:10])  # unit quaternion
