@@ -207,16 +207,52 @@ class Test_StrapdownINS:
     def test_update(self, ins):
         h = 0.1
         g = ins._g
-        f = np.array([1.0, 2.0, 3.0]).reshape(-1, 1) - g
-        w = np.array([0.04, 0.05, 0.06]).reshape(-1, 1)
+        f = np.array([1.0, 2.0, 3.0]) - g
+        w = np.array([0.04, 0.05, 0.06])
 
         x0_out = ins.x
         ins.update(h, f, w)
         x1_out = ins.x
 
-        x0_expect = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+        x0_expect = np.array(
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ]
+        )
         x1_expect = np.array(
-            [0.005, 0.01, 0.015, 0.1, 0.2, 0.3, 0.99999, 0.002, 0.0025, 0.003]
+            [
+                0.005,
+                0.01,
+                0.015,
+                0.1,
+                0.2,
+                0.3,
+                0.99999,
+                0.002,
+                0.0025,
+                0.003,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ]
         )
 
         np.testing.assert_array_almost_equal(x0_out, x0_expect)
