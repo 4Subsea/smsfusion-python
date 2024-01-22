@@ -81,6 +81,17 @@ def gravity(lat: float | None = None, degrees: bool = True) -> float:
 class BaseINS(ABC):
     """
     Abstract class for inertial navigation systems (INSs).
+
+    Parameters
+    ----------
+    x0 : array-like, shape (16,)
+        Initial state vector containing the following elements in order:
+
+        * Position in x, y, z directions (3 elements).
+        * Velocity in x, y, z directions (3 elements).
+        * Attitude as unit quaternion (4 elements).
+        * Accelerometer bias in x, y, z directions (3 elements).
+        * Gyroscope bias in x, y, z directions (3 elements).
     """
 
     def __init__(self, x0):
