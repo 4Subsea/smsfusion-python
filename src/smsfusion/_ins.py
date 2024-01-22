@@ -106,21 +106,41 @@ class BaseINS(ABC):
     def _p(self) -> NDArray[np.float64]:
         return self._x[0:3]
 
+    @_p.setter
+    def _p(self, p: ArrayLike) -> None:
+        self._x[0:3] = p
+
     @property
     def _v(self) -> NDArray[np.float64]:
         return self._x[3:6]
+
+    @_v.setter
+    def _v(self, v: ArrayLike) -> None:
+        self._x[3:6] = v
 
     @property
     def _q(self) -> NDArray[np.float64]:
         return self._x[6:10]
 
+    @_q.setter
+    def _q(self, q: ArrayLike) -> None:
+        self._x[6:10] = q
+
     @property
     def _b_acc(self) -> NDArray[np.float64]:
         return self._x[10:13]
 
+    @_b_acc.setter
+    def _b_acc(self, b_acc: ArrayLike) -> None:
+        self._x[10:13] = b_acc
+
     @property
     def _b_gyro(self) -> NDArray[np.float64]:
         return self._x[13:16]
+
+    @_b_gyro.setter
+    def _p(self, b_gyro: ArrayLike) -> None:
+        self._x[13:16] = b_gyro
 
     @property
     def x(self) -> NDArray[np.float64]:
