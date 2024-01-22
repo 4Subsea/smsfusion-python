@@ -173,8 +173,8 @@ class Test_IMUNoise:
         }
         noise = IMUNoise(err_acc=err_acc, err_gyro=err_gyro, seed=123)
 
-        assert noise.err_acc == err_acc
-        assert noise.err_gyro == err_gyro
+        assert noise._err_acc == err_acc
+        assert noise._err_gyro == err_gyro
         assert noise._seed == 123
 
         err_list_expect = [
@@ -248,8 +248,8 @@ class Test_IMUNoise:
         }
         noise = IMUNoise()
 
-        assert noise.err_acc == acc_err_expect
-        assert noise.err_gyro == gyro_err_expect
+        assert noise._err_acc == acc_err_expect
+        assert noise._err_gyro == gyro_err_expect
         assert noise._seed is None
 
     def test__init__raises_keys(self):

@@ -428,17 +428,17 @@ class IMUNoise:
         err_gyro: dict[str, tuple[float, float, float]] | None = None,
         seed: int | None = None,
     ) -> None:
-        self.err_acc = err_acc or self._DEFAULT_ERR_ACC
-        self.err_gyro = err_gyro or self._DEFAULT_ERR_GYRO
+        self._err_acc = err_acc or self._DEFAULT_ERR_ACC
+        self._err_gyro = err_gyro or self._DEFAULT_ERR_GYRO
         self._seed = seed
 
-        if set(self.err_acc) != {"bc", "N", "B", "K", "tau_cb", "tau_ck"}:
+        if set(self._err_acc) != {"bc", "N", "B", "K", "tau_cb", "tau_ck"}:
             raise ValueError("Noise parameter names are not valid.")
 
-        if set(self.err_gyro) != {"bc", "N", "B", "K", "tau_cb", "tau_ck"}:
+        if set(self._err_gyro) != {"bc", "N", "B", "K", "tau_cb", "tau_ck"}:
             raise ValueError("Noise parameter names are not valid.")
 
-        self._err_list = self._to_list(self.err_acc) + self._to_list(self.err_gyro)
+        self._err_list = self._to_list(self._err_acc) + self._to_list(self._err_gyro)
 
         if not len(self._err_list) == 6:
             raise ValueError("Not enough noise parameters provided.")
