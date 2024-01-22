@@ -344,21 +344,17 @@ class StrapdownINS(BaseINS):
 
             q[k+1] = q[k] + dt * T(q[k]) * w_ins[k]
 
-        with bias compensated IMU measurements,::
+        with bias compensated IMU measurements::
 
             f_ins[k] = f_imu[k] - b_acc[k]
 
             w_ins[k] = w_imu[k] - b_gyro[k]
 
-        and,::
+        and::
 
             a[k] = R(q[k]) * f_ins[k] + g
 
             g = [0, 0, 9.81]^T
-
-            f_ins[k] = f_imu[k] - b_acc[k]
-
-            w_ins[k] = w_imu[k] - b_gyro[k]
 
         Parameters
         ----------
