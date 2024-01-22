@@ -99,7 +99,7 @@ class BaseINS(ABC):
             * Accelerometer bias in x, y, z directions (3 elements).
             * Gyroscope bias in x, y, z directions (3 elements).
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     @property
     def _p(self) -> NDArray[np.float64]:
@@ -251,7 +251,7 @@ class BaseINS(ABC):
         return b_gyro
 
 
-class StrapdownINS:
+class StrapdownINS(BaseINS):
     """
     Strapdown inertial navigation system (INS).
 
@@ -285,125 +285,12 @@ class StrapdownINS:
         self._g = np.array([0, 0, gravity(lat)]).reshape(3, 1)  # gravity vector in NED
 
     @property
-    def _p(self) -> NDArray[np.float64]:
-        return self._x[0:3]
+    def _x(self):
+        return self._state_vector
 
-    @_p.setter
-    def _p(self, p: ArrayLike) -> None:
-        self._x[0:3] = p
-
-    @property
-    def _v(self) -> NDArray[np.float64]:
-        return self._x[3:6]
-
-    @_v.setter
-    def _v(self, v: ArrayLike) -> None:
-        self._x[3:6] = v
-
-    @property
-    def _q(self) -> NDArray[np.float64]:
-        return self._x[6:10]
-
-    @_q.setter
-    def _q(self, q: ArrayLike) -> None:
-        self._x[6:10] = q
-
-    @property
-    def x(self) -> NDArray[np.float64]:
-        """
-        Get current state vector estimate.
-
-        Returns
-        -------
-        numpy.ndarray, shape (10,)
-            State vector, containing the following elements in order:
-
-            * Position in x-, y-, and z-direction (3 elements).
-            * Velocity in x-, y-, and z-direction (3 elements).
-            * Attitude as unit quaternion (4 elements). Should be given as
-              [q1, q2, q3, q4], where q1 is the real part and q1, q2 and q3
-              are the three imaginary parts.
-        """
-        return self._x.flatten()
-
-    def position(self) -> NDArray[np.float64]:
-        """
-        Get current position estimate.
-
-        Returns
-        -------
-        numpy.ndarray, shape (3,)
-            Position state vector, containing position in x-, y-, and z-direction
-            (in that order).
-        """
-        return self._p.flatten()
-
-    def velocity(self) -> NDArray[np.float64]:
-        """
-        Get current velocity estimate.
-
-        Returns
-        -------
-        numpy.ndarray, shape (3,)
-            Velocity state vector, containing (linear) velocity in x-, y-, and z-direction
-            (in that order).
-        """
-        return self._v.flatten()
-
-    def quaternion(self) -> NDArray[np.float64]:
-        """
-        Get current attitude estimate as unit quaternion (from-body-to-NED).
-
-        Returns
-        -------
-        numpy.ndarray, shape (4,)
-            Attitude as unit quaternion. Given as [q1, q2, q3, q4], where
-            q1 is the real part and q1, q2 and q3 are the three
-            imaginary parts.
-        """
-        return self._q.flatten()
-
-    def euler(self, degrees: bool = False) -> NDArray[np.float64]:
-        """
-        Get current attitude estimate as Euler angles (see Notes).
-
-        Parameters
-        ----------
-        degrees : bool, default False
-            Specify whether to return the Euler angles in degrees or radians.
-
-        Returns
-        -------
-        numpy.ndarray, shape (3,)
-            Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
-            in that order.
-
-        Notes
-        -----
-        The Euler angles describe how to transition from the 'NED' frame to the 'body'
-        frame through three consecutive intrinsic and passive rotations in the ZYX order:
-
-        #. A rotation by an angle gamma (often called yaw) about the z-axis.
-        #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
-        #. A final rotation by an angle alpha (often called roll) about the x-axis.
-
-        This sequence of rotations is used to describe the orientation of the 'body' frame
-        relative to the 'NED' frame in 3D space.
-
-        Intrinsic rotations mean that the rotations are with respect to the changing
-        coordinate system; as one rotation is applied, the next is about the axis of
-        the newly rotated system.
-
-        Passive rotations mean that the frame itself is rotating, not the object
-        within the frame.
-        """
-        q = self.quaternion()
-        theta = _euler_from_quaternion(q)
-
-        if degrees:
-            theta = (180.0 / np.pi) * theta
-
-        return theta  # type: ignore[no-any-return]
+    @_x.setter
+    def _x(self, x):
+        self._state_vector = x
 
     def reset(self, x_new: ArrayLike) -> None:
         """
