@@ -315,8 +315,8 @@ class StrapdownINS(BaseINS):
     def update(
         self,
         dt: float,
-        f_ins: ArrayLike,
-        w_ins: ArrayLike,
+        f_imu: ArrayLike,
+        w_imu: ArrayLike,
         degrees: bool = False,
     ) -> "StrapdownINS":  # TODO: Replace with ``typing.Self`` when Python > 3.11:
         """
@@ -359,14 +359,18 @@ class StrapdownINS(BaseINS):
         AidedINS
             A reference to the instance itself after the update.
         """
-        f_ins = np.asarray_chkfinite(f_ins, dtype=float).reshape(3, 1)
-        w_ins = np.asarray_chkfinite(w_ins, dtype=float).reshape(3, 1)
-
-        R_bn = _rot_matrix_from_quaternion(self.quaternion())  # body-to-ned
-        T = _angular_matrix_from_quaternion(self.quaternion())
+        f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3)
+        w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3)
 
         if degrees:
-            w_ins = (np.pi / 180.0) * w_ins
+            w_imu = (np.pi / 180.0) * w_imu
+
+        # Bias compensated IMU measurements
+        f_ins = f_imu - self._b_acc
+        w_ins = w_imu - self._b_gyro
+
+        R_bn = _rot_matrix_from_quaternion(self._q)  # body-to-ned
+        T = _angular_matrix_from_quaternion(self._q)
 
         # State propagation (assuming constant linear acceleration and angular velocity)
         a = R_bn @ f_ins + self._g
