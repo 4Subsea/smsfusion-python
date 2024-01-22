@@ -460,7 +460,7 @@ def _dhda(a: NDArray[np.float64]) -> NDArray[np.float64]:
     return dhda  # type: ignore[no-any-return]
 
 
-class AidedINS:
+class AidedINS(BaseINS):
     """
     Aided inertial navigation system (AINS) using a multiplicative extended
     Kalman filter (MEKF).
@@ -519,15 +519,15 @@ class AidedINS:
         self._dt = 1.0 / fs
         self._err_acc = err_acc
         self._err_gyro = err_gyro
-        self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
+        # self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
         self._var_pos = np.asarray_chkfinite(var_pos).reshape(3).copy()
         self._var_vel = np.asarray_chkfinite(var_vel).reshape(3).copy()
         self._var_g = np.asarray_chkfinite(var_g).reshape(3).copy()
         self._var_compass = np.asarray_chkfinite(var_compass).reshape(1).copy()
+        super().__init__(x0)
 
         # Strapdown algorithm
-        self._x_ins = self._x0.copy()
-        self._ins = StrapdownINS(self._x_ins[0:10])
+        self._ins = StrapdownINS(self._x0)
 
         # Initial Kalman filter error covariance
         if cov_error is not None:
@@ -543,159 +543,10 @@ class AidedINS:
         self._dhdx = self._prep_dhdx_matrix(q0)
         self._W = self._prep_W_matrix(err_acc, err_gyro)
 
-    @property
-    def _x(self) -> NDArray[np.float64]:
-        """Full state (i.e., INS state + error state)"""
-        return self._x_ins  # error state is zero due to reset
-
-    @property
-    def _p(self) -> NDArray[np.float64]:
-        return self._x[0:3]
-
-    @property
-    def _v(self) -> NDArray[np.float64]:
-        return self._x[3:6]
-
-    @property
-    def _q(self) -> NDArray[np.float64]:
-        return self._x[6:10]
-
-    @property
-    def _b_acc(self) -> NDArray[np.float64]:
-        return self._x[10:13]
-
-    @property
-    def _b_gyro(self) -> NDArray[np.float64]:
-        return self._x[13:16]
-
-    @property
-    def x(self) -> NDArray[np.float64]:
-        """
-        Get current state vector estimate.
-
-        Returns
-        -------
-        numpy.ndarray, shape (16,)
-            State vector, containing the following elements in order:
-
-            * Position in x, y, z directions (3 elements).
-            * Velocity in x, y, z directions (3 elements).
-            * Attitude as unit quaternion (4 elements).
-            * Accelerometer bias in x, y, z directions (3 elements).
-            * Gyroscope bias in x, y, z directions (3 elements).
-        """
-        return self._x.copy()
-
-    def position(self) -> NDArray[np.float64]:
-        """
-        Get current position estimate.
-
-        Returns
-        -------
-        numpy.ndarray, shape (3,)
-            Position state vector, containing position in x-, y-, and z-direction
-            (in that order).
-        """
-        return self._p.copy()
-
-    def velocity(self) -> NDArray[np.float64]:
-        """
-        Get current velocity estimate.
-
-        Returns
-        -------
-        numpy.ndarray, shape (3,)
-            Velocity state vector, containing (linear) velocity in x-, y-, and z-direction
-            (in that order).
-        """
-        return self._v.copy()
-
-    def euler(self, degrees: bool = False) -> NDArray[np.float64]:
-        """
-        Get current attitude estimate as Euler angles (see Notes).
-
-        Parameters
-        ----------
-        degrees : bool, default False
-            Whether to return the Euler angles in degrees or radians.
-
-        Returns
-        -------
-        numpy.ndarray, shape (3,)
-            Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
-            in that order.
-
-        Notes
-        -----
-        The Euler angles describe how to transition from the 'NED' frame to the 'body'
-        frame through three consecutive intrinsic and passive rotations in the ZYX order:
-
-        #. A rotation by an angle gamma (often called yaw) about the z-axis.
-        #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
-        #. A final rotation by an angle alpha (often called roll) about the x-axis.
-
-        This sequence of rotations is used to describe the orientation of the 'body' frame
-        relative to the 'NED' frame in 3D space.
-
-        Intrinsic rotations mean that the rotations are with respect to the changing
-        coordinate system; as one rotation is applied, the next is about the axis of
-        the newly rotated system.
-
-        Passive rotations mean that the frame itself is rotating, not the object
-        within the frame.
-        """
-        q = self.quaternion()
-        theta = _euler_from_quaternion(q)
-
-        if degrees:
-            theta = (180.0 / np.pi) * theta
-
-        return theta  # type: ignore[no-any-return]
-
-    def quaternion(self) -> NDArray[np.float64]:
-        """
-        Get current attitude estimate as unit quaternion (from-body-to-NED).
-
-        Returns
-        -------
-        numpy.ndarray, shape (4,)
-            Attitude as unit quaternion. Given as ``[q1, q2, q3, q4]``, where
-            ``q1`` is the real part and ``q1``, ``q2`` and ``q3`` are the three
-            imaginary parts.
-        """
-        return self._q.copy()
-
-    def bias_acc(self) -> NDArray[np.float64]:
-        """
-        Get current accelerometer bias estimate.
-
-        Returns
-        -------
-        numpy.ndarray, shape (3,)
-            Accelerometer bias vector, containing biases in x-, y-, and z-direction
-            (in that order).
-        """
-        return self._b_acc.copy()
-
-    def bias_gyro(self, degrees: bool = False) -> NDArray[np.float64]:
-        """
-        Get current gyroscope bias estimate.
-
-        Parameters
-        ----------
-        degrees : bool, default False
-            Whether to return the bias in deg/s or rad/s.
-
-        Returns
-        -------
-        numpy.ndarray, shape (3,)
-            Gyroscope bias vector, containing biases in x-, y-, and z-direction
-            (in that order).
-        """
-        b_gyro = self._b_gyro.copy()
-        if degrees:
-            b_gyro = (180.0 / np.pi) * b_gyro
-        return b_gyro
+    # @property
+    # def _x(self) -> NDArray[np.float64]:
+    #     """Full state (i.e., INS state + error state)"""
+    #     return self._ins._x  # error state is zero due to reset
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -876,7 +727,8 @@ class AidedINS:
             w_imu = (np.pi / 180.0) * w_imu
 
         # Update INS state
-        self._x_ins[0:10] = self._ins.x
+        # self._x_ins[0:10] = self._ins.x
+        self._x = self._ins.x
 
         # Current state estimates
         p_ins = self._p
@@ -974,11 +826,10 @@ class AidedINS:
         b_acc_ins = b_acc_ins + dx[9:12]
         b_gyro_ins = b_gyro_ins + dx[12:15]
         x_ins = np.r_[p_ins, v_ins, q_ins, b_acc_ins, b_gyro_ins]
-        self._x_ins = x_ins
-        self._ins.reset(self._x_ins[:10])
+        self._ins.reset(x_ins)
 
         # Project ahead
-        self._ins.update(self._dt, f_ins, w_ins, degrees=False)
+        self._ins.update(self._dt, f_imu, w_imu, degrees=False)
         self._P_prior = phi @ P @ phi.T + Q
 
         return self

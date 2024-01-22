@@ -572,7 +572,8 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(ains._var_vel, var_vel)
         np.testing.assert_array_almost_equal(ains._var_g, var_g)
         np.testing.assert_array_almost_equal(ains._var_compass, var_compass)
-        np.testing.assert_array_almost_equal(ains._x_ins, x0)
+        np.testing.assert_array_almost_equal(ains._x0, x0)
+        np.testing.assert_array_almost_equal(ains._x, x0)
         np.testing.assert_array_almost_equal(ains._P_prior, np.eye(15))
 
         assert ains._dfdx.shape == (15, 15)
