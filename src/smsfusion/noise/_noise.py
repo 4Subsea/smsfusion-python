@@ -340,9 +340,9 @@ class IMUNoise:
 
     Parameters
     ----------
-    acc_err : dict of {str : tuple of (float, float, float)}, optional
+    err_acc : dict of {str : tuple of (float, float, float)}, optional
         Accelerometer noise parameters (see Notes).
-    gyro_err : dict of {str : tuple of (float, float, float)}, optional
+    err_gyro : dict of {str : tuple of (float, float, float)}, optional
         Gyroscope noise parameters (see Notes).
     seed : int, optional
         A seed used to initialize a random number generator.
@@ -375,7 +375,7 @@ class IMUNoise:
 
     Default accelerometer and gyroscope noise parameters are::
 
-        acc_err = {
+        err_acc = {
             'bc': (0.0, 0.0, 0.0),
             'N': (4.0e-4, 4.0e-4, 4.5e-4),
             'B': (1.5e-4, 1.5e-4, 3.0e-4),
@@ -384,7 +384,7 @@ class IMUNoise:
             'tau_ck': (5e5, 5e5, 5e5),
         }
 
-        gyro_err = {
+        err_gyro = {
             'bc': (0.0, 0.0, 0.0),
             'N': (1.9e-3, 1.9e-3, 1.7e-3),
             'B': (7.5e-4, 4.0e-4, 8.8e-4),
@@ -404,7 +404,7 @@ class IMUNoise:
     smsfusion.gauss_markov, smsfusion.random_walk, smsfusion.white_noise
     """
 
-    _DEFAULT_ACC_NOISE = {
+    _DEFAULT_ERR_ACC = {
         "bc": (0.0, 0.0, 0.0),
         "N": (4.0e-4, 4.0e-4, 4.5e-4),
         "B": (1.5e-4, 1.5e-4, 3.0e-4),
@@ -413,7 +413,7 @@ class IMUNoise:
         "tau_ck": (5e5, 5e5, 5e5),
     }
 
-    _DEFAULT_GYRO_NOISE = {
+    _DEFAULT_ERR_GYRO = {
         "bc": (0.0, 0.0, 0.0),
         "N": (1.9e-3, 1.9e-3, 1.7e-3),
         "B": (7.5e-4, 4.0e-4, 8.8e-4),
@@ -424,21 +424,21 @@ class IMUNoise:
 
     def __init__(
         self,
-        acc_err: dict[str, tuple[float, float, float]] | None = None,
-        gyro_err: dict[str, tuple[float, float, float]] | None = None,
+        err_acc: dict[str, tuple[float, float, float]] | None = None,
+        err_gyro: dict[str, tuple[float, float, float]] | None = None,
         seed: int | None = None,
     ) -> None:
-        self._acc_err = acc_err or self._DEFAULT_ACC_NOISE
-        self._gyro_err = gyro_err or self._DEFAULT_GYRO_NOISE
+        self.err_acc = err_acc or self._DEFAULT_ERR_ACC
+        self.err_gyro = err_gyro or self._DEFAULT_ERR_GYRO
         self._seed = seed
 
-        if set(self._acc_err) != {"bc", "N", "B", "K", "tau_cb", "tau_ck"}:
+        if set(self.err_acc) != {"bc", "N", "B", "K", "tau_cb", "tau_ck"}:
             raise ValueError("Noise parameter names are not valid.")
 
-        if set(self._gyro_err) != {"bc", "N", "B", "K", "tau_cb", "tau_ck"}:
+        if set(self.err_gyro) != {"bc", "N", "B", "K", "tau_cb", "tau_ck"}:
             raise ValueError("Noise parameter names are not valid.")
 
-        self._err_list = self._to_list(self._acc_err) + self._to_list(self._gyro_err)
+        self._err_list = self._to_list(self.err_acc) + self._to_list(self.err_gyro)
 
         if not len(self._err_list) == 6:
             raise ValueError("Not enough noise parameters provided.")
@@ -481,7 +481,6 @@ class IMUNoise:
         parameters given during initialization; the default noise parameters
         yields accelerometer noise in m/s^2, and gyroscope noise in deg/s.
         """
-        # x = np.zeros((n, 6))
         seeds = _gen_seeds(self._seed, 6)
         x = np.column_stack(
             [NoiseModel(**self._err_list[i], seed=seeds[i])(fs, n) for i in range(6)]

@@ -487,7 +487,7 @@ class Test_MEKF:
             "tau_cb": (50, 50, 50),
             "tau_ck": (5e5, 5e5, 5e5),
         }
-        noise_model = IMUNoise(acc_err=err_acc_true, gyro_err=err_gyro_true, seed=0)
+        noise_model = IMUNoise(err_acc=err_acc_true, err_gyro=err_gyro_true, seed=0)
         imu_noise = noise_model(fs_imu, len(t))
         acc_noise = acc_ref + imu_noise[:, :3]
         gyro_noise = gyro_ref + imu_noise[:, 3:]
