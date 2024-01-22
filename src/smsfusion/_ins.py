@@ -85,7 +85,7 @@ class BaseINS(ABC):
 
     def __init__(self, x0):
         self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
-        self._x0[6:] = _normalize(self._x0[6:])
+        self._x0[6:10] = _normalize(self._x0[6:10])
         self._x = self._x0.copy()
 
     @property
@@ -125,7 +125,7 @@ class BaseINS(ABC):
         return self._x[13:16]
 
     @_b_gyro.setter
-    def _p(self, b_gyro: ArrayLike) -> None:
+    def _b_gyro(self, b_gyro: ArrayLike) -> None:
         self._x[13:16] = b_gyro
 
     @property
@@ -286,7 +286,7 @@ class StrapdownINS(BaseINS):
     """
 
     def __init__(self, x0: ArrayLike, lat: float | None = None) -> None:
-        self._g = np.array([0, 0, gravity(lat)]).reshape(3, 1)  # gravity vector in NED
+        self._g = np.array([0, 0, gravity(lat)])  # gravity vector in NED
         super().__init__(x0)
 
     def reset(self, x_new: ArrayLike) -> None:
@@ -309,8 +309,8 @@ class StrapdownINS(BaseINS):
         The quaternion provided as part of the new state will be normalized to
         ensure unity.
         """
-        self._x = np.asarray_chkfinite(x_new).reshape(10, 1).copy()
-        self._x[6:] = _normalize(self._x[6:])
+        self._x = np.asarray_chkfinite(x_new).reshape(16).copy()
+        self._x[6:10] = _normalize(self._x[6:10])
 
     def update(
         self,
@@ -366,8 +366,8 @@ class StrapdownINS(BaseINS):
             w_imu = (np.pi / 180.0) * w_imu
 
         # Bias compensated IMU measurements
-        f_ins = f_imu - self._b_acc
-        w_ins = w_imu - self._b_gyro
+        f_ins = f_imu - self.bias_acc()
+        w_ins = w_imu - self.bias_gyro()
 
         R_bn = _rot_matrix_from_quaternion(self._q)  # body-to-ned
         T = _angular_matrix_from_quaternion(self._q)
