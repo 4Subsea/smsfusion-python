@@ -366,8 +366,8 @@ class StrapdownINS(BaseINS):
             w_imu = (np.pi / 180.0) * w_imu
 
         # Bias compensated IMU measurements
-        f_ins = f_imu - self.bias_acc()
-        w_ins = w_imu - self.bias_gyro()
+        f_ins = f_imu - self._b_acc
+        w_ins = w_imu - self._b_gyro
 
         R_bn = _rot_matrix_from_quaternion(self._q)  # body-to-ned
         T = _angular_matrix_from_quaternion(self._q)
