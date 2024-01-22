@@ -312,6 +312,65 @@ class Test_StrapdownINS:
         np.testing.assert_array_almost_equal(x0_out, x0_expect)
         np.testing.assert_array_almost_equal(x1_out, x1_expect)
 
+    def test_update_with_bias(self, x0):
+        ba = np.array([0.1, 0.2, 0.3])
+        bg = np.array([0.4, 0.5, 0.6])
+        x0[10:13] = ba
+        x0[13:16] = bg
+        ins = StrapdownINS(x0)
+        h = 0.1
+        g = ins._g
+        f = np.array([1.0, 2.0, 3.0]) + ba - g  # IMU measurements w/bias
+        w = np.array([0.04, 0.05, 0.06]) + bg  # IMU measurements w/bias
+
+        x0_out = ins.x
+        ins.update(h, f, w, degrees=False)
+        x1_out = ins.x
+
+        x0_expect = np.array(
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.1,
+                0.2,
+                0.3,
+                0.4,
+                0.5,
+                0.6,
+            ]
+        )
+        x1_expect = np.array(
+            [
+                0.005,
+                0.01,
+                0.015,
+                0.1,
+                0.2,
+                0.3,
+                0.99999,
+                0.002,
+                0.0025,
+                0.003,
+                0.1,
+                0.2,
+                0.3,
+                0.4,
+                0.5,
+                0.6,
+            ]
+        )
+
+        np.testing.assert_array_almost_equal(x0_out, x0_expect)
+        np.testing.assert_array_almost_equal(x1_out, x1_expect)
+
     def test_update_twise(self, ins):
         dt = 0.1
         g = ins._g
