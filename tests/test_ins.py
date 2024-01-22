@@ -315,8 +315,8 @@ class Test_StrapdownINS:
     def test_update_twise(self, ins):
         dt = 0.1
         g = ins._g
-        f_imu = np.array([1.0, 2.0, 3.0]).reshape(-1, 1) - g
-        w_imu = np.array([0.004, 0.005, 0.006]).reshape(-1, 1)
+        f_imu = np.array([1.0, 2.0, 3.0]) - g
+        w_imu = np.array([0.004, 0.005, 0.006])
 
         x0_out = ins.x
         ins.update(dt, f_imu, w_imu, degrees=False)
@@ -325,14 +325,31 @@ class Test_StrapdownINS:
         x2_out = ins.x
 
         x0_expect = np.array(
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]
-        ).reshape(-1, 1)
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ]
+        )
 
         # Calculate x1
         R0_expect = np.eye(3)
-        T0_expect = _angular_matrix_from_quaternion(x0_expect[6:10].flatten())
+        T0_expect = _angular_matrix_from_quaternion(x0_expect[6:10])
         a0_expect = R0_expect @ f_imu + g
-        x1_expect = np.zeros((10, 1))
+        x1_expect = np.zeros(16)
         x1_expect[0:3] = (
             x0_expect[0:3] + dt * x0_expect[3:6] + 0.5 * dt**2 * a0_expect
         )
@@ -341,10 +358,10 @@ class Test_StrapdownINS:
         x1_expect[6:10] = x1_expect[6:10] / np.linalg.norm(x1_expect[6:10])
 
         # Calculate x2 by forward Euler
-        R1_expect = _rot_matrix_from_quaternion(x1_expect[6:10].flatten())
-        T1_expect = _angular_matrix_from_quaternion(x1_expect[6:10].flatten())
+        R1_expect = _rot_matrix_from_quaternion(x1_expect[6:10])
+        T1_expect = _angular_matrix_from_quaternion(x1_expect[6:10])
         a1_expect = R1_expect @ f_imu + g
-        x2_expect = np.zeros((10, 1))
+        x2_expect = np.zeros(16)
         x2_expect[0:3] = (
             x1_expect[0:3] + dt * x1_expect[3:6] + 0.5 * dt**2 * a1_expect
         )
