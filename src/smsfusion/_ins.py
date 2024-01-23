@@ -533,9 +533,9 @@ class AidedINS(INSMixin):
         self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
         self._x0[6:10] = _normalize(self._x0[6:10])
         self._x = self._x0.copy()
-        self._P0 = np.asarray_chkfinite(P0).reshape(15, 15).copy()
-        self._P = self._P0.copy()
-        self._P_prior = self._P0.copy()
+        self._P0_prior = np.asarray_chkfinite(P0_prior).reshape(15, 15).copy()
+        self._P_prior = self._P0_prior.copy()
+        self._P = np.empty_like(self._P_prior)
         self._err_acc = err_acc
         self._err_gyro = err_gyro
         self._var_pos = np.asarray_chkfinite(var_pos).reshape(3).copy()
