@@ -591,10 +591,10 @@ class Test_AidedINS:
         var_pos = [0.1, 0.1, 0.1]
         var_vel = [0.1, 0.1, 0.1]
         var_g = (0.1) ** 2 * np.ones(3)
-        var_compass = ((np.pi / 180.0) * 0.5) ** 2
+        var_head = ((np.pi / 180.0) * 0.5) ** 2
 
         ains = AidedINS(
-            fs, x0, P0_prior, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass
+            fs, x0, P0_prior, err_acc, err_gyro, var_pos, var_vel, var_g, var_head
         )
         return ains
 
@@ -620,7 +620,7 @@ class Test_AidedINS:
         var_pos = [0.1, 0.1, 0.1]
         var_vel = [0.1, 0.1, 0.1]
         var_g = (0.1) ** 2 * np.ones(3)
-        var_compass = ((np.pi / 180.0) * 0.5) ** 2
+        var_head = ((np.pi / 180.0) * 0.5) ** 2
 
         ains = AidedINS(
             fs,
@@ -631,7 +631,7 @@ class Test_AidedINS:
             var_pos,
             var_vel,
             var_g,
-            var_compass,
+            var_head,
             lat=60.0,
         )
 
@@ -646,7 +646,7 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(ains._var_pos, var_pos)
         np.testing.assert_array_almost_equal(ains._var_vel, var_vel)
         np.testing.assert_array_almost_equal(ains._var_g, var_g)
-        np.testing.assert_array_almost_equal(ains._var_compass, var_compass)
+        np.testing.assert_array_almost_equal(ains._var_head, var_head)
         np.testing.assert_array_almost_equal(ains._x0, x0)
         np.testing.assert_array_almost_equal(ains._x, x0)
         np.testing.assert_array_almost_equal(ains._P0_prior, P0_prior)

@@ -506,13 +506,13 @@ class AidedINS(INSMixin):
         * ``N``: White noise power spectral density in (rad/s)/sqrt(Hz).
         * ``B``: Bias stability in rad/s.
         * ``tau_cb``: Bias correlation time in seconds.
-    var_pos : array-like, shape (3,)
+    var_pos : array-like, shape (3,), optional
         Variance of position measurement noise in m^2.
-    var_vel : array-like, shape (3,)
+    var_vel : array-like, shape (3,), optional
         Variance of velocity measurement noise in (m/s)^2.
-    var_g : array-like, shape (3,)
+    var_g : array-like, shape (3,), optional
         Variance of gravitational reference vector measurement noise in m^2.
-    var_compass : float
+    var_compass : float, optional
         Variance of compass measurement noise in rad^2.
     lat : float, optional
         Latitude used to calculate the gravitational acceleration. If none
@@ -528,10 +528,10 @@ class AidedINS(INSMixin):
         P0_prior: ArrayLike,
         err_acc: dict[str, float],
         err_gyro: dict[str, float],
-        var_pos: ArrayLike,
-        var_vel: ArrayLike,
-        var_g: ArrayLike,
-        var_compass: float,
+        var_pos: ArrayLike | None = None,
+        var_vel: ArrayLike | None = None,
+        var_g: ArrayLike | None = None,
+        var_head: float | None = None,
         lat: float | None = None,
     ) -> None:
         self._fs = fs
@@ -544,10 +544,20 @@ class AidedINS(INSMixin):
         self._P = np.empty_like(self._P_prior)
         self._err_acc = err_acc
         self._err_gyro = err_gyro
-        self._var_pos = np.asarray_chkfinite(var_pos).reshape(3).copy()
-        self._var_vel = np.asarray_chkfinite(var_vel).reshape(3).copy()
-        self._var_g = np.asarray_chkfinite(var_g).reshape(3).copy()
-        self._var_compass = np.asarray_chkfinite(var_compass).reshape(1).copy()
+
+        if var_pos is not None:
+            var_pos = np.asarray_chkfinite(var_pos).reshape(3).copy()
+        if var_vel is not None:
+            var_vel = np.asarray_chkfinite(var_vel).reshape(3).copy()
+        if var_g is not None:
+            var_g = np.asarray_chkfinite(var_g).reshape(3).copy()
+        if var_head is not None:
+            var_head = np.asarray_chkfinite(var_head).reshape(1).copy()
+
+        self._var_pos = var_pos
+        self._var_vel = var_vel
+        self._var_g = var_g
+        self._var_head = var_head
 
         # Strapdown algorithm
         self._ins = StrapdownINS(self._fs, self._x0, lat=lat)
@@ -712,6 +722,10 @@ class AidedINS(INSMixin):
         head: float | None = None,
         degrees: bool = False,
         head_degrees: bool = True,
+        var_pos: ArrayLike | None = None,
+        var_vel: ArrayLike | None = None,
+        var_g: ArrayLike | None = None,
+        var_head: float | None = None,
     ) -> "AidedINS":  # TODO: Replace with ``typing.Self`` when Python > 3.11
         """
         Update the AINS state estimates based on measurements.
@@ -736,10 +750,18 @@ class AidedINS(INSMixin):
             Specifies whether the unit of ``w_imu`` are in degrees or radians.
         head_degrees : bool, default True
             Specifies whether the unit of ``head`` are in degrees or radians.
+        var_pos : array-like, shape (3,), optional
+            Variance of position measurement noise in m^2.
+        var_vel : array-like, shape (3,), optional
+            Variance of velocity measurement noise in (m/s)^2.
+        var_g : array-like, shape (3,), optional
+            Variance of gravitational reference vector measurement noise in m^2.
+        var_compass : float, optional
+            Variance of compass measurement noise in rad^2.
 
         Returns
         -------
-        MEKF
+        AidedINS
             A reference to the instance itself after the update.
         """
         f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3).copy()
@@ -788,20 +810,44 @@ class AidedINS(INSMixin):
         if pos is not None:
             pos = np.asarray_chkfinite(pos, dtype=float).reshape(3).copy()
             delta_pos = pos - p_ins
+
+            if var_pos is not None:
+                var_pos = np.asarray_chkfinite(var_pos).reshape(3).copy()
+            elif self._var_pos is not None:
+                var_pos = self._var_pos
+            else:
+                raise ValueError("'var_pos' not provided.")
+
             dz_temp.append(delta_pos)
-            var_z_temp.append(self._var_pos)
+            var_z_temp.append(var_pos)
             dhdx_temp.append(dhdx_[0:3])
 
         # Velocity aiding
         if vel is not None:
             vel = np.asarray_chkfinite(vel, dtype=float).reshape(3).copy()
             delta_vel = vel - v_ins
+
+            if var_vel is not None:
+                var_vel = np.asarray_chkfinite(var_vel).reshape(3).copy()
+            elif self._var_vel is not None:
+                var_vel = self._var_vel
+            else:
+                raise ValueError("'var_vel' not provided.")
+
             dz_temp.append(delta_vel)
             var_z_temp.append(self._var_vel)
             dhdx_temp.append(dhdx_[3:6])
 
         # Gravity reference vector aiding
         delta_g = v1 - R_bn.T @ v01
+
+        if var_g is not None:
+            var_g = np.asarray_chkfinite(var_g).reshape(3).copy()
+        elif self._var_g is not None:
+            var_g = self._var_g
+        else:
+            raise ValueError("'var_g' not provided.")
+
         dz_temp.append(delta_g)
         var_z_temp.append(self._var_g)
         dhdx_temp.append(dhdx_[6:9])
@@ -811,8 +857,16 @@ class AidedINS(INSMixin):
             if head_degrees:
                 head = (np.pi / 180.0) * head
             delta_head = _signed_smallest_angle(head - _h(_gibbs(q_ins)), degrees=False)
+
+            if var_head is not None:
+                var_head = np.asarray_chkfinite(var_head).reshape(1).copy()
+            elif self._var_head is not None:
+                var_head = self._var_head
+            else:
+                raise ValueError("'var_head' not provided.")
+
             dz_temp.append(np.array([delta_head]))
-            var_z_temp.append(self._var_compass)
+            var_z_temp.append(self._var_head)
             dhdx_temp.append(dhdx_[-1:])
 
         dz = np.concatenate(dz_temp, axis=0)
