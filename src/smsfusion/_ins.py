@@ -490,7 +490,7 @@ class AidedINS(INSMixin):
         * Accelerometer bias in x, y, z directions (3 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
     P0 : array-like, shape (15, 15)
-        Initial a priori estimate of error covariance matrix, **P**. If in doubt, use
+        Initial a priori estimate of error covariance matrix, **P**. If uncertain, use
         a small diagonal matrix (e.g., `1e-6 * np.eye(15)`).
     err_acc : dict of {str: float}
         Dictionary containing accelerometer noise parameters with keys:
@@ -520,7 +520,7 @@ class AidedINS(INSMixin):
         self,
         fs: float,
         x0: ArrayLike,
-        P0: ArrayLike,
+        P0_prior: ArrayLike,
         err_acc: dict[str, float],
         err_gyro: dict[str, float],
         var_pos: ArrayLike,
