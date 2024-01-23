@@ -804,8 +804,6 @@ class AidedINS(BaseINS):
         if head is not None:
             if head_degrees:
                 head = (np.pi / 180.0) * head
-
-            # head = np.asarray_chkfinite([head], dtype=float).reshape(1).copy()
             delta_head = _signed_smallest_angle(head - _h(_gibbs(q_ins)), degrees=False)
             dz_temp.append(np.array([delta_head]))
             var_z_temp.append(self._var_compass)
