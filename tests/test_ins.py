@@ -18,7 +18,7 @@ from scipy.spatial.transform import Rotation
 
 from smsfusion._ins import (
     AidedINS,
-    BaseINS,
+    INSMixin,
     StrapdownINS,
     _dhda,
     _gibbs,
@@ -96,36 +96,31 @@ def ains_ref_data():
 
 
 @pytest.mark.filterwarnings("ignore")
-class Test_BaseINS:
+class Test_INSMixin:
     @pytest.fixture
-    def x0_nonzero(self):
-        p0 = np.array([1.0, 2.0, 3.0])
-        v0 = np.array([4.0, 5.0, 6.0])
-        q0 = np.array([1.0, 0.0, 0.0, 0.0])
-        ba0 = np.array([7.0, 8.0, 9.0])
-        bg0 = np.array([10.0, 11.0, 12.0])
-        x0 = np.r_[p0, v0, q0, ba0, bg0]
-        return x0
+    def x(self):
+        p = np.array([1.0, 2.0, 3.0])
+        v = np.array([4.0, 5.0, 6.0])
+        q = np.array([1.0, 0.0, 0.0, 0.0])
+        ba = np.array([7.0, 8.0, 9.0])
+        bg = np.array([10.0, 11.0, 12.0])
+        x = np.r_[p, v, q, ba, bg]
+        return x
 
-    def test__init__(self, x0_nonzero):
-        ins = BaseINS(x0_nonzero)
-
-        assert isinstance(ins, BaseINS)
-        np.testing.assert_array_equal(ins._x0, x0_nonzero)
-        np.testing.assert_array_equal(ins._x, x0_nonzero)
-
-    def test_x(self, x0_nonzero):
-        ins = BaseINS(x0_nonzero)
+    def test_x(self, x):
+        ins = INSMixin()
+        ins._x = x
 
         x_out = ins.x
-        x_expect = x0_nonzero
+        x_expect = x
 
         assert x_out.shape == (16,)
         assert x_out is not ins._x
         np.testing.assert_array_equal(x_out, x_expect)
 
-    def test_position(self, x0_nonzero):
-        ins = BaseINS(x0_nonzero)
+    def test_position(self, x):
+        ins = INSMixin()
+        ins._x = x
 
         p_out = ins.position()
         p_expect = np.array([1.0, 2.0, 3.0])
@@ -134,8 +129,9 @@ class Test_BaseINS:
         assert p_out is not ins._p
         np.testing.assert_array_equal(p_out, p_expect)
 
-    def test_velocity(self, x0_nonzero):
-        ins = BaseINS(x0_nonzero)
+    def test_velocity(self, x):
+        ins = INSMixin()
+        ins._x = x
 
         v_out = ins.velocity()
         v_expect = np.array([4.0, 5.0, 6.0])
@@ -144,8 +140,9 @@ class Test_BaseINS:
         assert v_out is not ins._v
         np.testing.assert_array_equal(v_out, v_expect)
 
-    def test_quaternion(self, x0_nonzero):
-        ins = BaseINS(x0_nonzero)
+    def test_quaternion(self, x):
+        ins = INSMixin()
+        ins._x = x
 
         q_out = ins.quaternion()
         q_expect = np.array([1.0, 0.0, 0.0, 0.0])
@@ -154,8 +151,9 @@ class Test_BaseINS:
         assert q_out is not ins._q
         np.testing.assert_array_equal(q_out, q_expect)
 
-    def test_euler(self, x0_nonzero):
-        ins = BaseINS(x0_nonzero)
+    def test_euler(self, x):
+        ins = INSMixin()
+        ins._x = x
 
         theta_out = ins.euler()
         theta_expect = np.array([0.0, 0.0, 0.0])
@@ -163,8 +161,9 @@ class Test_BaseINS:
         assert theta_out.shape == (3,)
         np.testing.assert_array_equal(theta_out, theta_expect)
 
-    def test_bias_acc(self, x0_nonzero):
-        ins = BaseINS(x0_nonzero)
+    def test_bias_acc(self, x):
+        ins = INSMixin()
+        ins._x = x
 
         ba_out = ins.bias_acc()
         ba_expect = np.array([7.0, 8.0, 9.0])
@@ -173,8 +172,9 @@ class Test_BaseINS:
         assert ba_out is not ins._v
         np.testing.assert_array_equal(ba_out, ba_expect)
 
-    def test_bias_gyro(self, x0_nonzero):
-        ins = BaseINS(x0_nonzero)
+    def test_bias_gyro(self, x):
+        ins = INSMixin()
+        ins._x = x
 
         bg_out = ins.bias_gyro()
         bg_expect = np.array([10.0, 11.0, 12.0])
@@ -214,7 +214,7 @@ class Test_StrapdownINS:
     def test__init__(self, x0_nonzero):
         ins = StrapdownINS(x0_nonzero)
 
-        assert isinstance(ins, BaseINS)
+        assert isinstance(ins, INSMixin)
         np.testing.assert_array_equal(ins._x0, x0_nonzero)
         np.testing.assert_array_equal(ins._x, x0_nonzero)
 
@@ -648,7 +648,7 @@ class Test_AidedINS:
         ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass)
 
         assert isinstance(ains, AidedINS)
-        assert isinstance(ains, BaseINS)
+        assert isinstance(ains, INSMixin)
         assert ains._fs == 10.24
         assert ains._dt == 1.0 / 10.24
         assert ains._err_acc == err_acc

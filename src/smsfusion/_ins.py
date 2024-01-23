@@ -78,31 +78,19 @@ def gravity(lat: float | None = None, degrees: bool = True) -> float:
     return g  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
 
 
-class BaseINS(ABC):
+class INSMixin:
     """
-    Abstract class for inertial navigation systems (INS).
+    Mixin class for inertial navigation systems (INS).
 
-    Parameters
-    ----------
-    x0 : array-like, shape (16,)
-        Initial state vector containing the following elements in order:
+    Requires that the inheriting class has an `_x` attribute which is a 1D numpy array
+    of length 16 containing the following elements in order:
 
         * Position in x, y, z directions (3 elements).
         * Velocity in x, y, z directions (3 elements).
         * Attitude as unit quaternion (4 elements).
         * Accelerometer bias in x, y, z directions (3 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
-
-    Notes
-    -----
-    The quaternion provided as part of the initial state will be normalized to
-    ensure unity.
     """
-
-    def __init__(self, x0: ArrayLike) -> None:
-        self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
-        self._x0[6:10] = _normalize(self._x0[6:10])
-        self._x = self._x0.copy()
 
     @property
     def _p(self) -> NDArray[np.float64]:
@@ -274,7 +262,7 @@ class BaseINS(ABC):
         return b_gyro
 
 
-class StrapdownINS(BaseINS):
+class StrapdownINS(INSMixin):
     """
     Strapdown inertial navigation system (INS).
 
@@ -302,8 +290,10 @@ class StrapdownINS(BaseINS):
     """
 
     def __init__(self, x0: ArrayLike, lat: float | None = None) -> None:
+        self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
+        self._x0[6:10] = _normalize(self._x0[6:10])
+        self._x = self._x0.copy()
         self._g = np.array([0, 0, gravity(lat)])  # gravity vector in NED
-        super().__init__(x0)
 
     def reset(self, x_new: ArrayLike) -> None:
         """
@@ -482,7 +472,7 @@ def _dhda(a: NDArray[np.float64]) -> NDArray[np.float64]:
     return dhda  # type: ignore[no-any-return]
 
 
-class AidedINS(BaseINS):
+class AidedINS(INSMixin):
     """
     Aided inertial navigation system (AINS) using a multiplicative extended
     Kalman filter (MEKF).
@@ -539,13 +529,15 @@ class AidedINS(BaseINS):
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
+        self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
+        self._x0[6:10] = _normalize(self._x0[6:10])
+        self._x = self._x0.copy()
         self._err_acc = err_acc
         self._err_gyro = err_gyro
         self._var_pos = np.asarray_chkfinite(var_pos).reshape(3).copy()
         self._var_vel = np.asarray_chkfinite(var_vel).reshape(3).copy()
         self._var_g = np.asarray_chkfinite(var_g).reshape(3).copy()
         self._var_compass = np.asarray_chkfinite(var_compass).reshape(1).copy()
-        super().__init__(x0)
 
         # Strapdown algorithm
         self._ins = StrapdownINS(self._x0)
