@@ -92,6 +92,8 @@ class INSMixin:
         * Gyroscope bias in x, y, z directions (3 elements).
     """
 
+    _x: ArrayLike  # state array of length 16
+
     @property
     def _p(self) -> NDArray[np.float64]:
         return self._x[0:3]
