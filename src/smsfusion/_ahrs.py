@@ -26,16 +26,24 @@ class AHRS:
     ----------
     fs : float
         Sampling rate (Hz).
+    x0 : array-like, shape (7,)
+        Initial state vector containing the following elements in order:
+
+        * Attitude as unit quaternion (4 elements).
+        * Gyroscope bias in x, y, z directions (3 elements).
+
+        See Notes for details.
     Kp : float
         Error gain factor.
     Ki : float
         Bias gain factor.
-    q_init : array_like, optional
-        Initial value of unit quaternion represeting attitude. If ``None``,
-        initial attitude is set to align with NED frame.
-    bias_init : array_like, optional
-        Initial value of angular rate bias. If ``None``, inital bias is set to
-        zero.
+
+    Notes
+    -----
+    The quaternion provided as part of the initial state will be normalized to
+    ensure unity.
+
+    If initial state is unknown, use [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0].
 
     References
     ----------
@@ -47,66 +55,20 @@ class AHRS:
     def __init__(
         self,
         fs: float,
+        x0: ArrayLike,
         Kp: float,
         Ki: float,
-        q_init: ArrayLike | None = None,
-        bias_init: ArrayLike | None = None,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
 
-        self._Kp = Kp
-        self._Ki = Ki
-
-        self._q = self._q_init(q_init)
-        self._bias = self._bias_init(bias_init)
+        self._x0 = np.asarray_chkfinite(x0).reshape(7).copy()
+        self._q = _normalize(self._x0[:4])
+        self._bias_gyro = self._x0[4:]
         self._error = np.array([0.0, 0.0, 0.0], dtype=np.float64)
 
-    @staticmethod
-    def _q_init(q_init: ArrayLike | None) -> NDArray[np.float64]:
-        """
-        Compute initial value for the unit quaternion.
-
-        Parameters
-        ----------
-        q_init : numpy.ndarray or None
-            Initial value for the unit quaternion.
-
-        Returns
-        -------
-        numpy.ndarray
-            Checked and normalized unit quaternion.
-        """
-        if q_init is not None:
-            q_init = np.asarray_chkfinite(q_init, dtype=np.float64).reshape(4)
-            q_abs = np.sqrt(np.dot(q_init, q_init))
-            if (0.99 > q_abs) or (q_abs > 1.01):
-                warn("'q_init' is not a unit quaternion.")
-            q_init /= q_abs
-        else:
-            q_init = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float64)
-        return q_init
-
-    @staticmethod
-    def _bias_init(bias_init: ArrayLike | None) -> NDArray[np.float64]:
-        """
-        Compute initial value of the angular rate bias.
-
-        Parameters
-        ----------
-        bias_init : numpy.ndarray or None
-            Initial value for the bias.
-
-        Returns
-        -------
-        numpy.ndarray
-            Checked bias.
-        """
-        if bias_init is not None:
-            bias_init = np.asarray_chkfinite(bias_init, dtype=np.float64).reshape(3)
-        else:
-            bias_init = np.array([0.0, 0.0, 0.0], dtype=np.float64)
-        return bias_init
+        self._Kp = Kp
+        self._Ki = Ki
 
     @staticmethod
     @njit  # type: ignore[misc]
@@ -218,10 +180,25 @@ class AHRS:
         # postpone rotation to after cross product
         w_mes = _cross(v1_mes, v1_est) + R_bn @ _cross(v2_mes, v2)
 
-        self._q, self._bias, self._error = self._update(
-            self._dt, self._q, self._bias, w_imu, w_mes, self._Kp, self._Ki
+        self._q, self._bias_gyro, self._error = self._update(
+            self._dt, self._q, self._bias_gyro, w_imu, w_mes, self._Kp, self._Ki
         )
         return self
+
+    @property
+    def x(self) -> NDArray[np.float64]:
+        """
+        Get current state vector estimate.
+
+        Returns
+        -------
+        numpy.ndarray, shape (7,)
+            State vector, containing the following elements in order:
+
+            * Attitude as unit quaternion (4 elements).
+            * Gyroscope bias in x, y, z directions (3 elements).
+        """
+        return np.concatenate((self._q, self._bias_gyro))
 
     def euler(self, degrees: bool = True) -> NDArray[np.float64]:
         """
@@ -273,7 +250,18 @@ class AHRS:
         numpy.ndarray, shape (4,)
             Attitude as unit quaternion (from-body-to-NED).
         """
-        return self._q.copy()
+        return self._q.copy()  # type: ignore[no-any-return]  # numpy funcs declare Any
+
+    def bias_gyro(self) -> NDArray[np.float64]:
+        """
+        Get the current angular rate bias estimate.
+
+        Returns
+        -------
+        numpy.ndarray, shape (3,)
+            Current angular rate bias.
+        """
+        return self._bias_gyro.copy()
 
     def error(self) -> NDArray[np.float64]:
         """
@@ -285,14 +273,3 @@ class AHRS:
             Current error.
         """
         return self._error.copy()
-
-    def bias(self) -> NDArray[np.float64]:
-        """
-        Get the current angular rate bias estimate.
-
-        Returns
-        -------
-        numpy.ndarray, shape (3,)
-            Current angular rate bias.
-        """
-        return self._bias.copy()
