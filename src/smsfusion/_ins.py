@@ -226,7 +226,7 @@ class INSMixin:
         -------
         numpy.ndarray, shape (4,)
             Attitude as unit quaternion. Given as ``[q1, q2, q3, q4]``, where
-            ``q1`` is the real part and ``q1``, ``q2`` and ``q3`` are the three
+            ``q1`` is the real part and ``q2``, ``q3`` and ``q4`` are the three
             imaginary parts.
         """
         return self._q.copy()
