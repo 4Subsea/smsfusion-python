@@ -566,7 +566,7 @@ class AidedINS(INSMixin):
         """
         Get next a priori estimate of the error covariance matrix, **P**.
         """
-        return self._P.copy()
+        return self._P_prior.copy()
 
     @staticmethod
     def _prep_dfdx_matrix(
