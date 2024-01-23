@@ -386,7 +386,7 @@ class StrapdownINS(INSMixin):
 
         # State propagation (assuming constant linear acceleration and angular velocity)
         a = R_bn @ f_ins + self._g
-        self._p = self._p + dt * self._v + 0.5 * dt**2 * a
+        self._p = self._p + dt * self._v
         self._v = self._v + dt * a
         self._q = self._q + dt * T @ w_ins
         self._q = _normalize(self._q)

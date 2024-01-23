@@ -322,9 +322,9 @@ class Test_StrapdownINS:
         )
         x1_expect = np.array(
             [
-                0.005,
-                0.01,
-                0.015,
+                0.0,
+                0.0,
+                0.0,
                 0.1,
                 0.2,
                 0.3,
@@ -376,9 +376,9 @@ class Test_StrapdownINS:
         )
         x1_expect = np.array(
             [
-                0.005,
-                0.01,
-                0.015,
+                0.0,
+                0.0,
+                0.0,
                 0.1,
                 0.2,
                 0.3,
@@ -435,9 +435,9 @@ class Test_StrapdownINS:
         )
         x1_expect = np.array(
             [
-                0.005,
-                0.01,
-                0.015,
+                0.0,
+                0.0,
+                0.0,
                 0.1,
                 0.2,
                 0.3,
@@ -495,9 +495,7 @@ class Test_StrapdownINS:
         T0_expect = _angular_matrix_from_quaternion(x0_expect[6:10])
         a0_expect = R0_expect @ f_imu + g
         x1_expect = np.zeros(16)
-        x1_expect[0:3] = (
-            x0_expect[0:3] + dt * x0_expect[3:6] + 0.5 * dt**2 * a0_expect
-        )
+        x1_expect[0:3] = x0_expect[0:3] + dt * x0_expect[3:6]
         x1_expect[3:6] = x0_expect[3:6] + dt * a0_expect
         x1_expect[6:10] = x0_expect[6:10] + dt * T0_expect @ w_imu
         x1_expect[6:10] = x1_expect[6:10] / np.linalg.norm(x1_expect[6:10])
@@ -507,9 +505,7 @@ class Test_StrapdownINS:
         T1_expect = _angular_matrix_from_quaternion(x1_expect[6:10])
         a1_expect = R1_expect @ f_imu + g
         x2_expect = np.zeros(16)
-        x2_expect[0:3] = (
-            x1_expect[0:3] + dt * x1_expect[3:6] + 0.5 * dt**2 * a1_expect
-        )
+        x2_expect[0:3] = x1_expect[0:3] + dt * x1_expect[3:6]
         x2_expect[3:6] = x1_expect[3:6] + dt * a1_expect
         x2_expect[6:10] = x1_expect[6:10] + dt * T1_expect @ w_imu
         x2_expect[6:10] = x2_expect[6:10] / np.linalg.norm(x2_expect[6:10])
