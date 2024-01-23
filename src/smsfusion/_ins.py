@@ -80,7 +80,7 @@ def gravity(lat: float | None = None, degrees: bool = True) -> float:
 
 class BaseINS(ABC):
     """
-    Abstract class for inertial navigation systems (INSs).
+    Abstract class for inertial navigation systems (INS).
 
     Parameters
     ----------
@@ -92,6 +92,11 @@ class BaseINS(ABC):
         * Attitude as unit quaternion (4 elements).
         * Accelerometer bias in x, y, z directions (3 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
+
+    Notes
+    -----
+    The quaternion provided as part of the initial state will be normalized to
+    ensure unity.
     """
 
     def __init__(self, x0: ArrayLike) -> None:
@@ -373,7 +378,7 @@ class StrapdownINS(BaseINS):
 
         Returns
         -------
-        AidedINS
+        StrapdownINS :
             A reference to the instance itself after the update.
         """
         f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3)
