@@ -178,7 +178,8 @@ class Test_StrapdownINS:
 
     @pytest.fixture
     def ins(self, x0):
-        ins = StrapdownINS(x0)
+        fs = 10.0
+        ins = StrapdownINS(fs, x0)
         return ins
 
     @pytest.fixture
@@ -192,14 +193,14 @@ class Test_StrapdownINS:
         return x0
 
     def test__init__(self, x0_nonzero):
-        ins = StrapdownINS(x0_nonzero)
+        ins = StrapdownINS(10.24, x0_nonzero)
 
         assert isinstance(ins, INSMixin)
         np.testing.assert_array_equal(ins._x0, x0_nonzero)
         np.testing.assert_array_equal(ins._x, x0_nonzero)
 
     def test_x(self, x0_nonzero):
-        ins = StrapdownINS(x0_nonzero)
+        ins = StrapdownINS(10.24, x0_nonzero)
 
         x_out = ins.x
         x_expect = x0_nonzero
@@ -209,7 +210,7 @@ class Test_StrapdownINS:
         np.testing.assert_array_equal(x_out, x_expect)
 
     def test_position(self, x0_nonzero):
-        ins = StrapdownINS(x0_nonzero)
+        ins = StrapdownINS(10.24, x0_nonzero)
 
         p_out = ins.position()
         p_expect = np.array([1.0, 2.0, 3.0])
@@ -219,7 +220,7 @@ class Test_StrapdownINS:
         np.testing.assert_array_equal(p_out, p_expect)
 
     def test_velocity(self, x0_nonzero):
-        ins = StrapdownINS(x0_nonzero)
+        ins = StrapdownINS(10.24, x0_nonzero)
 
         v_out = ins.velocity()
         v_expect = np.array([4.0, 5.0, 6.0])
@@ -229,7 +230,7 @@ class Test_StrapdownINS:
         np.testing.assert_array_equal(v_out, v_expect)
 
     def test_quaternion(self, x0_nonzero):
-        ins = StrapdownINS(x0_nonzero)
+        ins = StrapdownINS(10.24, x0_nonzero)
 
         q_out = ins.quaternion()
         q_expect = np.array([1.0, 0.0, 0.0, 0.0])
@@ -239,7 +240,7 @@ class Test_StrapdownINS:
         np.testing.assert_array_equal(q_out, q_expect)
 
     def test_euler(self, x0_nonzero):
-        ins = StrapdownINS(x0_nonzero)
+        ins = StrapdownINS(10.24, x0_nonzero)
 
         theta_out = ins.euler()
         theta_expect = np.array([0.0, 0.0, 0.0])
@@ -248,7 +249,7 @@ class Test_StrapdownINS:
         np.testing.assert_array_equal(theta_out, theta_expect)
 
     def test_bias_acc(self, x0_nonzero):
-        ins = StrapdownINS(x0_nonzero)
+        ins = StrapdownINS(10.24, x0_nonzero)
 
         ba_out = ins.bias_acc()
         ba_expect = np.array([7.0, 8.0, 9.0])
@@ -258,7 +259,7 @@ class Test_StrapdownINS:
         np.testing.assert_array_equal(ba_out, ba_expect)
 
     def test_bias_gyro(self, x0_nonzero):
-        ins = StrapdownINS(x0_nonzero)
+        ins = StrapdownINS(10.24, x0_nonzero)
 
         bg_out = ins.bias_gyro()
         bg_expect = np.array([10.0, 11.0, 12.0])
@@ -282,22 +283,20 @@ class Test_StrapdownINS:
         np.testing.assert_array_almost_equal(ins.x, x.flatten())
 
     def test_update_return_self(self, ins):
-        dt = 0.1
         g = 9.80665
         f = np.array([0.0, 0.0, -g]).reshape(-1, 1)
         w = np.array([0.0, 0.0, 0.0]).reshape(-1, 1)
 
-        update_return = ins.update(dt, f, w)
+        update_return = ins.update(f, w)
         assert update_return is ins
 
     def test_update(self, ins):
-        h = 0.1
         g = ins._g
         f = np.array([1.0, 2.0, 3.0]) - g
         w = np.array([0.04, 0.05, 0.06])
 
         x0_out = ins.x
-        ins.update(h, f, w)
+        ins.update(f, w)
         x1_out = ins.x
 
         x0_expect = np.array(
@@ -345,13 +344,12 @@ class Test_StrapdownINS:
         np.testing.assert_array_almost_equal(x1_out, x1_expect)
 
     def test_update_deg(self, ins):
-        dt = 0.1
         g = ins._g
         f_imu = np.array([1.0, 2.0, 3.0]) - g
         w_imu = np.array([4.0, 5.0, 6.0])
 
         x0_out = ins.x
-        ins.update(dt, f_imu, w_imu, degrees=True)
+        ins.update(f_imu, w_imu, degrees=True)
         x1_out = ins.x
 
         x0_expect = np.array(
@@ -403,14 +401,13 @@ class Test_StrapdownINS:
         bg = np.array([0.4, 0.5, 0.6])
         x0[10:13] = ba
         x0[13:16] = bg
-        ins = StrapdownINS(x0)
-        h = 0.1
+        ins = StrapdownINS(10.0, x0)
         g = ins._g
         f = np.array([1.0, 2.0, 3.0]) + ba - g  # IMU measurements w/bias
         w = np.array([0.04, 0.05, 0.06]) + bg  # IMU measurements w/bias
 
         x0_out = ins.x
-        ins.update(h, f, w, degrees=False)
+        ins.update(f, w, degrees=False)
         x1_out = ins.x
 
         x0_expect = np.array(
@@ -458,15 +455,14 @@ class Test_StrapdownINS:
         np.testing.assert_array_almost_equal(x1_out, x1_expect)
 
     def test_update_twise(self, ins):
-        dt = 0.1
         g = ins._g
         f_imu = np.array([1.0, 2.0, 3.0]) - g
         w_imu = np.array([0.004, 0.005, 0.006])
 
         x0_out = ins.x
-        ins.update(dt, f_imu, w_imu, degrees=False)
+        ins.update(f_imu, w_imu, degrees=False)
         x1_out = ins.x
-        ins.update(dt, f_imu, w_imu, degrees=False)
+        ins.update(f_imu, w_imu, degrees=False)
         x2_out = ins.x
 
         x0_expect = np.array(
@@ -490,6 +486,7 @@ class Test_StrapdownINS:
             ]
         )
 
+        dt = 1.0 / ins._fs
         # Calculate x1
         R0_expect = np.eye(3)
         T0_expect = _angular_matrix_from_quaternion(x0_expect[6:10])

@@ -271,6 +271,8 @@ class StrapdownINS(INSMixin):
 
     Parameters
     ----------
+    fs : float
+        Sampling rate in Hz.
     x0 : array-like, shape (16,)
         Initial state vector containing the following elements in order:
 
@@ -289,7 +291,10 @@ class StrapdownINS(INSMixin):
     ensure unity.
     """
 
-    def __init__(self, x0: ArrayLike, lat: float | None = None) -> None:
+    def __init__(self, fs: float, x0: ArrayLike, lat: float | None = None) -> None:
+        self._fs = fs
+        self._dt = 1.0 / fs
+
         self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
         self._x0[6:10] = _normalize(self._x0[6:10])
         self._x = self._x0.copy()
@@ -320,7 +325,6 @@ class StrapdownINS(INSMixin):
 
     def update(
         self,
-        dt: float,
         f_imu: ArrayLike,
         w_imu: ArrayLike,
         degrees: bool = False,
@@ -353,8 +357,6 @@ class StrapdownINS(INSMixin):
 
         Parameters
         ----------
-        dt : float
-            Sampling period in seconds.
         f_imu : array-like, shape (3,)
             Specific force measurements (i.e., accelerations + gravity), given
             as [f_x, f_y, f_z]^T where f_x, f_y and f_z are
@@ -386,9 +388,9 @@ class StrapdownINS(INSMixin):
 
         # State propagation (assuming constant linear acceleration and angular velocity)
         a = R_bn @ f_ins + self._g
-        self._p = self._p + dt * self._v
-        self._v = self._v + dt * a
-        self._q = self._q + dt * T @ w_ins
+        self._p = self._p + self._dt * self._v
+        self._v = self._v + self._dt * a
+        self._q = self._q + self._dt * T @ w_ins
         self._q = _normalize(self._q)
 
         return self
@@ -540,7 +542,7 @@ class AidedINS(INSMixin):
         self._var_compass = np.asarray_chkfinite(var_compass).reshape(1).copy()
 
         # Strapdown algorithm
-        self._ins = StrapdownINS(self._x0)
+        self._ins = StrapdownINS(self._fs, self._x0)
 
         # Initial Kalman filter error covariance
         if cov_error is not None:
