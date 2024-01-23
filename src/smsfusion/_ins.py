@@ -556,15 +556,18 @@ class AidedINS(INSMixin):
     @property
     def P(self) -> NDArray[np.float64]:
         """
-        Error covariance matrix, **P**, associated with the current updated
-        (a posteriori) error-state estimate.
+        Current updated error covariance matrix, **P**. I.e., the error covariance
+        matrix associated with the Kalman filter's updated (a posteriori) error-state
+        estimate.
         """
         return self._P.copy()
 
     @property
     def P_prior(self) -> NDArray[np.float64]:
         """
-        Get next a priori estimate of the error covariance matrix, **P**.
+        Next a priori estimate of the error covariance matrix, **P**. I.e., the error
+        covariance matrix associated with the Kalman filter's projected (a priori)
+        error-state estimate.
         """
         return self._P_prior.copy()
 
