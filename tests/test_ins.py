@@ -107,78 +107,58 @@ class Test_INSMixin:
         x = np.r_[p, v, q, ba, bg]
         return x
 
-    def test_x(self, x):
-        ins = INSMixin()
-        ins._x = x
+    @pytest.fixture
+    def ins(self, x):
+        class INS(INSMixin):
+            def __init__(self, x):
+                self._x = x
 
+        return INS(x)
+
+    def test_x(self, x, ins):
         x_out = ins.x
         x_expect = x
-
         assert x_out.shape == (16,)
         assert x_out is not ins._x
         np.testing.assert_array_equal(x_out, x_expect)
 
-    def test_position(self, x):
-        ins = INSMixin()
-        ins._x = x
-
+    def test_position(self, x, ins):
         p_out = ins.position()
         p_expect = np.array([1.0, 2.0, 3.0])
-
         assert p_out.shape == (3,)
         assert p_out is not ins._p
         np.testing.assert_array_equal(p_out, p_expect)
 
-    def test_velocity(self, x):
-        ins = INSMixin()
-        ins._x = x
-
+    def test_velocity(self, x, ins):
         v_out = ins.velocity()
         v_expect = np.array([4.0, 5.0, 6.0])
-
         assert v_out.shape == (3,)
         assert v_out is not ins._v
         np.testing.assert_array_equal(v_out, v_expect)
 
-    def test_quaternion(self, x):
-        ins = INSMixin()
-        ins._x = x
-
+    def test_quaternion(self, x, ins):
         q_out = ins.quaternion()
         q_expect = np.array([1.0, 0.0, 0.0, 0.0])
-
         assert q_out.shape == (4,)
         assert q_out is not ins._q
         np.testing.assert_array_equal(q_out, q_expect)
 
-    def test_euler(self, x):
-        ins = INSMixin()
-        ins._x = x
-
+    def test_euler(self, x, ins):
         theta_out = ins.euler()
         theta_expect = np.array([0.0, 0.0, 0.0])
-
         assert theta_out.shape == (3,)
         np.testing.assert_array_equal(theta_out, theta_expect)
 
-    def test_bias_acc(self, x):
-        ins = INSMixin()
-        ins._x = x
-
+    def test_bias_acc(self, x, ins):
         ba_out = ins.bias_acc()
         ba_expect = np.array([7.0, 8.0, 9.0])
-
         assert ba_out.shape == (3,)
         assert ba_out is not ins._v
         np.testing.assert_array_equal(ba_out, ba_expect)
 
-    def test_bias_gyro(self, x):
-        ins = INSMixin()
-        ins._x = x
-
+    def test_bias_gyro(self, x, ins):
         bg_out = ins.bias_gyro()
         bg_expect = np.array([10.0, 11.0, 12.0])
-
         assert bg_out.shape == (3,)
         assert bg_out is not ins._v
         np.testing.assert_array_equal(bg_out, bg_expect)
