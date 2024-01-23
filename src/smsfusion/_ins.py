@@ -836,7 +836,7 @@ class AidedINS(INSMixin):
         self._ins.reset(x_ins)
 
         # Project ahead
-        self._ins.update(self._dt, f_imu, w_imu, degrees=False)
+        self._ins.update(f_imu, w_imu, degrees=False)
         self._P_prior = phi @ P @ phi.T + Q
 
         return self
