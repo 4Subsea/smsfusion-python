@@ -874,6 +874,7 @@ class Test_AidedINS:
 
         x0 = np.zeros(16)
         x0[6] = 1.0
+        P0 = 1e-6 * np.eye(15)
 
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
@@ -882,7 +883,9 @@ class Test_AidedINS:
         var_g = np.ones(3)
         var_compass = 1.0
 
-        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass)
+        ains = AidedINS(
+            fs, x0, P0, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass
+        )
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
@@ -900,6 +903,7 @@ class Test_AidedINS:
 
         x0 = np.zeros(16)
         x0[6] = 1.0
+        P0 = 1e-6 * np.eye(15)
 
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
@@ -908,7 +912,7 @@ class Test_AidedINS:
         var_g = np.ones(3)
         var_compass = 1.0
 
-        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass)
+        ains = AidedINS(fs, x0, P0, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass)
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
