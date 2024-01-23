@@ -119,6 +119,20 @@ class Test_AHRS:
         assert bias_out is not x0[4:]
         np.testing.assert_array_almost_equal(bias_out, bias_expect, decimal=3)
 
+    def test_bias_gyro_degrees(self):
+        fs = 10.24
+        Kp = 0.5
+        Ki = 0.1
+        x0 = np.array([1.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.3])
+        alg = AHRS(fs, x0, Kp, Ki)
+
+        bias_out = alg.bias_gyro(degrees=True)
+        bias_expect = (180.0 / np.pi) * x0[4:]
+
+        assert bias_out.shape == (3,)
+        assert bias_out is not x0[4:]
+        np.testing.assert_array_almost_equal(bias_out, bias_expect, decimal=3)
+
     def test__update_Ki(self):
         dt = 0.1
         q = np.array([1.0, 0.0, 0.0, 0.0])

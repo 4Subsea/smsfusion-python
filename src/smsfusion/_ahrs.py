@@ -252,7 +252,7 @@ class AHRS:
         """
         return self._q.copy()  # type: ignore[no-any-return]  # numpy funcs declare Any
 
-    def bias_gyro(self) -> NDArray[np.float64]:
+    def bias_gyro(self, degrees: bool = False) -> NDArray[np.float64]:
         """
         Get the current angular rate bias estimate.
 
@@ -261,7 +261,10 @@ class AHRS:
         numpy.ndarray, shape (3,)
             Current angular rate bias.
         """
-        return self._bias_gyro.copy()
+        b_gyro = self._bias_gyro.copy()
+        if degrees:
+            b_gyro = (180.0 / np.pi) * b_gyro
+        return b_gyro
 
     def error(self) -> NDArray[np.float64]:
         """
