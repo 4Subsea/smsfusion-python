@@ -579,6 +579,7 @@ class Test_AidedINS:
         bias_gyro_init = np.array([-0.1, 0.0, 0.0])
 
         x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
+        P0_prior = 1e-6 * np.eye(15)
 
         err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
         err_gyro = {
@@ -592,7 +593,9 @@ class Test_AidedINS:
         var_g = (0.1) ** 2 * np.ones(3)
         var_compass = ((np.pi / 180.0) * 0.5) ** 2
 
-        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass)
+        ains = AidedINS(
+            fs, x0, P0_prior, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass
+        )
         return ains
 
     def test__init__(self):
@@ -605,6 +608,7 @@ class Test_AidedINS:
         bias_gyro_init = np.array([0.0, 0.0, 0.0])
 
         x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
+        P0_prior = 1e-6 * np.eye(15)
 
         err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
         err_gyro = {
@@ -618,7 +622,9 @@ class Test_AidedINS:
         var_g = (0.1) ** 2 * np.ones(3)
         var_compass = ((np.pi / 180.0) * 0.5) ** 2
 
-        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass)
+        ains = AidedINS(
+            fs, x0, P0_prior, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass
+        )
 
         assert isinstance(ains, AidedINS)
         assert isinstance(ains, INSMixin)
@@ -634,7 +640,9 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(ains._var_compass, var_compass)
         np.testing.assert_array_almost_equal(ains._x0, x0)
         np.testing.assert_array_almost_equal(ains._x, x0)
-        np.testing.assert_array_almost_equal(ains._P_prior, np.eye(15))
+        np.testing.assert_array_almost_equal(ains._P0_prior, P0_prior)
+        np.testing.assert_array_almost_equal(ains._P_prior, P0_prior)
+        assert ains._P.shape == (15, 15)
 
         assert ains._dfdx.shape == (15, 15)
         assert ains._dfdw.shape == (15, 12)
@@ -696,6 +704,23 @@ class Test_AidedINS:
 
         np.testing.assert_array_almost_equal(quaternion_out, quaternion_expect)
         assert quaternion_out is not ains._q
+
+    def test_P_prior(self, ains):
+        P_prior_out = ains.P_prior
+        P_prior_expect = 1e-6 * np.eye(15)
+
+        np.testing.assert_array_almost_equal(P_prior_out, P_prior_expect)
+        assert P_prior_out is not ains._P_prior
+
+    def test_P(self, ains):
+        P = np.random.random((15, 15))
+        ains._P = P
+
+        P_out = ains.P
+        P_expect = P
+
+        np.testing.assert_array_almost_equal(P_out, P_expect)
+        assert P_out is not ains._P
 
     def test__prep_dfdx_matrix(self):
         err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
@@ -859,6 +884,7 @@ class Test_AidedINS:
 
         x0 = np.zeros(16)
         x0[6] = 1.0
+        P0_prior = 1e-6 * np.eye(15)
 
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
@@ -867,7 +893,9 @@ class Test_AidedINS:
         var_g = np.ones(3)
         var_compass = 1.0
 
-        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass)
+        ains = AidedINS(
+            fs, x0, P0_prior, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass
+        )
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
@@ -885,6 +913,7 @@ class Test_AidedINS:
 
         x0 = np.zeros(16)
         x0[6] = 1.0
+        P0_prior = 1e-6 * np.eye(15)
 
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
@@ -893,7 +922,9 @@ class Test_AidedINS:
         var_g = np.ones(3)
         var_compass = 1.0
 
-        ains = AidedINS(fs, x0, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass)
+        ains = AidedINS(
+            fs, x0, P0_prior, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass
+        )
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
@@ -1013,8 +1044,8 @@ class Test_AidedINS:
         var_vel = vel_noise_std**2 * np.ones(3)
         var_compass = ((np.pi / 180.0) * compass_noise_std) ** 2
         var_g = 0.1**2 * np.ones(3)
-        P_prior = np.eye(15)
-        P_prior[9:12, 9:12] *= 1e-9
+        P0_prior = np.eye(15)
+        P0_prior[9:12, 9:12] *= 1e-9
         x0 = np.zeros(16)
         x0[0:3] = pos_ref[0]
         x0[3:6] = vel_ref[0]
@@ -1022,13 +1053,13 @@ class Test_AidedINS:
         mekf = AidedINS(
             fs_imu,
             x0,
+            P0_prior,
             err_acc,
             err_gyro,
             var_pos,
             var_vel,
             var_g,
             var_compass,
-            cov_error=P_prior,
         )
 
         # Apply filter

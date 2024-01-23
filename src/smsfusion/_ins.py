@@ -491,6 +491,9 @@ class AidedINS(INSMixin):
         * Attitude as unit quaternion (4 elements).
         * Accelerometer bias in x, y, z directions (3 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
+    P0_prior : array-like, shape (15, 15)
+        Initial a priori estimate of error covariance matrix, **P**. If uncertain, use
+        a small diagonal matrix (e.g., ``1e-6 * numpy.eye(15)``).
     err_acc : dict of {str: float}
         Dictionary containing accelerometer noise parameters with keys:
 
@@ -511,8 +514,6 @@ class AidedINS(INSMixin):
         Variance of gravitational reference vector measurement noise in m^2.
     var_compass : float
         Variance of compass measurement noise in rad^2.
-    cov_error : array-like, shape (15, 15), optional, default identidy matrix
-        A priori estimate of error covariance matrix, **P**.
     """
 
     _I15 = np.eye(15)
@@ -521,19 +522,22 @@ class AidedINS(INSMixin):
         self,
         fs: float,
         x0: ArrayLike,
+        P0_prior: ArrayLike,
         err_acc: dict[str, float],
         err_gyro: dict[str, float],
         var_pos: ArrayLike,
         var_vel: ArrayLike,
         var_g: ArrayLike,
         var_compass: float,
-        cov_error: ArrayLike | None = None,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
         self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
         self._x0[6:10] = _normalize(self._x0[6:10])
         self._x = self._x0.copy()
+        self._P0_prior = np.asarray_chkfinite(P0_prior).reshape(15, 15).copy()
+        self._P_prior = self._P0_prior.copy()
+        self._P = np.empty_like(self._P_prior)
         self._err_acc = err_acc
         self._err_gyro = err_gyro
         self._var_pos = np.asarray_chkfinite(var_pos).reshape(3).copy()
@@ -543,13 +547,6 @@ class AidedINS(INSMixin):
 
         # Strapdown algorithm
         self._ins = StrapdownINS(self._fs, self._x0)
-
-        # Initial Kalman filter error covariance
-        if cov_error is not None:
-            self._P_prior = np.asarray_chkfinite(cov_error).reshape(15, 15).copy()
-        else:
-            self._P_prior = np.eye(15)
-        self._P = self._P_prior.copy()
 
         # Prepare system matrices
         q0 = self._x0[6:10]
@@ -561,9 +558,20 @@ class AidedINS(INSMixin):
     @property
     def P(self) -> NDArray[np.float64]:
         """
-        Get current error covariance matrix, **P**.
+        Current updated error covariance matrix, **P**. I.e., the error covariance
+        matrix associated with the Kalman filter's updated (a posteriori) error-state
+        estimate.
         """
         return self._P.copy()
+
+    @property
+    def P_prior(self) -> NDArray[np.float64]:
+        """
+        Next a priori estimate of the error covariance matrix, **P**. I.e., the error
+        covariance matrix associated with the Kalman filter's projected (a priori)
+        error-state estimate.
+        """
+        return self._P_prior.copy()
 
     @staticmethod
     def _prep_dfdx_matrix(
