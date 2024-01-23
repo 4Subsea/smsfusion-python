@@ -489,9 +489,9 @@ class AidedINS(INSMixin):
         * Attitude as unit quaternion (4 elements).
         * Accelerometer bias in x, y, z directions (3 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
-    P0 : array-like, shape (15, 15)
+    P0_prior : array-like, shape (15, 15)
         Initial a priori estimate of error covariance matrix, **P**. If uncertain, use
-        a small diagonal matrix (e.g., `1e-6 * np.eye(15)`).
+        a small diagonal matrix (e.g., ``1e-6 * numpy.eye(15)``).
     err_acc : dict of {str: float}
         Dictionary containing accelerometer noise parameters with keys:
 
