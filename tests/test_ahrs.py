@@ -17,8 +17,9 @@ class Test_AHRS:
         Ki = 0.1
         q_init = np.array([1.0, 2.0, 3.0, 4.0]) / np.sqrt(30.0)
         bias_init = np.array([0.1, 0.2, 0.3])
+        x0 = np.concatenate((q_init, bias_init))
 
-        alg = AHRS(fs, Kp, Ki, q_init=q_init, bias_init=bias_init)
+        alg = AHRS(fs, x0, Kp, Ki)
 
         assert isinstance(alg, AHRS)
         assert alg._fs == fs
@@ -26,86 +27,24 @@ class Test_AHRS:
         assert alg._Kp == Kp
         assert alg._Ki == Ki
         np.testing.assert_array_almost_equal(alg.quaternion(), q_init)
-        np.testing.assert_array_almost_equal(alg.bias(), bias_init)
+        np.testing.assert_array_almost_equal(alg.bias_gyro(), bias_init)
         np.testing.assert_array_almost_equal(alg.error(), np.array([0.0, 0.0, 0.0]))
 
-    def test_q_init(self):
+    def test_x0_wrong_len(self):
         fs = 10.24
         Kp = 0.5
         Ki = 0.1
-        q_init = np.array([0.96591925, -0.25882081, 0.0, 0.0], dtype=float)
-
-        alg = AHRS(fs, Kp, Ki, q_init=q_init)
-
-        q_expect = q_init
-        np.testing.assert_array_almost_equal(alg.quaternion(), q_expect)
-
-    def test_q_init_wrong_len(self):
-        fs = 10.24
-        Kp = 0.5
-        Ki = 0.1
-        q_init = np.array([0.96591925, -0.25882081, 0.0, 0.0, 0.0], dtype=float)
+        x0 = np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=float)
 
         with pytest.raises(ValueError):
-            AHRS(fs, Kp, Ki, q_init=q_init)
-
-    def test_q_init_notunity(self):
-        fs = 10.24
-        Kp = 0.5
-        Ki = 0.1
-        q_init = np.array([2, -1, 0.0, 0.0], dtype=float)
-
-        with pytest.warns():
-            AHRS(fs, Kp, Ki, q_init=q_init)
-
-    def test_q_init_none(self):
-        fs = 10.24
-        Kp = 0.5
-        Ki = 0.1
-        q_init = None
-
-        alg = AHRS(fs, Kp, Ki, q_init=q_init)
-
-        q_expect = np.array([1.0, 0.0, 0.0, 0.0])
-        np.testing.assert_array_almost_equal(alg.quaternion(), q_expect)
-
-    def test_bias_init(self):
-        fs = 10.24
-        Kp = 0.5
-        Ki = 0.1
-        bias_init = np.array([0.96591925, -0.25882081, 0.0], dtype=float)
-
-        alg = AHRS(fs, Kp, Ki, bias_init=bias_init)
-
-        bias_expect = bias_init
-        np.testing.assert_array_almost_equal(alg.bias(), bias_expect)
-
-    def test_bias_init_none(self):
-        fs = 10.24
-        Kp = 0.5
-        Ki = 0.1
-        bias_init = None
-
-        alg = AHRS(fs, Kp, Ki, bias_init=bias_init)
-
-        bias_expect = np.array([0.0, 0.0, 0.0])
-        np.testing.assert_array_almost_equal(alg.bias(), bias_expect)
-
-    def test_bias_init_wrong_len(self):
-        fs = 10.24
-        Kp = 0.5
-        Ki = 0.1
-        bias_init = np.array([0.96591925, -0.25882081, 0.0, 0.0], dtype=float)
-
-        with pytest.raises(ValueError):
-            AHRS(fs, Kp, Ki, bias_init=bias_init)
+            AHRS(fs, x0, Kp, Ki)
 
     def test_attitude(self):
         fs = 10.24
         Kp = 0.5
         Ki = 0.1
-        q_init = np.array([0.96591925, -0.25882081, 0.0, 0.0], dtype=float)
-        alg = AHRS(fs, Kp, Ki, q_init=q_init)
+        x0 = np.array([0.96591925, -0.25882081, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=float)
+        alg = AHRS(fs, x0, Kp, Ki)
 
         alpha_beta_gamma = np.array([-30.0, 0.0, 0.0], dtype=float)
         np.testing.assert_array_almost_equal(alg.euler(), alpha_beta_gamma, decimal=3)
@@ -120,8 +59,8 @@ class Test_AHRS:
         fs = 10.24
         Kp = 0.5
         Ki = 0.1
-        q_init = np.array([0.96591925, -0.25882081, 0.0, 0.0], dtype=float)
-        alg = AHRS(fs, Kp, Ki, q_init=q_init)
+        x0 = np.array([0.96591925, -0.25882081, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=float)
+        alg = AHRS(fs, x0, Kp, Ki)
 
         alg.euler().shape == (3,)
 
@@ -129,22 +68,36 @@ class Test_AHRS:
         fs = 10.24
         Kp = 0.5
         Ki = 0.1
-        q_init = np.array([0.96591925, -0.25882081, 0.0, 0.0], dtype=float)
-        alg = AHRS(fs, Kp, Ki, q_init=q_init)
+        x0 = np.array([0.96591925, -0.25882081, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=float)
+        alg = AHRS(fs, x0, Kp, Ki)
 
         q_out = alg.quaternion()
-        q_expect = q_init
+        q_expect = x0[:4]
 
         assert q_out.shape == (4,)
-        assert q_out is not q_init
+        assert q_out is not x0[:4]
         np.testing.assert_array_almost_equal(q_out, q_expect, decimal=3)
+
+    def test_x(self):
+        fs = 10.24
+        Kp = 0.5
+        Ki = 0.1
+        x0 = np.array([0.96591925, -0.25882081, 0.0, 0.0, 0.1, -0.1, 0.05], dtype=float)
+        alg = AHRS(fs, x0, Kp, Ki)
+
+        x_out = alg.x
+        x_expect = x0
+
+        assert x_out.shape == (7,)
+        assert x_out is not x0
+        np.testing.assert_array_almost_equal(x_out, x_expect, decimal=3)
 
     def test_error(self):
         fs = 10.24
         Kp = 0.5
         Ki = 0.1
-        q_init = np.array([0.96591925, -0.25882081, 0.0, 0.0], dtype=float)
-        alg = AHRS(fs, Kp, Ki, q_init=q_init)
+        x0 = np.array([0.96591925, -0.25882081, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=float)
+        alg = AHRS(fs, x0, Kp, Ki)
 
         q_out = alg.error()
         q_expect = np.zeros(3)
@@ -152,18 +105,32 @@ class Test_AHRS:
         assert q_out.shape == (3,)
         np.testing.assert_array_almost_equal(q_out, q_expect, decimal=3)
 
-    def test_bias(self):
+    def test_bias_gyro(self):
         fs = 10.24
         Kp = 0.5
         Ki = 0.1
-        bias_init = np.array([0.1, 0.2, 0.3], dtype=float)
-        alg = AHRS(fs, Kp, Ki, bias_init=bias_init)
+        x0 = np.array([1.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.3])
+        alg = AHRS(fs, x0, Kp, Ki)
 
-        bias_out = alg.bias()
-        bias_expect = bias_init
+        bias_out = alg.bias_gyro()
+        bias_expect = x0[4:]
 
         assert bias_out.shape == (3,)
-        assert bias_out is not bias_init
+        assert bias_out is not x0[4:]
+        np.testing.assert_array_almost_equal(bias_out, bias_expect, decimal=3)
+
+    def test_bias_gyro_degrees(self):
+        fs = 10.24
+        Kp = 0.5
+        Ki = 0.1
+        x0 = np.array([1.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.3])
+        alg = AHRS(fs, x0, Kp, Ki)
+
+        bias_out = alg.bias_gyro(degrees=True)
+        bias_expect = (180.0 / np.pi) * x0[4:]
+
+        assert bias_out.shape == (3,)
+        assert bias_out is not x0[4:]
         np.testing.assert_array_almost_equal(bias_out, bias_expect, decimal=3)
 
     def test__update_Ki(self):
@@ -211,10 +178,9 @@ class Test_AHRS:
         fs = 10.24
         Kp = 0.5
         Ki = 0.05
-        q_init = np.array([1.0, 0.0, 0.0, 0.0])
-        bias_init = np.array([0.0, 0.0, 0.0])
+        x0 = np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
-        alg = AHRS(fs, Kp, Ki, q_init=q_init, bias_init=bias_init)
+        alg = AHRS(fs, x0, Kp, Ki)
 
         f_imu = np.array([0.3422471493375811, -0.0, -9.800676053786814])
         w_imu = np.array([1.0, 0.0, 0.0])
@@ -233,14 +199,15 @@ class Test_AHRS:
 
         np.testing.assert_array_almost_equal(alg.quaternion(), q_expect)
         np.testing.assert_array_almost_equal(alg.error(), error_expect)
-        np.testing.assert_array_almost_equal(alg.bias(), bias_expect)
+        np.testing.assert_array_almost_equal(alg.bias_gyro(), bias_expect)
 
     def test_update_return_self(self):
         fs = 10.24
         Kp = 0.5
         Ki = 0.1
+        x0 = np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
-        alg = AHRS(fs, Kp, Ki)
+        alg = AHRS(fs, x0, Kp, Ki)
 
         f_imu = np.array([0.0, 0.0, -9.80665])
         w_imu = np.array([0.0, 0.0, 0.0])
@@ -266,19 +233,18 @@ class Test_AHRS:
         fs = 10.24
         Kp = 0.5
         Ki = 0.1
-        q_init = np.array([1.0, 0.0, 0.0, 0.0])
-        bias_init = np.array([0.0, 0.0, 0.0])
+        x0 = np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
-        alg = AHRS(fs, Kp, Ki, q_init=q_init, bias_init=bias_init)
+        alg = AHRS(fs, x0, Kp, Ki)
         alg.update(f_imu, w_imu, head)
 
         q_expect = np.array([1.0, 0.0, 0.0, 0.0])
-        error_expect = np.array([0.0, 0.0, 0.0])
         bias_expect = np.array([0.0, 0.0, 0.0])
+        error_expect = np.array([0.0, 0.0, 0.0])
 
         np.testing.assert_array_almost_equal(alg.quaternion(), q_expect)
+        np.testing.assert_array_almost_equal(alg.bias_gyro(), bias_expect)
         np.testing.assert_array_almost_equal(alg.error(), error_expect)
-        np.testing.assert_array_almost_equal(alg.bias(), bias_expect)
 
     @pytest.mark.parametrize(
         "f_imu, w_imu, head",
@@ -296,10 +262,9 @@ class Test_AHRS:
         fs = 10.24
         Kp = 0.5
         Ki = 0.1
-        q_init = np.array([1.0, 0.0, 0.0, 0.0])
-        bias_init = np.array([0.0, 0.0, 0.0])
+        x0 = np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
-        alg = AHRS(fs, Kp, Ki, q_init=q_init, bias_init=bias_init)
+        alg = AHRS(fs, x0, Kp, Ki)
         with pytest.raises((TypeError, ValueError)):
             alg.update(f_imu, w_imu, head)
 
@@ -308,12 +273,13 @@ class Test_AHRS:
         fs = 10
         Kp = 0.5
         Ki = 0.1
+        x0 = np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
         f_imu = np.random.random((100, 3))
         w_imu = np.random.random((100, 3))
         head = np.random.random(100)
 
-        alg = AHRS(fs, Kp, Ki)
+        alg = AHRS(fs, x0, Kp, Ki)
         _ = [
             alg.update(f_imu_i, w_imu_i, head_i).quaternion()
             for f_imu_i, w_imu_i, head_i in zip(f_imu, w_imu, head)
@@ -347,8 +313,9 @@ class Test_AHRS:
 
         Ki = omega_e**2
         Kp = delta * omega_e
+        x0 = np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
-        ahrs = AHRS(fs, Kp, Ki)
+        ahrs = AHRS(fs, x0, Kp, Ki)
         euler_out = []
 
         for acc_i, gyro_i, head_i in zip(acc_noise, gyro_noise, compass):
