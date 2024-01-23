@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC
-
 import numpy as np
 from numpy.linalg import inv
 from numpy.typing import ArrayLike, NDArray
