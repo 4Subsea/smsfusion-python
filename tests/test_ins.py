@@ -912,7 +912,9 @@ class Test_AidedINS:
         var_g = np.ones(3)
         var_compass = 1.0
 
-        ains = AidedINS(fs, x0, P0, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass)
+        ains = AidedINS(
+            fs, x0, P0, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass
+        )
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
@@ -1032,8 +1034,8 @@ class Test_AidedINS:
         var_vel = vel_noise_std**2 * np.ones(3)
         var_compass = ((np.pi / 180.0) * compass_noise_std) ** 2
         var_g = 0.1**2 * np.ones(3)
-        P_prior = np.eye(15)
-        P_prior[9:12, 9:12] *= 1e-9
+        P0_prior = np.eye(15)
+        P0_prior[9:12, 9:12] *= 1e-9
         x0 = np.zeros(16)
         x0[0:3] = pos_ref[0]
         x0[3:6] = vel_ref[0]
@@ -1041,13 +1043,13 @@ class Test_AidedINS:
         mekf = AidedINS(
             fs_imu,
             x0,
+            P0_prior,
             err_acc,
             err_gyro,
             var_pos,
             var_vel,
             var_g,
             var_compass,
-            cov_error=P_prior,
         )
 
         # Apply filter
