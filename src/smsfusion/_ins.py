@@ -560,6 +560,13 @@ class AidedINS(INSMixin):
         """
         return self._P.copy()
 
+    @property
+    def P_prior(self) -> NDArray[np.float64]:
+        """
+        Get next a priori estimate of the error covariance matrix, **P**.
+        """
+        return self._P.copy()
+
     @staticmethod
     def _prep_dfdx_matrix(
         err_acc: dict[str, float],

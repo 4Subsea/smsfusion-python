@@ -712,6 +712,23 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(quaternion_out, quaternion_expect)
         assert quaternion_out is not ains._q
 
+    def test_P_prior(self, ains):
+        P_prior_out = ains.P_prior
+        P_prior_expect = 1e-6 * np.eye(15)
+
+        np.testing.assert_array_almost_equal(P_prior_out, P_prior_expect)
+        assert P_prior_out is not ains._P_prior
+
+    def test_P(self, ains):
+        P = np.random.random((15, 15))
+        ains._P = P
+
+        P_out = ains.P
+        P_expect = P
+
+        np.testing.assert_array_almost_equal(P_out, P_expect)
+        assert P_out is not ains._P
+
     def test__prep_dfdx_matrix(self):
         err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
         err_gyro = {
