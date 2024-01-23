@@ -514,6 +514,9 @@ class AidedINS(INSMixin):
         Variance of gravitational reference vector measurement noise in m^2.
     var_compass : float
         Variance of compass measurement noise in rad^2.
+    lat : float, optional
+        Latitude used to calculate the gravitational acceleration. If none
+        provided, the 'standard gravity' is assumed.
     """
 
     _I15 = np.eye(15)
@@ -529,6 +532,7 @@ class AidedINS(INSMixin):
         var_vel: ArrayLike,
         var_g: ArrayLike,
         var_compass: float,
+        lat: float | None = None,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
@@ -546,7 +550,7 @@ class AidedINS(INSMixin):
         self._var_compass = np.asarray_chkfinite(var_compass).reshape(1).copy()
 
         # Strapdown algorithm
-        self._ins = StrapdownINS(self._fs, self._x0)
+        self._ins = StrapdownINS(self._fs, self._x0, lat=lat)
 
         # Prepare system matrices
         q0 = self._x0[6:10]
