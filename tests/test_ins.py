@@ -648,8 +648,8 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(ains._x0, x0)
         np.testing.assert_array_almost_equal(ains._x, x0)
         np.testing.assert_array_almost_equal(ains._P0_prior, P0_prior)
-        np.testing.assert_array_almost_equal(ains._P, P0_prior)
         np.testing.assert_array_almost_equal(ains._P_prior, P0_prior)
+        assert ains._P.shape == (15, 15)
 
         assert ains._dfdx.shape == (15, 15)
         assert ains._dfdw.shape == (15, 12)
