@@ -623,7 +623,16 @@ class Test_AidedINS:
         var_compass = ((np.pi / 180.0) * 0.5) ** 2
 
         ains = AidedINS(
-            fs, x0, P0_prior, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            var_pos,
+            var_vel,
+            var_g,
+            var_compass,
+            lat=60.0,
         )
 
         assert isinstance(ains, AidedINS)
@@ -643,6 +652,10 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(ains._P0_prior, P0_prior)
         np.testing.assert_array_almost_equal(ains._P_prior, P0_prior)
         assert ains._P.shape == (15, 15)
+
+        # Check that correct latitude (and thus gravity) is used
+        g_expect = np.array([0.0, 0.0, gravity(60.0)])
+        np.testing.assert_array_almost_equal(ains._ins._g, g_expect)
 
         assert ains._dfdx.shape == (15, 15)
         assert ains._dfdw.shape == (15, 12)
