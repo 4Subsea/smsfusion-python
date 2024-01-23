@@ -556,7 +556,8 @@ class AidedINS(INSMixin):
     @property
     def P(self) -> NDArray[np.float64]:
         """
-        Get current error covariance matrix, **P**.
+        Error covariance matrix, **P**, associated with the current updated
+        (a posteriori) error-state estimate.
         """
         return self._P.copy()
 
