@@ -746,8 +746,8 @@ class AidedINS(INSMixin):
             Variance of velocity measurement noise in (m/s)^2.
         var_g : array-like, shape (3,), optional
             Variance of gravitational reference vector measurement noise in m^2.
-        var_compass : float, optional
-            Variance of compass measurement noise in rad^2.
+        var_head : float, optional
+            Variance of heading measurement noise in rad^2.
 
         Returns
         -------
@@ -776,12 +776,6 @@ class AidedINS(INSMixin):
         f_ins = f_imu - bias_acc_ins
         w_ins = w_imu - bias_gyro_ins
 
-        # Gravity reference vector
-        vg_ref_n = np.array([0.0, 0.0, 1.0])
-
-        # Measured gravity vector
-        vg_meas_m = -_normalize(f_ins)
-
         # Update system matrices
         self._update_F(q_ins_nm, f_ins, w_ins)
         self._update_G(q_ins_nm)
@@ -794,7 +788,7 @@ class AidedINS(INSMixin):
             delta_pos = pos - pos_ins
 
             if var_pos is not None:
-                var_pos = np.asarray_chkfinite(var_pos).reshape(3).copy()
+                var_pos = np.asarray_chkfinite(var_pos, dtype=float).reshape(3).copy()
             elif self._var_pos is not None:
                 var_pos = self._var_pos
             else:
@@ -810,28 +804,30 @@ class AidedINS(INSMixin):
             delta_vel = vel - vel_ins
 
             if var_vel is not None:
-                var_vel = np.asarray_chkfinite(var_vel).reshape(3).copy()
+                var_vel = np.asarray_chkfinite(var_vel, dtype=float).reshape(3).copy()
             elif self._var_vel is not None:
                 var_vel = self._var_vel
             else:
                 raise ValueError("'var_vel' not provided.")
 
             dz_temp.append(delta_vel)
-            var_z_temp.append(self._var_vel)
+            var_z_temp.append(var_vel)
             H_temp.append(self._H[3:6])
 
         # Gravity reference vector aiding
+        vg_ref_n = np.array([0.0, 0.0, 1.0])
+        vg_meas_m = -_normalize(f_ins)
         delta_g = vg_meas_m - R_ins_nm.T @ vg_ref_n
 
         if var_g is not None:
-            var_g = np.asarray_chkfinite(var_g).reshape(3).copy()
+            var_g = np.asarray_chkfinite(var_g, dtype=float).reshape(3).copy()
         elif self._var_g is not None:
             var_g = self._var_g
         else:
             raise ValueError("'var_g' not provided.")
 
         dz_temp.append(delta_g)
-        var_z_temp.append(self._var_g)
+        var_z_temp.append(var_g)
         H_temp.append(self._H[6:9])
 
         # Compass aiding
@@ -843,14 +839,14 @@ class AidedINS(INSMixin):
             )
 
             if var_head is not None:
-                var_head = np.asarray_chkfinite(var_head).reshape(1).copy()
+                var_head = np.asarray_chkfinite(var_head, dtype=float).reshape(1).copy()
             elif self._var_head is not None:
                 var_head = self._var_head
             else:
                 raise ValueError("'var_head' not provided.")
 
             dz_temp.append(np.array([delta_head]))
-            var_z_temp.append(self._var_head)
+            var_z_temp.append(var_head)
             H_temp.append(self._H[-1:])
 
         dz = np.concatenate(dz_temp, axis=0)
