@@ -63,7 +63,7 @@ class AHRS:
         self._dt = 1.0 / fs
 
         self._x0 = np.asarray_chkfinite(x0).reshape(7).copy()
-        self._q = _normalize(self._x0[:4])
+        self._q_nm = _normalize(self._x0[:4])
         self._bias_gyro = self._x0[4:]
         self._error = np.array([0.0, 0.0, 0.0], dtype=np.float64)
 
@@ -165,23 +165,23 @@ class AHRS:
         if head_degrees:
             head = np.radians(head)
 
-        R_bn = _rot_matrix_from_quaternion(self._q).T
+        R_nm = _rot_matrix_from_quaternion(self._q_nm)
 
         # Reference vectors expressed in NED frame
-        v1 = np.array([0.0, 0.0, 1.0], dtype=np.float64)  # direction of gravity
-        v2 = np.array([1.0, 0.0, 0.0], dtype=np.float64)  # direction of north
+        v1_ref_n = np.array([0.0, 0.0, 1.0], dtype=np.float64)  # direction of gravity
+        v2_ref_n = np.array([1.0, 0.0, 0.0], dtype=np.float64)  # direction of north
 
-        v1_mes = -_normalize(f_imu)
-        v1_est = R_bn @ v1
+        v1_meas_m = -_normalize(f_imu)
+        v1_est_m = R_nm.T @ v1_ref_n
 
-        delta_head = head - _gamma_from_quaternion(self._q)
-        v2_mes = np.array([np.cos(delta_head), -np.sin(delta_head), 0.0])
+        delta_head = head - _gamma_from_quaternion(self._q_nm)
+        v2_meas_n = np.array([np.cos(delta_head), -np.sin(delta_head), 0.0])
 
         # postpone rotation to after cross product
-        w_mes = _cross(v1_mes, v1_est) + R_bn @ _cross(v2_mes, v2)
+        w_mes = _cross(v1_meas_m, v1_est_m) + R_nm.T @ _cross(v2_meas_n, v2_ref_n)
 
-        self._q, self._bias_gyro, self._error = self._update(
-            self._dt, self._q, self._bias_gyro, w_imu, w_mes, self._Kp, self._Ki
+        self._q_nm, self._bias_gyro, self._error = self._update(
+            self._dt, self._q_nm, self._bias_gyro, w_imu, w_mes, self._Kp, self._Ki
         )
         return self
 
@@ -198,7 +198,7 @@ class AHRS:
             * Attitude as unit quaternion (4 elements).
             * Gyroscope bias in x, y, z directions (3 elements).
         """
-        return np.concatenate((self._q, self._bias_gyro))
+        return np.concatenate((self._q_nm, self._bias_gyro))
 
     def euler(self, degrees: bool = True) -> NDArray[np.float64]:
         """
@@ -234,7 +234,7 @@ class AHRS:
         Passive rotations mean that the frame itself is rotating, not the object
         within the frame.
         """
-        theta = _euler_from_quaternion(self._q)
+        theta = _euler_from_quaternion(self._q_nm)
 
         if degrees:
             theta = (180.0 / np.pi) * theta
@@ -250,7 +250,7 @@ class AHRS:
         numpy.ndarray, shape (4,)
             Attitude as unit quaternion (from-body-to-NED).
         """
-        return self._q.copy()  # type: ignore[no-any-return]  # numpy funcs declare Any
+        return self._q_nm.copy()  # type: ignore[no-any-return]  # numpy funcs declare Any
 
     def bias_gyro(self, degrees: bool = False) -> NDArray[np.float64]:
         """
