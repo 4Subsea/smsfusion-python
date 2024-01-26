@@ -1089,10 +1089,10 @@ class Test_AidedINS:
         var_pos = np.ones(3)
         var_vel = np.ones(3)
         var_g = np.ones(3)
-        var_compass = 1.0
+        var_head = 1.0
 
         ains = AidedINS(
-            fs, x0, P0_prior, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass
+            fs, x0, P0_prior, err_acc, err_gyro, var_pos, var_vel, var_g, var_head
         )
 
         g = gravity()
@@ -1118,10 +1118,10 @@ class Test_AidedINS:
         var_pos = np.ones(3)
         var_vel = np.ones(3)
         var_g = np.ones(3)
-        var_compass = 1.0
+        var_head = 1.0
 
         ains = AidedINS(
-            fs, x0, P0_prior, err_acc, err_gyro, var_pos, var_vel, var_g, var_compass
+            fs, x0, P0_prior, err_acc, err_gyro, var_pos, var_vel, var_g, var_head
         )
 
         g = gravity()
