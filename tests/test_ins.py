@@ -588,14 +588,9 @@ class Test_AidedINS:
             "tau_cb": 50,
         }
 
-        var_pos = [0.1, 0.1, 0.1]
-        var_vel = [0.1, 0.1, 0.1]
-        var_g = (0.1) ** 2 * np.ones(3)
-        var_head = ((np.pi / 180.0) * 0.5) ** 2
+        var_g = (0.1) ** 2 * np.ones(3)  # other variances must be given during update
 
-        ains = AidedINS(
-            fs, x0, P0_prior, err_acc, err_gyro, var_pos, var_vel, var_g, var_head
-        )
+        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro, var_g=var_g)
         return ains
 
     def test__init__(self):
@@ -921,9 +916,22 @@ class Test_AidedINS:
         head = 0.0
         pos = np.zeros(3)
         vel = np.zeros(3)
+        var_pos = np.ones(3)
+        var_vel = np.ones(3)
+        var_head = 1.0
 
         update_return = ains.update(
-            f_imu, w_imu, pos, vel, head, degrees=True, head_degrees=True
+            f_imu,
+            w_imu,
+            pos,
+            vel,
+            head,
+            degrees=True,
+            head_degrees=True,
+            var_pos=var_pos,
+            var_vel=var_vel,
+            var_g=None,  # provided in __init__
+            var_head=var_head,
         )
         assert update_return is ains
 
