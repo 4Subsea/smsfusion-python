@@ -756,8 +756,8 @@ class AidedINS(INSMixin):
             Variance of velocity measurement noise in (m/s)^2.
         var_g : array-like, shape (3,), optional
             Variance of gravitational reference vector measurement noise in m^2.
-        var_compass : float, optional
-            Variance of compass measurement noise in rad^2.
+        var_head : float, optional
+            Variance of heading measurement noise in rad^2.
 
         Returns
         -------
