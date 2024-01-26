@@ -1240,7 +1240,7 @@ class Test_AidedINS:
         }
         var_pos = gps_noise_std**2 * np.ones(3)
         var_vel = vel_noise_std**2 * np.ones(3)
-        var_compass = ((np.pi / 180.0) * compass_noise_std) ** 2
+        var_head = ((np.pi / 180.0) * compass_noise_std) ** 2
         var_g = 0.1**2 * np.ones(3)
         P0_prior = np.eye(15)
         P0_prior[9:12, 9:12] *= 1e-9
@@ -1254,10 +1254,10 @@ class Test_AidedINS:
             P0_prior,
             err_acc,
             err_gyro,
-            var_pos,
-            var_vel,
-            var_g,
-            var_compass,
+            var_pos=np.ones_like(var_pos) * 1e9,  # correct values given in update
+            var_vel=np.ones_like(var_vel) * 1e9,  # correct values given in update
+            var_g=var_g,
+            var_head=None,  # provided during update
         )
 
         # Apply filter
@@ -1274,6 +1274,10 @@ class Test_AidedINS:
                     head=head_i,
                     degrees=True,
                     head_degrees=True,
+                    var_pos=var_pos,  # provided in __init__ but overridden here
+                    var_vel=var_vel,  # provided in __init__ but overridden here
+                    var_g=None,  # provided in __init__
+                    var_head=var_head,
                 )
             else:  # without aiding
                 mekf.update(acc_i, gyro_i, degrees=True, head_degrees=True)
