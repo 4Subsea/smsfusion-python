@@ -1032,7 +1032,7 @@ class Test_AidedINS:
             np.testing.assert_array_almost_equal(ains_a.x, ains_c.x)
 
     def test_update_var_raises(self):
-        """Update using aiding variances given in __init__ or update method."""
+        """Chack that update raise ValueError if no aiding variances are provided."""
         fs = 10.24
 
         x0 = np.zeros(16)
