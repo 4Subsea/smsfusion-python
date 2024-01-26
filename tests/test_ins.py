@@ -7,7 +7,6 @@ operates with active rotations, whereas passive rotations are considered here. K
 mind that passive rotations is simply the inverse active rotations and vice versa.
 """
 
-
 from pathlib import Path
 
 import numpy as np
