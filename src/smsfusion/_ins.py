@@ -93,19 +93,19 @@ class INSMixin:
     _x: NDArray[np.float64]  # state array of length 16
 
     @property
-    def _p(self) -> NDArray[np.float64]:
+    def _pos(self) -> NDArray[np.float64]:
         return self._x[0:3]
 
-    @_p.setter
-    def _p(self, p: ArrayLike) -> None:
+    @_pos.setter
+    def _pos(self, p: ArrayLike) -> None:
         self._x[0:3] = p
 
     @property
-    def _v(self) -> NDArray[np.float64]:
+    def _vel(self) -> NDArray[np.float64]:
         return self._x[3:6]
 
-    @_v.setter
-    def _v(self, v: ArrayLike) -> None:
+    @_vel.setter
+    def _vel(self, v: ArrayLike) -> None:
         self._x[3:6] = v
 
     @property
@@ -117,19 +117,19 @@ class INSMixin:
         self._x[6:10] = q
 
     @property
-    def _b_acc(self) -> NDArray[np.float64]:
+    def _bias_acc(self) -> NDArray[np.float64]:
         return self._x[10:13]
 
-    @_b_acc.setter
-    def _b_acc(self, b_acc: ArrayLike) -> None:
+    @_bias_acc.setter
+    def _bias_acc(self, b_acc: ArrayLike) -> None:
         self._x[10:13] = b_acc
 
     @property
-    def _b_gyro(self) -> NDArray[np.float64]:
+    def _bias_gyro(self) -> NDArray[np.float64]:
         return self._x[13:16]
 
-    @_b_gyro.setter
-    def _b_gyro(self, b_gyro: ArrayLike) -> None:
+    @_bias_gyro.setter
+    def _bias_gyro(self, b_gyro: ArrayLike) -> None:
         self._x[13:16] = b_gyro
 
     @property
@@ -160,7 +160,7 @@ class INSMixin:
             Position state vector, containing position in x-, y-, and z-direction
             (in that order).
         """
-        return self._p.copy()
+        return self._pos.copy()
 
     def velocity(self) -> NDArray[np.float64]:
         """
@@ -172,7 +172,7 @@ class INSMixin:
             Velocity state vector, containing (linear) velocity in x-, y-, and z-direction
             (in that order).
         """
-        return self._v.copy()
+        return self._vel.copy()
 
     def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
@@ -239,7 +239,7 @@ class INSMixin:
             Accelerometer bias vector, containing biases in x-, y-, and z-direction
             (in that order).
         """
-        return self._b_acc.copy()
+        return self._bias_acc.copy()
 
     def bias_gyro(self, degrees: bool = False) -> NDArray[np.float64]:
         """
@@ -256,7 +256,7 @@ class INSMixin:
             Gyroscope bias vector, containing biases in x-, y-, and z-direction
             (in that order).
         """
-        b_gyro = self._b_gyro.copy()
+        b_gyro = self._bias_gyro.copy()
         if degrees:
             b_gyro = (180.0 / np.pi) * b_gyro
         return b_gyro
@@ -380,16 +380,16 @@ class StrapdownINS(INSMixin):
             w_imu = (np.pi / 180.0) * w_imu
 
         # Bias compensated IMU measurements
-        f_ins = f_imu - self._b_acc
-        w_ins = w_imu - self._b_gyro
+        f_ins = f_imu - self._bias_acc
+        w_ins = w_imu - self._bias_gyro
 
-        R_bn = _rot_matrix_from_quaternion(self._q)  # body-to-ned
+        R_nb = _rot_matrix_from_quaternion(self._q)  # body-to-ned
         T = _angular_matrix_from_quaternion(self._q)
 
         # State propagation (assuming constant linear acceleration and angular velocity)
-        a = R_bn @ f_ins + self._g
-        self._p = self._p + self._dt * self._v
-        self._v = self._v + self._dt * a
+        acc = R_nb @ f_ins + self._g
+        self._pos = self._pos + self._dt * self._vel
+        self._vel = self._vel + self._dt * acc
         self._q = self._q + self._dt * T @ w_ins
         self._q = _normalize(self._q)
 
@@ -564,10 +564,10 @@ class AidedINS(INSMixin):
 
         # Prepare system matrices
         q0 = self._x0[6:10]
-        self._dfdx = self._prep_dfdx_matrix(err_acc, err_gyro, q0)
-        self._dfdw = self._prep_dfdw_matrix(q0)
-        self._dhdx = self._prep_dhdx_matrix(q0)
-        self._W = self._prep_W_matrix(err_acc, err_gyro)
+        self._F_matrix = self._prep_F_matrix(err_acc, err_gyro, q0)
+        self._G_matrix = self._prep_G_matrix(q0)
+        self._H_matrix = self._prep_H_matrix(q0)
+        self._W_matrix = self._prep_W_matrix(err_acc, err_gyro)
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -588,13 +588,13 @@ class AidedINS(INSMixin):
         return self._P_prior.copy()
 
     @staticmethod
-    def _prep_dfdx_matrix(
+    def _prep_F_matrix(
         err_acc: dict[str, float],
         err_gyro: dict[str, float],
         q: NDArray[np.float64],
     ) -> NDArray[np.float64]:
         """
-        Prepare linearized state matrix
+        Prepare linearized state matrix, F.
         """
 
         beta_acc = 1.0 / err_acc["tau_cb"]
@@ -609,61 +609,61 @@ class AidedINS(INSMixin):
         S = _skew_symmetric  # skew symmetric matrix
 
         # State transition matrix
-        dfdx = np.zeros((15, 15))
-        dfdx[0:3, 3:6] = np.eye(3)
-        dfdx[3:6, 6:9] = -R(q) @ S(f_ins)  # NB! update each time step
-        dfdx[3:6, 9:12] = -R(q)  # NB! update each time step
-        dfdx[6:9, 6:9] = -S(w_ins)  # NB! update each time step
-        dfdx[6:9, 12:15] = -np.eye(3)
-        dfdx[9:12, 9:12] = -beta_acc * np.eye(3)
-        dfdx[12:15, 12:15] = -beta_gyro * np.eye(3)
+        F_matrix = np.zeros((15, 15))
+        F_matrix[0:3, 3:6] = np.eye(3)
+        F_matrix[3:6, 6:9] = -R(q) @ S(f_ins)  # NB! update each time step
+        F_matrix[3:6, 9:12] = -R(q)  # NB! update each time step
+        F_matrix[6:9, 6:9] = -S(w_ins)  # NB! update each time step
+        F_matrix[6:9, 12:15] = -np.eye(3)
+        F_matrix[9:12, 9:12] = -beta_acc * np.eye(3)
+        F_matrix[12:15, 12:15] = -beta_gyro * np.eye(3)
 
-        return dfdx
+        return F_matrix
 
-    def _update_dfdx_matrix(
+    def _update_F_matrix(
         self,
         q: NDArray[np.float64],
         f_ins: NDArray[np.float64],
         w_ins: NDArray[np.float64],
     ) -> None:
-        """Update linearized state transition matrix"""
+        """Update linearized state transition matrix, F."""
         # Aliases for transformation matrices
         R = _rot_matrix_from_quaternion  # body-to-ned rotation matrix
         S = _skew_symmetric  # skew symmetric matrix
 
         # Update matrix
-        self._dfdx[3:6, 6:9] = -R(q) @ S(f_ins)  # NB! update each time step
-        self._dfdx[3:6, 9:12] = -R(q)  # NB! update each time step
-        self._dfdx[6:9, 6:9] = -S(w_ins)  # NB! update each time step
+        self._F_matrix[3:6, 6:9] = -R(q) @ S(f_ins)  # NB! update each time step
+        self._F_matrix[3:6, 9:12] = -R(q)  # NB! update each time step
+        self._F_matrix[6:9, 6:9] = -S(w_ins)  # NB! update each time step
 
     @staticmethod
-    def _prep_dfdw_matrix(q: NDArray[np.float64]) -> NDArray[np.float64]:
-        """Prepare (white noise) input matrix"""
+    def _prep_G_matrix(q: NDArray[np.float64]) -> NDArray[np.float64]:
+        """Prepare (white noise) input matrix, G."""
 
         # Alias for transformation matrix
         R = _rot_matrix_from_quaternion  # body-to-ned rotation matrix
 
         # Input (white noise) matrix
-        dfdw = np.zeros((15, 12))
-        dfdw[3:6, 0:3] = -R(q)  # NB! update each time step
-        dfdw[6:9, 3:6] = -np.eye(3)
-        dfdw[9:12, 6:9] = np.eye(3)
-        dfdw[12:15, 9:12] = np.eye(3)
+        G_matrix = np.zeros((15, 12))
+        G_matrix[3:6, 0:3] = -R(q)  # NB! update each time step
+        G_matrix[6:9, 3:6] = -np.eye(3)
+        G_matrix[9:12, 6:9] = np.eye(3)
+        G_matrix[12:15, 9:12] = np.eye(3)
 
-        return dfdw
+        return G_matrix
 
-    def _update_dfdw_matrix(self, q: NDArray[np.float64]) -> None:
-        """Update (white noise) input matrix"""
+    def _update_G_matrix(self, q: NDArray[np.float64]) -> None:
+        """Update (white noise) input matrix, G."""
 
         # Alias for transformation matrix
         R = _rot_matrix_from_quaternion  # body-to-ned rotation matrix alias
 
         # Update matrix
-        self._dfdw[3:6, 0:3] = -R(q)
+        self._G_matrix[3:6, 0:3] = -R(q)
 
     @staticmethod
-    def _prep_dhdx_matrix(q: NDArray[np.float64]) -> NDArray[np.float64]:
-        """Prepare linearized measurement matrix"""
+    def _prep_H_matrix(q: NDArray[np.float64]) -> NDArray[np.float64]:
+        """Prepare linearized measurement matrix, H."""
 
         # Reference vector
         v01_ned = np.array([0.0, 0.0, 1.0])
@@ -672,15 +672,15 @@ class AidedINS(INSMixin):
         R = _rot_matrix_from_quaternion  # body-to-ned rotation matrix
         S = _skew_symmetric  # skew symmetric matrix
 
-        dhdx = np.zeros((10, 15))
-        dhdx[0:3, 0:3] = np.eye(3)  # position
-        dhdx[3:6, 3:6] = np.eye(3)  # velocity
-        dhdx[6:9, 6:9] = S(R(q).T @ v01_ned)  # gravity reference vector
-        dhdx[9:10, 6:9] = _dhda(_gibbs(q))  # compass
-        return dhdx
+        H_matrix = np.zeros((10, 15))
+        H_matrix[0:3, 0:3] = np.eye(3)  # position
+        H_matrix[3:6, 3:6] = np.eye(3)  # velocity
+        H_matrix[6:9, 6:9] = S(R(q).T @ v01_ned)  # gravity reference vector
+        H_matrix[9:10, 6:9] = _dhda(_gibbs(q))  # compass
+        return H_matrix
 
-    def _update_dhdx_matrix(self, q: NDArray[np.float64]) -> None:
-        """Update linearized measurement matrix"""
+    def _update_H_matrix(self, q: NDArray[np.float64]) -> None:
+        """Update linearized measurement matrix, H."""
 
         # Reference vector
         v01_ned = np.array([0.0, 0.0, 1.0])
@@ -689,8 +689,8 @@ class AidedINS(INSMixin):
         R = _rot_matrix_from_quaternion  # body-to-ned rotation matrix
         S = _skew_symmetric  # skew symmetric matrix
 
-        self._dhdx[6:9, 6:9] = S(R(q).T @ v01_ned)  # gravity reference vector
-        self._dhdx[9:10, 6:9] = _dhda(_gibbs(q))  # compass
+        self._H_matrix[6:9, 6:9] = S(R(q).T @ v01_ned)  # gravity reference vector
+        self._H_matrix[9:10, 6:9] = _dhda(_gibbs(q))  # compass
 
     @staticmethod
     def _prep_W_matrix(
@@ -705,13 +705,13 @@ class AidedINS(INSMixin):
         beta_gyro = 1.0 / err_gyro["tau_cb"]
 
         # White noise power spectral density matrix
-        W = np.eye(12)
-        W[0:3, 0:3] *= N_acc**2
-        W[3:6, 3:6] *= N_gyro**2
-        W[6:9, 6:9] *= 2.0 * sigma_acc**2 * beta_acc
-        W[9:12, 9:12] *= 2.0 * sigma_gyro**2 * beta_gyro
+        W_matrix = np.eye(12)
+        W_matrix[0:3, 0:3] *= N_acc**2
+        W_matrix[3:6, 3:6] *= N_gyro**2
+        W_matrix[6:9, 6:9] *= 2.0 * sigma_acc**2 * beta_acc
+        W_matrix[9:12, 9:12] *= 2.0 * sigma_gyro**2 * beta_gyro
 
-        return W
+        return W_matrix
 
     def update(
         self,
@@ -774,18 +774,18 @@ class AidedINS(INSMixin):
         self._x = self._ins.x
 
         # Current state estimates
-        p_ins = self._p
-        v_ins = self._v
+        pos_ins = self._pos
+        vel_ins = self._vel
         q_ins = self._q
-        b_acc_ins = self._b_acc
-        b_gyro_ins = self._b_gyro
+        bias_acc_ins = self._bias_acc
+        bias_gyro_ins = self._bias_gyro
 
         # Rotation matrix (body-to-ned)
-        R_bn = _rot_matrix_from_quaternion(q_ins)
+        R_nb = _rot_matrix_from_quaternion(q_ins)
 
         # Bias compensated IMU measurements
-        f_ins = f_imu - b_acc_ins
-        w_ins = w_imu - b_gyro_ins
+        f_ins = f_imu - bias_acc_ins
+        w_ins = w_imu - bias_gyro_ins
 
         # Gravity reference vector
         v01 = np.array([0.0, 0.0, 1.0])
@@ -794,22 +794,22 @@ class AidedINS(INSMixin):
         v1 = -_normalize(f_ins)
 
         # Update system matrices
-        self._update_dfdx_matrix(q_ins, f_ins, w_ins)
-        self._update_dfdw_matrix(q_ins)
-        self._update_dhdx_matrix(q_ins)
+        self._update_F_matrix(q_ins, f_ins, w_ins)
+        self._update_G_matrix(q_ins)
+        self._update_H_matrix(q_ins)
 
-        dfdx = self._dfdx  # state matrix
-        dfdw = self._dfdw  # (white noise) input matrix
-        dhdx_ = self._dhdx  # measurement matrix
-        W = self._W  # white noise power spectral density matrix
+        F_matrix = self._F_matrix  # state matrix
+        G_matrix = self._G_matrix  # (white noise) input matrix
+        H_matrix_ = self._H_matrix  # measurement matrix
+        W_matrix = self._W_matrix  # white noise power spectral density matrix
         P_prior = self._P_prior  # error covariance matrix
         I15 = self._I15  # 15x15 identity matrix
 
         # Position aiding
-        dz_temp, var_z_temp, dhdx_temp = [], [], []
+        dz_temp, var_z_temp, H_matrix_temp = [], [], []
         if pos is not None:
             pos = np.asarray_chkfinite(pos, dtype=float).reshape(3).copy()
-            delta_pos = pos - p_ins
+            delta_pos = pos - pos_ins
 
             if var_pos is not None:
                 var_pos = np.asarray_chkfinite(var_pos).reshape(3).copy()
@@ -820,12 +820,12 @@ class AidedINS(INSMixin):
 
             dz_temp.append(delta_pos)
             var_z_temp.append(var_pos)
-            dhdx_temp.append(dhdx_[0:3])
+            H_matrix_temp.append(H_matrix_[0:3])
 
         # Velocity aiding
         if vel is not None:
             vel = np.asarray_chkfinite(vel, dtype=float).reshape(3).copy()
-            delta_vel = vel - v_ins
+            delta_vel = vel - vel_ins
 
             if var_vel is not None:
                 var_vel = np.asarray_chkfinite(var_vel).reshape(3).copy()
@@ -836,10 +836,10 @@ class AidedINS(INSMixin):
 
             dz_temp.append(delta_vel)
             var_z_temp.append(self._var_vel)
-            dhdx_temp.append(dhdx_[3:6])
+            H_matrix_temp.append(H_matrix_[3:6])
 
         # Gravity reference vector aiding
-        delta_g = v1 - R_bn.T @ v01
+        delta_g = v1 - R_nb.T @ v01
 
         if var_g is not None:
             var_g = np.asarray_chkfinite(var_g).reshape(3).copy()
@@ -850,7 +850,7 @@ class AidedINS(INSMixin):
 
         dz_temp.append(delta_g)
         var_z_temp.append(self._var_g)
-        dhdx_temp.append(dhdx_[6:9])
+        H_matrix_temp.append(H_matrix_[6:9])
 
         # Compass aiding
         if head is not None:
@@ -867,24 +867,26 @@ class AidedINS(INSMixin):
 
             dz_temp.append(np.array([delta_head]))
             var_z_temp.append(self._var_head)
-            dhdx_temp.append(dhdx_[-1:])
+            H_matrix_temp.append(H_matrix_[-1:])
 
         dz = np.concatenate(dz_temp, axis=0)
-        dhdx = np.concatenate(dhdx_temp, axis=0)
+        H_matrix = np.concatenate(H_matrix_temp, axis=0)
         R = np.diag(np.concatenate(var_z_temp, axis=0))
 
         # Discretize system
-        phi = I15 + self._dt * dfdx  # state transition matrix
-        Q = self._dt * dfdw @ W @ dfdw.T  # process noise covariance matrix
+        phi = I15 + self._dt * F_matrix  # state transition matrix
+        Q = (
+            self._dt * G_matrix @ W_matrix @ G_matrix.T
+        )  # process noise covariance matrix
 
         # Compute Kalman gain
-        K = P_prior @ dhdx.T @ inv(dhdx @ P_prior @ dhdx.T + R)
+        K = P_prior @ H_matrix.T @ inv(H_matrix @ P_prior @ H_matrix.T + R)
 
         # Update error-state estimate with measurement
         dx = K @ dz
 
         # Compute error covariance for updated estimate
-        P = (I15 - K @ dhdx) @ P_prior @ (I15 - K @ dhdx).T + K @ R @ K.T
+        P = (I15 - K @ H_matrix) @ P_prior @ (I15 - K @ H_matrix).T + K @ R @ K.T
         self._P = P
 
         # Error quaternion from 2x Gibbs vector
@@ -892,13 +894,13 @@ class AidedINS(INSMixin):
         dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
 
         # Reset
-        p_ins = p_ins + dx[0:3]
-        v_ins = v_ins + dx[3:6]
+        pos_ins = pos_ins + dx[0:3]
+        vel_ins = vel_ins + dx[3:6]
         q_ins = _quaternion_product(q_ins, dq)
         q_ins = _normalize(q_ins)
-        b_acc_ins = b_acc_ins + dx[9:12]
-        b_gyro_ins = b_gyro_ins + dx[12:15]
-        x_ins = np.r_[p_ins, v_ins, q_ins, b_acc_ins, b_gyro_ins]
+        bias_acc_ins = bias_acc_ins + dx[9:12]
+        bias_gyro_ins = bias_gyro_ins + dx[12:15]
+        x_ins = np.r_[pos_ins, vel_ins, q_ins, bias_acc_ins, bias_gyro_ins]
         self._ins.reset(x_ins)
 
         # Project ahead
