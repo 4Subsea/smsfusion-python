@@ -19,9 +19,9 @@ from smsfusion._ins import (
     AidedINS,
     INSMixin,
     StrapdownINS,
-    _dhda,
-    _gibbs,
-    _h,
+    _dhda_head,
+    _gibbs_scaled,
+    _h_head,
     _signed_smallest_angle,
     gravity,
 )
@@ -83,7 +83,7 @@ def test__gibbs(angle, axis):
     q = np.r_[q[3], q[:3]]
 
     gibbs_expected = 2.0 * axis * np.tan(angle / 2)
-    np.testing.assert_almost_equal(_gibbs(q), gibbs_expected)
+    np.testing.assert_almost_equal(_gibbs_scaled(q), gibbs_expected)
 
 
 @pytest.fixture
@@ -125,21 +125,21 @@ class Test_INSMixin:
         p_out = ins.position()
         p_expect = np.array([1.0, 2.0, 3.0])
         assert p_out.shape == (3,)
-        assert p_out is not ins._p
+        assert p_out is not ins._pos
         np.testing.assert_array_equal(p_out, p_expect)
 
     def test_velocity(self, x, ins):
         v_out = ins.velocity()
         v_expect = np.array([4.0, 5.0, 6.0])
         assert v_out.shape == (3,)
-        assert v_out is not ins._v
+        assert v_out is not ins._vel
         np.testing.assert_array_equal(v_out, v_expect)
 
     def test_quaternion(self, x, ins):
         q_out = ins.quaternion()
         q_expect = np.array([1.0, 0.0, 0.0, 0.0])
         assert q_out.shape == (4,)
-        assert q_out is not ins._q
+        assert q_out is not ins._q_nm
         np.testing.assert_array_equal(q_out, q_expect)
 
     def test_euler(self, x, ins):
@@ -152,14 +152,14 @@ class Test_INSMixin:
         ba_out = ins.bias_acc()
         ba_expect = np.array([7.0, 8.0, 9.0])
         assert ba_out.shape == (3,)
-        assert ba_out is not ins._v
+        assert ba_out is not ins._bias_acc
         np.testing.assert_array_equal(ba_out, ba_expect)
 
     def test_bias_gyro(self, x, ins):
         bg_out = ins.bias_gyro()
         bg_expect = np.array([10.0, 11.0, 12.0])
         assert bg_out.shape == (3,)
-        assert bg_out is not ins._v
+        assert bg_out is not ins._bias_gyro
         np.testing.assert_array_equal(bg_out, bg_expect)
 
 
@@ -215,7 +215,7 @@ class Test_StrapdownINS:
         p_expect = np.array([1.0, 2.0, 3.0])
 
         assert p_out.shape == (3,)
-        assert p_out is not ins._p
+        assert p_out is not ins._pos
         np.testing.assert_array_equal(p_out, p_expect)
 
     def test_velocity(self, x0_nonzero):
@@ -225,7 +225,7 @@ class Test_StrapdownINS:
         v_expect = np.array([4.0, 5.0, 6.0])
 
         assert v_out.shape == (3,)
-        assert v_out is not ins._v
+        assert v_out is not ins._vel
         np.testing.assert_array_equal(v_out, v_expect)
 
     def test_quaternion(self, x0_nonzero):
@@ -235,7 +235,7 @@ class Test_StrapdownINS:
         q_expect = np.array([1.0, 0.0, 0.0, 0.0])
 
         assert q_out.shape == (4,)
-        assert q_out is not ins._q
+        assert q_out is not ins._q_nm
         np.testing.assert_array_equal(q_out, q_expect)
 
     def test_euler(self, x0_nonzero):
@@ -254,7 +254,7 @@ class Test_StrapdownINS:
         ba_expect = np.array([7.0, 8.0, 9.0])
 
         assert ba_out.shape == (3,)
-        assert ba_out is not ins._v
+        assert ba_out is not ins._vel
         np.testing.assert_array_equal(ba_out, ba_expect)
 
     def test_bias_gyro(self, x0_nonzero):
@@ -264,7 +264,7 @@ class Test_StrapdownINS:
         bg_expect = np.array([10.0, 11.0, 12.0])
 
         assert bg_out.shape == (3,)
-        assert bg_out is not ins._v
+        assert bg_out is not ins._vel
         np.testing.assert_array_equal(bg_out, bg_expect)
 
     def test_reset(self, ins):
@@ -519,7 +519,7 @@ class Test_StrapdownINS:
         np.radians([10.0, 95.0, 1.0]),
     ],
 )
-def test__h(angles):
+def test__h_head(angles):
     alpha, beta, gamma = np.radians((0.0, 0.0, 15.0))
 
     quaternion = Rotation.from_euler(
@@ -527,7 +527,7 @@ def test__h(angles):
     ).as_quat()
     gibbs_vector = 2.0 * quaternion[:3] / quaternion[3]
 
-    gamma_expect = _h(gibbs_vector)
+    gamma_expect = _h_head(gibbs_vector)
     assert gamma_expect == pytest.approx(gamma)
 
 
@@ -543,7 +543,7 @@ def test__h(angles):
     ],
 )
 def test__dhda(gibbs_vector, dhda_expect):
-    dhda_out = _dhda(gibbs_vector)
+    dhda_out = _dhda_head(gibbs_vector)
     np.testing.assert_array_almost_equal(dhda_out, dhda_expect)
 
 
@@ -644,10 +644,10 @@ class Test_AidedINS:
         g_expect = np.array([0.0, 0.0, gravity(60.0)])
         np.testing.assert_array_almost_equal(ains._ins._g, g_expect)
 
-        assert ains._dfdx.shape == (15, 15)
-        assert ains._dfdw.shape == (15, 12)
+        assert ains._F.shape == (15, 15)
+        assert ains._G.shape == (15, 12)
         assert ains._W.shape == (12, 12)
-        assert ains._dhdx.shape == (10, 15)
+        assert ains._H.shape == (10, 15)
 
     def test__init__var_aiding(self):
         fs = 10.24
@@ -719,14 +719,14 @@ class Test_AidedINS:
         pos_expect = np.array([0.1, 0.0, 0.0])
 
         np.testing.assert_array_almost_equal(pos_out, pos_expect)
-        assert pos_out is not ains._p
+        assert pos_out is not ains._pos
 
     def test_velocity(self, ains):
         vel_out = ains.velocity()
         vel_expect = np.array([0.0, -0.1, 0.0])
 
         np.testing.assert_array_almost_equal(vel_out, vel_expect)
-        assert vel_out is not ains._v
+        assert vel_out is not ains._vel
 
     def test_euler_radians(self, ains):
         theta_out = ains.euler(degrees=False)
@@ -745,7 +745,7 @@ class Test_AidedINS:
         quaternion_expect = self.quaternion()
 
         np.testing.assert_array_almost_equal(quaternion_out, quaternion_expect)
-        assert quaternion_out is not ains._q
+        assert quaternion_out is not ains._q_nm
 
     def test_P_prior(self, ains):
         P_prior_out = ains.P_prior
@@ -764,7 +764,7 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(P_out, P_expect)
         assert P_out is not ains._P
 
-    def test__prep_dfdx_matrix(self):
+    def test__prep_F(self):
         err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
         err_gyro = {
             "N": (np.pi) / 180.0 * 2.0e-3,
@@ -774,7 +774,7 @@ class Test_AidedINS:
 
         quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
 
-        dfdw_out = AidedINS._prep_dfdx_matrix(err_acc, err_gyro, quaternion)
+        F_matrix_out = AidedINS._prep_F(err_acc, err_gyro, quaternion)
 
         R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
         S = _skew_symmetric  # skew symmetric matrix
@@ -784,18 +784,18 @@ class Test_AidedINS:
         w_ins = np.array([0.0, 0.0, 0.0])
 
         # "State" matrix
-        dfdx_expect = np.zeros((15, 15))
-        dfdx_expect[0:3, 3:6] = np.eye(3)
-        dfdx_expect[3:6, 6:9] = -R(quaternion) @ S(f_ins)
-        dfdx_expect[3:6, 9:12] = -R(quaternion)
-        dfdx_expect[6:9, 6:9] = -S(w_ins)  # NB! update each time step
-        dfdx_expect[6:9, 12:15] = -np.eye(3)
-        dfdx_expect[9:12, 9:12] = -(1.0 / err_acc["tau_cb"]) * np.eye(3)
-        dfdx_expect[12:15, 12:15] = -(1.0 / err_gyro["tau_cb"]) * np.eye(3)
+        F_matrix_expect = np.zeros((15, 15))
+        F_matrix_expect[0:3, 3:6] = np.eye(3)
+        F_matrix_expect[3:6, 6:9] = -R(quaternion) @ S(f_ins)
+        F_matrix_expect[3:6, 9:12] = -R(quaternion)
+        F_matrix_expect[6:9, 6:9] = -S(w_ins)  # NB! update each time step
+        F_matrix_expect[6:9, 12:15] = -np.eye(3)
+        F_matrix_expect[9:12, 9:12] = -(1.0 / err_acc["tau_cb"]) * np.eye(3)
+        F_matrix_expect[12:15, 12:15] = -(1.0 / err_gyro["tau_cb"]) * np.eye(3)
 
-        np.testing.assert_array_almost_equal(dfdw_out, dfdx_expect)
+        np.testing.assert_array_almost_equal(F_matrix_out, F_matrix_expect)
 
-    def test__update_dfdx_matrix(self, ains):
+    def test__update_F(self, ains):
         quaternion_init = ains.quaternion()
 
         R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
@@ -805,59 +805,63 @@ class Test_AidedINS:
         f_ins_init = np.array([0.0, 0.0, 0.0])
         w_ins_init = np.array([0.0, 0.0, 0.0])
 
-        dfdx_init = ains._dfdx.copy()
+        F_matrix_init = ains._F.copy()
 
         quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
 
         f_ins = np.array([0.0, 0.0, -gravity()])
         w_ins = np.array([0.01, -0.01, 0.01])
 
-        ains._update_dfdx_matrix(quaternion, f_ins, w_ins)
+        ains._update_F(quaternion, f_ins, w_ins)
 
-        delta_dfdx_expect = np.zeros_like(dfdx_init)
-        delta_dfdx_expect[3:6, 6:9] = -R(quaternion) @ S(f_ins) - (
+        delta_F_matrix_expect = np.zeros_like(F_matrix_init)
+        delta_F_matrix_expect[3:6, 6:9] = -R(quaternion) @ S(f_ins) - (
             -R(quaternion_init) @ S(f_ins_init)
         )
-        delta_dfdx_expect[3:6, 9:12] = -R(quaternion) - (-R(quaternion_init))
-        delta_dfdx_expect[6:9, 6:9] = -S(w_ins) - (-S(w_ins_init))
+        delta_F_matrix_expect[3:6, 9:12] = -R(quaternion) - (-R(quaternion_init))
+        delta_F_matrix_expect[6:9, 6:9] = -S(w_ins) - (-S(w_ins_init))
 
-        np.testing.assert_array_almost_equal(ains._dfdx - dfdx_init, delta_dfdx_expect)
+        np.testing.assert_array_almost_equal(
+            ains._F - F_matrix_init, delta_F_matrix_expect
+        )
 
-    def test__prep_dfdw_matrix(self):
+    def test__prep_G(self):
         quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
 
-        dfdw_out = AidedINS._prep_dfdw_matrix(quaternion)
+        G_matrix_out = AidedINS._prep_G(quaternion)
 
         R = self.rot_matrix_from_quaternion
 
-        dfdw_expect = np.zeros((15, 12))
-        dfdw_expect[3:6, 0:3] = -R(quaternion)  # NB! update each time step
-        dfdw_expect[6:9, 3:6] = -np.eye(3)
-        dfdw_expect[9:12, 6:9] = np.eye(3)
-        dfdw_expect[12:15, 9:12] = np.eye(3)
+        G_matrix_expect = np.zeros((15, 12))
+        G_matrix_expect[3:6, 0:3] = -R(quaternion)  # NB! update each time step
+        G_matrix_expect[6:9, 3:6] = -np.eye(3)
+        G_matrix_expect[9:12, 6:9] = np.eye(3)
+        G_matrix_expect[12:15, 9:12] = np.eye(3)
 
-        np.testing.assert_array_almost_equal(dfdw_out, dfdw_expect)
+        np.testing.assert_array_almost_equal(G_matrix_out, G_matrix_expect)
 
-    def test__update_dfdw_matrix(self, ains):
+    def test__update_G(self, ains):
         quaternion_init = ains.quaternion()
 
         R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
 
-        dfdw_init = ains._dfdw.copy()
+        G_matrix_init = ains._G.copy()
 
         quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
 
-        ains._update_dfdw_matrix(quaternion)
+        ains._update_G(quaternion)
 
-        delta_dfdw_expect = np.zeros_like(dfdw_init)
-        delta_dfdw_expect[3:6, 0:3] = -R(quaternion) - (-R(quaternion_init))
-        np.testing.assert_array_almost_equal(ains._dfdw - dfdw_init, delta_dfdw_expect)
+        delta_G_matrix_expect = np.zeros_like(G_matrix_init)
+        delta_G_matrix_expect[3:6, 0:3] = -R(quaternion) - (-R(quaternion_init))
+        np.testing.assert_array_almost_equal(
+            ains._G - G_matrix_init, delta_G_matrix_expect
+        )
 
-    def test__prep_W_matrix(self):
+    def test__prep_W(self):
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
 
-        W_out = AidedINS._prep_W_matrix(err_acc, err_gyro)
+        W_out = AidedINS._prep_W(err_acc, err_gyro)
 
         # White noise power spectral density matrix
         W_expect = np.eye(12)
@@ -868,7 +872,7 @@ class Test_AidedINS:
 
         np.testing.assert_array_almost_equal(W_out, W_expect)
 
-    def test__prep_dhdx_matrix(self):
+    def test__prep_H(self):
         R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
         S = _skew_symmetric  # skew symmetric matrix
 
@@ -876,16 +880,16 @@ class Test_AidedINS:
 
         v01_ned = np.array([0.0, 0.0, 1.0])
 
-        dhdx_expected = np.zeros((10, 15))
-        dhdx_expected[0:3, 0:3] = np.eye(3)  # position
-        dhdx_expected[3:6, 3:6] = np.eye(3)  # velocity
-        dhdx_expected[6:9, 6:9] = S(R(q).T @ v01_ned)  # gravity reference vector
-        dhdx_expected[9:10, 6:9] = _dhda(_gibbs(q))  # compass
+        H_matrix_expected = np.zeros((10, 15))
+        H_matrix_expected[0:3, 0:3] = np.eye(3)  # position
+        H_matrix_expected[3:6, 3:6] = np.eye(3)  # velocity
+        H_matrix_expected[6:9, 6:9] = S(R(q).T @ v01_ned)  # gravity reference vector
+        H_matrix_expected[9:10, 6:9] = _dhda_head(_gibbs_scaled(q))  # compass
 
-        dhdx_out = AidedINS._prep_dhdx_matrix(q)
-        np.testing.assert_array_almost_equal(dhdx_out, dhdx_expected)
+        H_matrix_out = AidedINS._prep_H(q)
+        np.testing.assert_array_almost_equal(H_matrix_out, H_matrix_expected)
 
-    def test__update_dhdx_matrix(self, ains):
+    def test__update_H(self, ains):
         quaternion_init = ains.quaternion()
 
         v01_ned = np.array([0.0, 0.0, 1.0])
@@ -893,20 +897,22 @@ class Test_AidedINS:
         R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
         S = _skew_symmetric  # skew symmetric matrix
 
-        dhdx_init = ains._dhdx.copy()
+        H_matrix_init = ains._H.copy()
 
         quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
 
-        ains._update_dhdx_matrix(quaternion)
+        ains._update_H(quaternion)
 
-        delta_dhdx_expect = np.zeros_like(dhdx_init)
-        delta_dhdx_expect[6:9, 6:9] = S(R(quaternion).T @ v01_ned) - S(
+        delta_H_matrix_expect = np.zeros_like(H_matrix_init)
+        delta_H_matrix_expect[6:9, 6:9] = S(R(quaternion).T @ v01_ned) - S(
             R(quaternion_init).T @ v01_ned
         )
-        delta_dhdx_expect[9:10, 6:9] = _dhda(_gibbs(quaternion)) - _dhda(
-            _gibbs(quaternion_init)
+        delta_H_matrix_expect[9:10, 6:9] = _dhda_head(
+            _gibbs_scaled(quaternion)
+        ) - _dhda_head(_gibbs_scaled(quaternion_init))
+        np.testing.assert_array_almost_equal(
+            ains._H - H_matrix_init, delta_H_matrix_expect
         )
-        np.testing.assert_array_almost_equal(ains._dhdx - dhdx_init, delta_dhdx_expect)
 
     def test_update_return_self(self, ains):
         g = gravity()
