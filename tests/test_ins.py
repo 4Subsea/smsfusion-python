@@ -1031,6 +1031,52 @@ class Test_AidedINS:
             np.testing.assert_array_almost_equal(ains_a.x, ains_b.x)
             np.testing.assert_array_almost_equal(ains_a.x, ains_c.x)
 
+    def test_update_var_raises(self):
+        """Update using aiding variances given in __init__ or update method."""
+        fs = 10.24
+
+        x0 = np.zeros(16)
+        x0[6] = 1.0
+        P0_prior = 1e-6 * np.eye(15)
+
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+
+        # Aiding variances given in __init__
+        ains = AidedINS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            var_pos=None,  # no aiding variance provided
+            var_vel=None,  # no aiding variance provided
+            var_g=None,  # no aiding variance provided
+            var_head=None,  # no aiding variance provided
+        )
+
+        g = gravity()
+        f_imu = np.array([0.0, 0.0, -g])
+        w_imu = np.zeros(3)
+        head = 0.0
+        pos = np.zeros(3)
+        vel = np.zeros(3)
+
+        with pytest.raises(ValueError):
+            ains.update(
+                f_imu,
+                w_imu,
+                pos,
+                vel,
+                head,
+                degrees=True,
+                head_degrees=True,
+                var_pos=None,  # no aiding variance provided
+                var_vel=None,  # no aiding variance provided
+                var_g=None,  # no aiding variance provided
+                var_head=None,  # no aiding variance provided
+            )
+
     def test_update_standstill(self):
         fs = 10.24
 
