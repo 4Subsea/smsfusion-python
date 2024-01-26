@@ -126,14 +126,14 @@ class Test_INSMixin:
         p_out = ins.position()
         p_expect = np.array([1.0, 2.0, 3.0])
         assert p_out.shape == (3,)
-        assert p_out is not ins._p
+        assert p_out is not ins._pos
         np.testing.assert_array_equal(p_out, p_expect)
 
     def test_velocity(self, x, ins):
         v_out = ins.velocity()
         v_expect = np.array([4.0, 5.0, 6.0])
         assert v_out.shape == (3,)
-        assert v_out is not ins._v
+        assert v_out is not ins._vel
         np.testing.assert_array_equal(v_out, v_expect)
 
     def test_quaternion(self, x, ins):
@@ -153,14 +153,14 @@ class Test_INSMixin:
         ba_out = ins.bias_acc()
         ba_expect = np.array([7.0, 8.0, 9.0])
         assert ba_out.shape == (3,)
-        assert ba_out is not ins._v
+        assert ba_out is not ins._bias_acc
         np.testing.assert_array_equal(ba_out, ba_expect)
 
     def test_bias_gyro(self, x, ins):
         bg_out = ins.bias_gyro()
         bg_expect = np.array([10.0, 11.0, 12.0])
         assert bg_out.shape == (3,)
-        assert bg_out is not ins._v
+        assert bg_out is not ins._bias_gyro
         np.testing.assert_array_equal(bg_out, bg_expect)
 
 
@@ -690,14 +690,14 @@ class Test_AidedINS:
         pos_expect = np.array([0.1, 0.0, 0.0])
 
         np.testing.assert_array_almost_equal(pos_out, pos_expect)
-        assert pos_out is not ains._p
+        assert pos_out is not ains._pos
 
     def test_velocity(self, ains):
         vel_out = ains.velocity()
         vel_expect = np.array([0.0, -0.1, 0.0])
 
         np.testing.assert_array_almost_equal(vel_out, vel_expect)
-        assert vel_out is not ains._v
+        assert vel_out is not ains._vel
 
     def test_euler_radians(self, ains):
         theta_out = ains.euler(degrees=False)
