@@ -927,6 +927,110 @@ class Test_AidedINS:
         )
         assert update_return is ains
 
+    def test_update_var(self):
+        """Update using aiding variances given in __init__ or update method."""
+        fs = 10.24
+
+        x0 = np.zeros(16)
+        x0[6] = 1.0
+        P0_prior = 1e-6 * np.eye(15)
+
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+        var_pos = np.ones(3)
+        var_vel = np.ones(3)
+        var_g = np.ones(3)
+        var_head = 1.0
+
+        # Aiding variances given in __init__
+        ains_a = AidedINS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            var_pos=var_pos,
+            var_vel=var_vel,
+            var_g=var_g,
+            var_head=var_head,
+        )
+
+        # Aiding variances given during update
+        ains_b = AidedINS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            var_pos=None,
+            var_vel=None,
+            var_g=None,
+            var_head=None,
+        )
+
+        # Aiding variances given in both __init__ and update
+        ains_c = AidedINS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            var_pos=var_pos,
+            var_vel=var_vel,
+            var_g=var_g,
+            var_head=var_head,
+        )
+
+        g = gravity()
+        f_imu = np.array([0.0, 0.0, -g])
+        w_imu = np.zeros(3)
+        head = 0.0
+        pos = np.zeros(3)
+        vel = np.zeros(3)
+
+        for _ in range(5):
+            ains_a.update(
+                f_imu,
+                w_imu,
+                pos,
+                vel,
+                head,
+                degrees=True,
+                head_degrees=True,
+                var_pos=None,
+                var_vel=None,
+                var_g=None,
+                var_head=None,
+            )
+            ains_b.update(
+                f_imu,
+                w_imu,
+                pos,
+                vel,
+                head,
+                degrees=True,
+                head_degrees=True,
+                var_pos=var_pos,
+                var_vel=var_vel,
+                var_g=var_g,
+                var_head=var_head,
+            )
+            ains_c.update(
+                f_imu,
+                w_imu,
+                pos,
+                vel,
+                head,
+                degrees=True,
+                head_degrees=True,
+                var_pos=var_pos,
+                var_vel=var_vel,
+                var_g=var_g,
+                var_head=var_head,
+            )
+            np.testing.assert_array_almost_equal(ains_a.x, ains_b.x)
+            np.testing.assert_array_almost_equal(ains_a.x, ains_c.x)
+
     def test_update_standstill(self):
         fs = 10.24
 
