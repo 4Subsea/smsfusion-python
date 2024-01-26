@@ -850,7 +850,7 @@ class AidedINS(INSMixin):
             H_temp.append(self._H[-1:])
 
         dz = np.concatenate(dz_temp, axis=0)
-        H_ = np.concatenate(H_temp, axis=0)
+        H = np.concatenate(H_temp, axis=0)
         R = np.diag(np.concatenate(var_z_temp, axis=0))
 
         # Discretize system
@@ -858,14 +858,14 @@ class AidedINS(INSMixin):
         Q = self._dt * self._G @ self._W @ self._G.T  # process noise covariance matrix
 
         # Compute Kalman gain
-        K = self._P_prior @ H_.T @ inv(H_ @ self._P_prior @ H_.T + R)
+        K = self._P_prior @ H.T @ inv(H @ self._P_prior @ H.T + R)
 
         # Update error-state estimate with measurement
         dx = K @ dz
 
         # Compute error covariance for updated estimate
-        self._P = (self._I15 - K @ H_) @ self._P_prior @ (
-            self._I15 - K @ H_
+        self._P = (self._I15 - K @ H) @ self._P_prior @ (
+            self._I15 - K @ H
         ).T + K @ R @ K.T
 
         # Error quaternion from 2x Gibbs vector
