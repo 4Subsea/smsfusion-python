@@ -617,6 +617,63 @@ class Test_AidedINS:
             "tau_cb": 50,
         }
 
+        ains = AidedINS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            lat=60.0,
+        )
+
+        assert isinstance(ains, AidedINS)
+        assert isinstance(ains, INSMixin)
+        assert ains._fs == 10.24
+        assert ains._dt == 1.0 / 10.24
+        assert ains._err_acc == err_acc
+        assert ains._err_gyro == err_gyro
+        assert isinstance(ains._ins, StrapdownINS)
+
+        np.testing.assert_array_almost_equal(ains._x0, x0)
+        np.testing.assert_array_almost_equal(ains._x, x0)
+        np.testing.assert_array_almost_equal(ains._P0_prior, P0_prior)
+        np.testing.assert_array_almost_equal(ains._P_prior, P0_prior)
+        assert ains._P.shape == (15, 15)
+
+        # Check default aidning variances is None
+        assert ains._var_pos is None
+        ains._var_vel is None
+        ains._var_g is None
+        ains._var_head is None
+
+        # Check that correct latitude (and thus gravity) is used
+        g_expect = np.array([0.0, 0.0, gravity(60.0)])
+        np.testing.assert_array_almost_equal(ains._ins._g, g_expect)
+
+        assert ains._dfdx.shape == (15, 15)
+        assert ains._dfdw.shape == (15, 12)
+        assert ains._W.shape == (12, 12)
+        assert ains._dhdx.shape == (10, 15)
+
+    def test__init__var_aiding(self):
+        fs = 10.24
+
+        p_init = np.array([0.0, 0.0, 0.0])
+        v_init = np.array([0.0, 0.0, 0.0])
+        q_init = np.array([1.0, 0.0, 0.0, 0.0])
+        bias_acc_init = np.array([0.0, 0.0, 0.0])
+        bias_gyro_init = np.array([0.0, 0.0, 0.0])
+
+        x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
+        P0_prior = 1e-6 * np.eye(15)
+
+        err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
+        err_gyro = {
+            "N": (np.pi) / 180.0 * 2.0e-3,
+            "B": (np.pi) / 180.0 * 8.0e-4,
+            "tau_cb": 50,
+        }
+
         var_pos = [0.1, 0.1, 0.1]
         var_vel = [0.1, 0.1, 0.1]
         var_g = (0.1) ** 2 * np.ones(3)
@@ -635,32 +692,10 @@ class Test_AidedINS:
             lat=60.0,
         )
 
-        assert isinstance(ains, AidedINS)
-        assert isinstance(ains, INSMixin)
-        assert ains._fs == 10.24
-        assert ains._dt == 1.0 / 10.24
-        assert ains._err_acc == err_acc
-        assert ains._err_gyro == err_gyro
-        assert isinstance(ains._ins, StrapdownINS)
-
         np.testing.assert_array_almost_equal(ains._var_pos, var_pos)
         np.testing.assert_array_almost_equal(ains._var_vel, var_vel)
         np.testing.assert_array_almost_equal(ains._var_g, var_g)
         np.testing.assert_array_almost_equal(ains._var_head, var_head)
-        np.testing.assert_array_almost_equal(ains._x0, x0)
-        np.testing.assert_array_almost_equal(ains._x, x0)
-        np.testing.assert_array_almost_equal(ains._P0_prior, P0_prior)
-        np.testing.assert_array_almost_equal(ains._P_prior, P0_prior)
-        assert ains._P.shape == (15, 15)
-
-        # Check that correct latitude (and thus gravity) is used
-        g_expect = np.array([0.0, 0.0, gravity(60.0)])
-        np.testing.assert_array_almost_equal(ains._ins._g, g_expect)
-
-        assert ains._dfdx.shape == (15, 15)
-        assert ains._dfdw.shape == (15, 12)
-        assert ains._W.shape == (12, 12)
-        assert ains._dhdx.shape == (10, 15)
 
     def test_x(self, ains):
         x_expect = np.array(
