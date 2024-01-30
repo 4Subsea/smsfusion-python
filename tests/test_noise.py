@@ -5,7 +5,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from smsfusion.noise import IMUNoise, NoiseModel, gauss_markov, random_walk, white_noise
+from smsfusion.noise import (
+    IMUNoise,
+    NoiseModel,
+    allan_var,
+    gauss_markov,
+    random_walk,
+    white_noise,
+)
 from smsfusion.noise._noise import _gen_seeds, _standard_normal
 
 TEST_PATH = Path(__file__).parent
@@ -363,3 +370,127 @@ class Test_IMUNoise:
             else:
                 # check that all channels are given different seeds
                 assert not np.array_equal(x[:, i], x[:, j])
+
+
+class Test_allan_var_overlapping:
+    def test_no_tqdm(self, monkeypatch):
+        import sys
+
+        monkeypatch.delitem(sys.modules, "tqdm", raising=False)
+        with pytest.raises(ImportError):
+            y = np.random.random(1_000)
+            tau, avar = allan_var(y, 10.0, progress=True)
+
+    def test_with_progress(self, monkeypatch):
+        import sys
+
+        class SimpleMock:
+            @staticmethod
+            def trange(*args, **kwargs):
+                return range(*args)
+
+        monkeypatch.setitem(sys.modules, "tqdm", SimpleMock)
+
+        y = np.random.random(1_000)
+        tau, avar = allan_var(y, 10.0, progress=False)
+        tau_p, avar_p = allan_var(y, 10.0, progress=True)
+
+        np.testing.assert_almost_equal(tau, tau_p)
+        np.testing.assert_almost_equal(avar, avar_p)
+
+    def test_single_signal_1d_shape(self):
+        y = np.random.random(1_000)
+        tau, avar = allan_var(y, 10.0)
+        assert avar.shape == (len(tau), 1)
+
+    def test_single_signal_2d_shape(self):
+        y = np.random.random((1_000, 1))
+        tau, avar = allan_var(y, 10.0)
+        assert avar.shape == (len(tau), 1)
+
+    def test_2d_shape(self):
+        y = np.random.random((1_000, 3))
+        tau, avar = allan_var(y, 10.0)
+        assert avar.shape == (len(tau), 3)
+
+    def test_white_noise(self):
+        """
+        Check if Allan variance is as expected for white noise.
+        """
+        N = 1.0
+        fs = 10.0
+        y = N * np.sqrt(fs) * np.random.default_rng().standard_normal(100_000)
+        tau, avar = allan_var(y, 10.0)
+
+        log_intercept, log_slope = (
+            np.polynomial.Polynomial.fit(np.log(tau), 0.5 * np.log(avar.flatten()), 1)
+            .convert()
+            .coef
+        )
+        N_est = np.exp(log_intercept)
+        assert log_slope == pytest.approx(-0.5, rel=0.1)
+        assert N_est == pytest.approx(N, rel=0.1)
+
+    def test_brown_noise(self):
+        """
+        Check if Allan variance is as expected for Brown noise.
+        """
+        K = 1.0
+        fs = 10.0
+        y = K / np.sqrt(fs) * np.random.default_rng().standard_normal(100_000)
+        y = np.cumsum(y)
+        tau, avar = allan_var(y, 10.0)
+
+        log_intercept, log_slope = (
+            np.polynomial.Polynomial.fit(np.log(tau), 0.5 * np.log(avar.flatten()), 1)
+            .convert()
+            .coef
+        )
+        K_est = np.exp(log_intercept + log_slope * np.log(3))
+        assert log_slope == pytest.approx(0.5, rel=0.1)
+        assert K_est == pytest.approx(K, rel=0.1)
+
+    def test_white_brown_noise(self):
+        """
+        Check if Allan variance is as expected for white and Brown noise when given in
+        one go.
+        """
+        fs = 10.0
+        n = 100_000
+
+        # white noise
+        N = 1
+        y1 = N * np.sqrt(fs) * np.random.default_rng().standard_normal(n)
+
+        # brown noise
+        K = 1.0
+        y2 = K / np.sqrt(fs) * np.random.default_rng().standard_normal(n)
+        y2 = np.cumsum(y2)
+
+        y = np.column_stack([y1, y2])
+
+        tau, avar = allan_var(y, fs)
+
+        assert avar.shape == (len(tau), 2)
+
+        log_intercept1, log_slope1 = (
+            np.polynomial.Polynomial.fit(
+                np.log(tau), 0.5 * np.log(avar[:, 0].flatten()), 1
+            )
+            .convert()
+            .coef
+        )
+        N_est = np.exp(log_intercept1)
+        assert log_slope1 == pytest.approx(-0.5, rel=0.1)
+        assert N_est == pytest.approx(N, 0.1)
+
+        log_intercept2, log_slope2 = (
+            np.polynomial.Polynomial.fit(
+                np.log(tau), 0.5 * np.log(avar[:, 1].flatten()), 1
+            )
+            .convert()
+            .coef
+        )
+        K_est = np.exp(log_intercept2 + log_slope2 * np.log(3))
+        assert log_slope2 == pytest.approx(0.5, rel=0.1)
+        assert K_est == pytest.approx(K, rel=0.1)
