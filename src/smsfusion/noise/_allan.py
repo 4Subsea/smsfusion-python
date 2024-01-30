@@ -28,7 +28,7 @@ def allan_var(
     tau : ndarray, shape (<=num,)
         Averaging times. The number of elements will be less than or equal to ``num``.
     avar : ndarray, shape (<=num, M)
-        Allan variance estimate. The number of elements will be less or equal than ``num``.
+        Allan variance estimate(s). The number of elements will be less than or equal to ``num``.
 
     Note
     ----
