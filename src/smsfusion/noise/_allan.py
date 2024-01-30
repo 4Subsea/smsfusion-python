@@ -55,6 +55,7 @@ def allan_var(y: ArrayLike, fs: float, num: int = 100, progress=False) -> NDArra
 
     tau_0 = 1.0 / fs
     tau = m * tau_0
+
     x = np.cumsum(y, axis=0) / fs
     avar = np.zeros((len(tau), M))
     for i in _range(len(m)):
