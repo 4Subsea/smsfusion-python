@@ -2,7 +2,9 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 
-def allan_var(y: ArrayLike, fs: float, num: int = 100, progress: bool = False) -> NDArray:
+def allan_var(
+    y: ArrayLike, fs: float, num: int = 100, progress: bool = False
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
     Estimate the Allan variance of a signal using the overlapping Allan variance method.
 
