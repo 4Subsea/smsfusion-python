@@ -24,7 +24,7 @@ def allan_var(y: ArrayLike, fs: float, num: int = 100, progress: bool = False) -
     Return
     ------
     tau : ndarray, shape (<=num,)
-        Averaging times. The number of elements will be less or equal than ``num``.
+        Averaging times. The number of elements will be less than or equal to ``num``.
     avar : ndarray, shape (<=num, M)
         Allan variance estimate. The number of elements will be less or equal than ``num``.
 
