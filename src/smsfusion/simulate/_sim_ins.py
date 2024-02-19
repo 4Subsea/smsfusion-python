@@ -13,34 +13,31 @@ class IMUSignal202402A:
         self._mu = mu
         self._g_ned = np.array([0.0, 0.0, gravity(mu)])
 
-    def simulate(self, fs, n):
+    def simulate(self, x0, fs, n):
         dt = 1.0 / fs
         t = np.arange(0.0, n * dt, dt)
-
-        # Initial state
-        x0 = np.zeros(16)
-        x0[6:10] = np.asarray([1, 0, 0, 0])
+        x0 = np.asarray_chkfinite(x0).reshape(10)
 
         # Simulate
         x_pred = x0
-        x = np.zeros((n, 16))
-        # x[0, :] = x0
-        acc = np.zeros((n, 3))
+        x = np.zeros((n, 10))
         f = np.zeros((n, 3))
         w = np.zeros((n, 3))
         for k in range(0, n):
 
-            x[k, :] = x_pred
+            pos_k = x_pred[0:3]
+            vel_k = x_pred[3:6]
+            q_k = x_pred[6:10]
 
             # Rotation matrix from body to NED
-            R_bn_k = _rot_matrix_from_quaternion(x[k, 6:10])
-            T_k = _angular_matrix_from_quaternion(x[k, 6:10])
+            R_bn_k = _rot_matrix_from_quaternion(q_k)
+            T_k = _angular_matrix_from_quaternion(q_k)
 
             # Gravity vector in body frame
             g_body_k = R_bn_k.T @ self._g_ned
 
             # Acceleration
-            acc[k, :] = np.array(
+            acc_k = np.array(
                 [
                     0.1 * np.sin(0.1 * t[k]),
                     0.1 * np.cos(0.1 * t[k]),
@@ -48,11 +45,8 @@ class IMUSignal202402A:
                 ]
             )
 
-            # Specific force (i.e., acceleration - gravity)
-            f[k, :] = acc[k, :] - g_body_k
-
             # Rotation rate
-            w[k, :] = np.array(
+            gyro_k = np.array(
                 [
                     0.01 * np.cos(0.2 * t[k]),
                     -0.02 * np.sin(0.1 * t[k]),
@@ -60,11 +54,12 @@ class IMUSignal202402A:
                 ]
             )
 
-            x_dot_k = np.r_[
-                x[k, 3:6], R_bn_k @ f[k, :] + self._g_ned, T_k @ w[k, :], np.zeros(6)
-            ]
+            x[k, :] = np.r_[pos_k, vel_k, q_k]
+            f[k, :] = acc_k - g_body_k  # Specific force (i.e., acceleration - gravity)
+            w[k, :] = gyro_k
 
             # Propagate signal vector
+            x_dot_k = np.r_[vel_k, R_bn_k @ f[k, :] + self._g_ned, T_k @ w[k, :]]
             x_pred = x[k, :] + x_dot_k * dt
 
         return x, f, w
