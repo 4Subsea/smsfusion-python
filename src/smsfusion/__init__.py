@@ -1,4 +1,4 @@
-from . import benchmark, noise
+from . import benchmark, noise, simulate
 from ._ahrs import AHRS
 from ._ins import AidedINS, StrapdownINS, gravity
 
@@ -8,5 +8,6 @@ __all__ = [
     "benchmark",
     "gravity",
     "noise",
+    "simulate",
     "StrapdownINS",
 ]
