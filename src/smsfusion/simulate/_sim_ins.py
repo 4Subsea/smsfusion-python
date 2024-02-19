@@ -54,9 +54,9 @@ class IMUSignal202402A:
                 ]
             )
 
-            x[k, :] = np.r_[pos_k, vel_k, q_k]
+            x[k, :] = np.r_[pos_k, vel_k, q_k]  # State vector
             f[k, :] = acc_k - g_body_k  # Specific force (i.e., acceleration - gravity)
-            w[k, :] = gyro_k
+            w[k, :] = gyro_k  # Angular rate
 
             # Propagate signal vector
             x_dot_k = np.r_[vel_k, R_bn_k @ f[k, :] + self._g_ned, T_k @ w[k, :]]
