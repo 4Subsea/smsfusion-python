@@ -24,6 +24,26 @@ def van_loan(dt, F, G, W):
     Q : numpy.ndarray, shape (N, N)
         Process noise covariance matrix.
 
+    Notes
+    -----
+    The Van Loan method assumes that the random process is described by a continuous-time,
+    stochastic differential equation (SDE) on the form::
+
+        dx(t)/dt = Fx(t) + Gu(t)
+
+    where ``x(t)`` is the state vector and ``u(t)`` is the white noise input vector with
+    power spectral density matrix ``W``.
+
+    Let the discrete-time version of the above SDE be given by::
+
+        x[k+1] = phi * x[k] + w[k]
+
+    where ``phi`` is the state transition matrix and ``w[k]`` is the process noise vector
+    with covariance matrix ``Q``.
+
+    The Van Loan method is used to calculate ``phi`` and ``Q`` from the continuous-time
+    state-space model.
+
     References
     ----------
     .. [1] Brown, R.G. and Hwang P.Y.C, "Random Signals and Applied Kalman Filtering
