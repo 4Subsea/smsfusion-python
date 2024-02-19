@@ -117,7 +117,7 @@ class MonteCarlo:
         Simulate the system.
 
         The system is discretized using the 'Van Loan method' and then simulated using
-        the discrete-time state-space model::
+        the discrete-time state-space model (see ref [1]_)::
 
             x[k+1] = phi * x[k] + w[k]
 
@@ -131,6 +131,11 @@ class MonteCarlo:
             Number of samples to generate.
         seed : int, optional
             A seed used to initialize a random number generator.
+
+        References
+        ----------
+        .. [1] Brown, R.G. and Hwang P.Y.C, "Random Signals and Applied Kalman Filtering
+        with MATLAB Exercises", 4th Edition, John Wiley & Sons, 2012.
         """
         x0 = np.asarray_chkfinite(x0).reshape(self._n_states)
         dt = 1.0 / fs
