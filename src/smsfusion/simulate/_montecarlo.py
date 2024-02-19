@@ -278,7 +278,7 @@ class RandomWalk(MonteCarlo):
         super().__init__(F, G, W)
 
 
-class PosVelAccGM(MonteCarlo):
+class GaussMarkovPVA(MonteCarlo):
     """
     Provides an interface for doing Monte Carlo simulations of position, velocity and
     acceleration (PVA), where the acceleration is modelled as a first-order Gauss-Markov
