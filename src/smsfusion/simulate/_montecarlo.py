@@ -69,8 +69,10 @@ def _standard_normal(size, seed: int | None = None) -> NDArray[np.float64]:
 
 class MonteCarlo:
     """
-    Monte Carlo simulation of a random process described by a continuous-time model on
-    the form::
+    Provides an interface for doing Monte Carlo simulations of a random process.
+
+    The random process should be described by a continuous-time, stochastic differential
+    equation (SDE) on the form::
 
         dx(t)/dt = Fx(t) + Gu(t)
 
