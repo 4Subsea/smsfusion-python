@@ -69,17 +69,13 @@ def _standard_normal(size, seed: int | None = None) -> NDArray[np.float64]:
 
 class MonteCarlo:
     """
-    Monte Carlo simulation of a linear, time-invariant, continuous-time system on the
-    form::
+    Monte Carlo simulation of a random process described by a continuous-time model on
+    the form::
 
         dx(t)/dt = Fx(t) + Gu(t)
 
-    Note that even though the system matrices describe a continuous-time process, the
-    simulation is performed in discrete-time. I.e., the continuous-time state-space
-    model is discretized using the 'Van Loan method' (see ref [1]_) and then simulated
-    using the discrete-time state-space model::
-
-        x[k+1] = phi * x[k] + w[k]
+    where ``x(t)`` is the state vector and ``u(t)`` is the white noise input vector.
+    ``F`` and ``G`` are the state matrix and the white noise input matrix, respectively.
 
     Parameters
     ----------
@@ -89,6 +85,15 @@ class MonteCarlo:
         White noise input matrix.
     W : array-like, shape (M, M)
         White noise power spectral density matrix.
+
+    Note
+    ----
+    Even though the system matrices describe a continuous-time process, the simulation
+    is performed in discrete-time. I.e., the continuous-time state-space model is
+    discretized using the 'Van Loan method' (see ref [1]_) and then simulated using the
+    discrete-time state-space model::
+
+        x[k+1] = phi * x[k] + w[k]
 
     References
     ----------
