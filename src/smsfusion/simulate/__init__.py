@@ -1,3 +1,3 @@
-from ._montecarlo import GaussMarkov1st, MonteCarlo, RandomWalk
+from ._montecarlo import GaussMarkov, MonteCarlo, RandomWalk
 
-__all__ = ["MonteCarlo", "GaussMarkov1st", "RandomWalk"]
+__all__ = ["MonteCarlo", "GaussMarkov", "RandomWalk"]

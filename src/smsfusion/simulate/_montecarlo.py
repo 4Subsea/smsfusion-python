@@ -1,6 +1,6 @@
 import numpy as np
 from numpy.typing import NDArray
-from scipy.linalg import expm
+from scipy.linalg import expm, svd
 
 
 def van_loan(dt, F, G, W):
@@ -154,7 +154,7 @@ class MonteCarlo:
 
         # Find C such that w[k] = Cu[k] where u[k] are independent samples form a
         # standard normal population
-        U, T, _ = np.linalg.svd(Q, full_matrices=True)
+        U, T, _ = svd(Q, full_matrices=True)
         S = np.sqrt(T)
         C = U @ S
 
@@ -168,7 +168,7 @@ class MonteCarlo:
         return x
 
 
-class GaussMarkov1st(MonteCarlo):
+class GaussMarkov(MonteCarlo):
     """
     Provides an interface for doing Monte Carlo simulations of a first-order
     Gauss-Markov (GM) process.
