@@ -79,6 +79,13 @@ class MonteCarlo:
     where ``x(t)`` is the state vector and ``u(t)`` is the white noise input vector.
     ``F`` and ``G`` are the state matrix and the white noise input matrix, respectively.
 
+    Monte Carlo simulations of the random process is done according to the method
+    described by ref [1]_. Specifically, the continuous-time state-space model above is
+    discretized using the 'Van Loan method' and then simulated using the discrete-time
+    state-space model::
+
+        x[k+1] = phi * x[k] + w[k]
+
     Parameters
     ----------
     F : array-like, shape (N, N)
