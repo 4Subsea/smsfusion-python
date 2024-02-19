@@ -4,9 +4,10 @@ from .._ins import gravity
 from .._transforms import _angular_matrix_from_quaternion, _rot_matrix_from_quaternion
 
 
-class IMUSignal202402A:
+class PVASignal202402A:
     """
-    IMU signal as implemented by Fossen.
+    Position, velocity and attitude (PVA) and IMU signals (without noise) as implemented
+    by Fossen.
     """
 
     def __init__(self, mu=None):
@@ -18,48 +19,45 @@ class IMUSignal202402A:
         t = np.arange(0.0, n * dt, dt)
         x0 = np.asarray_chkfinite(x0).reshape(10)
 
+        R_bn = _rot_matrix_from_quaternion
+        T = _angular_matrix_from_quaternion
+
+        # Linear acceleration
+        acc = np.array(
+            [
+                0.1 * np.sin(0.1 * t),
+                0.1 * np.cos(0.1 * t),
+                0.05 * np.sin(0.05 * t),
+            ]
+        )
+
+        # Angular rate
+        ang_rate = np.array(
+            [
+                0.01 * np.cos(0.2 * t),
+                -0.02 * np.sin(0.1 * t),
+                0.01 * np.sin(0.1 * t),
+            ]
+        )
+
         # Simulate
-        x_pred = x0
+        x_k = x0
         x = np.zeros((n, 10))
         f = np.zeros((n, 3))
         w = np.zeros((n, 3))
-        for k in range(0, n):
-            # Current state
-            pos_k = x_pred[0:3]
-            vel_k = x_pred[3:6]
-            q_k = x_pred[6:10]
+        for k, (a_k, w_k) in enumerate(zip(acc.T, ang_rate.T)):
 
-            # Rotation matrix from body to NED
-            R_bn_k = _rot_matrix_from_quaternion(q_k)
-            T_k = _angular_matrix_from_quaternion(q_k)
+            # Current state and IMU measurements
+            x[k, :] = x_k  # State
+            f[k, :] = a_k - R_bn(x_k[6:10]).T @ self._g_ned  # Specific force
+            w[k, :] = w_k  # Angular rate
 
-            # Gravity vector in body frame
-            g_body_k = R_bn_k.T @ self._g_ned
-
-            # Acceleration
-            acc_k = np.array(
-                [
-                    0.1 * np.sin(0.1 * t[k]),
-                    0.1 * np.cos(0.1 * t[k]),
-                    0.05 * np.sin(0.05 * t[k]),
-                ]
-            )
-
-            # Rotation rate
-            gyro_k = np.array(
-                [
-                    0.01 * np.cos(0.2 * t[k]),
-                    -0.02 * np.sin(0.1 * t[k]),
-                    0.01 * np.sin(0.1 * t[k]),
-                ]
-            )
-
-            x[k, :] = np.r_[pos_k, vel_k, q_k]  # State vector
-            f[k, :] = acc_k - g_body_k  # Specific force (i.e., acceleration - gravity)
-            w[k, :] = gyro_k  # Angular rate
-
-            # Propagate signal vector
-            x_dot_k = np.r_[vel_k, R_bn_k @ f[k, :] + self._g_ned, T_k @ w[k, :]]
-            x_pred = x[k, :] + x_dot_k * dt
+            # Propagate state vector
+            x_dot_k = np.r_[
+                x_k[3:6],
+                R_bn(x_k[6:10]) @ f[k, :] + self._g_ned,
+                T(x_k[6:10]) @ w[k, :],
+            ]
+            x_k = x_k + x_dot_k * dt
 
         return x, f, w
