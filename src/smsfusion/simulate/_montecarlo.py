@@ -276,3 +276,18 @@ class RandomWalk(MonteCarlo):
         G = np.array([[1.0]])
         W = np.array([[K**2]])
         super().__init__(F, G, W)
+
+
+class PosVelAccGM(MonteCarlo):
+    """
+    Provides an interface for doing Monte Carlo simulations of position, velocity and
+    acceleration (PVA), where the acceleration is modelled as a first-order Gauss-Markov
+    process.
+    """
+
+    def __init__(self, sigma_2, tau_c):
+        beta = 1.0 / tau_c
+        F = np.array([[0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -beta]])
+        G = np.array([[0.0], [0.0], [np.sqrt(2.0 * sigma_2 * beta)]])
+        W = np.array([[1.0]])
+        super().__init__(F, G, W)
