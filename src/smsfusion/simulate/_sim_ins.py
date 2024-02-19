@@ -10,13 +10,8 @@ class IMUSignal202402A:
     """
 
     def __init__(self, mu=None):
-        # self._x0 = np.asarray_chkfinite(x0).reshape(16)
-        # self._x = self._x0.copy()
         self._mu = mu
-        # x = np.zeros(16)
-        # x[6:10] = [1, 0, 0, 0]
         self._g_ned = np.array([0.0, 0.0, gravity(mu)])
-        # g_body = _rot_matrix_from_quaternion(x[6:10]).T @ g_ned
 
     def simulate(self, fs, n):
         dt = 1.0 / fs
