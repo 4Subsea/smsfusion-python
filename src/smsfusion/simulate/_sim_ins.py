@@ -24,7 +24,7 @@ class IMUSignal202402A:
         f = np.zeros((n, 3))
         w = np.zeros((n, 3))
         for k in range(0, n):
-
+            # Current state
             pos_k = x_pred[0:3]
             vel_k = x_pred[3:6]
             q_k = x_pred[6:10]
