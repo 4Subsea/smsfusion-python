@@ -4,7 +4,10 @@ from .._ins import gravity
 from .._transforms import _angular_matrix_from_quaternion, _rot_matrix_from_quaternion
 
 
-class IMUSignalFossen:
+class IMUSignal202402A:
+    """
+    IMU signal as implemented by Fossen.
+    """
 
     def __init__(self, mu=None):
         # self._x0 = np.asarray_chkfinite(x0).reshape(16)
