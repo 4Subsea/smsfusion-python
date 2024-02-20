@@ -867,7 +867,8 @@ class AidedINS(INSMixin):
         R = np.diag(np.concatenate(var_z_temp, axis=0))
 
         # Discretize system
-        phi = self._I15 + self._dt * self._F  # state transition matrix
+        # phi = self._I15 + self._dt * self._F  # state transition matrix
+        phi = self._I15 + self._dt * self._F + 0.5 * (self._dt * self._F)**2 # state transition matrix
         Q = self._dt * self._G @ self._W @ self._G.T  # process noise covariance matrix
 
         # Compute Kalman gain
