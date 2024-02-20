@@ -10,6 +10,7 @@ from ._transforms import (
     _rot_matrix_from_quaternion,
 )
 from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
+from scipy.linalg import expm
 
 
 def _signed_smallest_angle(angle: float, degrees: bool = True) -> float:
@@ -260,6 +261,16 @@ class INSMixin:
         if degrees:
             b_gyro = (180.0 / np.pi) * b_gyro
         return b_gyro
+    
+
+def T_(w):
+    w = w.flatten()
+    T_matrix = np.zeros((4, 4))
+    T_matrix[0, 1:] = w
+    T_matrix[1:, 0] = w
+    T_matrix[1:, 1:] = -_skew_symmetric(w)
+    T_matrix *= 0.5
+    return T_matrix
 
 
 class StrapdownINS(INSMixin):
@@ -388,9 +399,11 @@ class StrapdownINS(INSMixin):
 
         # State propagation (assuming constant linear acceleration and angular velocity)
         acc = R_nm @ f_ins + self._g
-        self._pos = self._pos + self._dt * self._vel
+        # self._pos = self._pos + self._dt * self._vel
+        self._pos = self._pos + self._dt * self._vel + 0.5 * self._dt**2 * acc
         self._vel = self._vel + self._dt * acc
-        self._q_nm = self._q_nm + self._dt * T @ w_ins
+        # self._q_nm = self._q_nm + self._dt * T @ w_ins
+        self._q_nm = expm(T_(w_ins) * self._dt) @ self._q_nm
         self._q_nm = _normalize(self._q_nm)
 
         return self
