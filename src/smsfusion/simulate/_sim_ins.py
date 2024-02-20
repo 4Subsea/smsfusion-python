@@ -21,7 +21,7 @@ def pva_signal_202402A(fs, n):
             0.1 * np.cos(0.1 * t),
             0.05 * np.sin(0.05 * t),
         ]
-    )
+    ).T
 
     # Angular rate signal (expressed in body frame)
     ang_rate = np.array(
@@ -30,14 +30,14 @@ def pva_signal_202402A(fs, n):
             -0.02 * np.sin(0.1 * t),
             0.01 * np.sin(0.1 * t),
         ]
-    )
+    ).T
 
     # Simulate
     x0 = np.zeros(10)
     x0[6:10] = [1.0, 0.0, 0.0, 0.0]
     x_pred = x0
     x, f, w = [], [], []
-    for k, (a_k, w_k) in enumerate(zip(acc.T, ang_rate.T)):
+    for k, (a_k, w_k) in enumerate(zip(acc, ang_rate)):
 
         # Update current state
         x_k = x_pred
@@ -46,7 +46,7 @@ def pva_signal_202402A(fs, n):
         x.append(x_k)
 
         # Specific force
-        f_k = a_k - R_bn(x_k[6:10]).T @ g_ned
+        f_k = a_k - R_bn(q_k).T @ g_ned
         f.append(f_k)
 
         # Propagate state vector
@@ -54,8 +54,8 @@ def pva_signal_202402A(fs, n):
         x_pred = x_k + x_dot_k * dt
 
     x = np.asarray(x).reshape(-1, 10)
-    f = np.asarray(f).reshape(-1, 3)
-    w = ang_rate.reshape(-1, 3)
+    f = np.asarray(f)
+    w = ang_rate
 
     return x, f, w
 
