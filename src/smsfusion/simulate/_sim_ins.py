@@ -53,9 +53,9 @@ def pva_signal_202402A(fs, n):
         x_dot_k = np.r_[v_k, R_bn(q_k) @ a_k, T(q_k) @ w_k]
         x_pred = x_k + x_dot_k * dt
 
-    x = np.asarray(x)
-    f = np.asarray(f)
-    w = ang_rate
+    x = np.asarray(x).reshape(-1, 10)
+    f = np.asarray(f).reshape(-1, 3)
+    w = ang_rate.reshape(-1, 3)
 
     return x, f, w
 
