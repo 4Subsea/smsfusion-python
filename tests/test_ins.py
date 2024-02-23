@@ -1285,6 +1285,7 @@ class Test_AidedINS:
                     pos=pos_i,
                     vel=vel_i,
                     head=head_i,
+                    g_ref=True,
                     degrees=True,
                     head_degrees=True,
                     var_pos=var_pos,  # provided in __init__ but overridden here
