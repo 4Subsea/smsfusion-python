@@ -1144,27 +1144,79 @@ class Test_AidedINS:
         pos = np.zeros(3)
         vel = np.zeros(3)
 
-        ains.update(f_imu, w_imu, pos, vel, head, degrees=True, head_degrees=True)
+        ains.update(f_imu, w_imu, pos, vel, head, True, degrees=True, head_degrees=True)
         np.testing.assert_array_almost_equal(ains.x, x0)
 
         ains.update(
-            f_imu, w_imu, pos=None, vel=None, head=None, degrees=True, head_degrees=True
+            f_imu,
+            w_imu,
+            pos=None,
+            vel=None,
+            head=None,
+            g_ref=False,
+            degrees=True,
+            head_degrees=True,
         )
         np.testing.assert_array_almost_equal(ains.x, x0)
 
         ains.update(
-            f_imu, w_imu, pos=None, vel=vel, head=head, degrees=True, head_degrees=True
+            f_imu,
+            w_imu,
+            pos=pos,
+            vel=vel,
+            head=head,
+            g_ref=True,
+            degrees=True,
+            head_degrees=True,
         )
         np.testing.assert_array_almost_equal(ains.x, x0)
 
         ains.update(
-            f_imu, w_imu, pos=pos, vel=None, head=head, degrees=True, head_degrees=True
+            f_imu,
+            w_imu,
+            pos=None,
+            vel=vel,
+            head=head,
+            g_ref=False,
+            degrees=True,
+            head_degrees=True,
         )
         np.testing.assert_array_almost_equal(ains.x, x0)
 
         ains.update(
-            f_imu, w_imu, pos=None, vel=None, head=head, degrees=True, head_degrees=True
+            f_imu,
+            w_imu,
+            pos=pos,
+            vel=None,
+            head=head,
+            g_ref=False,
+            degrees=True,
+            head_degrees=True,
         )
+        np.testing.assert_array_almost_equal(ains.x, x0)
+
+        ains.update(
+            f_imu,
+            w_imu,
+            pos=None,
+            vel=None,
+            head=head,
+            g_ref=False,
+            degrees=True,
+            head_degrees=True,
+        )
+
+        ains.update(
+            f_imu,
+            w_imu,
+            pos=None,
+            vel=None,
+            head=None,
+            g_ref=True,
+            degrees=True,
+            head_degrees=True,
+        )
+
         np.testing.assert_array_almost_equal(ains.x, x0)
 
     @pytest.mark.parametrize(
