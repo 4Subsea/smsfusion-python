@@ -853,7 +853,7 @@ class AidedINS(INSMixin):
             var_z_temp.append(var_head)
             H_temp.append(self._H[-1:])
 
-        if len(dz_temp) != 0:
+        if len(dz_temp) > 0:
             dz = np.concatenate(dz_temp, axis=0)
             H = np.concatenate(H_temp, axis=0)
             R = np.diag(np.concatenate(var_z_temp, axis=0))
@@ -882,7 +882,7 @@ class AidedINS(INSMixin):
             bias_gyro_ins = bias_gyro_ins + dx[12:15]
             x_ins = np.r_[pos_ins, vel_ins, q_ins_nm, bias_acc_ins, bias_gyro_ins]
             self._ins.reset(x_ins)
-        else:
+        else:  # no aiding measurements
             self._P = self._P_prior
 
         # Discretize system
