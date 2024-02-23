@@ -1008,6 +1008,7 @@ class Test_AidedINS:
                 pos,
                 vel,
                 head,
+                g_ref=True,
                 degrees=True,
                 head_degrees=True,
                 var_pos=None,
@@ -1021,6 +1022,7 @@ class Test_AidedINS:
                 pos,
                 vel,
                 head,
+                g_ref=True,
                 degrees=True,
                 head_degrees=True,
                 var_pos=var_pos,
@@ -1034,6 +1036,7 @@ class Test_AidedINS:
                 pos,
                 vel,
                 head,
+                g_ref=True,
                 degrees=True,
                 head_degrees=True,
                 var_pos=var_pos,
@@ -1082,6 +1085,7 @@ class Test_AidedINS:
                 pos,
                 vel,
                 head,
+                g_ref=True,
                 degrees=True,
                 head_degrees=True,
                 var_pos=None,  # no aiding variance provided
@@ -1116,7 +1120,16 @@ class Test_AidedINS:
         vel = np.zeros(3)
 
         for _ in range(5):
-            ains.update(f_imu, w_imu, pos, vel, head, degrees=True, head_degrees=True)
+            ains.update(
+                f_imu,
+                w_imu,
+                pos,
+                vel,
+                head,
+                g_ref=True,
+                degrees=True,
+                head_degrees=True,
+            )
             np.testing.assert_array_almost_equal(ains.x, x0)
 
     def test_update_irregular_aiding(self):
