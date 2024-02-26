@@ -864,7 +864,7 @@ class AidedINS(INSMixin):
             K = self._P_prior @ H.T @ inv(H @ self._P_prior @ H.T + R)
 
             # Update error-state estimate with measurement
-            dx = self._dx_prior + K @ dz
+            self._dx = self._dx_prior + K @ dz
 
             # Compute error covariance for updated estimate
             self._P = (self._I15 - K @ H) @ self._P_prior @ (
@@ -872,12 +872,12 @@ class AidedINS(INSMixin):
             ).T + K @ R @ K.T
 
             # Error quaternion from 2x Gibbs vector
-            da = dx[6:9]
+            da = self._dx[6:9]
             dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
 
             # Reset
-            pos_ins = pos_ins + dx[0:3]
-            vel_ins = vel_ins + dx[3:6]
+            pos_ins = pos_ins + self._dx[0:3]
+            vel_ins = vel_ins + self._dx[3:6]
             q_ins_nm = _quaternion_product(q_ins_nm, dq)
             q_ins_nm = _normalize(q_ins_nm)
             # bias_acc_ins = bias_acc_ins + dx[9:12]
