@@ -864,7 +864,7 @@ class AidedINS(INSMixin):
             K = self._P_prior @ H.T @ inv(H @ self._P_prior @ H.T + R)
 
             # Update error-state estimate with measurement
-            dx = self._dx + K @ dz
+            dx = self._dx_prior + K @ dz
 
             # Compute error covariance for updated estimate
             self._P = (self._I15 - K @ H) @ self._P_prior @ (
