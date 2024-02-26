@@ -737,7 +737,7 @@ class AidedINS(INSMixin):
             Velocity aiding measurement. If ``None``, velocity aiding is not used.
         head : float, optional
             Heading measurement, i.e., yaw angle. If ``None``, compass aiding is not used.
-        g_ref : bool, optional
+        g_ref : bool, optional, default False
             Specifies whether the gravity reference vector is used as an aiding measurement.
         degrees : bool, default False
             Specifies whether the unit of ``w_imu`` are in degrees or radians.
