@@ -571,6 +571,19 @@ class AidedINS(INSMixin):
         self._H = self._prep_H(q0)
         self._W = self._prep_W(err_acc, err_gyro)
 
+    def _combine_states(self, x_ins, dx):
+        """Combine INS states with error-state estimates."""
+        da = dx[6:9]
+        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
+        pos = x_ins[0:3] + dx[0:3]
+        vel = x_ins[3:6] + dx[3:6]
+        q_nm = _quaternion_product(x_ins[6:10], dq)
+        q_nm = _normalize(q_nm)
+        bias_acc = x_ins[10:13] + dx[9:12]
+        bias_gyro = x_ins[13:16] + dx[12:15]
+        x = np.r_[pos, vel, q_nm, bias_acc, bias_gyro]
+        return x
+
     @property
     def P(self) -> NDArray[np.float64]:
         """
@@ -894,14 +907,15 @@ class AidedINS(INSMixin):
         Q = self._dt * self._G @ self._W @ self._G.T  # process noise covariance matrix
 
         # Update (total) state estimate
-        da = self._dx[6:9]
-        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
-        self._x[0:3] = self._ins._pos + self._dx[0:3]
-        self._x[3:6] = self._ins._vel + self._dx[3:6]
-        self._x[6:10] = _quaternion_product(self._ins._q_nm, dq)
-        self._x[6:10] = _normalize(self._x[6:10])
-        self._x[10:13] = self._ins._bias_acc + self._dx[9:12]
-        self._x[13:16] = self._ins._bias_gyro + self._dx[12:15]
+        self._x = self._combine_states(self._ins.x, self._dx)
+        # da = self._dx[6:9]
+        # dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
+        # self._x[0:3] = self._ins._pos + self._dx[0:3]
+        # self._x[3:6] = self._ins._vel + self._dx[3:6]
+        # self._x[6:10] = _quaternion_product(self._ins._q_nm, dq)
+        # self._x[6:10] = _normalize(self._x[6:10])
+        # self._x[10:13] = self._ins._bias_acc + self._dx[9:12]
+        # self._x[13:16] = self._ins._bias_gyro + self._dx[12:15]
 
         # Project ahead
         self._ins.update(f_imu, w_imu, degrees=False)
