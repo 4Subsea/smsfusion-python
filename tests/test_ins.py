@@ -1008,6 +1008,7 @@ class Test_AidedINS:
                 pos,
                 vel,
                 head,
+                g_ref=True,
                 degrees=True,
                 head_degrees=True,
                 var_pos=None,
@@ -1021,6 +1022,7 @@ class Test_AidedINS:
                 pos,
                 vel,
                 head,
+                g_ref=True,
                 degrees=True,
                 head_degrees=True,
                 var_pos=var_pos,
@@ -1034,6 +1036,7 @@ class Test_AidedINS:
                 pos,
                 vel,
                 head,
+                g_ref=True,
                 degrees=True,
                 head_degrees=True,
                 var_pos=var_pos,
@@ -1082,6 +1085,7 @@ class Test_AidedINS:
                 pos,
                 vel,
                 head,
+                g_ref=True,
                 degrees=True,
                 head_degrees=True,
                 var_pos=None,  # no aiding variance provided
@@ -1116,7 +1120,16 @@ class Test_AidedINS:
         vel = np.zeros(3)
 
         for _ in range(5):
-            ains.update(f_imu, w_imu, pos, vel, head, degrees=True, head_degrees=True)
+            ains.update(
+                f_imu,
+                w_imu,
+                pos,
+                vel,
+                head,
+                g_ref=True,
+                degrees=True,
+                head_degrees=True,
+            )
             np.testing.assert_array_almost_equal(ains.x, x0)
 
     def test_update_irregular_aiding(self):
@@ -1144,27 +1157,79 @@ class Test_AidedINS:
         pos = np.zeros(3)
         vel = np.zeros(3)
 
-        ains.update(f_imu, w_imu, pos, vel, head, degrees=True, head_degrees=True)
+        ains.update(f_imu, w_imu, pos, vel, head, True, degrees=True, head_degrees=True)
         np.testing.assert_array_almost_equal(ains.x, x0)
 
         ains.update(
-            f_imu, w_imu, pos=None, vel=None, head=None, degrees=True, head_degrees=True
+            f_imu,
+            w_imu,
+            pos=None,
+            vel=None,
+            head=None,
+            g_ref=False,
+            degrees=True,
+            head_degrees=True,
         )
         np.testing.assert_array_almost_equal(ains.x, x0)
 
         ains.update(
-            f_imu, w_imu, pos=None, vel=vel, head=head, degrees=True, head_degrees=True
+            f_imu,
+            w_imu,
+            pos=pos,
+            vel=vel,
+            head=head,
+            g_ref=True,
+            degrees=True,
+            head_degrees=True,
         )
         np.testing.assert_array_almost_equal(ains.x, x0)
 
         ains.update(
-            f_imu, w_imu, pos=pos, vel=None, head=head, degrees=True, head_degrees=True
+            f_imu,
+            w_imu,
+            pos=None,
+            vel=vel,
+            head=head,
+            g_ref=False,
+            degrees=True,
+            head_degrees=True,
         )
         np.testing.assert_array_almost_equal(ains.x, x0)
 
         ains.update(
-            f_imu, w_imu, pos=None, vel=None, head=head, degrees=True, head_degrees=True
+            f_imu,
+            w_imu,
+            pos=pos,
+            vel=None,
+            head=head,
+            g_ref=False,
+            degrees=True,
+            head_degrees=True,
         )
+        np.testing.assert_array_almost_equal(ains.x, x0)
+
+        ains.update(
+            f_imu,
+            w_imu,
+            pos=None,
+            vel=None,
+            head=head,
+            g_ref=False,
+            degrees=True,
+            head_degrees=True,
+        )
+
+        ains.update(
+            f_imu,
+            w_imu,
+            pos=None,
+            vel=None,
+            head=None,
+            g_ref=True,
+            degrees=True,
+            head_degrees=True,
+        )
+
         np.testing.assert_array_almost_equal(ains.x, x0)
 
     @pytest.mark.parametrize(
@@ -1285,6 +1350,7 @@ class Test_AidedINS:
                     pos=pos_i,
                     vel=vel_i,
                     head=head_i,
+                    g_ref=True,
                     degrees=True,
                     head_degrees=True,
                     var_pos=var_pos,  # provided in __init__ but overridden here

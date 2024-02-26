@@ -710,6 +710,7 @@ class AidedINS(INSMixin):
         pos: ArrayLike | None = None,
         vel: ArrayLike | None = None,
         head: float | None = None,
+        g_ref: bool = False,
         degrees: bool = False,
         head_degrees: bool = True,
         var_pos: ArrayLike | None = None,
@@ -736,6 +737,8 @@ class AidedINS(INSMixin):
             Velocity aiding measurement. If ``None``, velocity aiding is not used.
         head : float, optional
             Heading measurement, i.e., yaw angle. If ``None``, compass aiding is not used.
+        g_ref : bool, optional, default False
+            Specifies whether the gravity reference vector is used as an aiding measurement.
         degrees : bool, default False
             Specifies whether the unit of ``w_imu`` are in degrees or radians.
         head_degrees : bool, default True
@@ -815,20 +818,21 @@ class AidedINS(INSMixin):
             H_temp.append(self._H[3:6])
 
         # Gravity reference vector aiding
-        vg_ref_n = np.array([0.0, 0.0, 1.0])
-        vg_meas_m = -_normalize(f_ins)
-        delta_g = vg_meas_m - R_ins_nm.T @ vg_ref_n
+        if g_ref:
+            vg_ref_n = np.array([0.0, 0.0, 1.0])
+            vg_meas_m = -_normalize(f_ins)
+            delta_g = vg_meas_m - R_ins_nm.T @ vg_ref_n
 
-        if var_g is not None:
-            var_g = np.asarray_chkfinite(var_g, dtype=float).reshape(3).copy()
-        elif self._var_g is not None:
-            var_g = self._var_g
-        else:
-            raise ValueError("'var_g' not provided.")
+            if var_g is not None:
+                var_g = np.asarray_chkfinite(var_g, dtype=float).reshape(3).copy()
+            elif self._var_g is not None:
+                var_g = self._var_g
+            else:
+                raise ValueError("'var_g' not provided.")
 
-        dz_temp.append(delta_g)
-        var_z_temp.append(var_g)
-        H_temp.append(self._H[6:9])
+            dz_temp.append(delta_g)
+            var_z_temp.append(var_g)
+            H_temp.append(self._H[6:9])
 
         # Compass aiding
         if head is not None:
@@ -849,38 +853,41 @@ class AidedINS(INSMixin):
             var_z_temp.append(var_head)
             H_temp.append(self._H[-1:])
 
-        dz = np.concatenate(dz_temp, axis=0)
-        H = np.concatenate(H_temp, axis=0)
-        R = np.diag(np.concatenate(var_z_temp, axis=0))
+        if dz_temp:
+            dz = np.concatenate(dz_temp, axis=0)
+            H = np.concatenate(H_temp, axis=0)
+            R = np.diag(np.concatenate(var_z_temp, axis=0))
+
+            # Compute Kalman gain
+            K = self._P_prior @ H.T @ inv(H @ self._P_prior @ H.T + R)
+
+            # Update error-state estimate with measurement
+            dx = K @ dz
+
+            # Compute error covariance for updated estimate
+            self._P = (self._I15 - K @ H) @ self._P_prior @ (
+                self._I15 - K @ H
+            ).T + K @ R @ K.T
+
+            # Error quaternion from 2x Gibbs vector
+            da = dx[6:9]
+            dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
+
+            # Reset
+            pos_ins = pos_ins + dx[0:3]
+            vel_ins = vel_ins + dx[3:6]
+            q_ins_nm = _quaternion_product(q_ins_nm, dq)
+            q_ins_nm = _normalize(q_ins_nm)
+            bias_acc_ins = bias_acc_ins + dx[9:12]
+            bias_gyro_ins = bias_gyro_ins + dx[12:15]
+            x_ins = np.r_[pos_ins, vel_ins, q_ins_nm, bias_acc_ins, bias_gyro_ins]
+            self._ins.reset(x_ins)
+        else:  # no aiding measurements
+            self._P = self._P_prior
 
         # Discretize system
         phi = self._I15 + self._dt * self._F  # state transition matrix
         Q = self._dt * self._G @ self._W @ self._G.T  # process noise covariance matrix
-
-        # Compute Kalman gain
-        K = self._P_prior @ H.T @ inv(H @ self._P_prior @ H.T + R)
-
-        # Update error-state estimate with measurement
-        dx = K @ dz
-
-        # Compute error covariance for updated estimate
-        self._P = (self._I15 - K @ H) @ self._P_prior @ (
-            self._I15 - K @ H
-        ).T + K @ R @ K.T
-
-        # Error quaternion from 2x Gibbs vector
-        da = dx[6:9]
-        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
-
-        # Reset
-        pos_ins = pos_ins + dx[0:3]
-        vel_ins = vel_ins + dx[3:6]
-        q_ins_nm = _quaternion_product(q_ins_nm, dq)
-        q_ins_nm = _normalize(q_ins_nm)
-        bias_acc_ins = bias_acc_ins + dx[9:12]
-        bias_gyro_ins = bias_gyro_ins + dx[12:15]
-        x_ins = np.r_[pos_ins, vel_ins, q_ins_nm, bias_acc_ins, bias_gyro_ins]
-        self._ins.reset(x_ins)
 
         # Project ahead
         self._ins.update(f_imu, w_imu, degrees=False)
