@@ -896,13 +896,12 @@ class AidedINS(INSMixin):
         # Update (total) state estimate
         da = self._dx[6:9]
         dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
-        pos = self._ins._pos + self._dx[0:3]
-        vel = self._ins._vel + self._dx[3:6]
-        q_nm = _quaternion_product(self._ins._q_nm, dq)
-        q_nm = _normalize(q_nm)
-        b_acc = self._ins._bias_acc + self._dx[9:12]
-        b_gyro = self._ins._bias_gyro + self._dx[12:15]
-        self._x = np.r_[pos, vel, q_nm, b_acc, b_gyro]
+        self._x[0:3] = self._ins._pos + self._dx[0:3]
+        self._x[3:6] = self._ins._vel + self._dx[3:6]
+        self._x[6:10] = _quaternion_product(self._ins._q_nm, dq)
+        self._x[6:10] = _normalize(self._x[6:10])
+        self._x[10:13] = self._ins._bias_acc + self._dx[9:12]
+        self._x[13:16] = self._ins._bias_gyro + self._dx[12:15]
 
         # Project ahead
         self._ins.update(f_imu, w_imu, degrees=False)
