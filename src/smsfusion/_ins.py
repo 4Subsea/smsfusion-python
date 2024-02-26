@@ -883,21 +883,6 @@ class AidedINS(INSMixin):
             self._P = (self._I15 - K @ H) @ self._P_prior @ (
                 self._I15 - K @ H
             ).T + K @ R @ K.T
-
-            # Error quaternion from 2x Gibbs vector
-            da = self._dx[6:9]
-            dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
-
-            # Reset
-            pos_ins = pos_ins + self._dx[0:3]
-            vel_ins = vel_ins + self._dx[3:6]
-            q_ins_nm = _quaternion_product(q_ins_nm, dq)
-            q_ins_nm = _normalize(q_ins_nm)
-            # bias_acc_ins = bias_acc_ins + dx[9:12]
-            # bias_gyro_ins = bias_gyro_ins + dx[12:15]
-            x_ins = np.r_[pos_ins, vel_ins, q_ins_nm, bias_acc_ins, bias_gyro_ins]
-            self._ins.reset(x_ins)
-            self._dx[:9] = np.zeros(9)
         else:  # no aiding measurements
             self._P = self._P_prior
             self._dx = self._dx_prior
@@ -908,14 +893,11 @@ class AidedINS(INSMixin):
 
         # Update (total) state estimate
         self._x = self._combine_states(self._ins.x, self._dx)
-        # da = self._dx[6:9]
-        # dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
-        # self._x[0:3] = self._ins._pos + self._dx[0:3]
-        # self._x[3:6] = self._ins._vel + self._dx[3:6]
-        # self._x[6:10] = _quaternion_product(self._ins._q_nm, dq)
-        # self._x[6:10] = _normalize(self._x[6:10])
-        # self._x[10:13] = self._ins._bias_acc + self._dx[9:12]
-        # self._x[13:16] = self._ins._bias_gyro + self._dx[12:15]
+
+        # Reset (position, velocity and attitude only)
+        x_ins = np.r_[self._x[:10], bias_acc_ins, bias_gyro_ins]
+        self._ins.reset(x_ins)
+        self._dx[:9] = np.zeros(9)
 
         # Project ahead
         self._ins.update(f_imu, w_imu, degrees=False)
