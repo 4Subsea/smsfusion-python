@@ -536,14 +536,6 @@ class AidedINS(INSMixin):
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
-        self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
-        self._x0[6:10] = _normalize(self._x0[6:10])
-        self._x = self._x0.copy()
-        self._dx = np.zeros(15)
-        self._dx_prior = np.zeros(15)
-        self._P0_prior = np.asarray_chkfinite(P0_prior).reshape(15, 15).copy()
-        self._P_prior = self._P0_prior.copy()
-        self._P = np.empty_like(self._P_prior)
         self._err_acc = err_acc
         self._err_gyro = err_gyro
 
@@ -561,11 +553,22 @@ class AidedINS(INSMixin):
         self._var_g = var_g
         self._var_head = var_head
 
-        # Strapdown algorithm
-        self._ins = StrapdownINS(self._fs, self._x0, lat=lat)
+        # Total state
+        self._x = np.asarray_chkfinite(x0).reshape(16).copy()
+
+        # Strapdown algorithm / INS state
+        self._ins = StrapdownINS(self._fs, self._x, lat=lat)
+
+        # Error-state
+        self._dx = np.zeros(15)
+
+        # Initialize Kalman filter
+        self._dx_prior = self._dx.copy()
+        self._P_prior = np.asarray_chkfinite(P0_prior).reshape(15, 15).copy()
+        self._P = np.empty_like(self._P_prior)
 
         # Prepare system matrices
-        q0 = self._x0[6:10]
+        q0 = self._ins._q_nm
         self._F = self._prep_F(err_acc, err_gyro, q0)
         self._G = self._prep_G(q0)
         self._H = self._prep_H(q0)
