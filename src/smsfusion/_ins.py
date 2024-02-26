@@ -894,8 +894,21 @@ class AidedINS(INSMixin):
         Q = self._dt * self._G @ self._W @ self._G.T  # process noise covariance matrix
 
         # Update state estimate
-        self._x = self._ins.x
-        self._x[10:] += self._dx[9:]
+        dp = self._dx[:3]
+        dv = self._dx[3:6]
+        da = self._dx[6:9]
+        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
+        dba = self._dx[9:12]
+        dbg = self._dx[12:15]
+        p = pos_ins + dp
+        v = vel_ins + dv
+        q = _quaternion_product(q_ins_nm, dq)
+        q = _normalize(q)
+        b_acc = bias_acc_ins + dba
+        b_gyro = bias_gyro_ins + dbg
+        x = np.r_[p, v, q, b_acc, b_gyro]
+        self._x = x
+        # self._x[10:] += self._dx[9:]
 
         # Project ahead
         self._ins.update(f_imu, w_imu, degrees=False)
