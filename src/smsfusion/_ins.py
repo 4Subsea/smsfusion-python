@@ -822,7 +822,7 @@ class AidedINS(INSMixin):
         # Gravity reference vector aiding
         if g_ref:
             vg_ref_n = np.array([0.0, 0.0, 1.0])
-            vg_meas_m = -_normalize(f_ins - self._dx[9:12])
+            vg_meas_m = -_normalize(f_imu - self._bias_acc)
             delta_g = vg_meas_m - R_ins_nm.T @ vg_ref_n
 
             if var_g is not None:
