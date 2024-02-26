@@ -853,7 +853,7 @@ class AidedINS(INSMixin):
             var_z_temp.append(var_head)
             H_temp.append(self._H[-1:])
 
-        if len(dz_temp) > 0:
+        if dz_temp:
             dz = np.concatenate(dz_temp, axis=0)
             H = np.concatenate(H_temp, axis=0)
             R = np.diag(np.concatenate(var_z_temp, axis=0))
