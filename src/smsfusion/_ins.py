@@ -575,7 +575,10 @@ class AidedINS(INSMixin):
         self._W = self._prep_W(err_acc, err_gyro)
 
     def _combine_states(self, x_ins, dx):
-        """Combine INS states with error-state estimates."""
+        """
+        Combine the INS state with the error-state estimate to form the total state
+        estimate.
+        """
         da = dx[6:9]
         dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
         pos = x_ins[0:3] + dx[0:3]
