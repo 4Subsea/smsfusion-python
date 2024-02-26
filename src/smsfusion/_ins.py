@@ -768,7 +768,7 @@ class AidedINS(INSMixin):
         # Update current state estimate
         # self._x = self._ins.x
 
-        # Current state estimates
+        # Current INS state estimates
         pos_ins = self._ins._pos
         vel_ins = self._ins._vel
         q_ins_nm = self._ins._q_nm
@@ -893,22 +893,16 @@ class AidedINS(INSMixin):
         phi = self._I15 + self._dt * self._F  # state transition matrix
         Q = self._dt * self._G @ self._W @ self._G.T  # process noise covariance matrix
 
-        # Update state estimate
-        dp = self._dx[:3]
-        dv = self._dx[3:6]
+        # Update (total) state estimate
         da = self._dx[6:9]
         dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
-        dba = self._dx[9:12]
-        dbg = self._dx[12:15]
-        p = pos_ins + dp
-        v = vel_ins + dv
-        q = _quaternion_product(q_ins_nm, dq)
-        q = _normalize(q)
-        b_acc = bias_acc_ins + dba
-        b_gyro = bias_gyro_ins + dbg
-        x = np.r_[p, v, q, b_acc, b_gyro]
-        self._x = x
-        # self._x[10:] += self._dx[9:]
+        pos = self._ins._pos + self._dx[0:3]
+        vel = self._ins._vel + self._dx[3:6]
+        q_nm = _quaternion_product(self._ins._q_nm, dq)
+        q_nm = _normalize(q_nm)
+        b_acc = self._ins._bias_acc + self._dx[9:12]
+        b_gyro = self._ins._bias_gyro + self._dx[12:15]
+        self._x = np.r_[pos, vel, q_nm, b_acc, b_gyro]
 
         # Project ahead
         self._ins.update(f_imu, w_imu, degrees=False)
