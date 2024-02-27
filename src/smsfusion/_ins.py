@@ -571,7 +571,7 @@ class AidedINS(INSMixin):
         self._x = np.asarray_chkfinite(x0).reshape(16).copy()
 
         # Error-state
-        self._dx = np.empty(15)
+        self._dx = np.zeros(15)
 
         # Strapdown algorithm
         self._ins = StrapdownINS(self._fs, self._x, lat=lat)
