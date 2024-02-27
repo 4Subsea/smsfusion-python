@@ -517,6 +517,14 @@ class AidedINS(INSMixin):
     lat : float, optional
         Latitude used to calculate the gravitational acceleration. If none
         provided, the 'standard gravity' is assumed.
+    reset_bias_acc : bool, default True
+        Specifies whether to reset the accelerometer bias to zero after each update cycle.
+        I.e., the estimated error-state bias is incorporated into the strapdown INS'
+        bias, effectively resetting the error-state bias to zero. Defaults to ``True``.
+    reset_bias_gyro : bool, default True
+        Specifies whether to reset the gyroscope bias to zero after each update cycle.
+        I.e., the estimated error-state bias is incorporated into the strapdown INS'
+        bias, effectively resetting the error-state bias to zero. Defaults to ``True``.
     """
 
     _I15 = np.eye(15)
@@ -533,11 +541,15 @@ class AidedINS(INSMixin):
         var_g: ArrayLike | None = None,
         var_head: float | None = None,
         lat: float | None = None,
+        reset_bias_acc: bool = True,
+        reset_bias_gyro: bool = True,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
         self._err_acc = err_acc
         self._err_gyro = err_gyro
+        self._reset_bias_acc = reset_bias_acc
+        self._reset_bias_gyro = reset_bias_gyro
 
         if var_pos is not None:
             var_pos = np.asarray_chkfinite(var_pos).reshape(3).copy()
@@ -724,6 +736,22 @@ class AidedINS(INSMixin):
         W[9:12, 9:12] *= 2.0 * sigma_gyro**2 * beta_gyro
         return W
 
+    def _reset(self) -> None:
+        """Reset"""
+        x_ins = np.r_[
+            self._x[:10],
+            self._x[10:13] if self._reset_bias_acc else self._ins._bias_acc,
+            self._x[13:16] if self._reset_bias_gyro else self._ins._bias_gyro,
+        ]
+        self._ins.reset(x_ins)
+
+        dx = np.r_[
+            np.zeros(9),
+            np.zeros(3) if self._reset_bias_acc else self._dx[9:12],
+            np.zeros(3) if self._reset_bias_gyro else self._dx[12:15],
+        ]
+        self._dx = dx
+
     def update(
         self,
         f_imu: ArrayLike,
@@ -772,6 +800,10 @@ class AidedINS(INSMixin):
             Variance of gravitational reference vector measurement noise in m^2.
         var_head : float, optional
             Variance of heading measurement noise in rad^2.
+        reset_bias_acc : bool, default True
+            Specifies whether to reset the accelerometer bias after the update. I.e.,
+            the estimated error-state bias is incorporated into the INS bias, and
+            consequently the error-state bias is reset to zero.
 
         Returns
         -------
@@ -900,10 +932,8 @@ class AidedINS(INSMixin):
         # Update (total) state estimate
         self._x = self._combine_states(self._ins.x, self._dx)
 
-        # Reset (position, velocity and attitude only)
-        x_ins = np.r_[self._x[:10], bias_acc_ins, bias_gyro_ins]
-        self._ins.reset(x_ins)
-        self._dx[:9] = np.zeros(9)
+        # Reset
+        self._reset()
 
         # Project ahead
         self._ins.update(f_imu, w_imu, degrees=False)
