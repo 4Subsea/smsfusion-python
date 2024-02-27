@@ -1490,11 +1490,6 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(ains_b.x, x)
         np.testing.assert_array_almost_equal(ains_a._ins.x[10:], x[10:])  # with reset
         np.testing.assert_array_almost_equal(ains_b._ins.x[10:], x0[10:])  # no reset
-        # np.testing.assert_array_almost_equal(ains_a._dx, np.zeros(15))
-        # np.testing.assert_array_almost_equal(ains_b._x_ins[:10], x[:10])
-        # np.testing.assert_array_almost_equal(ains_b._x_ins[10:], x0[10:])
-        # np.testing.assert_array_almost_equal(ains_b._dx[:9], np.zeros(9))
-        # np.testing.assert_array_almost_equal(ains_b._dx[9:], x[10:] - x0[10:])
 
     @pytest.mark.parametrize(
         "benchmark_gen",
