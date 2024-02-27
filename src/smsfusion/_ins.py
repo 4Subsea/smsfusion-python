@@ -573,7 +573,7 @@ class AidedINS(INSMixin):
         # Strapdown algorithm
         self._ins = StrapdownINS(self._fs, self._x, lat=lat)
 
-        # # Error-state
+        # Error-state
         self._dx = np.empty(15)
 
         # Initialize Kalman filter
