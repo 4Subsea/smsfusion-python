@@ -618,6 +618,8 @@ class Test_AidedINS:
             err_acc,
             err_gyro,
             lat=60.0,
+            reset_bias_acc=False,
+            reset_bias_gyro=True,
         )
 
         assert isinstance(ains, AidedINS)
@@ -626,10 +628,16 @@ class Test_AidedINS:
         assert ains._dt == 1.0 / 10.24
         assert ains._err_acc == err_acc
         assert ains._err_gyro == err_gyro
+        assert ains._reset_bias_acc is False
+        assert ains._reset_bias_gyro is True
         assert isinstance(ains._ins, StrapdownINS)
 
         np.testing.assert_array_almost_equal(ains._x, x0)
+        np.testing.assert_array_almost_equal(ains._ins._x, x0)
+        np.testing.assert_array_almost_equal(ains._dx, np.zeros(15))
+        np.testing.assert_array_almost_equal(ains._dx_prior, np.zeros(15))
         np.testing.assert_array_almost_equal(ains._P_prior, P0_prior)
+
         assert ains._P.shape == (15, 15)
 
         # Check default aidning variances is None
