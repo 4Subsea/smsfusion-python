@@ -629,7 +629,6 @@ class Test_AidedINS:
         assert isinstance(ains._ins, StrapdownINS)
 
         np.testing.assert_array_almost_equal(ains._x, x0)
-        np.testing.assert_array_almost_equal(ains._P0_prior, P0_prior)
         np.testing.assert_array_almost_equal(ains._P_prior, P0_prior)
         assert ains._P.shape == (15, 15)
 
