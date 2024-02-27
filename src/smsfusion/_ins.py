@@ -819,20 +819,20 @@ class AidedINS(INSMixin):
         # Current INS state estimates
         pos_ins = self._ins._pos
         vel_ins = self._ins._vel
-        q_ins_nm = self._ins._q_nm
+        q_nm_ins = self._ins._q_nm
         bias_acc_ins = self._ins._bias_acc
         bias_gyro_ins = self._ins._bias_gyro
 
-        R_ins_nm = _rot_matrix_from_quaternion(q_ins_nm)  # body-to-ned rotation matrix
+        R_nm_ins = _rot_matrix_from_quaternion(q_nm_ins)  # body-to-ned rotation matrix
 
         # Bias compensated IMU measurements
         f_ins = f_imu - bias_acc_ins
         w_ins = w_imu - bias_gyro_ins
 
         # Update system matrices
-        self._update_F(q_ins_nm, f_ins, w_ins)
-        self._update_G(q_ins_nm)
-        self._update_H(q_ins_nm)
+        self._update_F(q_nm_ins, f_ins, w_ins)
+        self._update_G(q_nm_ins)
+        self._update_H(q_nm_ins)
 
         # Position aiding
         dz_temp, var_z_temp, H_temp = [], [], []
@@ -871,7 +871,7 @@ class AidedINS(INSMixin):
         if g_ref:
             vg_ref_n = np.array([0.0, 0.0, 1.0])
             vg_meas_m = -_normalize(f_imu - self._bias_acc)
-            delta_g = vg_meas_m - R_ins_nm.T @ vg_ref_n
+            delta_g = vg_meas_m - R_nm_ins.T @ vg_ref_n
 
             if var_g is not None:
                 var_g = np.asarray_chkfinite(var_g, dtype=float).reshape(3).copy()
@@ -889,7 +889,7 @@ class AidedINS(INSMixin):
             if head_degrees:
                 head = (np.pi / 180.0) * head
             delta_head = _signed_smallest_angle(
-                head - _h_head(_gibbs_scaled(q_ins_nm)), degrees=False
+                head - _h_head(_gibbs_scaled(q_nm_ins)), degrees=False
             )
 
             if var_head is not None:
