@@ -518,13 +518,15 @@ class AidedINS(INSMixin):
         Latitude used to calculate the gravitational acceleration. If none
         provided, the 'standard gravity' is assumed.
     reset_bias_acc : bool, default True
-        Specifies whether to reset the accelerometer bias to zero after each update cycle.
-        I.e., the estimated error-state bias is incorporated into the strapdown INS'
-        bias, effectively resetting the error-state bias to zero. Defaults to ``True``.
+        Specifies whether to reset the accelerometer bias after each update cycle. If
+        set to ``True``, the estimated error-state bias is incorporated into the
+        strapdown algorithm's bias state, effectively resetting the error-state bias to
+        zero. Defaults to ``True``.
     reset_bias_gyro : bool, default True
-        Specifies whether to reset the gyroscope bias to zero after each update cycle.
-        I.e., the estimated error-state bias is incorporated into the strapdown INS'
-        bias, effectively resetting the error-state bias to zero. Defaults to ``True``.
+        Specifies whether to reset the gyroscope bias after each update cycle. If set to
+        ``True``, the estimated error-state bias is incorporated into the strapdown
+        algorithm's bias state, effectively resetting the error-state bias to zero.
+        Defaults to ``True``.
     """
 
     _I15 = np.eye(15)
