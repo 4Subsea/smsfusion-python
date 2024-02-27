@@ -568,7 +568,7 @@ class AidedINS(INSMixin):
         # Total state
         self._x = np.asarray_chkfinite(x0).reshape(16).copy()
 
-        # Strapdown algorithm / INS state
+        # Strapdown algorithm
         self._ins = StrapdownINS(self._fs, self._x, lat=lat)
 
         # Error-state
