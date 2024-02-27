@@ -816,9 +816,6 @@ class AidedINS(INSMixin):
         if degrees:
             w_imu = (np.pi / 180.0) * w_imu
 
-        # Update current state estimate
-        # self._x = self._ins.x
-
         # Current INS state estimates
         pos_ins = self._ins._pos
         vel_ins = self._ins._vel
