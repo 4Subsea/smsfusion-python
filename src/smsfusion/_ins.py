@@ -800,10 +800,6 @@ class AidedINS(INSMixin):
             Variance of gravitational reference vector measurement noise in m^2.
         var_head : float, optional
             Variance of heading measurement noise in rad^2.
-        reset_bias_acc : bool, default True
-            Specifies whether to reset the accelerometer bias after the update. I.e.,
-            the estimated error-state bias is incorporated into the INS bias, and
-            consequently the error-state bias is reset to zero.
 
         Returns
         -------
