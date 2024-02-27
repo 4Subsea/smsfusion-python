@@ -30,7 +30,7 @@ from smsfusion._transforms import (
     _quaternion_from_euler,
     _rot_matrix_from_quaternion,
 )
-from smsfusion._vectorops import _skew_symmetric
+from smsfusion._vectorops import _normalize, _quaternion_product, _skew_symmetric
 from smsfusion.benchmark import (
     benchmark_full_pva_beat_202311A,
     benchmark_full_pva_chirp_202311A,
@@ -752,6 +752,61 @@ class Test_AidedINS:
 
         np.testing.assert_array_almost_equal(quaternion_out, quaternion_expect)
         assert quaternion_out is not ains._q_nm
+
+    def test__combine_states(self):
+        x_ins = np.array(
+            [
+                1.0,
+                2.0,
+                3.0,
+                4.0,
+                5.0,
+                6.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.1,
+                0.2,
+                0.3,
+                0.4,
+                0.5,
+                0.5,
+            ]
+        )
+        dx = np.array(
+            [
+                0.1,
+                0.2,
+                0.3,
+                0.4,
+                0.5,
+                0.6,
+                0.05,
+                0.06,
+                0.07,
+                0.7,
+                0.8,
+                0.9,
+                0.10,
+                0.11,
+                0.12,
+            ]
+        )
+
+        x_out = AidedINS._combine_states(x_ins, dx)
+
+        da = dx[6:9]
+        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
+
+        x_expect = np.r_[
+            x_ins[0:6] + dx[0:6],
+            _normalize(_quaternion_product(x_ins[6:10], dq)),
+            x_ins[10:13] + dx[9:12],
+            x_ins[13:16] + dx[12:15],
+        ]
+
+        np.testing.assert_array_almost_equal(x_out, x_expect)
 
     def test_P_prior(self, ains):
         P_prior_out = ains.P_prior

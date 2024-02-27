@@ -586,7 +586,8 @@ class AidedINS(INSMixin):
         self._H = self._prep_H(q0)
         self._W = self._prep_W(err_acc, err_gyro)
 
-    def _combine_states(self, x_ins, dx):
+    @staticmethod
+    def _combine_states(x_ins, dx):
         """
         Combine the INS state with the error-state estimate to form the total state
         estimate.
