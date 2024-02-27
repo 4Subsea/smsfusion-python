@@ -1595,6 +1595,8 @@ class Test_AidedINS:
             var_vel=np.ones_like(var_vel) * 1e9,  # correct values given in update
             var_g=var_g,
             var_head=None,  # provided during update
+            reset_bias_acc=False,
+            reset_bias_gyro=True,
         )
 
         # Apply filter
