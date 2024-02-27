@@ -1433,6 +1433,69 @@ class Test_AidedINS:
 
         np.testing.assert_array_almost_equal(ains.x, x0)
 
+    def test_update_reset_bias(self):
+        fs = 10.24
+
+        x0 = np.zeros(16)
+        x0[6] = 1.0
+        P0_prior = 1e-6 * np.eye(15)
+
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+        var_pos = np.ones(3)
+        var_vel = np.ones(3)
+        var_g = np.ones(3)
+        var_head = 1.0
+
+        ains_a = AidedINS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            var_pos,
+            var_vel,
+            var_g,
+            var_head,
+            reset_bias_acc=True,  # reset bias
+            reset_bias_gyro=True,  # reset bias
+        )
+
+        ains_b = AidedINS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            var_pos,
+            var_vel,
+            var_g,
+            var_head,
+            reset_bias_acc=False,  # no reset
+            reset_bias_gyro=False,  # no reset
+        )
+
+        g = gravity()
+        f_imu = np.random.random(3) - np.array([0.0, 0.0, g])
+        w_imu = np.random.random(3)
+        head = np.random.random()
+        pos = np.zeros(3)
+        vel = np.zeros(3)
+
+        ains_a.update(f_imu, w_imu, pos, vel, head, True)
+        ains_b.update(f_imu, w_imu, pos, vel, head, True)
+
+        x = ains_a.x
+        np.testing.assert_array_almost_equal(ains_a.x, x)
+        np.testing.assert_array_almost_equal(ains_b.x, x)
+        np.testing.assert_array_almost_equal(ains_a._ins.x[10:], x[10:])
+        np.testing.assert_array_almost_equal(ains_b._ins.x[10:], x0[10:])
+        # np.testing.assert_array_almost_equal(ains_a._dx, np.zeros(15))
+        # np.testing.assert_array_almost_equal(ains_b._x_ins[:10], x[:10])
+        # np.testing.assert_array_almost_equal(ains_b._x_ins[10:], x0[10:])
+        # np.testing.assert_array_almost_equal(ains_b._dx[:9], np.zeros(9))
+        # np.testing.assert_array_almost_equal(ains_b._dx[9:], x[10:] - x0[10:])
+
     @pytest.mark.parametrize(
         "benchmark_gen",
         [benchmark_full_pva_beat_202311A, benchmark_full_pva_chirp_202311A],
