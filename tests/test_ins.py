@@ -975,6 +975,72 @@ class Test_AidedINS:
             ains._H - H_matrix_init, delta_H_matrix_expect
         )
 
+    def test__reset(self, ains):
+        x_ins = np.array(
+            [
+                1.0,
+                2.0,
+                3.0,
+                4.0,
+                5.0,
+                6.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.1,
+                0.2,
+                0.3,
+                0.4,
+                0.5,
+                0.5,
+            ]
+        )
+        dx = np.array(
+            [
+                0.1,
+                0.2,
+                0.3,
+                0.4,
+                0.5,
+                0.6,
+                0.05,
+                0.06,
+                0.07,
+                0.7,
+                0.8,
+                0.9,
+                0.10,
+                0.11,
+                0.12,
+            ]
+        )
+
+        da = dx[6:9]
+        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
+
+        x_tot = np.r_[
+            x_ins[0:6] + dx[0:6],
+            _normalize(_quaternion_product(x_ins[6:10], dq)),
+            x_ins[10:13] + dx[9:12],
+            x_ins[13:16] + dx[12:15],
+        ]
+
+        ains._x = x_tot
+        ains._ins._x = x_ins
+        ains._dx = dx
+        ains._reset_bias_acc = True
+        ains._reset_bias_gyro = True
+        ains._reset()
+
+        x_out = ains._x
+        x_ins_out = ains._ins._x
+        dx_out = ains._dx
+
+        np.testing.assert_array_almost_equal(x_out, x_tot)
+        np.testing.assert_array_almost_equal(x_ins_out, x_tot)
+        np.testing.assert_array_almost_equal(dx_out, np.zeros(15))
+
     def test_update_return_self(self, ains):
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
