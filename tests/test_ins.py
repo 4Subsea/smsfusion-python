@@ -1457,8 +1457,8 @@ class Test_AidedINS:
             var_vel,
             var_g,
             var_head,
-            reset_bias_acc=True,  # reset bias
-            reset_bias_gyro=True,  # reset bias
+            reset_bias_acc=True,  # with reset
+            reset_bias_gyro=True,  # with reset
         )
 
         ains_b = AidedINS(
@@ -1488,8 +1488,8 @@ class Test_AidedINS:
         x = ains_a.x
         np.testing.assert_array_almost_equal(ains_a.x, x)
         np.testing.assert_array_almost_equal(ains_b.x, x)
-        np.testing.assert_array_almost_equal(ains_a._ins.x[10:], x[10:])
-        np.testing.assert_array_almost_equal(ains_b._ins.x[10:], x0[10:])
+        np.testing.assert_array_almost_equal(ains_a._ins.x[10:], x[10:])  # with reset
+        np.testing.assert_array_almost_equal(ains_b._ins.x[10:], x0[10:])  # no reset
         # np.testing.assert_array_almost_equal(ains_a._dx, np.zeros(15))
         # np.testing.assert_array_almost_equal(ains_b._x_ins[:10], x[:10])
         # np.testing.assert_array_almost_equal(ains_b._x_ins[10:], x0[10:])
