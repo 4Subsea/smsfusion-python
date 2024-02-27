@@ -628,7 +628,6 @@ class Test_AidedINS:
         assert ains._err_gyro == err_gyro
         assert isinstance(ains._ins, StrapdownINS)
 
-        np.testing.assert_array_almost_equal(ains._x0, x0)
         np.testing.assert_array_almost_equal(ains._x, x0)
         np.testing.assert_array_almost_equal(ains._P0_prior, P0_prior)
         np.testing.assert_array_almost_equal(ains._P_prior, P0_prior)
