@@ -517,6 +517,16 @@ class AidedINS(INSMixin):
     lat : float, optional
         Latitude used to calculate the gravitational acceleration. If none
         provided, the 'standard gravity' is assumed.
+    reset_bias_acc : bool, default True
+        Specifies whether to reset the accelerometer bias after each update cycle. If
+        set to ``True``, the estimated error-state bias is incorporated into the
+        strapdown algorithm's bias state, effectively resetting the error-state bias to
+        zero. Defaults to ``True``.
+    reset_bias_gyro : bool, default True
+        Specifies whether to reset the gyroscope bias after each update cycle. If set to
+        ``True``, the estimated error-state bias is incorporated into the strapdown
+        algorithm's bias state, effectively resetting the error-state bias to zero.
+        Defaults to ``True``.
     """
 
     _I15 = np.eye(15)
@@ -533,17 +543,15 @@ class AidedINS(INSMixin):
         var_g: ArrayLike | None = None,
         var_head: float | None = None,
         lat: float | None = None,
+        reset_bias_acc: bool = True,
+        reset_bias_gyro: bool = True,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
-        self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
-        self._x0[6:10] = _normalize(self._x0[6:10])
-        self._x = self._x0.copy()
-        self._P0_prior = np.asarray_chkfinite(P0_prior).reshape(15, 15).copy()
-        self._P_prior = self._P0_prior.copy()
-        self._P = np.empty_like(self._P_prior)
         self._err_acc = err_acc
         self._err_gyro = err_gyro
+        self._reset_bias_acc = reset_bias_acc
+        self._reset_bias_gyro = reset_bias_gyro
 
         if var_pos is not None:
             var_pos = np.asarray_chkfinite(var_pos).reshape(3).copy()
@@ -559,15 +567,43 @@ class AidedINS(INSMixin):
         self._var_g = var_g
         self._var_head = var_head
 
+        # Total state
+        self._x = np.asarray_chkfinite(x0).reshape(16).copy()
+
+        # Error-state
+        self._dx = np.zeros(15)
+
         # Strapdown algorithm
-        self._ins = StrapdownINS(self._fs, self._x0, lat=lat)
+        self._ins = StrapdownINS(self._fs, self._x, lat=lat)
+
+        # Initialize Kalman filter
+        self._dx_prior = np.zeros(15)
+        self._P_prior = np.asarray_chkfinite(P0_prior).reshape(15, 15).copy()
+        self._P = np.empty_like(self._P_prior)
 
         # Prepare system matrices
-        q0 = self._x0[6:10]
+        q0 = self._ins._q_nm
         self._F = self._prep_F(err_acc, err_gyro, q0)
         self._G = self._prep_G(q0)
         self._H = self._prep_H(q0)
         self._W = self._prep_W(err_acc, err_gyro)
+
+    @staticmethod
+    def _combine_states(x_ins, dx):
+        """
+        Combine the INS state with the error-state estimate to form the total state
+        estimate.
+        """
+        da = dx[6:9]
+        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
+        pos = x_ins[0:3] + dx[0:3]
+        vel = x_ins[3:6] + dx[3:6]
+        q_nm = _quaternion_product(x_ins[6:10], dq)
+        q_nm = _normalize(q_nm)
+        bias_acc = x_ins[10:13] + dx[9:12]
+        bias_gyro = x_ins[13:16] + dx[12:15]
+        x = np.r_[pos, vel, q_nm, bias_acc, bias_gyro]
+        return x
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -703,6 +739,22 @@ class AidedINS(INSMixin):
         W[9:12, 9:12] *= 2.0 * sigma_gyro**2 * beta_gyro
         return W
 
+    def _reset(self) -> None:
+        """Reset"""
+        x_ins = np.r_[
+            self._x[:10],
+            self._x[10:13] if self._reset_bias_acc else self._ins._bias_acc,
+            self._x[13:16] if self._reset_bias_gyro else self._ins._bias_gyro,
+        ]
+        self._ins.reset(x_ins)
+
+        dx = np.r_[
+            np.zeros(9),
+            np.zeros(3) if self._reset_bias_acc else self._dx[9:12],
+            np.zeros(3) if self._reset_bias_gyro else self._dx[12:15],
+        ]
+        self._dx = dx
+
     def update(
         self,
         f_imu: ArrayLike,
@@ -763,15 +815,12 @@ class AidedINS(INSMixin):
         if degrees:
             w_imu = (np.pi / 180.0) * w_imu
 
-        # Update current state estimate
-        self._x = self._ins.x
-
-        # Current state estimates
-        pos_ins = self._pos
-        vel_ins = self._vel
-        q_ins_nm = self._q_nm
-        bias_acc_ins = self._bias_acc
-        bias_gyro_ins = self._bias_gyro
+        # Current INS state estimates
+        pos_ins = self._ins._pos
+        vel_ins = self._ins._vel
+        q_ins_nm = self._ins._q_nm
+        bias_acc_ins = self._ins._bias_acc
+        bias_gyro_ins = self._ins._bias_gyro
 
         R_ins_nm = _rot_matrix_from_quaternion(q_ins_nm)  # body-to-ned rotation matrix
 
@@ -820,7 +869,7 @@ class AidedINS(INSMixin):
         # Gravity reference vector aiding
         if g_ref:
             vg_ref_n = np.array([0.0, 0.0, 1.0])
-            vg_meas_m = -_normalize(f_ins)
+            vg_meas_m = -_normalize(f_imu - self._bias_acc)
             delta_g = vg_meas_m - R_ins_nm.T @ vg_ref_n
 
             if var_g is not None:
@@ -862,35 +911,29 @@ class AidedINS(INSMixin):
             K = self._P_prior @ H.T @ inv(H @ self._P_prior @ H.T + R)
 
             # Update error-state estimate with measurement
-            dx = K @ dz
+            self._dx = self._dx_prior + K @ dz
 
             # Compute error covariance for updated estimate
             self._P = (self._I15 - K @ H) @ self._P_prior @ (
                 self._I15 - K @ H
             ).T + K @ R @ K.T
-
-            # Error quaternion from 2x Gibbs vector
-            da = dx[6:9]
-            dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
-
-            # Reset
-            pos_ins = pos_ins + dx[0:3]
-            vel_ins = vel_ins + dx[3:6]
-            q_ins_nm = _quaternion_product(q_ins_nm, dq)
-            q_ins_nm = _normalize(q_ins_nm)
-            bias_acc_ins = bias_acc_ins + dx[9:12]
-            bias_gyro_ins = bias_gyro_ins + dx[12:15]
-            x_ins = np.r_[pos_ins, vel_ins, q_ins_nm, bias_acc_ins, bias_gyro_ins]
-            self._ins.reset(x_ins)
         else:  # no aiding measurements
             self._P = self._P_prior
+            self._dx = self._dx_prior
 
         # Discretize system
         phi = self._I15 + self._dt * self._F  # state transition matrix
         Q = self._dt * self._G @ self._W @ self._G.T  # process noise covariance matrix
 
+        # Update (total) state estimate
+        self._x = self._combine_states(self._ins.x, self._dx)
+
+        # Reset
+        self._reset()
+
         # Project ahead
         self._ins.update(f_imu, w_imu, degrees=False)
+        self._dx_prior = phi @ self._dx
         self._P_prior = phi @ self._P @ phi.T + Q
 
         return self
