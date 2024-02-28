@@ -870,7 +870,7 @@ class AidedINS(INSMixin):
         if g_ref:
             vg_ref_n = np.array([0.0, 0.0, 1.0])
             vg_meas_m = -_normalize(f_imu - self._bias_acc)
-            delta_g = vg_meas_m - R_nm_ins.T @ vg_ref_n
+            delta_g = vg_meas_m - R_ins_nm.T @ vg_ref_n
 
             if var_g is not None:
                 var_g = np.asarray_chkfinite(var_g, dtype=float).reshape(3).copy()
