@@ -822,7 +822,7 @@ class AidedINS(INSMixin):
         bias_acc_ins = self._ins._bias_acc
         bias_gyro_ins = self._ins._bias_gyro
 
-        R_nm_ins = _rot_matrix_from_quaternion(q_nm_ins)  # body-to-ned rotation matrix
+        R_ins_nm = _rot_matrix_from_quaternion(q_ins_nm)  # body-to-ned rotation matrix
 
         # Bias compensated IMU measurements
         f_ins = f_imu - bias_acc_ins
