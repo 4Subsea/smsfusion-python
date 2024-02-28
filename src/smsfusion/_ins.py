@@ -888,7 +888,7 @@ class AidedINS(INSMixin):
             if head_degrees:
                 head = (np.pi / 180.0) * head
             delta_head = _signed_smallest_angle(
-                head - _h_head(_gibbs_scaled(q_nm_ins)), degrees=False
+                head - _h_head(_gibbs_scaled(q_ins_nm)), degrees=False
             )
 
             if var_head is not None:
