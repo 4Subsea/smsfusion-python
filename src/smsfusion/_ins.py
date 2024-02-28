@@ -818,7 +818,7 @@ class AidedINS(INSMixin):
         # Current INS state estimates
         pos_ins = self._ins._pos
         vel_ins = self._ins._vel
-        q_nm_ins = self._ins._q_nm
+        q_ins_nm = self._ins._q_nm
         bias_acc_ins = self._ins._bias_acc
         bias_gyro_ins = self._ins._bias_gyro
 
