@@ -829,9 +829,9 @@ class AidedINS(INSMixin):
         w_ins = w_imu - bias_gyro_ins
 
         # Update system matrices
-        self._update_F(q_nm_ins, f_ins, w_ins)
-        self._update_G(q_nm_ins)
-        self._update_H(q_nm_ins)
+        self._update_F(q_ins_nm, f_ins, w_ins)
+        self._update_G(q_ins_nm)
+        self._update_H(q_ins_nm)
 
         # Position aiding
         dz_temp, var_z_temp, H_temp = [], [], []
