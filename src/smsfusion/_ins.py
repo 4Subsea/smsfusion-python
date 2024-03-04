@@ -545,6 +545,7 @@ class AidedINS(INSMixin):
         lat: float | None = None,
         reset_bias_acc: bool = True,
         reset_bias_gyro: bool = True,
+        dx0_prior: ArrayLike = np.zeros(15),
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
@@ -568,16 +569,16 @@ class AidedINS(INSMixin):
         self._var_head = var_head
 
         # Total state
-        self._x = np.asarray_chkfinite(x0).reshape(16).copy()
+        self._x = np.zeros(16)
 
         # Error-state
-        self._dx = np.zeros(15)
+        self._dx = np.empty(15)
 
         # Strapdown algorithm
-        self._ins = StrapdownINS(self._fs, self._x, lat=lat)
+        self._ins = StrapdownINS(self._fs, x0, lat=lat)
 
         # Initialize Kalman filter
-        self._dx_prior = np.zeros(15)
+        self._dx_prior = np.asarray_chkfinite(dx0_prior).reshape(15).copy()
         self._P_prior = np.asarray_chkfinite(P0_prior).reshape(15, 15).copy()
         self._P = np.empty_like(self._P_prior)
 
