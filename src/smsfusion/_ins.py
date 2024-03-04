@@ -553,6 +553,7 @@ class AidedINS(INSMixin):
         self._dt = 1.0 / fs
         self._err_acc = err_acc
         self._err_gyro = err_gyro
+        self._lat = lat
         self._reset_bias_acc = reset_bias_acc
         self._reset_bias_gyro = reset_bias_gyro
 
@@ -577,7 +578,7 @@ class AidedINS(INSMixin):
         self._dx = np.empty(15)
 
         # Strapdown algorithm
-        self._ins = StrapdownINS(self._fs, x0, lat=lat)
+        self._ins = StrapdownINS(self._fs, x0, lat=self._lat)
 
         # Initialize Kalman filter
         self._dx_prior = np.asarray_chkfinite(dx0_prior).reshape(15).copy()
@@ -590,6 +591,33 @@ class AidedINS(INSMixin):
         self._G = self._prep_G(q0)
         self._H = self._prep_H(q0)
         self._W = self._prep_W(err_acc, err_gyro)
+
+    def dump(self):
+        """
+        Dump the configuration and current state of the AINS to a dictionary. The dumped
+        parameters can be used to restore the AINS to its current state.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the configuration and current state of the AINS.
+        """
+        params = {
+            "fs": self._fs,
+            "x0": self._ins._x,
+            "P0_prior": self._P_prior,
+            "err_acc": self._err_acc,
+            "err_gyro": self._err_gyro,
+            "var_pos": self._var_pos,
+            "var_vel": self._var_vel,
+            "var_g": self._var_g,
+            "var_head": self._var_head,
+            "lat": self._lat,
+            "reset_bias_acc": self._reset_bias_acc,
+            "reset_bias_gyro": self._reset_bias_gyro,
+            "dx0_prior": self._dx_prior,
+        }
+        return params
 
     @staticmethod
     def _combine_states(x_ins, dx):
