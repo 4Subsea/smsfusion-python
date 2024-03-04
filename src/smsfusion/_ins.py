@@ -484,7 +484,7 @@ class AidedINS(INSMixin):
     fs : float
         Sampling rate in Hz.
     x0 : array-like, shape (16,)
-        Initial state vector containing the following elements in order:
+        Initial INS state vector containing the following elements in order:
 
         * Position in x, y, z directions (3 elements).
         * Velocity in x, y, z directions (3 elements).
@@ -527,6 +527,8 @@ class AidedINS(INSMixin):
         ``True``, the estimated error-state bias is incorporated into the strapdown
         algorithm's bias state, effectively resetting the error-state bias to zero.
         Defaults to ``True``.
+    dx0_prior : array-like, shape (15,), default numpy.zeros(15)
+        Initial a priori estimate of the error-state vector. Defaults to ``numpy.zeros(15)``.
     """
 
     _I15 = np.eye(15)
