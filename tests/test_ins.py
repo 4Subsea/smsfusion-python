@@ -699,6 +699,49 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(ains._var_g, var_g)
         np.testing.assert_array_almost_equal(ains._var_head, var_head)
 
+    def test_dump(self):
+        p_init = np.array([0.1, 0.0, 0.0])
+        v_init = np.array([0.0, -0.1, 0.0])
+        q_init = np.array([1.0, 0.0, 0.0, 0.0])
+        bias_acc_init = np.array([0.0, 0.0, 0.1])
+        bias_gyro_init = np.array([-0.1, 0.0, 0.0])
+        x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
+
+        kwargs = {
+            "fs": 10.24,
+            "x0": x0,
+            "P0_prior": 1e-6 * np.eye(15),
+            "err_acc": {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50},
+            "err_gyro": {"N": 3.5e-5, "B": 3.4e-5, "tau_cb": 50},
+            "var_pos": 10**2 * np.ones(3),
+            "var_vel": 0.1**2 * np.ones(3),
+            "var_g": 0.1**2 * np.ones(3),
+            "var_head": 0.1**2,
+            "lat": 60.0,
+            "reset_bias_acc": True,
+            "reset_bias_gyro": True,
+            "dx0_prior": np.random.random(15),
+        }
+        ains = AidedINS(**kwargs)
+
+        kwargs_out = ains.dump()
+
+        assert kwargs_out["fs"] == kwargs["fs"]
+        np.testing.assert_array_almost_equal(kwargs_out["x0"], x0)
+        np.testing.assert_array_almost_equal(kwargs_out["P0_prior"], kwargs["P0_prior"])
+        assert kwargs_out["err_acc"] == kwargs["err_acc"]
+        assert kwargs_out["err_gyro"] == kwargs["err_gyro"]
+        np.testing.assert_array_almost_equal(kwargs_out["var_pos"], kwargs["var_pos"])
+        np.testing.assert_array_almost_equal(kwargs_out["var_vel"], kwargs["var_vel"])
+        np.testing.assert_array_almost_equal(kwargs_out["var_g"], kwargs["var_g"])
+        assert kwargs_out["var_head"] == kwargs["var_head"]
+        assert kwargs_out["lat"] == kwargs["lat"]
+        assert kwargs_out["reset_bias_acc"] is True
+        assert kwargs_out["reset_bias_gyro"] is True
+        np.testing.assert_array_almost_equal(
+            kwargs_out["dx0_prior"], kwargs["dx0_prior"]
+        )
+
     def test_x(self, ains):
         x_expect = np.array(
             [
