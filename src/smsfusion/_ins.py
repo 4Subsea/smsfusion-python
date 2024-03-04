@@ -572,7 +572,7 @@ class AidedINS(INSMixin):
         self._var_head = var_head
 
         # Error-state
-        self._dx = np.empty(15)
+        self._dx = np.zeros(15)
 
         # Strapdown algorithm
         self._ins = StrapdownINS(self._fs, x0, lat=self._lat)
