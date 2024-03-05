@@ -707,7 +707,7 @@ class Test_AidedINS:
         bias_gyro_init = np.array([-0.1, 0.0, 0.0])
         x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
 
-        kwargs = {
+        kwargs_a = {
             "fs": 10.24,
             "x0": x0,
             "P0_prior": 1e-6 * np.eye(15),
@@ -722,28 +722,24 @@ class Test_AidedINS:
             "reset_bias_gyro": True,
             "dx0_prior": np.random.random(15),
         }
-        ains = AidedINS(**kwargs)
+        ains_a = AidedINS(**kwargs_a)
+        kwargs_out = ains_a.dump()
+        ains_b = AidedINS(**kwargs_out)
 
-        kwargs_out = ains.dump()
-
-        ains_ = AidedINS(**kwargs_out)
-
-        assert isinstance(ains_, AidedINS)
-        assert kwargs_out["fs"] == kwargs["fs"]
-        np.testing.assert_array_almost_equal(kwargs_out["x0"], x0)
-        np.testing.assert_array_almost_equal(kwargs_out["P0_prior"], kwargs["P0_prior"])
-        assert kwargs_out["err_acc"] == kwargs["err_acc"]
-        assert kwargs_out["err_gyro"] == kwargs["err_gyro"]
-        np.testing.assert_array_almost_equal(kwargs_out["var_pos"], kwargs["var_pos"])
-        np.testing.assert_array_almost_equal(kwargs_out["var_vel"], kwargs["var_vel"])
-        np.testing.assert_array_almost_equal(kwargs_out["var_g"], kwargs["var_g"])
-        np.testing.assert_array_almost_equal(kwargs_out["var_head"], kwargs["var_head"])
-        assert kwargs_out["lat"] == kwargs["lat"]
-        assert kwargs_out["reset_bias_acc"] is True
-        assert kwargs_out["reset_bias_gyro"] is True
-        np.testing.assert_array_almost_equal(
-            kwargs_out["dx0_prior"], kwargs["dx0_prior"]
-        )
+        assert isinstance(kwargs_out, dict)
+        assert ains_b._fs == ains_a._fs
+        assert ains_b._err_acc == ains_a._err_acc
+        assert ains_b._err_gyro == ains_a._err_gyro
+        assert ains_b._lat == ains_a._lat
+        assert ains_b._reset_bias_acc == ains_a._reset_bias_acc
+        assert ains_b._reset_bias_gyro == ains_a._reset_bias_gyro
+        np.testing.assert_array_almost_equal(ains_b._ins._x, ains_a._ins._x)
+        np.testing.assert_array_almost_equal(ains_b._dx_prior, ains_a._dx_prior)
+        np.testing.assert_array_almost_equal(ains_b._P_prior, ains_a._P_prior)
+        np.testing.assert_array_almost_equal(ains_b._var_pos, ains_a._var_pos)
+        np.testing.assert_array_almost_equal(ains_b._var_vel, ains_a._var_vel)
+        np.testing.assert_array_almost_equal(ains_b._var_g, ains_a._var_g)
+        np.testing.assert_array_almost_equal(ains_b._var_head, ains_a._var_head)
 
     def test_x(self, ains):
         x_expect = np.array(
