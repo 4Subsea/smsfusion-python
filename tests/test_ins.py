@@ -700,50 +700,39 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(ains._var_g, var_g)
         np.testing.assert_array_almost_equal(ains._var_head, var_head)
 
-    def test_dump(self, tmp_path):
-        p_init = np.array([0.1, 0.0, 0.0])
-        v_init = np.array([0.0, -0.1, 0.0])
-        q_init = np.array([1.0, 0.0, 0.0, 0.0])
-        bias_acc_init = np.array([0.0, 0.0, 0.1])
-        bias_gyro_init = np.array([-0.1, 0.0, 0.0])
-        x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
-
-        kwargs_a = {
-            "fs": 10.24,
-            "x0": x0,
-            "P0_prior": 1e-6 * np.eye(15),
-            "err_acc": {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50},
-            "err_gyro": {"N": 3.5e-5, "B": 3.4e-5, "tau_cb": 50},
-            "var_pos": 10**2 * np.ones(3),
-            "var_vel": 0.1**2 * np.ones(3),
-            "var_g": 0.1**2 * np.ones(3),
-            "var_head": 0.1**2,
-            "lat": 60.0,
-            "reset_bias_acc": True,
-            "reset_bias_gyro": True,
-            "dx0_prior": np.random.random(15),
-        }
-        ains_a = AidedINS(**kwargs_a)
-        kwargs_out = ains_a.dump()
+    def test_dump(self, tmp_path, ains):
+        kwargs_out = ains.dump()
         ains_b = AidedINS(**kwargs_out)
 
         with open(tmp_path / "ains.json", "w") as f:
             json.dump(kwargs_out, f)
 
         assert isinstance(kwargs_out, dict)
-        assert ains_b._fs == ains_a._fs
-        assert ains_b._err_acc == ains_a._err_acc
-        assert ains_b._err_gyro == ains_a._err_gyro
-        assert ains_b._lat == ains_a._lat
-        assert ains_b._reset_bias_acc == ains_a._reset_bias_acc
-        assert ains_b._reset_bias_gyro == ains_a._reset_bias_gyro
-        np.testing.assert_array_almost_equal(ains_b._ins._x, ains_a._ins._x)
-        np.testing.assert_array_almost_equal(ains_b._dx_prior, ains_a._dx_prior)
-        np.testing.assert_array_almost_equal(ains_b._P_prior, ains_a._P_prior)
-        np.testing.assert_array_almost_equal(ains_b._var_pos, ains_a._var_pos)
-        np.testing.assert_array_almost_equal(ains_b._var_vel, ains_a._var_vel)
-        np.testing.assert_array_almost_equal(ains_b._var_g, ains_a._var_g)
-        np.testing.assert_array_almost_equal(ains_b._var_head, ains_a._var_head)
+        assert ains_b._fs == ains._fs
+        assert ains_b._err_acc == ains._err_acc
+        assert ains_b._err_gyro == ains._err_gyro
+        assert ains_b._lat == ains._lat
+        assert ains_b._reset_bias_acc == ains._reset_bias_acc
+        assert ains_b._reset_bias_gyro == ains._reset_bias_gyro
+        np.testing.assert_array_almost_equal(ains_b._ins._x, ains._ins._x)
+        np.testing.assert_array_almost_equal(ains_b._dx_prior, ains._dx_prior)
+        np.testing.assert_array_almost_equal(ains_b._P_prior, ains._P_prior)
+        if ains._var_pos is None:
+            assert ains_b._var_pos is None
+        else:
+            np.testing.assert_array_almost_equal(ains_b._var_pos, ains._var_pos)
+        if ains._var_vel is None:
+            assert ains_b._var_vel is None
+        else:
+            np.testing.assert_array_almost_equal(ains_b._var_vel, ains._var_vel)
+        if ains._var_g is None:
+            assert ains_b._var_g is None
+        else:
+            np.testing.assert_array_almost_equal(ains_b._var_g, ains._var_g)
+        if ains._var_head is None:
+            assert ains_b._var_head is None
+        else:
+            np.testing.assert_array_almost_equal(ains_b._var_head, ains._var_head)
 
     def test_x(self, ains):
         x_expect = np.array(
