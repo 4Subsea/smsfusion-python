@@ -7,6 +7,7 @@ operates with active rotations, whereas passive rotations are considered here. K
 mind that passive rotations is simply the inverse active rotations and vice versa.
 """
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -699,7 +700,7 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(ains._var_g, var_g)
         np.testing.assert_array_almost_equal(ains._var_head, var_head)
 
-    def test_dump(self):
+    def test_dump(self, tmp_path):
         p_init = np.array([0.1, 0.0, 0.0])
         v_init = np.array([0.0, -0.1, 0.0])
         q_init = np.array([1.0, 0.0, 0.0, 0.0])
@@ -725,6 +726,9 @@ class Test_AidedINS:
         ains_a = AidedINS(**kwargs_a)
         kwargs_out = ains_a.dump()
         ains_b = AidedINS(**kwargs_out)
+
+        with open(tmp_path / "ains.json", "w") as f:
+            json.dump(kwargs_out, f)
 
         assert isinstance(kwargs_out, dict)
         assert ains_b._fs == ains_a._fs
