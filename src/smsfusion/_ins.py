@@ -484,7 +484,7 @@ class AidedINS(INSMixin):
     fs : float
         Sampling rate in Hz.
     x0 : array-like, shape (16,)
-        Initial state vector containing the following elements in order:
+        Initial INS state vector containing the following elements in order:
 
         * Position in x, y, z directions (3 elements).
         * Velocity in x, y, z directions (3 elements).
@@ -527,6 +527,8 @@ class AidedINS(INSMixin):
         ``True``, the estimated error-state bias is incorporated into the strapdown
         algorithm's bias state, effectively resetting the error-state bias to zero.
         Defaults to ``True``.
+    dx0_prior : array-like, shape (15,), default numpy.zeros(15)
+        Initial a priori estimate of the error-state vector. Defaults to ``numpy.zeros(15)``.
     """
 
     _I15 = np.eye(15)
@@ -545,11 +547,13 @@ class AidedINS(INSMixin):
         lat: float | None = None,
         reset_bias_acc: bool = True,
         reset_bias_gyro: bool = True,
+        dx0_prior: ArrayLike = np.zeros(15),
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
         self._err_acc = err_acc
         self._err_gyro = err_gyro
+        self._lat = lat
         self._reset_bias_acc = reset_bias_acc
         self._reset_bias_gyro = reset_bias_gyro
 
@@ -567,17 +571,17 @@ class AidedINS(INSMixin):
         self._var_g = var_g
         self._var_head = var_head
 
-        # Total state
-        self._x = np.asarray_chkfinite(x0).reshape(16).copy()
-
         # Error-state
         self._dx = np.zeros(15)
 
         # Strapdown algorithm
-        self._ins = StrapdownINS(self._fs, self._x, lat=lat)
+        self._ins = StrapdownINS(self._fs, x0, lat=self._lat)
+
+        # Total state
+        self._x = self._combine_states(self._ins._x, self._dx)
 
         # Initialize Kalman filter
-        self._dx_prior = np.zeros(15)
+        self._dx_prior = np.asarray_chkfinite(dx0_prior).reshape(15).copy()
         self._P_prior = np.asarray_chkfinite(P0_prior).reshape(15, 15).copy()
         self._P = np.empty_like(self._P_prior)
 
@@ -587,6 +591,33 @@ class AidedINS(INSMixin):
         self._G = self._prep_G(q0)
         self._H = self._prep_H(q0)
         self._W = self._prep_W(err_acc, err_gyro)
+
+    def dump(self):
+        """
+        Dump the configuration and current state of the AINS to a dictionary. The dumped
+        parameters can be used to restore the AINS to its current state.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the configuration and current state of the AINS.
+        """
+        params = {
+            "fs": self._fs,
+            "x0": self._ins._x.tolist(),
+            "P0_prior": self._P_prior.tolist(),
+            "err_acc": self._err_acc,
+            "err_gyro": self._err_gyro,
+            "var_pos": self._var_pos.tolist() if self._var_pos is not None else None,
+            "var_vel": self._var_vel.tolist() if self._var_vel is not None else None,
+            "var_g": self._var_g.tolist() if self._var_g is not None else None,
+            "var_head": self._var_head.tolist() if self._var_head is not None else None,
+            "lat": self._lat,
+            "reset_bias_acc": self._reset_bias_acc,
+            "reset_bias_gyro": self._reset_bias_gyro,
+            "dx0_prior": self._dx_prior.tolist(),
+        }
+        return params
 
     @staticmethod
     def _combine_states(x_ins, dx):

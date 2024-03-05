@@ -7,6 +7,7 @@ operates with active rotations, whereas passive rotations are considered here. K
 mind that passive rotations is simply the inverse active rotations and vice versa.
 """
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -603,6 +604,7 @@ class Test_AidedINS:
 
         x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
         P0_prior = 1e-6 * np.eye(15)
+        dx0_prior = np.random.random(15)
 
         err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
         err_gyro = {
@@ -620,6 +622,7 @@ class Test_AidedINS:
             lat=60.0,
             reset_bias_acc=False,
             reset_bias_gyro=True,
+            dx0_prior=dx0_prior,
         )
 
         assert isinstance(ains, AidedINS)
@@ -635,7 +638,7 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(ains._x, x0)
         np.testing.assert_array_almost_equal(ains._ins._x, x0)
         np.testing.assert_array_almost_equal(ains._dx, np.zeros(15))
-        np.testing.assert_array_almost_equal(ains._dx_prior, np.zeros(15))
+        np.testing.assert_array_almost_equal(ains._dx_prior, dx0_prior)
         np.testing.assert_array_almost_equal(ains._P_prior, P0_prior)
 
         assert ains._P.shape == (15, 15)
@@ -696,6 +699,40 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(ains._var_vel, var_vel)
         np.testing.assert_array_almost_equal(ains._var_g, var_g)
         np.testing.assert_array_almost_equal(ains._var_head, var_head)
+
+    def test_dump(self, tmp_path, ains):
+        kwargs_out = ains.dump()
+        ains_b = AidedINS(**kwargs_out)
+
+        with open(tmp_path / "ains.json", "w") as f:
+            json.dump(kwargs_out, f)
+
+        assert isinstance(kwargs_out, dict)
+        assert ains_b._fs == ains._fs
+        assert ains_b._err_acc == ains._err_acc
+        assert ains_b._err_gyro == ains._err_gyro
+        assert ains_b._lat == ains._lat
+        assert ains_b._reset_bias_acc == ains._reset_bias_acc
+        assert ains_b._reset_bias_gyro == ains._reset_bias_gyro
+        np.testing.assert_array_almost_equal(ains_b._ins._x, ains._ins._x)
+        np.testing.assert_array_almost_equal(ains_b._dx_prior, ains._dx_prior)
+        np.testing.assert_array_almost_equal(ains_b._P_prior, ains._P_prior)
+        if ains._var_pos is None:
+            assert ains_b._var_pos is None
+        else:
+            np.testing.assert_array_almost_equal(ains_b._var_pos, ains._var_pos)
+        if ains._var_vel is None:
+            assert ains_b._var_vel is None
+        else:
+            np.testing.assert_array_almost_equal(ains_b._var_vel, ains._var_vel)
+        if ains._var_g is None:
+            assert ains_b._var_g is None
+        else:
+            np.testing.assert_array_almost_equal(ains_b._var_g, ains._var_g)
+        if ains._var_head is None:
+            assert ains_b._var_head is None
+        else:
+            np.testing.assert_array_almost_equal(ains_b._var_head, ains._var_head)
 
     def test_x(self, ains):
         x_expect = np.array(
