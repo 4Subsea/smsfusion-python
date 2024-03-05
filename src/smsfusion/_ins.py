@@ -604,18 +604,18 @@ class AidedINS(INSMixin):
         """
         params = {
             "fs": self._fs,
-            "x0": self._ins._x,
-            "P0_prior": self._P_prior,
+            "x0": self._ins._x.tolist(),
+            "P0_prior": self._P_prior.tolist(),
             "err_acc": self._err_acc,
             "err_gyro": self._err_gyro,
-            "var_pos": self._var_pos,
-            "var_vel": self._var_vel,
-            "var_g": self._var_g,
-            "var_head": self._var_head,
+            "var_pos": self._var_pos.tolist(),
+            "var_vel": self._var_vel.tolist(),
+            "var_g": self._var_g.tolist(),
+            "var_head": self._var_head.tolist(),
             "lat": self._lat,
             "reset_bias_acc": self._reset_bias_acc,
             "reset_bias_gyro": self._reset_bias_gyro,
-            "dx0_prior": self._dx_prior,
+            "dx0_prior": self._dx_prior.tolist(),
         }
         return params
 
