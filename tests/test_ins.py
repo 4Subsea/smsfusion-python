@@ -726,6 +726,9 @@ class Test_AidedINS:
 
         kwargs_out = ains.dump()
 
+        ains_ = AidedINS(**kwargs_out)
+
+        assert isinstance(ains_, AidedINS)
         assert kwargs_out["fs"] == kwargs["fs"]
         np.testing.assert_array_almost_equal(kwargs_out["x0"], x0)
         np.testing.assert_array_almost_equal(kwargs_out["P0_prior"], kwargs["P0_prior"])
@@ -734,7 +737,7 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(kwargs_out["var_pos"], kwargs["var_pos"])
         np.testing.assert_array_almost_equal(kwargs_out["var_vel"], kwargs["var_vel"])
         np.testing.assert_array_almost_equal(kwargs_out["var_g"], kwargs["var_g"])
-        assert kwargs_out["var_head"] == kwargs["var_head"]
+        np.testing.assert_array_almost_equal(kwargs_out["var_head"], kwargs["var_head"])
         assert kwargs_out["lat"] == kwargs["lat"]
         assert kwargs_out["reset_bias_acc"] is True
         assert kwargs_out["reset_bias_gyro"] is True
