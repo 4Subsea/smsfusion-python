@@ -399,8 +399,9 @@ class StrapdownINS(INSMixin):
 def _h_head(q: NDArray[np.float64]) -> float:
     """
     Compute yaw angle from unit quaternion.
+
     Defined in terms of scaled Gibbs vector in ref [1]_, but implemented in terms of
-    unit quaternion here for to avoid singularities.
+    unit quaternion here to avoid singularities.
 
     Parameters
     ----------
@@ -426,8 +427,9 @@ def _h_head(q: NDArray[np.float64]) -> float:
 def _dhda_head(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute yaw angle gradient wrt to the unit quaternion.
+
     Defined in terms of scaled Gibbs vector in ref [1]_, but implemented in terms of
-    unit quaternion here for to avoid singularities.
+    unit quaternion here to avoid singularities.
 
     Parameters
     ----------
