@@ -396,31 +396,17 @@ class StrapdownINS(INSMixin):
         return self
 
 
-def _gibbs_scaled(q: NDArray[np.float64]) -> NDArray[np.float64]:
+def _h_head(q: NDArray[np.float64]) -> float:
     """
-    Compute the scaled Gibbs vector (i.e., 2 x Gibbs vector) from a unit quaternion.
+    Compute yaw angle from unit quaternion.
+
+    Defined in terms of scaled Gibbs vector in ref [1]_, but implemented in terms of
+    unit quaternion here to avoid singularities.
 
     Parameters
     ----------
     q : numpy.ndarray, shape (4,)
         Unit quaternion.
-
-    Returns
-    -------
-    numpy.ndarray, shape (3,)
-        Scaled Gibbs vector.
-    """
-    return (2.0 / q[0]) * q[1:]  # type: ignore[no-any-return]
-
-
-def _h_head(a: NDArray[np.float64]) -> float:
-    """
-    Compute yaw angle from scaled Gibbs vector, see ref [1]_.
-
-    Parameters
-    ----------
-    a : numpy.ndarray, shape (3,)
-        Scaled Gibbs vector.
 
     Returns
     -------
@@ -432,20 +418,23 @@ def _h_head(a: NDArray[np.float64]) -> float:
     .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
     2nd Edition, equation 14.251, John Wiley & Sons, 2021.
     """
-    a_x, a_y, a_z = a
-    u_y = 2.0 * (a_x * a_y + 2.0 * a_z)
-    u_x = 4.0 + a_x**2 - a_y**2 - a_z**2
+    q_w, q_x, q_y, q_z = q
+    u_y = 2.0 * (q_x * q_y + q_z * q_w)
+    u_x = 1.0 - 2.0 * (q_y**2 + q_z**2)
     return np.arctan2(u_y, u_x)  # type: ignore[no-any-return]
 
 
-def _dhda_head(a: NDArray[np.float64]) -> NDArray[np.float64]:
+def _dhda_head(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Compute yaw angle gradient wrt to the scaled Gibbs vector, see ref [1]_.
+    Compute yaw angle gradient wrt to the unit quaternion.
+
+    Defined in terms of scaled Gibbs vector in ref [1]_, but implemented in terms of
+    unit quaternion here to avoid singularities.
 
     Parameters
     ----------
-    a : numpy.ndarray, shape (3,)
-        Scaled Gibbs vector.
+    q : numpy.ndarray, shape (3,)
+        Unit quaternion.
 
     Returns
     -------
@@ -457,19 +446,18 @@ def _dhda_head(a: NDArray[np.float64]) -> NDArray[np.float64]:
     .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
     2nd Edition, equation 14.254, John Wiley & Sons, 2021.
     """
-    a_x, a_y, a_z = a
-
-    u_y = 2.0 * (a_x * a_y + 2.0 * a_z)
-    u_x = 4.0 + a_x**2 - a_y**2 - a_z**2
+    q_w, q_x, q_y, q_z = q
+    u_y = 2.0 * (q_x * q_y + q_z * q_w)
+    u_x = 1.0 - 2.0 * (q_y**2 + q_z**2)
     u = u_y / u_x
 
-    duda_scale = 1.0 / (4.0 + a_x**2 - a_y**2 - a_z**2) ** 2
-    duda_x = -2.0 * ((a_x**2 + a_z**2 - 4.0) * a_y + a_y**3 + 4.0 * a_x * a_z)
-    duda_y = 2.0 * ((a_y**2 - a_z**2 + 4.0) * a_x + a_x**3 + 4.0 * a_y * a_z)
-    duda_z = 4.0 * (a_z**2 + a_x * a_y * a_z + a_x**2 - a_y**2 + 4.0)
+    duda_scale = 1.0 / u_x**2
+    duda_x = -(q_w * q_y) * (1.0 - 2.0 * q_w**2) - (2.0 * q_w**2 * q_x * q_z)
+    duda_y = (q_w * q_x) * (1.0 - 2.0 * q_z**2) + (2.0 * q_w**2 * q_y * q_z)
+    duda_z = q_w**2 * (1.0 - 2.0 * q_y**2) + (2.0 * q_w * q_x * q_y * q_z)
     duda = duda_scale * np.array([duda_x, duda_y, duda_z])
 
-    dhda = 1.0 / (1.0 + np.sum(u**2)) * duda
+    dhda = 1.0 / (1.0 + u**2) * duda
 
     return dhda  # type: ignore[no-any-return]
 
@@ -735,7 +723,7 @@ class AidedINS(INSMixin):
         H[0:3, 0:3] = np.eye(3)  # position
         H[3:6, 3:6] = np.eye(3)  # velocity
         H[6:9, 6:9] = S(R_nm.T @ vg_ref_n)  # gravity reference vector
-        H[9:10, 6:9] = _dhda_head(_gibbs_scaled(q_nm))  # compass
+        H[9:10, 6:9] = _dhda_head(q_nm)  # compass
         return H
 
     def _update_H(self, q_nm: NDArray[np.float64]) -> None:
@@ -748,7 +736,7 @@ class AidedINS(INSMixin):
         R_nm = _rot_matrix_from_quaternion(q_nm)  # body-to-ned rotation matrix
 
         self._H[6:9, 6:9] = S(R_nm.T @ vg_ref_n)  # gravity reference vector
-        self._H[9:10, 6:9] = _dhda_head(_gibbs_scaled(q_nm))  # compass
+        self._H[9:10, 6:9] = _dhda_head(q_nm)  # compass
 
     @staticmethod
     def _prep_W(
@@ -918,9 +906,7 @@ class AidedINS(INSMixin):
         if head is not None:
             if head_degrees:
                 head = (np.pi / 180.0) * head
-            delta_head = _signed_smallest_angle(
-                head - _h_head(_gibbs_scaled(q_ins_nm)), degrees=False
-            )
+            delta_head = _signed_smallest_angle(head - _h_head(q_ins_nm), degrees=False)
 
             if var_head is not None:
                 var_head = np.asarray_chkfinite(var_head, dtype=float).reshape(1).copy()

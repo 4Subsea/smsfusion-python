@@ -21,7 +21,6 @@ from smsfusion._ins import (
     INSMixin,
     StrapdownINS,
     _dhda_head,
-    _gibbs_scaled,
     _h_head,
     _signed_smallest_angle,
     gravity,
@@ -69,22 +68,6 @@ def test__signed_smallest_angle(angle, degrees, angle_expect):
 def test_gravity(mu, g_expect):
     g_out = gravity(mu)
     assert g_out == pytest.approx(g_expect)
-
-
-@pytest.mark.parametrize(
-    "angle, axis",
-    [
-        (np.radians([0.0, 0.0, 35.0]), np.array([0.0, 0.0, 1.0])),
-        (np.radians([0.0, -35.0, 0.0]), np.array([0.0, 1.0, 0.0])),
-        (np.radians([-10.0, 0.0, 0.0]), np.array([1.0, 0.0, 0.0])),
-    ],
-)
-def test__gibbs(angle, axis):
-    q = Rotation.from_euler("ZYX", angle[::-1], degrees=False).as_quat()
-    q = np.r_[q[3], q[:3]]
-
-    gibbs_expected = 2.0 * axis * np.tan(angle / 2)
-    np.testing.assert_almost_equal(_gibbs_scaled(q), gibbs_expected)
 
 
 @pytest.fixture
@@ -526,25 +509,37 @@ def test__h_head(angles):
     quaternion = Rotation.from_euler(
         "ZYX", (gamma, beta, alpha), degrees=False
     ).as_quat()
-    gibbs_vector = 2.0 * quaternion[:3] / quaternion[3]
+    quaternion = np.r_[quaternion[3], quaternion[:3]]
 
-    gamma_expect = _h_head(gibbs_vector)
+    gamma_expect = _h_head(quaternion)
     assert gamma_expect == pytest.approx(gamma)
 
 
 @pytest.mark.parametrize(
-    "gibbs_vector, dhda_expect",
+    "quaternion, dhda_expect",
     [
-        (np.array([1.0, 0.0, 0.0]), np.array([0.0, 10.0, 20.0]) / (4.0 + 1.0) ** 2),
-        (np.array([0.0, 1.0, 0.0]), np.array([6.0, 0.0, 12.0]) / (4.0 - 1.0) ** 2),
         (
-            np.array([0.0, 0.0, 1.0]),
+            np.array([0.89442719, 0.4472136, 0.0, 0.0]),  # gibbs -> [1.0, 0.0, 0.0]
+            np.array([0.0, 10.0, 20.0]) / (4.0 + 1.0) ** 2,
+        ),
+        (
+            np.array([0.89442719, 0.0, 0.4472136, 0.0]),  # gibbs -> [0.0, 1.0, 0.0]
+            np.array([6.0, 0.0, 12.0]) / (4.0 - 1.0) ** 2,
+        ),
+        (
+            np.array([0.89442719, 0.0, 0.0, 0.4472136]),  # gibbs -> [0.0, 0.0, 1.0]
             np.array([0.0, 0.0, 20.0]) / ((4.0 - 1.0) ** 2 * (1 + (4.0 / 3.0) ** 2)),
+        ),
+        (
+            np.array(
+                [0.92387953, 0.22094238, 0.22094238, 0.22094238]
+            ),  # gibbs -> [0.47829262, 0.47829262, 0.47829262]
+            np.array([0.06751864, 0.29609696, 0.87452584]),
         ),
     ],
 )
-def test__dhda(gibbs_vector, dhda_expect):
-    dhda_out = _dhda_head(gibbs_vector)
+def test__dhda(quaternion, dhda_expect):
+    dhda_out = _dhda_head(quaternion)
     np.testing.assert_array_almost_equal(dhda_out, dhda_expect)
 
 
@@ -982,7 +977,7 @@ class Test_AidedINS:
         H_matrix_expected[0:3, 0:3] = np.eye(3)  # position
         H_matrix_expected[3:6, 3:6] = np.eye(3)  # velocity
         H_matrix_expected[6:9, 6:9] = S(R(q).T @ v01_ned)  # gravity reference vector
-        H_matrix_expected[9:10, 6:9] = _dhda_head(_gibbs_scaled(q))  # compass
+        H_matrix_expected[9:10, 6:9] = _dhda_head(q)  # compass
 
         H_matrix_out = AidedINS._prep_H(q)
         np.testing.assert_array_almost_equal(H_matrix_out, H_matrix_expected)
@@ -1005,9 +1000,9 @@ class Test_AidedINS:
         delta_H_matrix_expect[6:9, 6:9] = S(R(quaternion).T @ v01_ned) - S(
             R(quaternion_init).T @ v01_ned
         )
-        delta_H_matrix_expect[9:10, 6:9] = _dhda_head(
-            _gibbs_scaled(quaternion)
-        ) - _dhda_head(_gibbs_scaled(quaternion_init))
+        delta_H_matrix_expect[9:10, 6:9] = _dhda_head(quaternion) - _dhda_head(
+            quaternion_init
+        )
         np.testing.assert_array_almost_equal(
             ains._H - H_matrix_init, delta_H_matrix_expect
         )
@@ -1286,7 +1281,7 @@ class Test_AidedINS:
             np.testing.assert_array_almost_equal(ains_a.x, ains_c.x)
 
     def test_update_var_raises(self):
-        """Chack that update raise ValueError if no aiding variances are provided."""
+        """Check that update raise ValueError if no aiding variances are provided."""
         fs = 10.24
 
         x0 = np.zeros(16)
