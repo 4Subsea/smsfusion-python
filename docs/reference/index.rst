@@ -18,6 +18,7 @@ API reference
    benchmark.benchmark_full_pva_chirp_202311A
    benchmark.benchmark_pure_attitude_beat_202311A
    benchmark.benchmark_pure_attitude_chirp_202311A
+   calibrate.calibrate
    noise.IMUNoise
    noise.NoiseModel
    noise.gauss_markov
