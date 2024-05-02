@@ -28,9 +28,9 @@ def calibrate(
 
     Returns
     -------
-    W_mat : numpy.ndarray, shape (3, 3)
+    W : numpy.ndarray, shape (3, 3)
         Calibration matrix for the 3-axis sensors.
-    V_vec : numpy.ndarray, shape (3,)
+    bias : numpy.ndarray, shape (3,)
         Bias values for the 3-axis sensors.
     """
     xyz_ref = np.asarray_chkfinite(xyz_ref)
@@ -46,6 +46,6 @@ def calibrate(
     A_mat = np.column_stack((xyz, np.ones(len(xyz_ref))))
     x, *_ = np.linalg.lstsq(A_mat, xyz_ref, rcond=None)
 
-    W_mat = x[:3, :].T
-    V_vec = x[3, :]
-    return W_mat, V_vec
+    W = x[:3, :].T
+    bias = x[3, :]
+    return W, bias
