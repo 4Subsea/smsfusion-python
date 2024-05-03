@@ -39,8 +39,8 @@ def calibrate(
         Calibration matrix for the 3-axis sensors.
     bias : numpy.ndarray, shape (3,)
         Bias values for the 3-axis sensors.
-
     """
+
     xyz_ref = np.asarray_chkfinite(xyz_ref)
     xyz = np.asarray_chkfinite(xyz)
 
