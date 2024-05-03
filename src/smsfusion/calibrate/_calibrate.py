@@ -20,7 +20,7 @@ def calibrate(
     -----
     The calibration model is defined as::
 
-        xyz_ref = W_mat @ xyz + V_vec
+        xyz_ref = W @ xyz + bias
 
     In total, 12 calibration parameters are needed. Accordingly, at least 4
     measurements (of 3 data points) are required to calibrate.
