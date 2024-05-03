@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from scipy.spatial.transform import Rotation
 
 from smsfusion.calibrate import calibrate, decompose
 
@@ -146,6 +147,25 @@ class Test_decompose:
         assert R.shape == S.shape
         assert R.shape == (3, 3)
         np.testing.assert_almost_equal(W_expected, W_out)
+
+    @pytest.mark.parametrize(
+        "R, S",
+        [
+            (
+                Rotation.from_euler(
+                    "ZYX", (2.0 * np.pi * np.random.default_rng().random(size=3))
+                ).as_matrix(),
+                np.diag(np.random.default_rng().random(size=3)),
+            )
+            for _ in range(10)
+        ],
+    )
+    def test_decompose_inverse(self, R, S):
+        W = R @ S
+
+        R_out, S_out = decompose(W)
+        np.testing.assert_almost_equal(R, R_out)
+        np.testing.assert_almost_equal(S, S_out)
 
     def test_wrong_shape(self):
 
