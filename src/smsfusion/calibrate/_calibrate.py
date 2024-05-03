@@ -3,7 +3,7 @@ from numpy.typing import ArrayLike, NDArray
 
 
 def calibrate(
-    xyz_ref: ArrayLike, xyz: ArrayLike, bias_pre: bool = False
+    xyz_ref: ArrayLike, xyz: ArrayLike, bias_alt: bool = False
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
     Calculate the calibration values for 3-axis sensors.
@@ -14,9 +14,9 @@ def calibrate(
         Reference values for the 3-axis sensors.
     xyz : array-like, shape (N, 3)
         Measured values from the 3-axis sensors.
-    bias_pre : bool, default False
-        If set to ``True``, the alternative calibration model where biases are added
-        first is assumed. See Notes.
+    bias_alt : bool, default False
+        If set to ``True``, the bias definition of the alternative calibration model
+        is returned. See Notes.
 
     Notes
     -----
@@ -28,7 +28,7 @@ def calibrate(
 
         xyz_ref = W @ (xyz + bias)
 
-    The alternative model is enabled by setting ``bias_pre=True``.
+    The alternative model is enabled by setting ``bias_alt=True``.
 
     In total, 12 calibration parameters are needed. Accordingly, at least 4
     measurements (of 3 data points) are required to calibrate.
@@ -57,7 +57,7 @@ def calibrate(
     W = x[:3, :].T
     bias = x[3, :]
 
-    if bias_pre:
+    if bias_alt:
         bias = np.linalg.inv(W) @ bias
     return W, bias
 

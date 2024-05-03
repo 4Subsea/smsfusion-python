@@ -54,7 +54,7 @@ class Test_calibrate:
 
         xyz = (np.linalg.inv(W_expected) @ (xyz_ref - bias_expected).T).T
 
-        W_out, bias_alt_out = calibrate(xyz_ref, xyz, bias_pre=True)
+        W_out, bias_alt_out = calibrate(xyz_ref, xyz, bias_alt=True)
         np.testing.assert_almost_equal(W_expected, W_out)
         np.testing.assert_almost_equal(bias_expected, W_out @ bias_alt_out)
 
