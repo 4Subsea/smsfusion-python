@@ -59,3 +59,40 @@ def calibrate(
     if bias_pre:
         bias = np.linalg.inv(W) @ bias
     return W, bias
+
+
+def decompose(
+    W: ArrayLike,
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """
+    Polar decompose the calibration matrix into pure rotation and scaling.
+
+    The polar decomposition is defined as::
+
+        W = R @ S
+
+    where ``R`` is pure rotation and ``S`` is scaling.
+
+    Parameters
+    ----------
+    W : array-like, shape (3, 3)
+        Calibration matrix.
+
+    Returns
+    -------
+    R : numpy.ndarray, shape (3, 3)
+        Pure rotation associated with the calibration matrix.
+    S : numpy.ndarray, shape (3, 3)
+        Scaling associated with the calibration matrix.
+    """
+
+    W = np.asarray_chkfinite(W)
+
+    if W.shape != (3, 3):
+        raise ValueError("Invalid shape. W must have shape (3, 3).")
+
+    # Copied from scipy.linalg.polar
+    w, s, vh = np.linalg.svd(W, full_matrices=False)
+    R = w.dot(vh)
+    S = (vh.T.conj() * s).dot(vh)
+    return R, S

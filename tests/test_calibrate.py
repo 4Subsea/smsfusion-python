@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from smsfusion.calibrate import calibrate
+from smsfusion.calibrate import calibrate, decompose
 
 
 class Test_calibrate:
@@ -126,3 +126,37 @@ class Test_calibrate:
         xyz = np.ones_like(xyz_ref)[:-1]
         with pytest.raises(ValueError):
             _ = calibrate(xyz_ref, xyz)
+
+
+class Test_decompose:
+    def test_decompose(self):
+
+        # Some typical calibration values
+        W_expected = np.array(
+            [
+                [0.99304605, -0.00175537, -0.00554466],
+                [0.00111272, 1.00574815, -0.01341676],
+                [-0.00113683, 0.01124392, 0.983339],
+            ]
+        )
+
+        R, S = decompose(W_expected)
+        W_out = R @ S
+
+        assert R.shape == S.shape
+        assert R.shape == (3, 3)
+        np.testing.assert_almost_equal(W_expected, W_out)
+
+    def test_wrong_shape(self):
+
+        # Some typical calibration values
+        W_expected = np.array(
+            [
+                [0.99304605, -0.00175537],
+                [0.00111272, 1.00574815],
+                [-0.00113683, 0.01124392],
+            ]
+        )
+
+        with pytest.raises(ValueError):
+            _ = decompose(W_expected)

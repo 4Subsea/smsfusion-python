@@ -1,3 +1,3 @@
-from ._calibrate import calibrate
+from ._calibrate import calibrate, decompose
 
-__all__ = ["calibrate"]
+__all__ = ["calibrate", "decompose"]
