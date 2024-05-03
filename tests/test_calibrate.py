@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
+from scipy.spatial.transform import Rotation
 
-from smsfusion.calibrate import calibrate
+from smsfusion.calibrate import calibrate, decompose
 
 
 class Test_calibrate:
@@ -31,6 +32,32 @@ class Test_calibrate:
         W_out, bias_out = calibrate(xyz_ref, xyz)
         np.testing.assert_almost_equal(W_expected, W_out)
         np.testing.assert_almost_equal(bias_expected, bias_out)
+
+    @pytest.mark.parametrize(
+        "xyz_ref",
+        [
+            np.random.default_rng().random(size=(4, 3)),
+            np.random.default_rng().random(size=(40, 3)),
+        ],
+    )
+    def test_exact_alternate(self, xyz_ref):
+        xyz_ref = xyz_ref / np.sqrt(np.sum(xyz_ref**2, axis=1))[:, np.newaxis]
+
+        # Some typical calibration values
+        W_expected = np.array(
+            [
+                [0.99304605, -0.00175537, -0.00554466],
+                [0.00111272, 1.00574815, -0.01341676],
+                [-0.00113683, 0.01124392, 0.983339],
+            ]
+        )
+        bias_expected = np.array([-0.03336607, 0.00441664, -0.00619647])
+
+        xyz = (np.linalg.inv(W_expected) @ (xyz_ref - bias_expected).T).T
+
+        W_out, bias_alt_out = calibrate(xyz_ref, xyz, bias_alt=True)
+        np.testing.assert_almost_equal(W_expected, W_out)
+        np.testing.assert_almost_equal(bias_expected, W_out @ bias_alt_out)
 
     @pytest.mark.parametrize(
         "xyz_ref",
@@ -100,3 +127,56 @@ class Test_calibrate:
         xyz = np.ones_like(xyz_ref)[:-1]
         with pytest.raises(ValueError):
             _ = calibrate(xyz_ref, xyz)
+
+
+class Test_decompose:
+    def test_decompose(self):
+
+        # Some typical calibration values
+        W_expected = np.array(
+            [
+                [0.99304605, -0.00175537, -0.00554466],
+                [0.00111272, 1.00574815, -0.01341676],
+                [-0.00113683, 0.01124392, 0.983339],
+            ]
+        )
+
+        R, S = decompose(W_expected)
+        W_out = R @ S
+
+        assert R.shape == S.shape
+        assert R.shape == (3, 3)
+        np.testing.assert_almost_equal(W_expected, W_out)
+
+    @pytest.mark.parametrize(
+        "R, S",
+        [
+            (
+                Rotation.from_euler(
+                    "ZYX", (2.0 * np.pi * np.random.default_rng().random(size=3))
+                ).as_matrix(),
+                np.diag(np.random.default_rng().random(size=3)),
+            )
+            for _ in range(10)
+        ],
+    )
+    def test_decompose_inverse(self, R, S):
+        W = R @ S
+
+        R_out, S_out = decompose(W)
+        np.testing.assert_almost_equal(R, R_out)
+        np.testing.assert_almost_equal(S, S_out)
+
+    def test_wrong_shape(self):
+
+        # Some typical calibration values
+        W_expected = np.array(
+            [
+                [0.99304605, -0.00175537],
+                [0.00111272, 1.00574815],
+                [-0.00113683, 0.01124392],
+            ]
+        )
+
+        with pytest.raises(ValueError):
+            _ = decompose(W_expected)
