@@ -19,7 +19,8 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
   "numba",
-  "numpy"
+  "numpy",
+  "scipy"  # required by numba
 ]
 
 [project.urls]
