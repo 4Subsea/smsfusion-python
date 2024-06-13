@@ -965,7 +965,7 @@ class Test_AidedINS:
 
         np.testing.assert_array_almost_equal(W_out, W_expect)
 
-    def test__prep_H(self):
+    def test__prep_H(self, ains):
         R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
         S = _skew_symmetric  # skew symmetric matrix
 
@@ -979,7 +979,7 @@ class Test_AidedINS:
         H_matrix_expected[6:9, 6:9] = S(R(q).T @ v01_ned)  # gravity reference vector
         H_matrix_expected[9:10, 6:9] = _dhda_head(q)  # compass
 
-        H_matrix_out = AidedINS._prep_H(q)
+        H_matrix_out = ains._prep_H(q)
         np.testing.assert_array_almost_equal(H_matrix_out, H_matrix_expected)
 
     def test__update_H(self, ains):

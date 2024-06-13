@@ -731,7 +731,7 @@ class AidedINS(INSMixin):
 
         H = np.zeros((10, 15))
         H[0:3, 0:3] = np.eye(3)  # position
-        H[0:3, 6:9] = -R_nm @ S(self._t_mg)
+        H[0:3, 6:9] = -R_nm @ S(self._t_mg)  # position rigid transform IMU-to-GNSS
         H[3:6, 3:6] = np.eye(3)  # velocity
         H[6:9, 6:9] = S(R_nm.T @ vg_ref_n)  # gravity reference vector
         H[9:10, 6:9] = _dhda_head(q_nm)  # compass
