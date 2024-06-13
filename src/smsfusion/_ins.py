@@ -502,6 +502,11 @@ class AidedINS(INSMixin):
         Variance of gravitational reference vector measurement noise in m^2.
     var_head : float, optional
         Variance of heading measurement noise in rad^2.
+    t : array-like, shape (3,), optional
+        Translation vector from IMU to GNSS. I.e., the position (in meters) of the GNSS
+        antenna relative to the IMU expressed in the IMU's measurement frame. If no
+        translation vector is given, it is assumed that the GNSS antenna is located
+        at the IMU's origin.
     lat : float, optional
         Latitude used to calculate the gravitational acceleration. If none
         provided, the 'standard gravity' is assumed.
@@ -532,6 +537,7 @@ class AidedINS(INSMixin):
         var_vel: ArrayLike | None = None,
         var_g: ArrayLike | None = None,
         var_head: float | None = None,
+        t: ArrayLike | None = None,
         lat: float | None = None,
         reset_bias_acc: bool = True,
         reset_bias_gyro: bool = True,
@@ -553,11 +559,16 @@ class AidedINS(INSMixin):
             var_g = np.asarray_chkfinite(var_g).reshape(3).copy()
         if var_head is not None:
             var_head = np.asarray_chkfinite(var_head).reshape(1).copy()
+        if t is not None:
+            t = np.asarray_chkfinite(t).reshape(1).copy()
+        else:
+            t = np.zeros(3)
 
         self._var_pos = var_pos
         self._var_vel = var_vel
         self._var_g = var_g
         self._var_head = var_head
+        self._t_mg = t  # IMU-to-GNSS translation vector expressed in the IMU frame
 
         # Error-state
         self._dx = np.zeros(15)
@@ -709,8 +720,7 @@ class AidedINS(INSMixin):
         # Update matrix
         self._G[3:6, 0:3] = -R_nm
 
-    @staticmethod
-    def _prep_H(q_nm: NDArray[np.float64]) -> NDArray[np.float64]:
+    def _prep_H(self, q_nm: NDArray[np.float64]) -> NDArray[np.float64]:
         """Prepare linearized measurement matrix, H."""
 
         # Reference vector
@@ -721,6 +731,7 @@ class AidedINS(INSMixin):
 
         H = np.zeros((10, 15))
         H[0:3, 0:3] = np.eye(3)  # position
+        H[0:3, 6:9] = -R_nm @ S(self._t_mg)
         H[3:6, 3:6] = np.eye(3)  # velocity
         H[6:9, 6:9] = S(R_nm.T @ vg_ref_n)  # gravity reference vector
         H[9:10, 6:9] = _dhda_head(q_nm)  # compass
