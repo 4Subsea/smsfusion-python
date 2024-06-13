@@ -560,7 +560,7 @@ class AidedINS(INSMixin):
         if var_head is not None:
             var_head = np.asarray_chkfinite(var_head).reshape(1).copy()
         if t is not None:
-            t = np.asarray_chkfinite(t).reshape(1).copy()
+            t = np.asarray_chkfinite(t).reshape(3).copy()
         else:
             t = np.zeros(3)
 

@@ -614,6 +614,7 @@ class Test_AidedINS:
             P0_prior,
             err_acc,
             err_gyro,
+            t=(1, 2, 3),
             lat=60.0,
             reset_bias_acc=False,
             reset_bias_gyro=True,
@@ -635,6 +636,7 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(ains._dx, np.zeros(15))
         np.testing.assert_array_almost_equal(ains._dx_prior, dx0_prior)
         np.testing.assert_array_almost_equal(ains._P_prior, P0_prior)
+        np.testing.assert_array_almost_equal(ains._t_mg, (1, 2, 3))
 
         assert ains._P.shape == (15, 15)
 
