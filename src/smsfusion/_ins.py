@@ -868,7 +868,7 @@ class AidedINS(INSMixin):
         dz_temp, var_z_temp, H_temp = [], [], []
         if pos is not None:
             pos = np.asarray_chkfinite(pos, dtype=float).reshape(3).copy()
-            delta_pos = pos - pos_ins
+            delta_pos = pos - pos_ins - R_ins_nm @ self._t_mg
 
             if var_pos is not None:
                 var_pos = np.asarray_chkfinite(var_pos, dtype=float).reshape(3).copy()
