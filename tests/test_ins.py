@@ -655,6 +655,29 @@ class Test_AidedINS:
         assert ains._W.shape == (12, 12)
         assert ains._H.shape == (10, 15)
 
+    def test__init__no_trans_vector(self):
+        x0 = np.random.random(16)
+        x0[6:10] = (1.0, 0.0, 0.0, 0.0)
+        P0_prior = np.eye(15)
+
+        err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
+        err_gyro = {
+            "N": np.radians(2.0e-3),
+            "B": np.radians(180.0 * 8.0e-4),
+            "tau_cb": 50,
+        }
+
+        ains = AidedINS(
+            10.24,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            t=None,  # no translation vector
+        )
+
+        np.testing.assert_array_almost_equal(ains._t_mg, np.zeros(3))
+
     def test__init__var_aiding(self):
         fs = 10.24
 
