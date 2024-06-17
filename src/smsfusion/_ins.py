@@ -506,7 +506,7 @@ class AidedINS(INSMixin):
         Lever-arm vector describing the location of position aiding (in meters) relative
         to the IMU expressed in the IMU's measurement frame. For instance, the location
         of the GNSS antenna relative to the IMU. By default it is assumed that the
-        position aiding is located at the IMU's origin.
+        aiding position coincides with the IMU's origin.
     lat : float, optional
         Latitude used to calculate the gravitational acceleration. If none
         provided, the 'standard gravity' is assumed.
