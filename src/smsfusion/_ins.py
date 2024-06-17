@@ -502,11 +502,11 @@ class AidedINS(INSMixin):
         Variance of gravitational reference vector measurement noise in m^2.
     var_head : float, optional
         Variance of heading measurement noise in rad^2.
-    t : array-like, shape (3,), optional
-        Translation vector from IMU to GNSS. I.e., the position (in meters) of the GNSS
-        antenna relative to the IMU expressed in the IMU's measurement frame. If no
-        translation vector is given, it is assumed that the GNSS antenna is located
-        at the IMU's origin.
+    lever_arm : array-like, shape (3,), default numpy.zeros(3)
+        Lever-arm vector describing the location of position aiding (in meters) relative
+        to the IMU expressed in the IMU's measurement frame. For instance, the location
+        of the GNSS antenna relative to the IMU. By default it is assumed that the
+        position aiding is located at the IMU's origin.
     lat : float, optional
         Latitude used to calculate the gravitational acceleration. If none
         provided, the 'standard gravity' is assumed.
@@ -537,7 +537,7 @@ class AidedINS(INSMixin):
         var_vel: ArrayLike | None = None,
         var_g: ArrayLike | None = None,
         var_head: float | None = None,
-        t: ArrayLike | None = None,
+        lever_arm: ArrayLike = np.zeros(3),
         lat: float | None = None,
         reset_bias_acc: bool = True,
         reset_bias_gyro: bool = True,
@@ -559,16 +559,16 @@ class AidedINS(INSMixin):
             var_g = np.asarray_chkfinite(var_g).reshape(3).copy()
         if var_head is not None:
             var_head = np.asarray_chkfinite(var_head).reshape(1).copy()
-        if t is not None:
-            t = np.asarray_chkfinite(t).reshape(3).copy()
-        else:
-            t = np.zeros(3)
+        if lever_arm is not None:
+            lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
 
         self._var_pos = var_pos
         self._var_vel = var_vel
         self._var_g = var_g
         self._var_head = var_head
-        self._t_mg = t  # IMU-to-GNSS translation vector expressed in the IMU frame
+        self._lever_arm = (
+            lever_arm  # IMU-to-aiding lever arm vector expressed in the IMU frame
+        )
 
         # Error-state
         self._dx = np.zeros(15)
@@ -588,7 +588,7 @@ class AidedINS(INSMixin):
         q0 = self._ins._q_nm
         self._F = self._prep_F(err_acc, err_gyro, q0)
         self._G = self._prep_G(q0)
-        self._H = self._prep_H(q0)
+        self._H = self._prep_H(q0, lever_arm)
         self._W = self._prep_W(err_acc, err_gyro)
 
     def dump(self):
@@ -611,6 +611,7 @@ class AidedINS(INSMixin):
             "var_vel": self._var_vel.tolist() if self._var_vel is not None else None,
             "var_g": self._var_g.tolist() if self._var_g is not None else None,
             "var_head": self._var_head.tolist() if self._var_head is not None else None,
+            "lever_arm": self._lever_arm.tolist(),
             "lat": self._lat,
             "reset_bias_acc": self._reset_bias_acc,
             "reset_bias_gyro": self._reset_bias_gyro,
@@ -720,7 +721,10 @@ class AidedINS(INSMixin):
         # Update matrix
         self._G[3:6, 0:3] = -R_nm
 
-    def _prep_H(self, q_nm: NDArray[np.float64]) -> NDArray[np.float64]:
+    @staticmethod
+    def _prep_H(
+        q_nm: NDArray[np.float64], lever_arm: NDArray[np.float64]
+    ) -> NDArray[np.float64]:
         """Prepare linearized measurement matrix, H."""
 
         # Reference vector
@@ -731,13 +735,15 @@ class AidedINS(INSMixin):
 
         H = np.zeros((10, 15))
         H[0:3, 0:3] = np.eye(3)  # position
-        H[0:3, 6:9] = -R_nm @ S(self._t_mg)  # rigid transform IMU-to-GNSS
+        H[0:3, 6:9] = -R_nm @ S(lever_arm)  # rigid transform IMU-to-aiding
         H[3:6, 3:6] = np.eye(3)  # velocity
         H[6:9, 6:9] = S(R_nm.T @ vg_ref_n)  # gravity reference vector
         H[9:10, 6:9] = _dhda_head(q_nm)  # compass
         return H
 
-    def _update_H(self, q_nm: NDArray[np.float64]) -> None:
+    def _update_H(
+        self, q_nm: NDArray[np.float64], lever_arm: NDArray[np.float64]
+    ) -> None:
         """Update linearized measurement matrix, H."""
 
         # Reference vector
@@ -746,7 +752,7 @@ class AidedINS(INSMixin):
         S = _skew_symmetric  # alias skew symmetric matrix
         R_nm = _rot_matrix_from_quaternion(q_nm)  # body-to-ned rotation matrix
 
-        self._H[0:3, 6:9] = -R_nm @ S(self._t_mg)  # rigid transform IMU-to-GNSS
+        self._H[0:3, 6:9] = -R_nm @ S(lever_arm)  # rigid transform IMU-to-aiding
         self._H[6:9, 6:9] = S(R_nm.T @ vg_ref_n)  # gravity reference vector
         self._H[9:10, 6:9] = _dhda_head(q_nm)  # compass
 
@@ -859,16 +865,19 @@ class AidedINS(INSMixin):
         f_ins = f_imu - bias_acc_ins
         w_ins = w_imu - bias_gyro_ins
 
+        # Lever arm vector - IMU-to-aiding
+        lever_arm = self._lever_arm
+
         # Update system matrices
         self._update_F(q_ins_nm, f_ins, w_ins)
         self._update_G(q_ins_nm)
-        self._update_H(q_ins_nm)
+        self._update_H(q_ins_nm, lever_arm)
 
         # Position aiding
         dz_temp, var_z_temp, H_temp = [], [], []
         if pos is not None:
             pos = np.asarray_chkfinite(pos, dtype=float).reshape(3).copy()
-            delta_pos = pos - pos_ins - R_ins_nm @ self._t_mg
+            delta_pos = pos - pos_ins - R_ins_nm @ lever_arm
 
             if var_pos is not None:
                 var_pos = np.asarray_chkfinite(var_pos, dtype=float).reshape(3).copy()
