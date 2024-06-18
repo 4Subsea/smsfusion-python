@@ -585,7 +585,9 @@ class Test_AidedINS:
 
         var_g = (0.1) ** 2 * np.ones(3)  # other variances must be given during update
 
-        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro, var_g=var_g)
+        ains = AidedINS(
+            fs, x0, P0_prior, err_acc, err_gyro, var_g=var_g, lever_arm=np.ones(3)
+        )
         return ains
 
     def test__init__(self):
@@ -614,6 +616,7 @@ class Test_AidedINS:
             P0_prior,
             err_acc,
             err_gyro,
+            lever_arm=(1, 2, 3),
             lat=60.0,
             reset_bias_acc=False,
             reset_bias_gyro=True,
@@ -635,6 +638,7 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(ains._dx, np.zeros(15))
         np.testing.assert_array_almost_equal(ains._dx_prior, dx0_prior)
         np.testing.assert_array_almost_equal(ains._P_prior, P0_prior)
+        np.testing.assert_array_almost_equal(ains._lever_arm, (1, 2, 3))
 
         assert ains._P.shape == (15, 15)
 
@@ -652,6 +656,29 @@ class Test_AidedINS:
         assert ains._G.shape == (15, 12)
         assert ains._W.shape == (12, 12)
         assert ains._H.shape == (10, 15)
+
+    def test__init__defualt_lever_arm(self):
+        x0 = np.random.random(16)
+        x0[6:10] = (1.0, 0.0, 0.0, 0.0)
+        P0_prior = np.eye(15)
+
+        err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
+        err_gyro = {
+            "N": np.radians(2.0e-3),
+            "B": np.radians(180.0 * 8.0e-4),
+            "tau_cb": 50,
+        }
+
+        ains = AidedINS(
+            10.24,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            # no lever_arm
+        )
+
+        np.testing.assert_array_almost_equal(ains._lever_arm, np.zeros(3))
 
     def test__init__var_aiding(self):
         fs = 10.24
@@ -706,6 +733,7 @@ class Test_AidedINS:
         assert ains_b._fs == ains._fs
         assert ains_b._err_acc == ains._err_acc
         assert ains_b._err_gyro == ains._err_gyro
+        np.testing.assert_array_almost_equal(ains_b._lever_arm, ains._lever_arm)
         assert ains_b._lat == ains._lat
         assert ains_b._reset_bias_acc == ains._reset_bias_acc
         assert ains_b._reset_bias_gyro == ains._reset_bias_gyro
@@ -965,7 +993,7 @@ class Test_AidedINS:
 
         np.testing.assert_array_almost_equal(W_out, W_expect)
 
-    def test__prep_H(self):
+    def test__prep_H_lever_arm_zero(self, ains):
         R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
         S = _skew_symmetric  # skew symmetric matrix
 
@@ -979,13 +1007,33 @@ class Test_AidedINS:
         H_matrix_expected[6:9, 6:9] = S(R(q).T @ v01_ned)  # gravity reference vector
         H_matrix_expected[9:10, 6:9] = _dhda_head(q)  # compass
 
-        H_matrix_out = AidedINS._prep_H(q)
+        H_matrix_out = AidedINS._prep_H(q, np.zeros(3))
         np.testing.assert_array_almost_equal(H_matrix_out, H_matrix_expected)
 
-    def test__update_H(self, ains):
+    def test__prep_H_lever_arm(self, ains):
+        R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
+        S = _skew_symmetric  # skew symmetric matrix
+
+        q = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
+
+        v01_ned = np.array([0.0, 0.0, 1.0])
+        lever_arm = np.array([1.0, 1.0, 1.0])
+
+        H_matrix_expected = np.zeros((10, 15))
+        H_matrix_expected[0:3, 0:3] = np.eye(3)  # position
+        H_matrix_expected[0:3, 6:9] = -R(q) @ S(lever_arm)
+        H_matrix_expected[3:6, 3:6] = np.eye(3)  # velocity
+        H_matrix_expected[6:9, 6:9] = S(R(q).T @ v01_ned)  # gravity reference vector
+        H_matrix_expected[9:10, 6:9] = _dhda_head(q)  # compass
+
+        H_matrix_out = AidedINS._prep_H(q, lever_arm)
+        np.testing.assert_array_almost_equal(H_matrix_out, H_matrix_expected)
+
+    def test__update_H_lever_arm(self, ains):
         quaternion_init = ains.quaternion()
 
         v01_ned = np.array([0.0, 0.0, 1.0])
+        lever_arm = np.array([1.0, 1.0, 1.0])
 
         R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
         S = _skew_symmetric  # skew symmetric matrix
@@ -994,7 +1042,7 @@ class Test_AidedINS:
 
         quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
 
-        ains._update_H(quaternion)
+        ains._update_H(quaternion, lever_arm)
 
         delta_H_matrix_expect = np.zeros_like(H_matrix_init)
         delta_H_matrix_expect[6:9, 6:9] = S(R(quaternion).T @ v01_ned) - S(
@@ -1003,6 +1051,9 @@ class Test_AidedINS:
         delta_H_matrix_expect[9:10, 6:9] = _dhda_head(quaternion) - _dhda_head(
             quaternion_init
         )
+        delta_H_matrix_expect[0:3, 6:9] = -R(quaternion) @ S(lever_arm) + R(
+            quaternion_init
+        ) @ S(lever_arm)
         np.testing.assert_array_almost_equal(
             ains._H - H_matrix_init, delta_H_matrix_expect
         )
