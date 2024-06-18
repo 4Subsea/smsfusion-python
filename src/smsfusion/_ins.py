@@ -12,6 +12,108 @@ from ._transforms import (
 from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
 
+class FixedNED:
+    """
+    Convert position coordinates between a fixed NED frame (x, y, z) and ECEF frame
+    (lattitude, longitude, height).
+
+    The fixed NED frame is a tangential plane on the WGS-84 ellipsoid with its origin
+    fixed at the provided reference coordinates.
+
+    Parameters
+    ----------
+    lat_ref: float
+        Refrence latitude coordinate in decimal degrees.
+    lon_ref: float
+        Refrence longitude coordinate in decimal degrees.
+    height_ref: ref
+        Refrence height coordinate in decimal degrees.
+    """
+
+    def __init__(self, lat_ref: float, lon_ref: float, height_ref: float) -> None:
+        self._lat_ref = lat_ref
+        self._lon_ref = lon_ref
+        self._height_ref = height_ref
+
+        radius_eq = 6_378_137  # equatorial radius (WGS-84)
+        radius_polar = 6_356_752.314245  # polar radius (WGS-84)
+
+        radius_ratio_squared = (radius_polar / radius_eq) ** 2
+        denom = np.cos(
+            self._lat_ref * (np.pi / 180.0)
+        ) ** 2 + radius_ratio_squared * np.sin(self._lat_ref * (np.pi / 180.0))
+
+        self._radius_primev = radius_eq / np.sqrt(denom)
+        self._radius_meridian = self._radius_primev * radius_ratio_squared / denom
+        self._radius_meridian_cos = self._radius_meridian * np.cos(
+            self._lat_ref * (np.pi / 180.0)
+        )
+
+    def to_llh(self, x: float, y: float, z: float) -> tuple[float, float, float]:
+        """
+        Compute longitude, latitude, and height coordinates (WGS-84) from local
+        Cartesian coordinates in the fixed NED frame.
+
+        Parameters
+        ----------
+        x: float
+            Local x-coordinate in meters in the fixed NED frame.
+        y: float
+            Local y-coordinate in meters in the fixed NED frame.
+        z: float
+            Local z-coordinate in meters in the fixed NED frame.
+
+        Returns
+        -------
+        lat: float
+            Latitude coordinate in decimal degrees.
+        lon: float
+            Longitude coordinate in decimal degrees.
+        height: float
+            Height coordinate in meters.
+        """
+        dlat = x * np.atan2(1.0, self._radius_primev) * (180.0 / np.pi)
+        dlon = y * np.atan2(1.0, self._radius_meridian_cos) * (180.0 / np.pi)
+
+        lat = _signed_smallest_angle(self._lat_ref + dlat, degrees=True)
+        lon = _signed_smallest_angle(self._lon_ref + dlon, degrees=True)
+        h = self._height_ref - z
+        return lon, lat, h
+
+    def to_xyz(
+        self, lon: float, lat: float, height: float
+    ) -> tuple[float, float, float]:
+        """
+        Compute local Cartesian coordinates in the fixed NED frame from longitude,
+        latitude, and height coordinates (WGS-84).
+
+        Parameters
+        ----------
+        lat: float
+            Latitude coordinate in decimal degrees.
+        lon: float
+            Longitude coordinate in decimal degrees.
+        height: float
+            Height coordinate in meters.
+
+        Returns
+        -------
+        x: float
+            Local x-coordinate in meters in the fixed NED frame.
+        y: float
+            Local y-coordinate in meters in the fixed NED frame.
+        z: float
+            Local z-coordinate in meters in the fixed NED frame.
+        """
+        dlat = lat - self._lat_ref
+        dlon = lon - self._lon_ref
+
+        x = (np.pi / 180.0) * dlat / np.atan2(1.0, self._radius_primev)
+        y = (np.pi / 180.0) * dlon / np.atan2(1.0, self._radius_meridian_cos)
+        z = self._height_ref - height
+        return x, y, z
+
+
 def _signed_smallest_angle(angle: float, degrees: bool = True) -> float:
     """
     Convert the given angle to the smallest angle between [-180., 180) degrees.
