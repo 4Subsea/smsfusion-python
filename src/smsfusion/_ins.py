@@ -18,7 +18,8 @@ class FixedNED:
     (lattitude, longitude, height).
 
     The fixed NED frame is a tangential plane on the WGS-84 ellipsoid with its origin
-    fixed at the provided reference coordinates.
+    fixed at the provided reference coordinates. It is assumed that the tangential
+    plane is close to the ellipsoid surface.
 
     Parameters
     ----------
