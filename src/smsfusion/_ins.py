@@ -43,9 +43,11 @@ class FixedNED:
             self._lat_ref * (np.pi / 180.0)
         ) ** 2 + radius_ratio_squared * np.sin(self._lat_ref * (np.pi / 180.0))
 
-        self._radius_primev = radius_eq / np.sqrt(denom)
-        self._radius_meridian = self._radius_primev * radius_ratio_squared / denom
-        self._radius_meridian_cos = self._radius_meridian * np.cos(
+        self._Rn = radius_eq / np.sqrt(denom)  # radius prime vertical
+        self._Rm = self._Rn * radius_ratio_squared / denom  # radius meridian
+
+        self._Rm_h = self._Rm + height_ref
+        self._Rn_h_cos = (self._Rn + height_ref) * np.cos(
             self._lat_ref * (np.pi / 180.0)
         )
 
@@ -72,16 +74,16 @@ class FixedNED:
         height: float
             Height coordinate in meters.
         """
-        dlat = x * np.atan2(1.0, self._radius_primev) * (180.0 / np.pi)
-        dlon = y * np.atan2(1.0, self._radius_meridian_cos) * (180.0 / np.pi)
+        dlat = (180.0 / np.pi) * x / self._Rm_h
+        dlon = (180.0 / np.pi) * y / self._Rn_h_cos
 
         lat = _signed_smallest_angle(self._lat_ref + dlat, degrees=True)
         lon = _signed_smallest_angle(self._lon_ref + dlon, degrees=True)
         h = self._height_ref - z
-        return lon, lat, h
+        return lat, lon, h
 
     def to_xyz(
-        self, lon: float, lat: float, height: float
+        self, lat: float, lon: float, height: float
     ) -> tuple[float, float, float]:
         """
         Compute local Cartesian coordinates in the fixed NED frame from longitude,
@@ -108,8 +110,8 @@ class FixedNED:
         dlat = lat - self._lat_ref
         dlon = lon - self._lon_ref
 
-        x = (np.pi / 180.0) * dlat / np.atan2(1.0, self._radius_primev)
-        y = (np.pi / 180.0) * dlon / np.atan2(1.0, self._radius_meridian_cos)
+        x = (np.pi / 180.0) * dlat * self._Rm_h
+        y = (np.pi / 180.0) * dlon * self._Rn_h_cos
         z = self._height_ref - height
         return x, y, z
 

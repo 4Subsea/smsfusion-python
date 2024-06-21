@@ -18,6 +18,7 @@ from scipy.spatial.transform import Rotation
 
 from smsfusion._ins import (
     AidedINS,
+    FixedNED,
     INSMixin,
     StrapdownINS,
     _dhda_head,
@@ -1749,3 +1750,78 @@ class Test_AidedINS:
         assert bias_gyro_x_rms <= 1e-3
         assert bias_gyro_y_rms <= 1e-3
         assert bias_gyro_z_rms <= 1e-3
+
+
+class Test_FixedNed:
+    def test_init(self):
+        _ = FixedNED(0.0, 0.0, 0.0)
+
+    @pytest.mark.parametrize(
+        "lat, lon, height, x, y, z",
+        [
+            (0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            (0.0, 0.0, 1.0, 0.0, 0.0, -1.0),
+            (0.1, 0.0, 0.0, pytest.approx(11057.4, abs=0.05), 0.0, 0.0),
+            (-0.1, 0.0, 0.0, pytest.approx(-11057.4, abs=0.05), 0.0, 0.0),
+            (0.0, 0.1, 0.0, 0.0, pytest.approx(11131.9, abs=0.05), 0.0),
+            (0.0, -0.1, 0.0, 0.0, pytest.approx(-11131.9, abs=0.05), 0.0),
+            (
+                0.1,
+                0.1,
+                0.0,
+                pytest.approx(11057.4, abs=0.05),
+                pytest.approx(11131.9, abs=0.05),
+                0.0,
+            ),
+            (
+                -0.1,
+                -0.1,
+                0.0,
+                pytest.approx(-11057.4, abs=0.05),
+                pytest.approx(-11131.9, abs=0.05),
+                0.0,
+            ),
+        ],
+    )
+    def test_to_xyz(self, lat, lon, height, x, y, z):
+        ned = FixedNED(0.0, 0.0, 0.0)
+
+        x_, y_, z_ = ned.to_xyz(lat, lon, height)
+        assert x_ == x
+        assert y_ == y
+        assert z_ == z
+
+    @pytest.mark.parametrize(
+        "lat, lon, height, x, y, z",
+        [
+            (0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            (0.0, 0.0, 1.0, 0.0, 0.0, -1.0),
+            (pytest.approx(0.1, abs=1e-4), 0.0, 0.0, 11057.4, 0.0, 0.0),
+            (pytest.approx(-0.1, abs=1e-4), 0.0, 0.0, -11057.4, 0.0, 0.0),
+            (0.0, pytest.approx(0.1, abs=1e-4), 0.0, 0.0, 11131.9, 0.0),
+            (0.0, pytest.approx(-0.1, abs=1e-4), 0.0, 0.0, -11131.9, 0.0),
+            (
+                pytest.approx(0.1, abs=1e-4),
+                pytest.approx(0.1, abs=1e-4),
+                0.0,
+                11057.4,
+                11131.9,
+                0.0,
+            ),
+            (
+                pytest.approx(-0.1, abs=1e-4),
+                pytest.approx(-0.1, abs=1e-4),
+                0.0,
+                -11057.4,
+                -11131.9,
+                0.0,
+            ),
+        ],
+    )
+    def test_to_llh(self, lat, lon, height, x, y, z):
+        ned = FixedNED(0.0, 0.0, 0.0)
+
+        lat_, lon_, height_ = ned.to_llh(x, y, z)
+        assert lat_ == lat
+        assert lon_ == lon
+        assert height_ == height
