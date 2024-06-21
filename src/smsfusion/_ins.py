@@ -24,11 +24,11 @@ class FixedNED:
     Parameters
     ----------
     lat_ref: float
-        Refrence latitude coordinate in decimal degrees.
+        Reference latitude coordinate in decimal degrees.
     lon_ref: float
-        Refrence longitude coordinate in decimal degrees.
+        Reference longitude coordinate in decimal degrees.
     height_ref: ref
-        Refrence height coordinate in decimal degrees.
+        Reference height coordinate in decimal degrees.
     """
 
     def __init__(self, lat_ref: float, lon_ref: float, height_ref: float) -> None:
