@@ -599,32 +599,14 @@ class AidedINS(INSMixin):
         * ``N``: White noise power spectral density in (rad/s)/sqrt(Hz).
         * ``B``: Bias stability in rad/s.
         * ``tau_cb``: Bias correlation time in seconds.
-    var_pos : array-like, shape (3,), optional
-        Variance of position measurement noise in m^2.
-    var_vel : array-like, shape (3,), optional
-        Variance of velocity measurement noise in (m/s)^2.
-    var_g : array-like, shape (3,), optional
-        Variance of gravitational reference vector measurement noise in m^2.
-    var_head : float, optional
-        Variance of heading measurement noise in rad^2.
     lever_arm : array-like, shape (3,), default numpy.zeros(3)
         Lever-arm vector describing the location of position aiding (in meters) relative
         to the IMU expressed in the IMU's measurement frame. For instance, the location
         of the GNSS antenna relative to the IMU. By default it is assumed that the
         aiding position coincides with the IMU's origin.
     lat : float, optional
-        Latitude used to calculate the gravitational acceleration. If none
-        provided, the 'standard gravity' is assumed.
-    reset_bias_acc : bool, default True
-        Specifies whether to reset the accelerometer bias after each update cycle. If
-        set to ``True``, the estimated error-state bias is incorporated into the
-        strapdown algorithm's bias state, effectively resetting the error-state bias to
-        zero. Defaults to ``True``.
-    reset_bias_gyro : bool, default True
-        Specifies whether to reset the gyroscope bias after each update cycle. If set to
-        ``True``, the estimated error-state bias is incorporated into the strapdown
-        algorithm's bias state, effectively resetting the error-state bias to zero.
-        Defaults to ``True``.
+        Latitude used to calculate the gravitational acceleration. If ``None`` provided,
+        the 'standard gravity' is assumed.
     dx0_prior : array-like, shape (15,), default numpy.zeros(15)
         Initial a priori estimate of the error-state vector. Defaults to ``numpy.zeros(15)``.
     """
@@ -638,14 +620,8 @@ class AidedINS(INSMixin):
         P0_prior: ArrayLike,
         err_acc: dict[str, float],
         err_gyro: dict[str, float],
-        var_pos: ArrayLike | None = None,
-        var_vel: ArrayLike | None = None,
-        var_g: ArrayLike | None = None,
-        var_head: float | None = None,
         lever_arm: ArrayLike = np.zeros(3),
         lat: float | None = None,
-        reset_bias_acc: bool = True,
-        reset_bias_gyro: bool = True,
         dx0_prior: ArrayLike = np.zeros(15),
     ) -> None:
         self._fs = fs
@@ -653,27 +629,7 @@ class AidedINS(INSMixin):
         self._err_acc = err_acc
         self._err_gyro = err_gyro
         self._lat = lat
-        self._reset_bias_acc = reset_bias_acc
-        self._reset_bias_gyro = reset_bias_gyro
-
-        if var_pos is not None:
-            var_pos = np.asarray_chkfinite(var_pos).reshape(3).copy()
-        if var_vel is not None:
-            var_vel = np.asarray_chkfinite(var_vel).reshape(3).copy()
-        if var_g is not None:
-            var_g = np.asarray_chkfinite(var_g).reshape(3).copy()
-        if var_head is not None:
-            var_head = np.asarray_chkfinite(var_head).reshape(1).copy()
-        if lever_arm is not None:
-            lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
-
-        self._var_pos = var_pos
-        self._var_vel = var_vel
-        self._var_g = var_g
-        self._var_head = var_head
-        self._lever_arm = (
-            lever_arm  # IMU-to-aiding lever arm vector expressed in the IMU frame
-        )
+        self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
 
         # Error-state
         self._dx = np.zeros(15)
@@ -693,7 +649,7 @@ class AidedINS(INSMixin):
         q0 = self._ins._q_nm
         self._F = self._prep_F(err_acc, err_gyro, q0)
         self._G = self._prep_G(q0)
-        self._H = self._prep_H(q0, lever_arm)
+        self._H = self._prep_H(q0, self._lever_arm)
         self._W = self._prep_W(err_acc, err_gyro)
 
     def dump(self):
@@ -712,14 +668,8 @@ class AidedINS(INSMixin):
             "P0_prior": self._P_prior.tolist(),
             "err_acc": self._err_acc,
             "err_gyro": self._err_gyro,
-            "var_pos": self._var_pos.tolist() if self._var_pos is not None else None,
-            "var_vel": self._var_vel.tolist() if self._var_vel is not None else None,
-            "var_g": self._var_g.tolist() if self._var_g is not None else None,
-            "var_head": self._var_head.tolist() if self._var_head is not None else None,
             "lever_arm": self._lever_arm.tolist(),
             "lat": self._lat,
-            "reset_bias_acc": self._reset_bias_acc,
-            "reset_bias_gyro": self._reset_bias_gyro,
             "dx0_prior": self._dx_prior.tolist(),
         }
         return params
@@ -881,19 +831,19 @@ class AidedINS(INSMixin):
         W[9:12, 9:12] *= 2.0 * sigma_gyro**2 * beta_gyro
         return W
 
-    def _reset(self) -> None:
+    def _reset(self, reset_bias_acc: bool, reset_bias_gyro: bool) -> None:
         """Reset"""
         x_ins = np.r_[
             self._x[:10],
-            self._x[10:13] if self._reset_bias_acc else self._ins._bias_acc,
-            self._x[13:16] if self._reset_bias_gyro else self._ins._bias_gyro,
+            self._x[10:13] if reset_bias_acc else self._ins._bias_acc,
+            self._x[13:16] if reset_bias_gyro else self._ins._bias_gyro,
         ]
         self._ins.reset(x_ins)
 
         dx = np.r_[
             np.zeros(9),
-            np.zeros(3) if self._reset_bias_acc else self._dx[9:12],
-            np.zeros(3) if self._reset_bias_gyro else self._dx[12:15],
+            np.zeros(3) if reset_bias_acc else self._dx[9:12],
+            np.zeros(3) if reset_bias_gyro else self._dx[12:15],
         ]
         self._dx = dx
 
@@ -901,16 +851,18 @@ class AidedINS(INSMixin):
         self,
         f_imu: ArrayLike,
         w_imu: ArrayLike,
-        pos: ArrayLike | None = None,
-        vel: ArrayLike | None = None,
-        head: float | None = None,
-        g_ref: bool = False,
         degrees: bool = False,
+        pos: ArrayLike | None = None,
+        pos_var: ArrayLike | None = None,
+        vel: ArrayLike | None = None,
+        vel_var: ArrayLike | None = None,
+        head: float | None = None,
+        head_var: float | None = None,
         head_degrees: bool = True,
-        var_pos: ArrayLike | None = None,
-        var_vel: ArrayLike | None = None,
-        var_g: ArrayLike | None = None,
-        var_head: float | None = None,
+        g_ref: bool = False,
+        g_var: ArrayLike | None = None,
+        reset_bias_acc: bool = False,
+        reset_bias_gyro: bool = False,
     ) -> "AidedINS":  # TODO: Replace with ``typing.Self`` when Python > 3.11
         """
         Update the AINS state estimates based on measurements.
@@ -925,26 +877,39 @@ class AidedINS(INSMixin):
             Angular rate measurements, given as [w_x, w_y, w_z]^T where
             w_x, w_y and w_z are angular rates about the x-, y-,
             and z-axis, respectively.
-        pos : array-like, shape (3,), optional
-            Position aiding measurement. If ``None``, position aiding is not used.
-        vel : array-like, shape (3,), optional
-            Velocity aiding measurement. If ``None``, velocity aiding is not used.
-        head : float, optional
-            Heading measurement, i.e., yaw angle. If ``None``, compass aiding is not used.
-        g_ref : bool, optional, default False
-            Specifies whether the gravity reference vector is used as an aiding measurement.
         degrees : bool, default False
             Specifies whether the unit of ``w_imu`` are in degrees or radians.
-        head_degrees : bool, default True
-            Specifies whether the unit of ``head`` are in degrees or radians.
-        var_pos : array-like, shape (3,), optional
-            Variance of position measurement noise in m^2.
-        var_vel : array-like, shape (3,), optional
-            Variance of velocity measurement noise in (m/s)^2.
-        var_g : array-like, shape (3,), optional
-            Variance of gravitational reference vector measurement noise in m^2.
-        var_head : float, optional
-            Variance of heading measurement noise in rad^2.
+        pos : array-like, shape (3,), optional
+            Position aiding measurement in m. If ``None``, position aiding is not used.
+        pos_var : array-like, shape (3,), optional
+            Variance of position measurement noise in m^2. Required for ``pos``.
+        vel : array-like, shape (3,), optional
+            Velocity aiding measurement in m/s. If ``None``, velocity aiding is not used.
+        vel_var : array-like, shape (3,), optional
+            Variance of velocity measurement noise in (m/s)^2. Required for ``vel``.
+        head : float, optional
+            Heading measurement, i.e., yaw angle. If ``None``, compass aiding is not used.
+            See ``head_degrees`` for units.
+        head_var : float, optional
+            Variance of heading measurement noise. Units must be compatible with ``head``.
+             See ``head_degrees`` for units. Required for ``head``.
+        head_degrees : bool, default False
+            Specifies whether the unit of ``head`` and ``head_var`` are in degrees and degrees^2,
+            or radians and radians^2. Default is in radians and radians^2.
+        g_ref : bool, optional, default False
+            Specifies whether the gravity reference vector is used as an aiding measurement.
+        g_var : array-like, shape (3,), optional
+            Variance of gravitational reference vector measurement noise. Required for
+            ``g_ref``.
+        reset_bias_acc : bool, default False
+            Specifies whether to reset the accelerometer bias after the update cycle. If
+            set to ``True``, the estimated error-state bias is incorporated into the
+            strapdown algorithm's bias state, effectively resetting the error-state bias
+            to zero.
+        reset_bias_gyro : bool, default False
+            Specifies whether to reset the gyroscope bias after the update cycle. If set
+            to ``True``, the estimated error-state bias is incorporated into the strapdown
+            algorithm's bias state, effectively resetting the error-state bias to zero.
 
         Returns
         -------
@@ -978,71 +943,60 @@ class AidedINS(INSMixin):
         self._update_G(q_ins_nm)
         self._update_H(q_ins_nm, lever_arm)
 
-        # Position aiding
         dz_temp, var_z_temp, H_temp = [], [], []
+        # Position aiding
         if pos is not None:
+            if pos_var is None:
+                raise ValueError("'pos_var' not provided.")
+
             pos = np.asarray_chkfinite(pos, dtype=float).reshape(3).copy()
             delta_pos = pos - pos_ins - R_ins_nm @ lever_arm
-
-            if var_pos is not None:
-                var_pos = np.asarray_chkfinite(var_pos, dtype=float).reshape(3).copy()
-            elif self._var_pos is not None:
-                var_pos = self._var_pos
-            else:
-                raise ValueError("'var_pos' not provided.")
+            pos_var = np.asarray_chkfinite(pos_var, dtype=float).reshape(3).copy()
 
             dz_temp.append(delta_pos)
-            var_z_temp.append(var_pos)
+            var_z_temp.append(pos_var)
             H_temp.append(self._H[0:3])
 
         # Velocity aiding
         if vel is not None:
+            if vel_var is None:
+                raise ValueError("'vel_var' not provided.")
+
             vel = np.asarray_chkfinite(vel, dtype=float).reshape(3).copy()
             delta_vel = vel - vel_ins
-
-            if var_vel is not None:
-                var_vel = np.asarray_chkfinite(var_vel, dtype=float).reshape(3).copy()
-            elif self._var_vel is not None:
-                var_vel = self._var_vel
-            else:
-                raise ValueError("'var_vel' not provided.")
+            vel_var = np.asarray_chkfinite(vel_var, dtype=float).reshape(3).copy()
 
             dz_temp.append(delta_vel)
-            var_z_temp.append(var_vel)
+            var_z_temp.append(vel_var)
             H_temp.append(self._H[3:6])
 
         # Gravity reference vector aiding
         if g_ref:
+            if g_var is None:
+                raise ValueError("'g_var' not provided.")
+
             vg_ref_n = np.array([0.0, 0.0, 1.0])
             vg_meas_m = -_normalize(f_imu - self._bias_acc)
             delta_g = vg_meas_m - R_ins_nm.T @ vg_ref_n
-
-            if var_g is not None:
-                var_g = np.asarray_chkfinite(var_g, dtype=float).reshape(3).copy()
-            elif self._var_g is not None:
-                var_g = self._var_g
-            else:
-                raise ValueError("'var_g' not provided.")
+            g_var = np.asarray_chkfinite(g_var, dtype=float).reshape(3).copy()
 
             dz_temp.append(delta_g)
-            var_z_temp.append(var_g)
+            var_z_temp.append(g_var)
             H_temp.append(self._H[6:9])
 
         # Compass aiding
         if head is not None:
+            if head_var is None:
+                raise ValueError("'head_var' not provided.")
+
             if head_degrees:
                 head = (np.pi / 180.0) * head
+                head_var = (np.pi / 180.0) ** 2 * head_var
             delta_head = _signed_smallest_angle(head - _h_head(q_ins_nm), degrees=False)
-
-            if var_head is not None:
-                var_head = np.asarray_chkfinite(var_head, dtype=float).reshape(1).copy()
-            elif self._var_head is not None:
-                var_head = self._var_head
-            else:
-                raise ValueError("'var_head' not provided.")
+            head_var = np.asarray_chkfinite(head_var, dtype=float).reshape(1).copy()
 
             dz_temp.append(np.array([delta_head]))
-            var_z_temp.append(var_head)
+            var_z_temp.append(head_var)
             H_temp.append(self._H[-1:])
 
         if dz_temp:
@@ -1072,7 +1026,7 @@ class AidedINS(INSMixin):
         self._x = self._combine_states(self._ins.x, self._dx)
 
         # Reset
-        self._reset()
+        self._reset(reset_bias_acc, reset_bias_gyro)
 
         # Project ahead
         self._ins.update(f_imu, w_imu, degrees=False)
