@@ -1571,7 +1571,7 @@ class Test_AidedINS:
                     vel=vel_i,
                     vel_var=vel_noise_std**2 * np.ones(3),
                     head=head_i,
-                    head_var=((np.pi / 180.0) * compass_noise_std) ** 2,
+                    head_var=compass_noise_std**2,
                     head_degrees=True,
                     g_ref=True,
                     g_var=0.1**2 * np.ones(3),
