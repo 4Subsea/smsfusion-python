@@ -599,14 +599,6 @@ class AidedINS(INSMixin):
         * ``N``: White noise power spectral density in (rad/s)/sqrt(Hz).
         * ``B``: Bias stability in rad/s.
         * ``tau_cb``: Bias correlation time in seconds.
-    var_pos : array-like, shape (3,), optional
-        Variance of position measurement noise in m^2.
-    var_vel : array-like, shape (3,), optional
-        Variance of velocity measurement noise in (m/s)^2.
-    var_g : array-like, shape (3,), optional
-        Variance of gravitational reference vector measurement noise in m^2.
-    var_head : float, optional
-        Variance of heading measurement noise in rad^2.
     lever_arm : array-like, shape (3,), default numpy.zeros(3)
         Lever-arm vector describing the location of position aiding (in meters) relative
         to the IMU expressed in the IMU's measurement frame. For instance, the location
