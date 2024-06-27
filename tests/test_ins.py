@@ -1296,10 +1296,10 @@ class Test_AidedINS:
                 g_ref=True,
                 degrees=True,
                 head_degrees=True,
-                var_pos=None,
-                var_vel=None,
-                var_g=None,
-                var_head=None,
+                pos_var=None,
+                vel_var=None,
+                g_var=None,
+                head_var=None,
             )
             ains_b.update(
                 f_imu,
@@ -1310,10 +1310,10 @@ class Test_AidedINS:
                 g_ref=True,
                 degrees=True,
                 head_degrees=True,
-                var_pos=var_pos,
-                var_vel=var_vel,
-                var_g=var_g,
-                var_head=var_head,
+                pos_var=var_pos,
+                vel_var=var_vel,
+                g_var=var_g,
+                head_var=var_head,
             )
             ains_c.update(
                 f_imu,
@@ -1324,10 +1324,10 @@ class Test_AidedINS:
                 g_ref=True,
                 degrees=True,
                 head_degrees=True,
-                var_pos=var_pos,
-                var_vel=var_vel,
-                var_g=var_g,
-                var_head=var_head,
+                pos_var=var_pos,
+                vel_var=var_vel,
+                g_var=var_g,
+                head_var=var_head,
             )
             np.testing.assert_array_almost_equal(ains_a.x, ains_b.x)
             np.testing.assert_array_almost_equal(ains_a.x, ains_c.x)
@@ -1373,10 +1373,10 @@ class Test_AidedINS:
                 g_ref=True,
                 degrees=True,
                 head_degrees=True,
-                var_pos=None,  # no aiding variance provided
-                var_vel=None,  # no aiding variance provided
-                var_g=None,  # no aiding variance provided
-                var_head=None,  # no aiding variance provided
+                pos_var=None,  # no aiding variance provided
+                vel_var=None,  # no aiding variance provided
+                g_var=None,  # no aiding variance provided
+                head_var=None,  # no aiding variance provided
             )
 
     def test_update_standstill(self):
@@ -1698,10 +1698,10 @@ class Test_AidedINS:
                     g_ref=True,
                     degrees=True,
                     head_degrees=True,
-                    var_pos=var_pos,  # provided in __init__ but overridden here
-                    var_vel=var_vel,  # provided in __init__ but overridden here
-                    var_g=None,  # provided in __init__
-                    var_head=var_head,
+                    pos_var=var_pos,  # provided in __init__ but overridden here
+                    vel_var=var_vel,  # provided in __init__ but overridden here
+                    g_var=None,  # provided in __init__
+                    head_var=var_head,
                 )
             else:  # without aiding
                 mekf.update(acc_i, gyro_i, degrees=True, head_degrees=True)
