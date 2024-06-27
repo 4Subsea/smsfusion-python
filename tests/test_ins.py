@@ -584,11 +584,7 @@ class Test_AidedINS:
             "tau_cb": 50,
         }
 
-        var_g = (0.1) ** 2 * np.ones(3)  # other variances must be given during update
-
-        ains = AidedINS(
-            fs, x0, P0_prior, err_acc, err_gyro, var_g=var_g, lever_arm=np.ones(3)
-        )
+        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro, lever_arm=np.ones(3))
         return ains
 
     def test__init__(self):
@@ -619,8 +615,6 @@ class Test_AidedINS:
             err_gyro,
             lever_arm=(1, 2, 3),
             lat=60.0,
-            reset_bias_acc=False,
-            reset_bias_gyro=True,
             dx0_prior=dx0_prior,
         )
 
@@ -630,8 +624,6 @@ class Test_AidedINS:
         assert ains._dt == 1.0 / 10.24
         assert ains._err_acc == err_acc
         assert ains._err_gyro == err_gyro
-        assert ains._reset_bias_acc is False
-        assert ains._reset_bias_gyro is True
         assert isinstance(ains._ins, StrapdownINS)
 
         np.testing.assert_array_almost_equal(ains._x, x0)
@@ -642,12 +634,6 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(ains._lever_arm, (1, 2, 3))
 
         assert ains._P.shape == (15, 15)
-
-        # Check default aidning variances is None
-        assert ains._var_pos is None
-        ains._var_vel is None
-        ains._var_g is None
-        ains._var_head is None
 
         # Check that correct latitude (and thus gravity) is used
         g_expect = np.array([0.0, 0.0, gravity(60.0)])
@@ -681,48 +667,6 @@ class Test_AidedINS:
 
         np.testing.assert_array_almost_equal(ains._lever_arm, np.zeros(3))
 
-    def test__init__var_aiding(self):
-        fs = 10.24
-
-        p_init = np.array([0.0, 0.0, 0.0])
-        v_init = np.array([0.0, 0.0, 0.0])
-        q_init = np.array([1.0, 0.0, 0.0, 0.0])
-        bias_acc_init = np.array([0.0, 0.0, 0.0])
-        bias_gyro_init = np.array([0.0, 0.0, 0.0])
-
-        x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
-        P0_prior = 1e-6 * np.eye(15)
-
-        err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
-        err_gyro = {
-            "N": (np.pi) / 180.0 * 2.0e-3,
-            "B": (np.pi) / 180.0 * 8.0e-4,
-            "tau_cb": 50,
-        }
-
-        var_pos = [0.1, 0.1, 0.1]
-        var_vel = [0.1, 0.1, 0.1]
-        var_g = (0.1) ** 2 * np.ones(3)
-        var_head = ((np.pi / 180.0) * 0.5) ** 2
-
-        ains = AidedINS(
-            fs,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-            var_pos,
-            var_vel,
-            var_g,
-            var_head,
-            lat=60.0,
-        )
-
-        np.testing.assert_array_almost_equal(ains._var_pos, var_pos)
-        np.testing.assert_array_almost_equal(ains._var_vel, var_vel)
-        np.testing.assert_array_almost_equal(ains._var_g, var_g)
-        np.testing.assert_array_almost_equal(ains._var_head, var_head)
-
     def test_dump(self, tmp_path, ains):
         kwargs_out = ains.dump()
         ains_b = AidedINS(**kwargs_out)
@@ -736,27 +680,9 @@ class Test_AidedINS:
         assert ains_b._err_gyro == ains._err_gyro
         np.testing.assert_array_almost_equal(ains_b._lever_arm, ains._lever_arm)
         assert ains_b._lat == ains._lat
-        assert ains_b._reset_bias_acc == ains._reset_bias_acc
-        assert ains_b._reset_bias_gyro == ains._reset_bias_gyro
         np.testing.assert_array_almost_equal(ains_b._ins._x, ains._ins._x)
         np.testing.assert_array_almost_equal(ains_b._dx_prior, ains._dx_prior)
         np.testing.assert_array_almost_equal(ains_b._P_prior, ains._P_prior)
-        if ains._var_pos is None:
-            assert ains_b._var_pos is None
-        else:
-            np.testing.assert_array_almost_equal(ains_b._var_pos, ains._var_pos)
-        if ains._var_vel is None:
-            assert ains_b._var_vel is None
-        else:
-            np.testing.assert_array_almost_equal(ains_b._var_vel, ains._var_vel)
-        if ains._var_g is None:
-            assert ains_b._var_g is None
-        else:
-            np.testing.assert_array_almost_equal(ains_b._var_g, ains._var_g)
-        if ains._var_head is None:
-            assert ains_b._var_head is None
-        else:
-            np.testing.assert_array_almost_equal(ains_b._var_head, ains._var_head)
 
     def test_x(self, ains):
         x_expect = np.array(
@@ -1113,9 +1039,7 @@ class Test_AidedINS:
         ains._x = x_tot
         ains._ins._x = x_ins
         ains._dx = dx
-        ains._reset_bias_acc = True
-        ains._reset_bias_gyro = True
-        ains._reset()
+        ains._reset(reset_bias_acc=True, reset_bias_gyro=True)
 
         x_out = ains._x
         x_ins_out = ains._ins._x
@@ -1183,9 +1107,7 @@ class Test_AidedINS:
         ains._x = x_tot
         ains._ins._x = x_ins
         ains._dx = dx
-        ains._reset_bias_acc = False
-        ains._reset_bias_gyro = False
-        ains._reset()
+        ains._reset(reset_bias_acc=False, reset_bias_gyro=False)
 
         x_out = ains._x
         x_ins_out = ains._ins._x
@@ -1206,27 +1128,29 @@ class Test_AidedINS:
         head = 0.0
         pos = np.zeros(3)
         vel = np.zeros(3)
-        var_pos = np.ones(3)
-        var_vel = np.ones(3)
-        var_head = 1.0
+        pos_var = np.ones(3)
+        vel_var = np.ones(3)
+        head_var = 1.0
+        g_var = 0.1**2 * np.ones(3)
 
         update_return = ains.update(
             f_imu,
             w_imu,
-            pos,
-            vel,
-            head,
             degrees=True,
+            pos=pos,
+            pos_var=pos_var,
+            vel=vel,
+            vel_var=vel_var,
+            head=head,
+            head_var=head_var,
             head_degrees=True,
-            var_pos=var_pos,
-            var_vel=var_vel,
-            var_g=None,  # provided in __init__
-            var_head=var_head,
+            g_ref=True,
+            g_var=g_var,
         )
         assert update_return is ains
 
     def test_update_var(self):
-        """Update using aiding variances given in __init__ or update method."""
+        """Update using aiding variances in update method."""
         fs = 10.24
 
         x0 = np.zeros(16)
@@ -1235,10 +1159,6 @@ class Test_AidedINS:
 
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-        var_pos = np.ones(3)
-        var_vel = np.ones(3)
-        var_g = np.ones(3)
-        var_head = 1.0
 
         # Aiding variances given in __init__
         ains_a = AidedINS(
@@ -1247,90 +1167,35 @@ class Test_AidedINS:
             P0_prior,
             err_acc,
             err_gyro,
-            var_pos=var_pos,
-            var_vel=var_vel,
-            var_g=var_g,
-            var_head=var_head,
-        )
-
-        # Aiding variances given during update
-        ains_b = AidedINS(
-            fs,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-            var_pos=None,
-            var_vel=None,
-            var_g=None,
-            var_head=None,
-        )
-
-        # Aiding variances given in both __init__ and update
-        ains_c = AidedINS(
-            fs,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-            var_pos=var_pos,
-            var_vel=var_vel,
-            var_g=var_g,
-            var_head=var_head,
         )
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
         w_imu = np.zeros(3)
-        head = 0.0
+
         pos = np.zeros(3)
+        pos_var = np.ones(3)
         vel = np.zeros(3)
+        vel_var = np.ones(3)
+        head = 0.0
+        head_var = 1.0
+        g_var = np.ones(3)
 
         for _ in range(5):
             ains_a.update(
                 f_imu,
                 w_imu,
-                pos,
-                vel,
-                head,
-                g_ref=True,
                 degrees=True,
+                pos=pos,
+                pos_var=pos_var,
+                vel=vel,
+                vel_var=vel_var,
+                head=head,
+                head_var=head_var,
                 head_degrees=True,
-                pos_var=None,
-                vel_var=None,
-                g_var=None,
-                head_var=None,
-            )
-            ains_b.update(
-                f_imu,
-                w_imu,
-                pos,
-                vel,
-                head,
                 g_ref=True,
-                degrees=True,
-                head_degrees=True,
-                pos_var=var_pos,
-                vel_var=var_vel,
-                g_var=var_g,
-                head_var=var_head,
+                g_var=g_var,
             )
-            ains_c.update(
-                f_imu,
-                w_imu,
-                pos,
-                vel,
-                head,
-                g_ref=True,
-                degrees=True,
-                head_degrees=True,
-                pos_var=var_pos,
-                vel_var=var_vel,
-                g_var=var_g,
-                head_var=var_head,
-            )
-            np.testing.assert_array_almost_equal(ains_a.x, ains_b.x)
-            np.testing.assert_array_almost_equal(ains_a.x, ains_c.x)
 
     def test_update_var_raises(self):
         """Check that update raise ValueError if no aiding variances are provided."""
@@ -1350,10 +1215,6 @@ class Test_AidedINS:
             P0_prior,
             err_acc,
             err_gyro,
-            var_pos=None,  # no aiding variance provided
-            var_vel=None,  # no aiding variance provided
-            var_g=None,  # no aiding variance provided
-            var_head=None,  # no aiding variance provided
         )
 
         g = gravity()
@@ -1367,16 +1228,34 @@ class Test_AidedINS:
             ains.update(
                 f_imu,
                 w_imu,
-                pos,
-                vel,
-                head,
-                g_ref=True,
                 degrees=True,
-                head_degrees=True,
+                pos=pos,
                 pos_var=None,  # no aiding variance provided
+            )
+
+            ains.update(
+                f_imu,
+                w_imu,
+                degrees=True,
+                vel=vel,
                 vel_var=None,  # no aiding variance provided
-                g_var=None,  # no aiding variance provided
+            )
+
+            ains.update(
+                f_imu,
+                w_imu,
+                degrees=True,
+                head=head,
                 head_var=None,  # no aiding variance provided
+                head_degrees=True,
+            )
+
+            ains.update(
+                f_imu,
+                w_imu,
+                degrees=True,
+                g_ref=True,
+                g_var=None,  # no aiding variance provided
             )
 
     def test_update_standstill(self):
@@ -1388,14 +1267,8 @@ class Test_AidedINS:
 
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-        var_pos = np.ones(3)
-        var_vel = np.ones(3)
-        var_g = np.ones(3)
-        var_head = 1.0
 
-        ains = AidedINS(
-            fs, x0, P0_prior, err_acc, err_gyro, var_pos, var_vel, var_g, var_head
-        )
+        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro)
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
@@ -1408,12 +1281,16 @@ class Test_AidedINS:
             ains.update(
                 f_imu,
                 w_imu,
-                pos,
-                vel,
-                head,
-                g_ref=True,
                 degrees=True,
+                pos=pos,
+                pos_var=np.ones(3),
+                vel=vel,
+                vel_var=np.ones(3),
+                head=head,
+                head_var=0.1,
                 head_degrees=True,
+                g_ref=True,
+                g_var=np.ones(3),
             )
             np.testing.assert_array_almost_equal(ains.x, x0)
 
@@ -1426,69 +1303,66 @@ class Test_AidedINS:
 
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-        var_pos = np.ones(3)
-        var_vel = np.ones(3)
-        var_g = np.ones(3)
-        var_head = 1.0
 
-        ains = AidedINS(
-            fs, x0, P0_prior, err_acc, err_gyro, var_pos, var_vel, var_g, var_head
-        )
+        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro)
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
         w_imu = np.zeros(3)
-        head = 0.0
         pos = np.zeros(3)
+        pos_var = np.ones(3)
         vel = np.zeros(3)
-
-        ains.update(f_imu, w_imu, pos, vel, head, True, degrees=True, head_degrees=True)
-        np.testing.assert_array_almost_equal(ains.x, x0)
+        vel_var = np.ones(3)
+        head = 0.0
+        head_var = 1.0
+        g_var = np.ones(3)
 
         ains.update(
             f_imu,
             w_imu,
-            pos=None,
-            vel=None,
-            head=None,
-            g_ref=False,
             degrees=True,
-            head_degrees=True,
-        )
-        np.testing.assert_array_almost_equal(ains.x, x0)
-
-        ains.update(
-            f_imu,
-            w_imu,
             pos=pos,
+            pos_var=pos_var,
             vel=vel,
+            vel_var=vel_var,
             head=head,
+            head_var=head_var,
+            head_degrees=True,
             g_ref=True,
+            g_var=g_var,
+        )
+        np.testing.assert_array_almost_equal(ains.x, x0)
+        ains.update(
+            f_imu,
+            w_imu,
             degrees=True,
-            head_degrees=True,
         )
         np.testing.assert_array_almost_equal(ains.x, x0)
 
         ains.update(
             f_imu,
             w_imu,
-            pos=None,
-            vel=vel,
-            head=head,
-            g_ref=False,
             degrees=True,
-            head_degrees=True,
-        )
-        np.testing.assert_array_almost_equal(ains.x, x0)
-
-        ains.update(
-            f_imu,
-            w_imu,
             pos=pos,
-            vel=None,
+            pos_var=pos_var,
+            vel=vel,
+            vel_var=vel_var,
             head=head,
-            g_ref=False,
+            head_var=head_var,
+            head_degrees=True,
+            g_ref=True,
+            g_var=g_var,
+        )
+        np.testing.assert_array_almost_equal(ains.x, x0)
+
+        ains.update(
+            f_imu,
+            w_imu,
             degrees=True,
+            vel=vel,
+            vel_var=vel_var,
+            head=head,
+            head_var=head_var,
             head_degrees=True,
         )
         np.testing.assert_array_almost_equal(ains.x, x0)
@@ -1496,25 +1370,26 @@ class Test_AidedINS:
         ains.update(
             f_imu,
             w_imu,
-            pos=None,
-            vel=None,
-            head=head,
-            g_ref=False,
             degrees=True,
+            pos=pos,
+            pos_var=pos_var,
+            head=head,
+            head_var=head_var,
             head_degrees=True,
         )
+        np.testing.assert_array_almost_equal(ains.x, x0)
 
         ains.update(
             f_imu,
             w_imu,
-            pos=None,
-            vel=None,
-            head=None,
-            g_ref=True,
             degrees=True,
+            head=head,
+            head_var=head_var,
             head_degrees=True,
         )
+        np.testing.assert_array_almost_equal(ains.x, x0)
 
+        ains.update(f_imu, w_imu, degrees=True, g_ref=True, g_var=g_var)
         np.testing.assert_array_almost_equal(ains.x, x0)
 
     def test_update_reset_bias(self):
@@ -1526,48 +1401,62 @@ class Test_AidedINS:
 
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-        var_pos = np.ones(3)
-        var_vel = np.ones(3)
-        var_g = np.ones(3)
-        var_head = 1.0
 
-        ains_a = AidedINS(
+        ains_a = AidedINS(  # reset bias
             fs,
             x0,
             P0_prior,
             err_acc,
             err_gyro,
-            var_pos,
-            var_vel,
-            var_g,
-            var_head,
-            reset_bias_acc=True,  # with reset
-            reset_bias_gyro=True,  # with reset
         )
 
-        ains_b = AidedINS(
+        ains_b = AidedINS(  # no reset bias
             fs,
             x0,
             P0_prior,
             err_acc,
             err_gyro,
-            var_pos,
-            var_vel,
-            var_g,
-            var_head,
-            reset_bias_acc=False,  # no reset
-            reset_bias_gyro=False,  # no reset
         )
 
         g = gravity()
         f_imu = np.random.random(3) - np.array([0.0, 0.0, g])
         w_imu = np.random.random(3)
-        head = np.random.random()
-        pos = np.zeros(3)
-        vel = np.zeros(3)
 
-        ains_a.update(f_imu, w_imu, pos, vel, head, True)
-        ains_b.update(f_imu, w_imu, pos, vel, head, True)
+        pos = np.zeros(3)
+        pos_var = np.ones(3)
+        vel = np.zeros(3)
+        vel_var = np.ones(3)
+        head = np.random.random()
+        head_var = 1.0
+
+        ains_a.update(
+            f_imu,
+            w_imu,
+            degrees=True,
+            pos=pos,
+            pos_var=pos_var,
+            vel=vel,
+            vel_var=vel_var,
+            head=head,
+            head_var=head_var,
+            head_degrees=True,
+            reset_bias_acc=True,
+            reset_bias_gyro=True,
+        )
+        ains_b.update(
+            f_imu,
+            w_imu,
+            degrees=True,
+            pos=pos,
+            pos_var=pos_var,
+            vel=vel,
+            vel_var=vel_var,
+            head=head,
+            head_var=head_var,
+            head_degrees=True,
+            reset_bias_acc=False,
+            reset_bias_gyro=False,
+        )
 
         x = ains_a.x
         np.testing.assert_array_almost_equal(ains_a.x, x)
@@ -1659,29 +1548,13 @@ class Test_AidedINS:
             "B": (np.pi / 180.0) * 7.5e-4,
             "tau_cb": 50,
         }
-        var_pos = gps_noise_std**2 * np.ones(3)
-        var_vel = vel_noise_std**2 * np.ones(3)
-        var_head = ((np.pi / 180.0) * compass_noise_std) ** 2
-        var_g = 0.1**2 * np.ones(3)
         P0_prior = np.eye(15)
         P0_prior[9:12, 9:12] *= 1e-9
         x0 = np.zeros(16)
         x0[0:3] = pos_ref[0]
         x0[3:6] = vel_ref[0]
         x0[6:10] = _quaternion_from_euler(np.radians(euler_ref[0].flatten()))
-        mekf = AidedINS(
-            fs_imu,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-            var_pos=np.ones_like(var_pos) * 1e9,  # correct values given in update
-            var_vel=np.ones_like(var_vel) * 1e9,  # correct values given in update
-            var_g=var_g,
-            var_head=None,  # provided during update
-            reset_bias_acc=False,
-            reset_bias_gyro=True,
-        )
+        mekf = AidedINS(fs_imu, x0, P0_prior, err_acc, err_gyro)
 
         # Apply filter
         pos_out, vel_out, euler_out, bias_acc_out, bias_gyro_out = [], [], [], [], []
@@ -1692,19 +1565,21 @@ class Test_AidedINS:
                 mekf.update(
                     acc_i,
                     gyro_i,
-                    pos=pos_i,
-                    vel=vel_i,
-                    head=head_i,
-                    g_ref=True,
                     degrees=True,
+                    pos=pos_i,
+                    pos_var=gps_noise_std**2 * np.ones(3),
+                    vel=vel_i,
+                    vel_var=vel_noise_std**2 * np.ones(3),
+                    head=head_i,
+                    head_var=((np.pi / 180.0) * compass_noise_std) ** 2,
                     head_degrees=True,
-                    pos_var=var_pos,  # provided in __init__ but overridden here
-                    vel_var=var_vel,  # provided in __init__ but overridden here
-                    g_var=None,  # provided in __init__
-                    head_var=var_head,
+                    g_ref=True,
+                    g_var=0.1**2 * np.ones(3),
+                    reset_bias_acc=False,
+                    reset_bias_gyro=True,
                 )
             else:  # without aiding
-                mekf.update(acc_i, gyro_i, degrees=True, head_degrees=True)
+                mekf.update(acc_i, gyro_i, degrees=True)
             pos_out.append(mekf.position())
             vel_out.append(mekf.velocity())
             euler_out.append(mekf.euler(degrees=True))

@@ -839,8 +839,8 @@ class AidedINS(INSMixin):
         """Reset"""
         x_ins = np.r_[
             self._x[:10],
-            self._x[10:13] if self._reset_bias_acc else self._ins._bias_acc,
-            self._x[13:16] if self._reset_bias_gyro else self._ins._bias_gyro,
+            self._x[10:13] if reset_bias_acc else self._ins._bias_acc,
+            self._x[13:16] if reset_bias_gyro else self._ins._bias_gyro,
         ]
         self._ins.reset(x_ins)
 
