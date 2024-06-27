@@ -629,11 +629,7 @@ class AidedINS(INSMixin):
         self._err_acc = err_acc
         self._err_gyro = err_gyro
         self._lat = lat
-
-        if lever_arm is not None:
-            lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
-
-        self._lever_arm = lever_arm  # IMU-to-aiding lever arm vector in the IMU frame
+        self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
 
         # Error-state
         self._dx = np.zeros(15)
@@ -653,7 +649,7 @@ class AidedINS(INSMixin):
         q0 = self._ins._q_nm
         self._F = self._prep_F(err_acc, err_gyro, q0)
         self._G = self._prep_G(q0)
-        self._H = self._prep_H(q0, lever_arm)
+        self._H = self._prep_H(q0, self._lever_arm)
         self._W = self._prep_W(err_acc, err_gyro)
 
     def dump(self):
