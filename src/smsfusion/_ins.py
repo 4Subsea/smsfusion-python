@@ -605,8 +605,8 @@ class AidedINS(INSMixin):
         of the GNSS antenna relative to the IMU. By default it is assumed that the
         aiding position coincides with the IMU's origin.
     lat : float, optional
-        Latitude used to calculate the gravitational acceleration. If none
-        provided, the 'standard gravity' is assumed.
+        Latitude used to calculate the gravitational acceleration. If ``None`` provided,
+        the 'standard gravity' is assumed.
     dx0_prior : array-like, shape (15,), default numpy.zeros(15)
         Initial a priori estimate of the error-state vector. Defaults to ``numpy.zeros(15)``.
     """
