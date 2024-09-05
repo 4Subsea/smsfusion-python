@@ -669,9 +669,9 @@ class AidedINS(INSMixin):
 
         if self._ignore_bias_acc:
             self._F = self._F[:12, :12]
-            self._G = self._G[:12, :12]
+            self._G = self._G[:12, :9]
             self._H = self._H[:, :12]
-            self._W = self._W[:12, :12]
+            self._W = self._W[:9, :9]
 
     def dump(self):
         """
