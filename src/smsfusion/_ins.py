@@ -853,8 +853,8 @@ class AidedINS(INSMixin):
         W = np.eye(12)
         W[0:3, 0:3] *= N_acc**2
         W[3:6, 3:6] *= N_gyro**2
-        W[6:9, 6:9] *= 2.0 * sigma_acc**2 * beta_acc
-        W[9:12, 9:12] *= 2.0 * sigma_gyro**2 * beta_gyro
+        W[9:12, 9:12] *= 2.0 * sigma_acc**2 * beta_acc
+        W[6:9, 6:9] *= 2.0 * sigma_gyro**2 * beta_gyro
         return W
 
     def _reset(self, reset_bias_acc: bool, reset_bias_gyro: bool) -> None:
@@ -1043,7 +1043,7 @@ class AidedINS(INSMixin):
             self._ins._x[6:10] = _normalize(self._ins._x[6:10])
             self._ins._x[13:16] = self._ins._x[13:16] + dx[9:12]  # note opposite order
             if not self._ignore_bias_acc:
-                self._ins._x[110:13] = self._ins._x[10:13] + dx[12:15]  # opposite order
+                self._ins._x[10:13] = self._ins._x[10:13] + dx[12:15]  # opposite order
 
             # Compute error covariance for updated estimate
             self._P = (self._I - K @ H) @ self._P_prior @ (
