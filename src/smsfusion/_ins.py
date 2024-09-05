@@ -757,7 +757,6 @@ class AidedINS(INSMixin):
     ) -> None:
         """Update linearized state transition matrix, F."""
         S = _skew_symmetric  # alias skew symmetric matrix
-        # R_nm = _rot_matrix_from_quaternion(q_nm)  # body-to-ned rotation matrix
 
         # Update matrix
         self._F[3:6, 6:9] = -R_nm @ S(f_ins)  # NB! update each time step
