@@ -839,19 +839,15 @@ class AidedINS(INSMixin):
 
     def _reset(self, reset_bias_acc: bool, reset_bias_gyro: bool) -> None:
         """Reset"""
-        x_ins = np.r_[
-            self._x[:10],
-            self._x[10:13] if reset_bias_acc else self._ins._bias_acc,
-            self._x[13:16] if reset_bias_gyro else self._ins._bias_gyro,
-        ]
-        self._ins.reset(x_ins)
+        self._ins._x[:10] = self._x[:10].copy()
+        self._dx[:9] = np.zeros_like(self._dx[:9])
 
-        dx = np.r_[
-            np.zeros(9),
-            np.zeros(3) if reset_bias_acc else self._dx[9:12],
-            np.zeros(3) if reset_bias_gyro else self._dx[12:15],
-        ]
-        self._dx = dx
+        if reset_bias_acc:
+            self._ins._x[10:13] = self._x[10:13].copy()
+            self._dx[9:12] = np.zeros_like(self._dx[9:12])
+        if reset_bias_gyro:
+            self._ins._x[13:16] = self._x[13:16].copy()
+            self._dx[12:15] = np.zeros_like(self._dx[12:15])
 
     def update(
         self,
