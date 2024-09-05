@@ -632,13 +632,17 @@ class AidedINS(INSMixin):
         self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
 
         # Error-state
+        self._dq_prealloc = np.array(
+            [2.0, 0.0, 0.0, 0.0]
+        )  # Preallocation for later use
         self._dx = np.zeros(15)
 
         # Strapdown algorithm
         self._ins = StrapdownINS(self._fs, x0, lat=self._lat)
 
         # Total state
-        self._x = self._combine_states(self._ins._x, self._dx)
+        self._x = np.empty_like(self._ins.x)
+        self._combine_states()
 
         # Initialize Kalman filter
         self._dx_prior = np.asarray_chkfinite(dx0_prior).reshape(15).copy()
@@ -674,22 +678,26 @@ class AidedINS(INSMixin):
         }
         return params
 
-    @staticmethod
-    def _combine_states(x_ins, dx):
+    def _combine_states(self):
         """
         Combine the INS state with the error-state estimate to form the total state
         estimate.
         """
+        x = self._x
+        x_ins = self._ins.x
+        dx = self._dx
+
+        x[0:3] = x_ins[0:3] + dx[0:3]
+        x[3:6] = x_ins[3:6] + dx[3:6]
+
         da = dx[6:9]
-        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
-        pos = x_ins[0:3] + dx[0:3]
-        vel = x_ins[3:6] + dx[3:6]
-        q_nm = _quaternion_product(x_ins[6:10], dq)
-        q_nm = _normalize(q_nm)
-        bias_acc = x_ins[10:13] + dx[9:12]
-        bias_gyro = x_ins[13:16] + dx[12:15]
-        x = np.r_[pos, vel, q_nm, bias_acc, bias_gyro]
-        return x
+        # self._dq_prealloc[1:4] = da
+        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]# self._dq_prealloc
+        x[6:10] = _quaternion_product(x_ins[6:10], dq)
+        x[6:10] = _normalize(x[6:10])
+
+        x[10:13] = x_ins[10:13] + dx[9:12]
+        x[13:16] = x_ins[13:16] + dx[12:15]
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -1023,7 +1031,7 @@ class AidedINS(INSMixin):
         Q = self._dt * self._G @ self._W @ self._G.T  # process noise covariance matrix
 
         # Update (total) state estimate
-        self._x = self._combine_states(self._ins.x, self._dx)
+        self._combine_states()
 
         # Reset
         self._reset(reset_bias_acc, reset_bias_gyro)
