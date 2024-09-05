@@ -635,12 +635,14 @@ class AidedINS(INSMixin):
         wn_dim = 9 if ignore_bias_acc else 12  # white noise dimension
         self._I = np.eye(dx_dim)
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
+        self._f_imu_prev = np.zeros(3)
+        self._w_imu_prev = np.zeros(3)
 
         # Strapdown algorithm / INS state
         self._ins = StrapdownINS(self._fs, x0, lat=self._lat)
 
         # Total state
-        self._x = self._ins.x
+        self._x = self._ins._x
 
         # Initialize Kalman filter
         self._P_prior = np.asarray_chkfinite(P0_prior).reshape(dx_dim, dx_dim).copy()
@@ -892,6 +894,11 @@ class AidedINS(INSMixin):
         if degrees:
             w_imu = (np.pi / 180.0) * w_imu
 
+        # Update INS with previous IMU measurements
+        self._ins.update(self._f_imu_prev, self._w_imu_prev, degrees=False)
+        self._f_imu_prev = f_imu
+        self._w_imu_prev = w_imu
+
         # Current INS state estimates
         pos_ins = self._ins._pos
         vel_ins = self._ins._vel
@@ -994,11 +1001,7 @@ class AidedINS(INSMixin):
         phi = self._I + self._dt * self._F  # state transition matrix
         Q = self._dt * self._G @ self._W @ self._G.T  # process noise covariance matrix
 
-        # Update current state
-        self._x = self._ins.x
-
         # Project ahead
-        self._ins.update(f_imu, w_imu, degrees=False)
         self._P_prior = phi @ self._P @ phi.T + Q
 
         return self
