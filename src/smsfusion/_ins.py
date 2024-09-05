@@ -638,7 +638,7 @@ class AidedINS(INSMixin):
         self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
         self._ignore_bias_acc = ignore_bias_acc
         dx_dim = 12 if ignore_bias_acc else 15  # error-state dimension
-        wn_dim = 12 if ignore_bias_acc else 15  # white noise dimension
+        wn_dim = 9 if ignore_bias_acc else 12  # white noise dimension
         self._I = np.eye(dx_dim)
 
         # Error-state
@@ -679,30 +679,9 @@ class AidedINS(INSMixin):
             "err_gyro": self._err_gyro,
             "lever_arm": self._lever_arm.tolist(),
             "lat": self._lat,
-            "dx0_prior": self._dx_prior.tolist(),
+            # "dx0_prior": self._dx_prior.tolist(),
         }
         return params
-
-    # def _combine_states(self):
-    #     """
-    #     Combine the INS state with the error-state estimate to form the total state
-    #     estimate.
-    #     """
-    #     x = self._x
-    #     x_ins = self._ins.x
-    #     dx = self._dx
-
-    #     x[0:3] = x_ins[0:3] + dx[0:3]
-    #     x[3:6] = x_ins[3:6] + dx[3:6]
-
-    #     da = dx[6:9]
-    #     self._dq_prealloc[1:4] = da
-    #     dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * self._dq_prealloc
-    #     x[6:10] = _quaternion_product(x_ins[6:10], dq)
-    #     x[6:10] = _normalize(x[6:10])
-
-    #     x[10:13] = x_ins[10:13] + dx[9:12]
-    #     x[13:16] = x_ins[13:16] + dx[12:15]
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -845,18 +824,6 @@ class AidedINS(INSMixin):
         W[6:9, 6:9] *= 2.0 * sigma_gyro**2 * beta_gyro
         return W
 
-    # def _reset(self, reset_bias_acc: bool, reset_bias_gyro: bool) -> None:
-    #     """Reset"""
-    #     self._ins._x[:10] = self._x[:10].copy()
-    #     self._dx[:9] = np.zeros_like(self._dx[:9])
-
-    #     if reset_bias_acc:
-    #         self._ins._x[10:13] = self._x[10:13].copy()
-    #         self._dx[9:12] = np.zeros_like(self._dx[9:12])
-    #     if reset_bias_gyro:
-    #         self._ins._x[13:16] = self._x[13:16].copy()
-    #         self._dx[12:15] = np.zeros_like(self._dx[12:15])
-
     def _reset_ins(self, dx):
         """Combine states and reset INS"""
         da = dx[6:9]
@@ -922,15 +889,6 @@ class AidedINS(INSMixin):
         g_var : array-like, shape (3,), optional
             Variance of gravitational reference vector measurement noise. Required for
             ``g_ref``.
-        reset_bias_acc : bool, default False
-            Specifies whether to reset the accelerometer bias after the update cycle. If
-            set to ``True``, the estimated error-state bias is incorporated into the
-            strapdown algorithm's bias state, effectively resetting the error-state bias
-            to zero.
-        reset_bias_gyro : bool, default False
-            Specifies whether to reset the gyroscope bias after the update cycle. If set
-            to ``True``, the estimated error-state bias is incorporated into the strapdown
-            algorithm's bias state, effectively resetting the error-state bias to zero.
 
         Returns
         -------
@@ -1031,7 +989,7 @@ class AidedINS(INSMixin):
             # Update error-state estimate with measurement
             dx = K @ dz
 
-            # Reset
+            # Reset INS state
             self._reset_ins(dx)
 
             # Compute error covariance for updated estimate
