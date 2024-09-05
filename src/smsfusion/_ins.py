@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+from numba import njit
 from numpy.linalg import inv
 from numpy.typing import ArrayLike, NDArray
 
@@ -529,6 +530,7 @@ def _h_head(q: NDArray[np.float64]) -> float:
     return np.arctan2(u_y, u_x)  # type: ignore[no-any-return]
 
 
+@njit  # type: ignore[misc]
 def _dhda_head(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute yaw angle gradient wrt to the unit quaternion.
