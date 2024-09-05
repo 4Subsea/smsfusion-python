@@ -479,8 +479,8 @@ class StrapdownINS(INSMixin):
         StrapdownINS :
             A reference to the instance itself after the update.
         """
-        f_imu = np.asarray_chkfinite(f_imu, dtype=float)
-        w_imu = np.asarray_chkfinite(w_imu, dtype=float)
+        f_imu = np.asarray(f_imu, dtype=float)
+        w_imu = np.asarray(w_imu, dtype=float)
 
         if degrees:
             w_imu = (np.pi / 180.0) * w_imu
@@ -751,13 +751,13 @@ class AidedINS(INSMixin):
 
     def _update_F(
         self,
-        q_nm: NDArray[np.float64],
+        R_nm: NDArray[np.float64],
         f_ins: NDArray[np.float64],
         w_ins: NDArray[np.float64],
     ) -> None:
         """Update linearized state transition matrix, F."""
         S = _skew_symmetric  # alias skew symmetric matrix
-        R_nm = _rot_matrix_from_quaternion(q_nm)  # body-to-ned rotation matrix
+        # R_nm = _rot_matrix_from_quaternion(q_nm)  # body-to-ned rotation matrix
 
         # Update matrix
         self._F[3:6, 6:9] = -R_nm @ S(f_ins)  # NB! update each time step
@@ -777,9 +777,9 @@ class AidedINS(INSMixin):
         G[12:15, 9:12] = np.eye(3)
         return G
 
-    def _update_G(self, q_nm: NDArray[np.float64]) -> None:
+    def _update_G(self, R_nm: NDArray[np.float64]) -> None:
         """Update (white noise) input matrix, G."""
-        R_nm = _rot_matrix_from_quaternion(q_nm)  # body-to-ned rotation matrix alias
+        # R_nm = _rot_matrix_from_quaternion(q_nm)  # body-to-ned rotation matrix alias
 
         # Update matrix
         self._G[3:6, 0:3] = -R_nm
@@ -805,7 +805,10 @@ class AidedINS(INSMixin):
         return H
 
     def _update_H(
-        self, q_nm: NDArray[np.float64], lever_arm: NDArray[np.float64]
+        self,
+        R_nm: NDArray[np.float64],
+        q_nm: NDArray[np.float64],
+        lever_arm: NDArray[np.float64],
     ) -> None:
         """Update linearized measurement matrix, H."""
 
@@ -813,7 +816,7 @@ class AidedINS(INSMixin):
         vg_ref_n = np.array([0.0, 0.0, 1.0])
 
         S = _skew_symmetric  # alias skew symmetric matrix
-        R_nm = _rot_matrix_from_quaternion(q_nm)  # body-to-ned rotation matrix
+        # R_nm = _rot_matrix_from_quaternion(q_nm)  # body-to-ned rotation matrix
 
         self._H[0:3, 6:9] = -R_nm @ S(lever_arm)  # rigid transform IMU-to-aiding
         self._H[6:9, 6:9] = S(R_nm.T @ vg_ref_n)  # gravity reference vector
@@ -920,8 +923,8 @@ class AidedINS(INSMixin):
         AidedINS
             A reference to the instance itself after the update.
         """
-        f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3).copy()
-        w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3).copy()
+        f_imu = np.asarray(f_imu, dtype=float)
+        w_imu = np.asarray(w_imu, dtype=float)
 
         if degrees:
             w_imu = (np.pi / 180.0) * w_imu
@@ -943,9 +946,9 @@ class AidedINS(INSMixin):
         lever_arm = self._lever_arm
 
         # Update system matrices
-        self._update_F(q_ins_nm, f_ins, w_ins)
-        self._update_G(q_ins_nm)
-        self._update_H(q_ins_nm, lever_arm)
+        self._update_F(R_ins_nm, f_ins, w_ins)
+        self._update_G(R_ins_nm)
+        self._update_H(R_ins_nm, q_ins_nm, lever_arm)
 
         dz_temp, var_z_temp, H_temp = [], [], []
         # Position aiding

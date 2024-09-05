@@ -863,7 +863,7 @@ class Test_AidedINS:
         f_ins = np.array([0.0, 0.0, -gravity()])
         w_ins = np.array([0.01, -0.01, 0.01])
 
-        ains._update_F(quaternion, f_ins, w_ins)
+        ains._update_F(R(quaternion), f_ins, w_ins)
 
         delta_F_matrix_expect = np.zeros_like(F_matrix_init)
         delta_F_matrix_expect[3:6, 6:9] = -R(quaternion) @ S(f_ins) - (
@@ -900,7 +900,7 @@ class Test_AidedINS:
 
         quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
 
-        ains._update_G(quaternion)
+        ains._update_G(R(quaternion))
 
         delta_G_matrix_expect = np.zeros_like(G_matrix_init)
         delta_G_matrix_expect[3:6, 0:3] = -R(quaternion) - (-R(quaternion_init))
@@ -972,7 +972,7 @@ class Test_AidedINS:
 
         quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
 
-        ains._update_H(quaternion, lever_arm)
+        ains._update_H(R(quaternion), quaternion, lever_arm)
 
         delta_H_matrix_expect = np.zeros_like(H_matrix_init)
         delta_H_matrix_expect[6:9, 6:9] = S(R(quaternion).T @ v01_ned) - S(
