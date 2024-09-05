@@ -632,9 +632,7 @@ class AidedINS(INSMixin):
         self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
 
         # Error-state
-        self._dq_prealloc = np.array(
-            [2.0, 0.0, 0.0, 0.0]
-        )  # Preallocation for later use
+        self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
         self._dx = np.zeros(15)
 
         # Strapdown algorithm
@@ -691,8 +689,8 @@ class AidedINS(INSMixin):
         x[3:6] = x_ins[3:6] + dx[3:6]
 
         da = dx[6:9]
-        # self._dq_prealloc[1:4] = da
-        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]# self._dq_prealloc
+        self._dq_prealloc[1:4] = da
+        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * self._dq_prealloc
         x[6:10] = _quaternion_product(x_ins[6:10], dq)
         x[6:10] = _normalize(x[6:10])
 
