@@ -740,7 +740,7 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(quaternion_out, quaternion_expect)
         assert quaternion_out is not ains._q_nm
 
-    def test__combine_states(self):
+    def test__combine_states(self, ains):
         x_ins = np.array(
             [
                 1.0,
@@ -781,7 +781,10 @@ class Test_AidedINS:
             ]
         )
 
-        x_out = AidedINS._combine_states(x_ins, dx)
+        ains._ins._x = x_ins
+        ains._dx = dx
+        ains._combine_states()
+        x_out = ains._x
 
         da = dx[6:9]
         dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
