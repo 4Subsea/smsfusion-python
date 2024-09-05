@@ -778,7 +778,6 @@ class AidedINS(INSMixin):
 
     def _update_G(self, R_nm: NDArray[np.float64]) -> None:
         """Update (white noise) input matrix, G."""
-        # R_nm = _rot_matrix_from_quaternion(q_nm)  # body-to-ned rotation matrix alias
 
         # Update matrix
         self._G[3:6, 0:3] = -R_nm
@@ -815,7 +814,6 @@ class AidedINS(INSMixin):
         vg_ref_n = np.array([0.0, 0.0, 1.0])
 
         S = _skew_symmetric  # alias skew symmetric matrix
-        # R_nm = _rot_matrix_from_quaternion(q_nm)  # body-to-ned rotation matrix
 
         self._H[0:3, 6:9] = -R_nm @ S(lever_arm)  # rigid transform IMU-to-aiding
         self._H[6:9, 6:9] = S(R_nm.T @ vg_ref_n)  # gravity reference vector
