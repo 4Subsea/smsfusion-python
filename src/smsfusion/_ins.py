@@ -695,26 +695,26 @@ class AidedINS(INSMixin):
         }
         return params
 
-    def _combine_states(self):
-        """
-        Combine the INS state with the error-state estimate to form the total state
-        estimate.
-        """
-        x = self._x
-        x_ins = self._ins.x
-        dx = self._dx
+    # def _combine_states(self):
+    #     """
+    #     Combine the INS state with the error-state estimate to form the total state
+    #     estimate.
+    #     """
+    #     x = self._x
+    #     x_ins = self._ins.x
+    #     dx = self._dx
 
-        x[0:3] = x_ins[0:3] + dx[0:3]
-        x[3:6] = x_ins[3:6] + dx[3:6]
+    #     x[0:3] = x_ins[0:3] + dx[0:3]
+    #     x[3:6] = x_ins[3:6] + dx[3:6]
 
-        da = dx[6:9]
-        self._dq_prealloc[1:4] = da
-        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * self._dq_prealloc
-        x[6:10] = _quaternion_product(x_ins[6:10], dq)
-        x[6:10] = _normalize(x[6:10])
+    #     da = dx[6:9]
+    #     self._dq_prealloc[1:4] = da
+    #     dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * self._dq_prealloc
+    #     x[6:10] = _quaternion_product(x_ins[6:10], dq)
+    #     x[6:10] = _normalize(x[6:10])
 
-        x[10:13] = x_ins[10:13] + dx[9:12]
-        x[13:16] = x_ins[13:16] + dx[12:15]
+    #     x[10:13] = x_ins[10:13] + dx[9:12]
+    #     x[13:16] = x_ins[13:16] + dx[12:15]
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -857,17 +857,17 @@ class AidedINS(INSMixin):
         W[6:9, 6:9] *= 2.0 * sigma_gyro**2 * beta_gyro
         return W
 
-    def _reset(self, reset_bias_acc: bool, reset_bias_gyro: bool) -> None:
-        """Reset"""
-        self._ins._x[:10] = self._x[:10].copy()
-        self._dx[:9] = np.zeros_like(self._dx[:9])
+    # def _reset(self, reset_bias_acc: bool, reset_bias_gyro: bool) -> None:
+    #     """Reset"""
+    #     self._ins._x[:10] = self._x[:10].copy()
+    #     self._dx[:9] = np.zeros_like(self._dx[:9])
 
-        if reset_bias_acc:
-            self._ins._x[10:13] = self._x[10:13].copy()
-            self._dx[9:12] = np.zeros_like(self._dx[9:12])
-        if reset_bias_gyro:
-            self._ins._x[13:16] = self._x[13:16].copy()
-            self._dx[12:15] = np.zeros_like(self._dx[12:15])
+    #     if reset_bias_acc:
+    #         self._ins._x[10:13] = self._x[10:13].copy()
+    #         self._dx[9:12] = np.zeros_like(self._dx[9:12])
+    #     if reset_bias_gyro:
+    #         self._ins._x[13:16] = self._x[13:16].copy()
+    #         self._dx[12:15] = np.zeros_like(self._dx[12:15])
 
     def update(
         self,
