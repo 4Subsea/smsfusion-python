@@ -609,14 +609,9 @@ class AidedINS(INSMixin):
     lat : float, optional
         Latitude used to calculate the gravitational acceleration. If ``None`` provided,
         the 'standard gravity' is assumed.
-    dx0_prior : array-like, shape (15,), default numpy.zeros(15)
-        Initial a priori estimate of the error-state vector. Defaults to ``numpy.zeros(15)``.
     ignore_bias_acc : bool, default True
         Whether to ignore the accelerometer bias in the error-state estimate.
     """
-
-    _I15 = np.eye(15)
-    _I12 = np.eye(12)
 
     def __init__(
         self,
@@ -627,7 +622,6 @@ class AidedINS(INSMixin):
         err_gyro: dict[str, float],
         lever_arm: ArrayLike = np.zeros(3),
         lat: float | None = None,
-        # dx0_prior: ArrayLike = np.zeros(15),
         ignore_bias_acc: bool = True,
     ) -> None:
         self._fs = fs
@@ -640,11 +634,9 @@ class AidedINS(INSMixin):
         dx_dim = 12 if ignore_bias_acc else 15  # error-state dimension
         wn_dim = 9 if ignore_bias_acc else 12  # white noise dimension
         self._I = np.eye(dx_dim)
-
-        # Error-state
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
-        # Strapdown algorithm
+        # Strapdown algorithm / INS state
         self._ins = StrapdownINS(self._fs, x0, lat=self._lat)
 
         # Total state
@@ -679,7 +671,6 @@ class AidedINS(INSMixin):
             "err_gyro": self._err_gyro,
             "lever_arm": self._lever_arm.tolist(),
             "lat": self._lat,
-            # "dx0_prior": self._dx_prior.tolist(),
         }
         return params
 
