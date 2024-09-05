@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+from numba import njit
 from numpy.linalg import inv
 from numpy.typing import ArrayLike, NDArray
 
@@ -478,8 +479,8 @@ class StrapdownINS(INSMixin):
         StrapdownINS :
             A reference to the instance itself after the update.
         """
-        f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3)
-        w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3)
+        f_imu = np.asarray(f_imu, dtype=float)
+        w_imu = np.asarray(w_imu, dtype=float)
 
         if degrees:
             w_imu = (np.pi / 180.0) * w_imu
@@ -529,6 +530,7 @@ def _h_head(q: NDArray[np.float64]) -> float:
     return np.arctan2(u_y, u_x)  # type: ignore[no-any-return]
 
 
+@njit  # type: ignore[misc]
 def _dhda_head(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute yaw angle gradient wrt to the unit quaternion.
@@ -632,13 +634,15 @@ class AidedINS(INSMixin):
         self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
 
         # Error-state
+        self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
         self._dx = np.zeros(15)
 
         # Strapdown algorithm
         self._ins = StrapdownINS(self._fs, x0, lat=self._lat)
 
         # Total state
-        self._x = self._combine_states(self._ins._x, self._dx)
+        self._x = np.empty_like(self._ins.x)
+        self._combine_states()
 
         # Initialize Kalman filter
         self._dx_prior = np.asarray_chkfinite(dx0_prior).reshape(15).copy()
@@ -674,22 +678,26 @@ class AidedINS(INSMixin):
         }
         return params
 
-    @staticmethod
-    def _combine_states(x_ins, dx):
+    def _combine_states(self):
         """
         Combine the INS state with the error-state estimate to form the total state
         estimate.
         """
+        x = self._x
+        x_ins = self._ins.x
+        dx = self._dx
+
+        x[0:3] = x_ins[0:3] + dx[0:3]
+        x[3:6] = x_ins[3:6] + dx[3:6]
+
         da = dx[6:9]
-        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
-        pos = x_ins[0:3] + dx[0:3]
-        vel = x_ins[3:6] + dx[3:6]
-        q_nm = _quaternion_product(x_ins[6:10], dq)
-        q_nm = _normalize(q_nm)
-        bias_acc = x_ins[10:13] + dx[9:12]
-        bias_gyro = x_ins[13:16] + dx[12:15]
-        x = np.r_[pos, vel, q_nm, bias_acc, bias_gyro]
-        return x
+        self._dq_prealloc[1:4] = da
+        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * self._dq_prealloc
+        x[6:10] = _quaternion_product(x_ins[6:10], dq)
+        x[6:10] = _normalize(x[6:10])
+
+        x[10:13] = x_ins[10:13] + dx[9:12]
+        x[13:16] = x_ins[13:16] + dx[12:15]
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -743,13 +751,12 @@ class AidedINS(INSMixin):
 
     def _update_F(
         self,
-        q_nm: NDArray[np.float64],
+        R_nm: NDArray[np.float64],
         f_ins: NDArray[np.float64],
         w_ins: NDArray[np.float64],
     ) -> None:
         """Update linearized state transition matrix, F."""
         S = _skew_symmetric  # alias skew symmetric matrix
-        R_nm = _rot_matrix_from_quaternion(q_nm)  # body-to-ned rotation matrix
 
         # Update matrix
         self._F[3:6, 6:9] = -R_nm @ S(f_ins)  # NB! update each time step
@@ -769,9 +776,8 @@ class AidedINS(INSMixin):
         G[12:15, 9:12] = np.eye(3)
         return G
 
-    def _update_G(self, q_nm: NDArray[np.float64]) -> None:
+    def _update_G(self, R_nm: NDArray[np.float64]) -> None:
         """Update (white noise) input matrix, G."""
-        R_nm = _rot_matrix_from_quaternion(q_nm)  # body-to-ned rotation matrix alias
 
         # Update matrix
         self._G[3:6, 0:3] = -R_nm
@@ -797,7 +803,10 @@ class AidedINS(INSMixin):
         return H
 
     def _update_H(
-        self, q_nm: NDArray[np.float64], lever_arm: NDArray[np.float64]
+        self,
+        R_nm: NDArray[np.float64],
+        q_nm: NDArray[np.float64],
+        lever_arm: NDArray[np.float64],
     ) -> None:
         """Update linearized measurement matrix, H."""
 
@@ -805,7 +814,6 @@ class AidedINS(INSMixin):
         vg_ref_n = np.array([0.0, 0.0, 1.0])
 
         S = _skew_symmetric  # alias skew symmetric matrix
-        R_nm = _rot_matrix_from_quaternion(q_nm)  # body-to-ned rotation matrix
 
         self._H[0:3, 6:9] = -R_nm @ S(lever_arm)  # rigid transform IMU-to-aiding
         self._H[6:9, 6:9] = S(R_nm.T @ vg_ref_n)  # gravity reference vector
@@ -833,19 +841,15 @@ class AidedINS(INSMixin):
 
     def _reset(self, reset_bias_acc: bool, reset_bias_gyro: bool) -> None:
         """Reset"""
-        x_ins = np.r_[
-            self._x[:10],
-            self._x[10:13] if reset_bias_acc else self._ins._bias_acc,
-            self._x[13:16] if reset_bias_gyro else self._ins._bias_gyro,
-        ]
-        self._ins.reset(x_ins)
+        self._ins._x[:10] = self._x[:10].copy()
+        self._dx[:9] = np.zeros_like(self._dx[:9])
 
-        dx = np.r_[
-            np.zeros(9),
-            np.zeros(3) if reset_bias_acc else self._dx[9:12],
-            np.zeros(3) if reset_bias_gyro else self._dx[12:15],
-        ]
-        self._dx = dx
+        if reset_bias_acc:
+            self._ins._x[10:13] = self._x[10:13].copy()
+            self._dx[9:12] = np.zeros_like(self._dx[9:12])
+        if reset_bias_gyro:
+            self._ins._x[13:16] = self._x[13:16].copy()
+            self._dx[12:15] = np.zeros_like(self._dx[12:15])
 
     def update(
         self,
@@ -916,8 +920,8 @@ class AidedINS(INSMixin):
         AidedINS
             A reference to the instance itself after the update.
         """
-        f_imu = np.asarray_chkfinite(f_imu, dtype=float).reshape(3).copy()
-        w_imu = np.asarray_chkfinite(w_imu, dtype=float).reshape(3).copy()
+        f_imu = np.asarray(f_imu, dtype=float)
+        w_imu = np.asarray(w_imu, dtype=float)
 
         if degrees:
             w_imu = (np.pi / 180.0) * w_imu
@@ -939,9 +943,9 @@ class AidedINS(INSMixin):
         lever_arm = self._lever_arm
 
         # Update system matrices
-        self._update_F(q_ins_nm, f_ins, w_ins)
-        self._update_G(q_ins_nm)
-        self._update_H(q_ins_nm, lever_arm)
+        self._update_F(R_ins_nm, f_ins, w_ins)
+        self._update_G(R_ins_nm)
+        self._update_H(R_ins_nm, q_ins_nm, lever_arm)
 
         dz_temp, var_z_temp, H_temp = [], [], []
         # Position aiding
@@ -1023,7 +1027,7 @@ class AidedINS(INSMixin):
         Q = self._dt * self._G @ self._W @ self._G.T  # process noise covariance matrix
 
         # Update (total) state estimate
-        self._x = self._combine_states(self._ins.x, self._dx)
+        self._combine_states()
 
         # Reset
         self._reset(reset_bias_acc, reset_bias_gyro)

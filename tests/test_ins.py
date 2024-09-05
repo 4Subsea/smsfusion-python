@@ -268,8 +268,8 @@ class Test_StrapdownINS:
 
     def test_update_return_self(self, ins):
         g = 9.80665
-        f = np.array([0.0, 0.0, -g]).reshape(-1, 1)
-        w = np.array([0.0, 0.0, 0.0]).reshape(-1, 1)
+        f = np.array([0.0, 0.0, -g])
+        w = np.array([0.0, 0.0, 0.0])
 
         update_return = ins.update(f, w)
         assert update_return is ins
@@ -740,7 +740,7 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(quaternion_out, quaternion_expect)
         assert quaternion_out is not ains._q_nm
 
-    def test__combine_states(self):
+    def test__combine_states(self, ains):
         x_ins = np.array(
             [
                 1.0,
@@ -781,7 +781,10 @@ class Test_AidedINS:
             ]
         )
 
-        x_out = AidedINS._combine_states(x_ins, dx)
+        ains._ins._x = x_ins
+        ains._dx = dx
+        ains._combine_states()
+        x_out = ains._x
 
         da = dx[6:9]
         dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
@@ -860,7 +863,7 @@ class Test_AidedINS:
         f_ins = np.array([0.0, 0.0, -gravity()])
         w_ins = np.array([0.01, -0.01, 0.01])
 
-        ains._update_F(quaternion, f_ins, w_ins)
+        ains._update_F(R(quaternion), f_ins, w_ins)
 
         delta_F_matrix_expect = np.zeros_like(F_matrix_init)
         delta_F_matrix_expect[3:6, 6:9] = -R(quaternion) @ S(f_ins) - (
@@ -897,7 +900,7 @@ class Test_AidedINS:
 
         quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
 
-        ains._update_G(quaternion)
+        ains._update_G(R(quaternion))
 
         delta_G_matrix_expect = np.zeros_like(G_matrix_init)
         delta_G_matrix_expect[3:6, 0:3] = -R(quaternion) - (-R(quaternion_init))
@@ -969,7 +972,7 @@ class Test_AidedINS:
 
         quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
 
-        ains._update_H(quaternion, lever_arm)
+        ains._update_H(R(quaternion), quaternion, lever_arm)
 
         delta_H_matrix_expect = np.zeros_like(H_matrix_init)
         delta_H_matrix_expect[6:9, 6:9] = S(R(quaternion).T @ v01_ned) - S(
