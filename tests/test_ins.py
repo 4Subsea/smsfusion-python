@@ -268,8 +268,8 @@ class Test_StrapdownINS:
 
     def test_update_return_self(self, ins):
         g = 9.80665
-        f = np.array([0.0, 0.0, -g]).reshape(-1, 1)
-        w = np.array([0.0, 0.0, 0.0]).reshape(-1, 1)
+        f = np.array([0.0, 0.0, -g])
+        w = np.array([0.0, 0.0, 0.0])
 
         update_return = ins.update(f, w)
         assert update_return is ins

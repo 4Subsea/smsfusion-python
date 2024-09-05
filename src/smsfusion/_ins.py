@@ -478,8 +478,8 @@ class StrapdownINS(INSMixin):
         StrapdownINS :
             A reference to the instance itself after the update.
         """
-        f_imu = np.asarray(f_imu, dtype=float)
-        w_imu = np.asarray(w_imu, dtype=float)
+        f_imu = np.asarray_chkfinite(f_imu, dtype=float)
+        w_imu = np.asarray_chkfinite(w_imu, dtype=float)
 
         if degrees:
             w_imu = (np.pi / 180.0) * w_imu
