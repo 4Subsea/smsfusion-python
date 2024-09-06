@@ -1256,6 +1256,7 @@ class Test_AidedINS:
             P0_prior,
             err_acc,
             err_gyro,
+            ignore_bias_acc=False,
         )
 
         g = gravity()
