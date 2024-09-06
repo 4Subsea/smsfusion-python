@@ -954,8 +954,14 @@ class Test_AidedINS:
         P = np.random.random((15, 15))
         ains._P = P
 
+        # Permutation matrix for reordering bias terms
+        T = np.zeros((15, 15))
+        T[:9, :9] = np.eye(9)
+        T[9:12, 12:15] = np.eye(3)
+        T[12:15, 9:12] = np.eye(3)
+
         P_out = ains.P
-        P_expect = P
+        P_expect = T.T @ P @ T
 
         np.testing.assert_array_almost_equal(P_out, P_expect)
         assert P_out is not ains._P

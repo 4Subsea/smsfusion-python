@@ -613,6 +613,12 @@ class AidedINS(INSMixin):
         Whether to ignore the accelerometer bias in the error-state estimate.
     """
 
+    # Permutation matrix for reordering bias terms
+    _T = np.zeros((15, 15))
+    _T[:9, :9] = np.eye(9)
+    _T[9:12, 12:15] = np.eye(3)
+    _T[12:15, 9:12] = np.eye(3)
+
     def __init__(
         self,
         fs: float,
@@ -644,6 +650,8 @@ class AidedINS(INSMixin):
 
         # Initialize Kalman filter
         self._P_prior = np.asarray_chkfinite(P0_prior).reshape(dx_dim, dx_dim).copy()
+        if not self._ignore_bias_acc:
+            self._P_prior = self._T @ self._P_prior @ self._T.T  # reorder bias terms
         self._P = np.empty_like(self._P_prior)
 
         # Prepare system matrices
@@ -685,7 +693,10 @@ class AidedINS(INSMixin):
         matrix associated with the Kalman filter's updated (a posteriori) error-state
         estimate.
         """
-        return self._P.copy()
+        P = self._P.copy()
+        if not self._ignore_bias_acc:
+            P = self._T.T @ P @ self._T  # reorder bias terms
+        return P
 
     @property
     def P_prior(self) -> NDArray[np.float64]:
@@ -694,7 +705,10 @@ class AidedINS(INSMixin):
         covariance matrix associated with the Kalman filter's projected (a priori)
         error-state estimate.
         """
-        return self._P_prior.copy()
+        P_prior = self._P_prior.copy()
+        if not self._ignore_bias_acc:
+            P_prior = self._T.T @ P_prior @ self._T  # reorder bias terms
+        return P_prior
 
     @staticmethod
     def _prep_F(
