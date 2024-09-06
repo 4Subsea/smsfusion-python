@@ -1434,30 +1434,31 @@ class Test_AidedINS:
         ains.update(f_imu, w_imu, degrees=True, g_ref=True, g_var=g_var)
         np.testing.assert_array_almost_equal(ains.x, x0)
 
-    def test_update_reset_bias(self):
+    def test_update_ignore_bias_acc(self):
         fs = 10.24
 
         x0 = np.zeros(16)
         x0[6] = 1.0
-        P0_prior = 1e-6 * np.eye(15)
 
-        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 10.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 10.0}
 
-        ains_a = AidedINS(  # reset bias
+        ains_a = AidedINS(  # include accelerometer bias
             fs,
             x0,
-            P0_prior,
+            np.eye(15),
             err_acc,
             err_gyro,
+            ignore_bias_acc=False,
         )
 
-        ains_b = AidedINS(  # no reset bias
+        ains_b = AidedINS(  # ignore accelerometer bias
             fs,
             x0,
-            P0_prior,
+            np.eye(12),
             err_acc,
             err_gyro,
+            ignore_bias_acc=True,
         )
 
         g = gravity()
@@ -1482,9 +1483,21 @@ class Test_AidedINS:
             head=head,
             head_var=head_var,
             head_degrees=True,
-            reset_bias_acc=True,
-            reset_bias_gyro=True,
         )
+
+        ains_a.update(
+            f_imu,
+            w_imu,
+            degrees=True,
+            pos=pos,
+            pos_var=pos_var,
+            vel=vel,
+            vel_var=vel_var,
+            head=head,
+            head_var=head_var,
+            head_degrees=True,
+        )
+
         ains_b.update(
             f_imu,
             w_imu,
@@ -1496,15 +1509,23 @@ class Test_AidedINS:
             head=head,
             head_var=head_var,
             head_degrees=True,
-            reset_bias_acc=False,
-            reset_bias_gyro=False,
         )
 
-        x = ains_a.x
-        np.testing.assert_array_almost_equal(ains_a.x, x)
-        np.testing.assert_array_almost_equal(ains_b.x, x)
-        np.testing.assert_array_almost_equal(ains_a._ins.x[10:], x[10:])  # with reset
-        np.testing.assert_array_almost_equal(ains_b._ins.x[10:], x0[10:])  # no reset
+        ains_b.update(
+            f_imu,
+            w_imu,
+            degrees=True,
+            pos=pos,
+            pos_var=pos_var,
+            vel=vel,
+            vel_var=vel_var,
+            head=head,
+            head_var=head_var,
+            head_degrees=True,
+        )
+
+        assert not np.array_equal(ains_a.bias_acc(), x0[9:12])  # bias is updated
+        np.testing.assert_array_almost_equal(ains_b.bias_acc(), x0[9:12])  # no update
 
     @pytest.mark.parametrize(
         "benchmark_gen",
