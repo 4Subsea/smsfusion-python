@@ -931,7 +931,7 @@ class Test_AidedINS:
             x_ins[0:6] + dx[0:6],
             _normalize(_quaternion_product(x_ins[6:10], dq)),
             x_ins[10:13],
-            x_ins[13:16] + dx[9:12],
+            x_ins[13:16] + dx[12:15],
         ]
 
         np.testing.assert_array_almost_equal(x_out, x_expect)
