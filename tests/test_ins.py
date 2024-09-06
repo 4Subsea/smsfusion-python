@@ -684,7 +684,7 @@ class Test_AidedINS:
     def test__init__defualt_lever_arm(self):
         x0 = np.random.random(16)
         x0[6:10] = (1.0, 0.0, 0.0, 0.0)
-        P0_prior = np.eye(15)
+        P0_prior = np.eye(12)
 
         err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
         err_gyro = {
