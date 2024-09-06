@@ -586,9 +586,11 @@ class AidedINS(INSMixin):
         * Attitude as unit quaternion (4 elements).
         * Accelerometer bias in x, y, z directions (3 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
-    P0_prior : array-like, shape (15, 15)
-        Initial a priori estimate of error covariance matrix, **P**. If uncertain, use
-        a small diagonal matrix (e.g., ``1e-6 * numpy.eye(15)``).
+    P0_prior : array-like, shape (15, 15) or (12, 12)
+        Initial a priori estimate of the error covariance matrix, **P**. If uncertain,
+        use a small diagonal matrix (e.g., ``1e-6 * numpy.eye(15)``). Note that if the
+        accelerometer bias is ignored (see ``ignore_bias_acc``), the matrix should be
+        of shape (12, 12).
     err_acc : dict of {str: float}
         Dictionary containing accelerometer noise parameters with keys:
 
@@ -610,7 +612,9 @@ class AidedINS(INSMixin):
         Latitude used to calculate the gravitational acceleration. If ``None`` provided,
         the 'standard gravity' is assumed.
     ignore_bias_acc : bool, default True
-        Whether to ignore the accelerometer bias in the error-state estimate.
+        Whether to ignore the accelerometer bias in the error-state estimate. Note that
+        this will reduce the error-state dimension from 15 to 12, and hence also the
+        error covariance matrix, **P**, from dimension (15, 15) to (12, 12).
     """
 
     # Permutation matrix for reordering bias terms, such that:
