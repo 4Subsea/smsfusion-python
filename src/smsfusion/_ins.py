@@ -624,6 +624,13 @@ class AidedINS(INSMixin):
     _T[9:12, 12:15] = np.eye(3)
     _T[12:15, 9:12] = np.eye(3)
 
+    # Permutation matrix for reordering white noise terms, such that:
+    # [wn_a, wn_g, wn_bg, wn_ba]^T = T_wn @ [wn_a, wn_g, wn_ba, wn_bg]^T
+    _T_wn = np.zeros((12, 12))
+    _T_wn[:6, :6] = np.eye(6)
+    _T_wn[6:9, 9:12] = np.eye(3)
+    _T_wn[9:12, 6:9] = np.eye(3)
+
     def __init__(
         self,
         fs: float,
@@ -643,7 +650,7 @@ class AidedINS(INSMixin):
         self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
         self._ignore_bias_acc = ignore_bias_acc
         dx_dim = 12 if ignore_bias_acc else 15  # error-state dimension
-        wn_dim = 9 if ignore_bias_acc else 12  # white noise dimension
+        # wn_dim = 9 if ignore_bias_acc else 12  # white noise dimension
         self._I = np.eye(dx_dim)
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
@@ -655,18 +662,21 @@ class AidedINS(INSMixin):
 
         # Initialize Kalman filter
         self._P_prior = np.asarray_chkfinite(P0_prior).reshape(dx_dim, dx_dim).copy()
-        if not self._ignore_bias_acc:
-            # Reorder bias terms such that:
-            # [p, v, q, b_acc, b_gyro]^T --> [p, v, q, b_gyro, b_acc]^T
-            self._P_prior = self._T @ self._P_prior @ self._T.T  # reorder bias terms
         self._P = np.empty_like(self._P_prior)
 
         # Prepare system matrices
         q0 = self._ins._q_nm
-        self._F = self._prep_F(err_acc, err_gyro, q0)[:dx_dim, :dx_dim]
-        self._G = self._prep_G(q0)[:dx_dim, :wn_dim]
-        self._H = self._prep_H(q0, self._lever_arm)[:, :dx_dim]
-        self._W = self._prep_W(err_acc, err_gyro)[:wn_dim, :wn_dim]
+        self._F = self._prep_F(err_acc, err_gyro, q0)
+        self._G = self._prep_G(q0)
+        self._H = self._prep_H(q0, self._lever_arm)
+        self._W = self._prep_W(err_acc, err_gyro)
+
+        if self._ignore_bias_acc:
+            # Filter out the accelerometer bias terms from the system matrices
+            self._F = (self._T @ self._F @ self._T.T)[:12, :12]
+            self._G = (self._T @ self._G @ self._T_wn)[:12, :9]
+            self._H = (self._H @ self._T)[:, :12]
+            self._W = (self._T_wn @ self._W @ self._T_wn.T)[:9, :9]
 
     def x_prior(self):
         return self._ins.x
@@ -701,8 +711,8 @@ class AidedINS(INSMixin):
         estimate.
         """
         P = self._P.copy()
-        if not self._ignore_bias_acc:
-            P = self._T.T @ P @ self._T  # reorder bias terms
+        # if not self._ignore_bias_acc:
+        #     P = self._T.T @ P @ self._T  # reorder bias terms
         return P
 
     @property
@@ -713,8 +723,8 @@ class AidedINS(INSMixin):
         error-state estimate.
         """
         P_prior = self._P_prior.copy()
-        if not self._ignore_bias_acc:
-            P_prior = self._T.T @ P_prior @ self._T  # reorder bias terms
+        # if not self._ignore_bias_acc:
+        #     P_prior = self._T.T @ P_prior @ self._T  # reorder bias terms
         return P_prior
 
     @staticmethod
@@ -741,11 +751,11 @@ class AidedINS(INSMixin):
         F = np.zeros((15, 15))
         F[0:3, 3:6] = np.eye(3)
         F[3:6, 6:9] = -R_nm @ S(f_ins)  # NB! update each time step
-        F[3:6, 12:15] = -R_nm  # NB! update each time step
+        F[3:6, 9:12] = -R_nm  # NB! update each time step
         F[6:9, 6:9] = -S(w_ins)  # NB! update each time step
-        F[6:9, 9:12] = -np.eye(3)
-        F[12:15, 12:15] = -beta_acc * np.eye(3)
-        F[9:12, 9:12] = -beta_gyro * np.eye(3)
+        F[6:9, 12:15] = -np.eye(3)
+        F[9:12, 9:12] = -beta_acc * np.eye(3)
+        F[12:15, 12:15] = -beta_gyro * np.eye(3)
 
         return F
 
@@ -836,8 +846,8 @@ class AidedINS(INSMixin):
         W = np.eye(12)
         W[0:3, 0:3] *= N_acc**2
         W[3:6, 3:6] *= N_gyro**2
-        W[9:12, 9:12] *= 2.0 * sigma_acc**2 * beta_acc
-        W[6:9, 6:9] *= 2.0 * sigma_gyro**2 * beta_gyro
+        W[6:9, 6:9] *= 2.0 * sigma_acc**2 * beta_acc
+        W[9:12, 9:12] *= 2.0 * sigma_gyro**2 * beta_gyro
         return W
 
     def _reset_ins(self, dx):
@@ -849,7 +859,7 @@ class AidedINS(INSMixin):
         self._ins._x[3:6] = self._ins._x[3:6] + dx[3:6]
         self._ins._x[6:10] = _quaternion_product(self._ins._x[6:10], dq)
         self._ins._x[6:10] = _normalize(self._ins._x[6:10])
-        self._ins._x[13:16] = self._ins._x[13:16] + dx[9:12]  # note opposite order
+        self._ins._x[-3:] = self._ins._x[-3:] + dx[-3:]  # note opposite order
         if not self._ignore_bias_acc:
             self._ins._x[10:13] = self._ins._x[10:13] + dx[12:15]  # opposite order
 
