@@ -1310,7 +1310,7 @@ class Test_AidedINS:
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
 
-        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro)
+        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro, ignore_bias_acc=False)
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
