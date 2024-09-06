@@ -616,7 +616,7 @@ class AidedINS(INSMixin):
     def __init__(
         self,
         fs: float,
-        x0: ArrayLike,
+        x0_prior: ArrayLike,
         P0_prior: ArrayLike,
         err_acc: dict[str, float],
         err_gyro: dict[str, float],
@@ -639,10 +639,10 @@ class AidedINS(INSMixin):
         self._w_imu_prev = np.zeros(3)
 
         # Strapdown algorithm / INS state
-        self._ins = StrapdownINS(self._fs, x0, lat=self._lat)
+        self._ins = StrapdownINS(self._fs, x0_prior, lat=self._lat)
 
         # Total state
-        self._x = self._ins._x
+        self._x = self._ins.x
 
         # Initialize Kalman filter
         self._P_prior = np.asarray_chkfinite(P0_prior).reshape(dx_dim, dx_dim).copy()
@@ -654,6 +654,9 @@ class AidedINS(INSMixin):
         self._G = self._prep_G(q0)[:dx_dim, :wn_dim]
         self._H = self._prep_H(q0, self._lever_arm)[:, :dx_dim]
         self._W = self._prep_W(err_acc, err_gyro)[:wn_dim, :wn_dim]
+
+    def x_prior(self):
+        return self._ins.x
 
     def dump(self):
         """
@@ -667,7 +670,7 @@ class AidedINS(INSMixin):
         """
         params = {
             "fs": self._fs,
-            "x0": self._ins._x.tolist(),
+            "x0_prior": self._ins._x.tolist(),
             "P0_prior": self._P_prior.tolist(),
             "err_acc": self._err_acc,
             "err_gyro": self._err_gyro,
@@ -894,11 +897,6 @@ class AidedINS(INSMixin):
         if degrees:
             w_imu = (np.pi / 180.0) * w_imu
 
-        # Update INS with previous IMU measurements
-        self._ins.update(self._f_imu_prev, self._w_imu_prev, degrees=False)
-        self._f_imu_prev = f_imu
-        self._w_imu_prev = w_imu
-
         # Current INS state estimates
         pos_ins = self._ins._pos
         vel_ins = self._ins._vel
@@ -1001,7 +999,11 @@ class AidedINS(INSMixin):
         phi = self._I + self._dt * self._F  # state transition matrix
         Q = self._dt * self._G @ self._W @ self._G.T  # process noise covariance matrix
 
+        # Update state
+        self._x = self._ins.x
+
         # Project ahead
+        self._ins.update(f_imu, w_imu, degrees=False)
         self._P_prior = phi @ self._P @ phi.T + Q
 
         return self
