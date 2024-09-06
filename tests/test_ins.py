@@ -787,7 +787,7 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(quaternion_out, quaternion_expect)
         assert quaternion_out is not ains._q_nm
 
-    def test__combine_states(self, ains):
+    def test__reset_ins(self, ains):
         x_ins = np.array(
             [
                 1.0,
@@ -828,10 +828,10 @@ class Test_AidedINS:
             ]
         )
 
-        ains._ins._x = x_ins
-        ains._dx = dx
-        ains._combine_states()
-        x_out = ains._x
+        ains._ignore_bias_acc = False
+        ains._ins._x = x_ins.copy()
+        ains._reset_ins(dx)
+        x_out = ains._ins.x
 
         da = dx[6:9]
         dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
@@ -839,11 +839,69 @@ class Test_AidedINS:
         x_expect = np.r_[
             x_ins[0:6] + dx[0:6],
             _normalize(_quaternion_product(x_ins[6:10], dq)),
-            x_ins[10:13] + dx[9:12],
-            x_ins[13:16] + dx[12:15],
+            x_ins[10:13] + dx[12:15],
+            x_ins[13:16] + dx[9:12],
         ]
 
         np.testing.assert_array_almost_equal(x_out, x_expect)
+
+    # def test__combine_states(self, ains):
+    #     x_ins = np.array(
+    #         [
+    #             1.0,
+    #             2.0,
+    #             3.0,
+    #             4.0,
+    #             5.0,
+    #             6.0,
+    #             1.0,
+    #             0.0,
+    #             0.0,
+    #             0.0,
+    #             0.1,
+    #             0.2,
+    #             0.3,
+    #             0.4,
+    #             0.5,
+    #             0.5,
+    #         ]
+    #     )
+    #     dx = np.array(
+    #         [
+    #             0.1,
+    #             0.2,
+    #             0.3,
+    #             0.4,
+    #             0.5,
+    #             0.6,
+    #             0.05,
+    #             0.06,
+    #             0.07,
+    #             0.7,
+    #             0.8,
+    #             0.9,
+    #             0.10,
+    #             0.11,
+    #             0.12,
+    #         ]
+    #     )
+
+    #     ains._ins._x = x_ins
+    #     ains._dx = dx
+    #     ains._combine_states()
+    #     x_out = ains._x
+
+    #     da = dx[6:9]
+    #     dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
+
+    #     x_expect = np.r_[
+    #         x_ins[0:6] + dx[0:6],
+    #         _normalize(_quaternion_product(x_ins[6:10], dq)),
+    #         x_ins[10:13] + dx[9:12],
+    #         x_ins[13:16] + dx[12:15],
+    #     ]
+
+    #     np.testing.assert_array_almost_equal(x_out, x_expect)
 
     def test_P_prior(self, ains):
         P_prior_out = ains.P_prior
