@@ -678,6 +678,7 @@ class AidedINS(INSMixin):
         else:
             self._I = np.eye(15)
 
+    @property
     def x_prior(self):
         """
         Next a priori state vector estimate.

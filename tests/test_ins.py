@@ -936,6 +936,11 @@ class Test_AidedINS:
 
         np.testing.assert_array_almost_equal(x_out, x_expect)
 
+    def test_x_prior(self, ains):
+        x_prior_out = ains.x_prior
+        x_prior_expect = ains._ins.x
+        np.testing.assert_array_almost_equal(x_prior_out, x_prior_expect)
+
     def test_P_prior(self, ains, ains_nobias):
 
         # With bias
