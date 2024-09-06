@@ -726,8 +726,6 @@ class AidedINS(INSMixin):
         estimate.
         """
         P = self._P.copy()
-        # if not self._ignore_bias_acc:
-        #     P = self._T.T @ P @ self._T  # reorder bias terms
         return P
 
     @property
@@ -738,8 +736,6 @@ class AidedINS(INSMixin):
         error-state estimate.
         """
         P_prior = self._P_prior.copy()
-        # if not self._ignore_bias_acc:
-        #     P_prior = self._T.T @ P_prior @ self._T  # reorder bias terms
         return P_prior
 
     @staticmethod
