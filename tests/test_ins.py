@@ -575,7 +575,7 @@ class Test_AidedINS:
         bias_gyro_init = np.array([-0.1, 0.0, 0.0])
 
         x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
-        P0_prior = 1e-6 * np.eye(15)
+        P0_prior = 1e-6 * np.eye(12)
 
         err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
         err_gyro = {
@@ -584,7 +584,15 @@ class Test_AidedINS:
             "tau_cb": 50,
         }
 
-        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro, lever_arm=np.ones(3))
+        ains = AidedINS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            lever_arm=np.ones(3),
+            ignore_bias_acc=True,
+        )
         return ains
 
     def test__init__(self):
@@ -718,8 +726,10 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(ains_b._lever_arm, ains._lever_arm)
         assert ains_b._lat == ains._lat
         np.testing.assert_array_almost_equal(ains_b._ins._x, ains._ins._x)
-        np.testing.assert_array_almost_equal(ains_b._dx_prior, ains._dx_prior)
         np.testing.assert_array_almost_equal(ains_b._P_prior, ains._P_prior)
+        np.testing.assert_array_almost_equal(
+            ains_b._ignore_bias_acc, ains._ignore_bias_acc
+        )
 
     def test_x(self, ains):
         x_expect = np.array(

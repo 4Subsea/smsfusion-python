@@ -674,6 +674,7 @@ class AidedINS(INSMixin):
             "err_gyro": self._err_gyro,
             "lever_arm": self._lever_arm.tolist(),
             "lat": self._lat,
+            "ignore_bias_acc": self._ignore_bias_acc,
         }
         return params
 
