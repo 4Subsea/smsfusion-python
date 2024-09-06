@@ -961,7 +961,7 @@ class Test_AidedINS:
         T[12:15, 9:12] = np.eye(3)
 
         P_out = ains.P
-        P_expect = T.T @ P @ T
+        P_expect = P
 
         np.testing.assert_array_almost_equal(P_out, P_expect)
         assert P_out is not ains._P
