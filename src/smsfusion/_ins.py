@@ -617,14 +617,14 @@ class AidedINS(INSMixin):
         error covariance matrix, **P**, from dimension (15, 15) to (12, 12).
     """
 
-    # Permutation matrix for reordering bias error terms, such that:
-    # [pos, vel, quat, b_gyro, b_acc]^T = T @ [pos, vel, quat, b_acc, b_gyro]^T
-    _T = np.zeros((15, 15))
-    _T[:9, :9] = np.eye(9)
-    _T[9:12, 12:15] = np.eye(3)
-    _T[12:15, 9:12] = np.eye(3)
+    # Permutation matrix for reordering error-state bias terms, such that:
+    # [pos, vel, quat, b_gyro, b_acc]^T = T_dx @ [pos, vel, quat, b_acc, b_gyro]^T
+    _T_dx = np.zeros((15, 15))
+    _T_dx[:9, :9] = np.eye(9)
+    _T_dx[9:12, 12:15] = np.eye(3)
+    _T_dx[12:15, 9:12] = np.eye(3)
 
-    # Permutation matrix for reordering bias white noise terms, such that:
+    # Permutation matrix for reordering white noise bias terms, such that:
     # [acc, gyro, b_gyro, b_acc]^T = T_wn @ [acc, gyro, b_acc, b_gyro]^T
     _T_wn = np.zeros((12, 12))
     _T_wn[:6, :6] = np.eye(6)
@@ -670,9 +670,9 @@ class AidedINS(INSMixin):
 
         if self._ignore_bias_acc:
             # Filter out the accelerometer bias terms from the system matrices
-            self._F = (self._T @ self._F @ self._T.T)[:12, :12]
-            self._G = (self._T @ self._G @ self._T_wn)[:12, :9]
-            self._H = (self._H @ self._T)[:, :12]
+            self._F = (self._T_dx @ self._F @ self._T_dx.T)[:12, :12]
+            self._G = (self._T_dx @ self._G @ self._T_wn)[:12, :9]
+            self._H = (self._H @ self._T_dx)[:, :12]
             self._W = (self._T_wn @ self._W @ self._T_wn.T)[:9, :9]
             self._I = np.eye(12)
         else:
