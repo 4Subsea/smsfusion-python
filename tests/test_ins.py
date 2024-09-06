@@ -875,11 +875,11 @@ class Test_AidedINS:
         F_matrix_expect = np.zeros((15, 15))
         F_matrix_expect[0:3, 3:6] = np.eye(3)
         F_matrix_expect[3:6, 6:9] = -R(quaternion) @ S(f_ins)
-        F_matrix_expect[3:6, 9:12] = -R(quaternion)
+        F_matrix_expect[3:6, 12:15] = -R(quaternion)
         F_matrix_expect[6:9, 6:9] = -S(w_ins)  # NB! update each time step
-        F_matrix_expect[6:9, 12:15] = -np.eye(3)
-        F_matrix_expect[9:12, 9:12] = -(1.0 / err_acc["tau_cb"]) * np.eye(3)
-        F_matrix_expect[12:15, 12:15] = -(1.0 / err_gyro["tau_cb"]) * np.eye(3)
+        F_matrix_expect[6:9, 9:12] = -np.eye(3)
+        F_matrix_expect[12:15, 12:15] = -(1.0 / err_acc["tau_cb"]) * np.eye(3)
+        F_matrix_expect[9:12, 9:12] = -(1.0 / err_gyro["tau_cb"]) * np.eye(3)
 
         np.testing.assert_array_almost_equal(F_matrix_out, F_matrix_expect)
 
