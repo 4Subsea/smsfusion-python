@@ -617,15 +617,15 @@ class AidedINS(INSMixin):
         error covariance matrix, **P**, from dimension (15, 15) to (12, 12).
     """
 
-    # Permutation matrix for reordering bias terms, such that:
-    # [p, v, q, b_gyro, b_acc]^T = T @ [p, v, q, b_acc, b_gyro]^T
+    # Permutation matrix for reordering bias error terms, such that:
+    # [pos, vel, quat, b_gyro, b_acc]^T = T @ [pos, vel, quat, b_acc, b_gyro]^T
     _T = np.zeros((15, 15))
     _T[:9, :9] = np.eye(9)
     _T[9:12, 12:15] = np.eye(3)
     _T[12:15, 9:12] = np.eye(3)
 
-    # Permutation matrix for reordering white noise terms, such that:
-    # [wn_a, wn_g, wn_bg, wn_ba]^T = T_wn @ [wn_a, wn_g, wn_ba, wn_bg]^T
+    # Permutation matrix for reordering bias white noise terms, such that:
+    # [acc, gyro, b_gyro, b_acc]^T = T_wn @ [acc, gyro, b_acc, b_gyro]^T
     _T_wn = np.zeros((12, 12))
     _T_wn[:6, :6] = np.eye(6)
     _T_wn[6:9, 9:12] = np.eye(3)
