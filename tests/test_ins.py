@@ -1020,7 +1020,7 @@ class Test_AidedINS:
         delta_F_matrix_expect[3:6, 6:9] = -R(quaternion) @ S(f_ins) - (
             -R(quaternion_init) @ S(f_ins_init)
         )
-        delta_F_matrix_expect[3:6, 12:15] = -R(quaternion) - (-R(quaternion_init))
+        delta_F_matrix_expect[3:6, 9:12] = -R(quaternion) - (-R(quaternion_init))
         delta_F_matrix_expect[6:9, 6:9] = -S(w_ins) - (-S(w_ins_init))
 
         np.testing.assert_array_almost_equal(

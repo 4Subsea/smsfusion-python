@@ -772,7 +772,7 @@ class AidedINS(INSMixin):
         self._F[3:6, 6:9] = -R_nm @ S(f_ins)  # NB! update each time step
         self._F[6:9, 6:9] = -S(w_ins)  # NB! update each time step
         if not self._ignore_bias_acc:
-            self._F[3:6, 12:15] = -R_nm  # NB! update each time step
+            self._F[3:6, 9:12] = -R_nm  # NB! update each time step
 
     @staticmethod
     def _prep_G(q_nm: NDArray[np.float64]) -> NDArray[np.float64]:
