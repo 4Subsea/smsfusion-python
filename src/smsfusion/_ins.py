@@ -649,9 +649,6 @@ class AidedINS(INSMixin):
         self._lat = lat
         self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
         self._ignore_bias_acc = ignore_bias_acc
-        dx_dim = 12 if ignore_bias_acc else 15  # error-state dimension
-        # wn_dim = 9 if ignore_bias_acc else 12  # white noise dimension
-        self._I = np.eye(dx_dim)
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
         # Strapdown algorithm / INS state
@@ -661,7 +658,7 @@ class AidedINS(INSMixin):
         self._x = self._ins.x
 
         # Initialize Kalman filter
-        self._P_prior = np.asarray_chkfinite(P0_prior).reshape(dx_dim, dx_dim).copy()
+        self._P_prior = np.asarray_chkfinite(P0_prior).copy()
         self._P = np.empty_like(self._P_prior)
 
         # Prepare system matrices
@@ -677,6 +674,9 @@ class AidedINS(INSMixin):
             self._G = (self._T @ self._G @ self._T_wn)[:12, :9]
             self._H = (self._H @ self._T)[:, :12]
             self._W = (self._T_wn @ self._W @ self._T_wn.T)[:9, :9]
+            self._I = np.eye(12)
+        else:
+            self._I = np.eye(15)
 
     def x_prior(self):
         return self._ins.x
