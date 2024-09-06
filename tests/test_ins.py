@@ -598,7 +598,6 @@ class Test_AidedINS:
 
         x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
         P0_prior = 1e-6 * np.eye(15)
-        dx0_prior = np.random.random(15)
 
         err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
         err_gyro = {
@@ -615,7 +614,7 @@ class Test_AidedINS:
             err_gyro,
             lever_arm=(1, 2, 3),
             lat=60.0,
-            dx0_prior=dx0_prior,
+            ignore_bias_acc=False,
         )
 
         assert isinstance(ains, AidedINS)
@@ -628,8 +627,6 @@ class Test_AidedINS:
 
         np.testing.assert_array_almost_equal(ains._x, x0)
         np.testing.assert_array_almost_equal(ains._ins._x, x0)
-        np.testing.assert_array_almost_equal(ains._dx, np.zeros(15))
-        np.testing.assert_array_almost_equal(ains._dx_prior, dx0_prior)
         np.testing.assert_array_almost_equal(ains._P_prior, P0_prior)
         np.testing.assert_array_almost_equal(ains._lever_arm, (1, 2, 3))
 
