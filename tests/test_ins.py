@@ -1611,13 +1611,12 @@ class Test_AidedINS:
             "B": (np.pi / 180.0) * 7.5e-4,
             "tau_cb": 50,
         }
-        P0_prior = np.eye(15)
-        P0_prior[9:12, 9:12] *= 1e-9
+        P0_prior = np.eye(12)
         x0 = np.zeros(16)
         x0[0:3] = pos_ref[0]
         x0[3:6] = vel_ref[0]
         x0[6:10] = _quaternion_from_euler(np.radians(euler_ref[0].flatten()))
-        mekf = AidedINS(fs_imu, x0, P0_prior, err_acc, err_gyro)
+        mekf = AidedINS(fs_imu, x0, P0_prior, err_acc, err_gyro, ignore_bias_acc=True)
 
         # Apply filter
         pos_out, vel_out, euler_out, bias_acc_out, bias_gyro_out = [], [], [], [], []
@@ -1638,8 +1637,6 @@ class Test_AidedINS:
                     head_degrees=True,
                     g_ref=True,
                     g_var=0.1**2 * np.ones(3),
-                    reset_bias_acc=False,
-                    reset_bias_gyro=True,
                 )
             else:  # without aiding
                 mekf.update(acc_i, gyro_i, degrees=True)
