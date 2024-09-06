@@ -905,7 +905,7 @@ class Test_AidedINS:
 
     def test_P_prior(self, ains):
         P_prior_out = ains.P_prior
-        P_prior_expect = 1e-6 * np.eye(15)
+        P_prior_expect = 1e-6 * np.eye(12)
 
         np.testing.assert_array_almost_equal(P_prior_out, P_prior_expect)
         assert P_prior_out is not ains._P_prior
