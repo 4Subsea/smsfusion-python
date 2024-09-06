@@ -613,7 +613,8 @@ class AidedINS(INSMixin):
         Whether to ignore the accelerometer bias in the error-state estimate.
     """
 
-    # Permutation matrix for reordering bias terms
+    # Permutation matrix for reordering bias terms, such that:
+    # [p, v, q, b_gyro, b_acc]^T = T @ [p, v, q, b_acc, b_gyro]^T
     _T = np.zeros((15, 15))
     _T[:9, :9] = np.eye(9)
     _T[9:12, 12:15] = np.eye(3)
@@ -651,6 +652,8 @@ class AidedINS(INSMixin):
         # Initialize Kalman filter
         self._P_prior = np.asarray_chkfinite(P0_prior).reshape(dx_dim, dx_dim).copy()
         if not self._ignore_bias_acc:
+            # Reorder bias terms such that:
+            # [p, v, q, b_acc, b_gyro]^T --> [p, v, q, b_gyro, b_acc]^T
             self._P_prior = self._T @ self._P_prior @ self._T.T  # reorder bias terms
         self._P = np.empty_like(self._P_prior)
 
