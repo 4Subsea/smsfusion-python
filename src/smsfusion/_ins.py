@@ -859,9 +859,9 @@ class AidedINS(INSMixin):
         self._ins._x[3:6] = self._ins._x[3:6] + dx[3:6]
         self._ins._x[6:10] = _quaternion_product(self._ins._x[6:10], dq)
         self._ins._x[6:10] = _normalize(self._ins._x[6:10])
-        self._ins._x[-3:] = self._ins._x[-3:] + dx[-3:]  # note opposite order
+        self._ins._x[-3:] = self._ins._x[-3:] + dx[-3:]
         if not self._ignore_bias_acc:
-            self._ins._x[10:13] = self._ins._x[10:13] + dx[12:15]  # opposite order
+            self._ins._x[10:13] = self._ins._x[10:13] + dx[9:12]
 
     def update(
         self,
