@@ -624,6 +624,7 @@ class Test_AidedINS:
         assert ains._err_acc == err_acc
         assert ains._err_gyro == err_gyro
         assert isinstance(ains._ins, StrapdownINS)
+        assert ains._ignore_bias_acc is False
 
         np.testing.assert_array_almost_equal(ains._x, x0)
         np.testing.assert_array_almost_equal(ains._ins._x, x0)
@@ -640,6 +641,45 @@ class Test_AidedINS:
         assert ains._G.shape == (15, 12)
         assert ains._W.shape == (12, 12)
         assert ains._H.shape == (10, 15)
+
+    def test__init__ignore_bias_acc(self):
+        fs = 10.24
+
+        p_init = np.array([0.0, 0.0, 0.0])
+        v_init = np.array([0.0, 0.0, 0.0])
+        q_init = np.array([1.0, 0.0, 0.0, 0.0])
+        bias_acc_init = np.array([0.0, 0.0, 0.0])
+        bias_gyro_init = np.array([0.0, 0.0, 0.0])
+
+        x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
+        P0_prior = 1e-6 * np.eye(12)
+
+        err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
+        err_gyro = {
+            "N": (np.pi) / 180.0 * 2.0e-3,
+            "B": (np.pi) / 180.0 * 8.0e-4,
+            "tau_cb": 50,
+        }
+
+        ains = AidedINS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            lever_arm=(1, 2, 3),
+            lat=60.0,
+            ignore_bias_acc=True,
+        )
+
+        assert ains._ignore_bias_acc is True
+        np.testing.assert_array_almost_equal(ains._P_prior, P0_prior)
+        assert ains._P_prior.shape == (12, 12)
+        assert ains._P.shape == (12, 12)
+        assert ains._F.shape == (12, 12)
+        assert ains._G.shape == (12, 9)
+        assert ains._W.shape == (9, 9)
+        assert ains._H.shape == (10, 12)
 
     def test__init__defualt_lever_arm(self):
         x0 = np.random.random(16)

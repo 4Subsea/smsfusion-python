@@ -635,8 +635,6 @@ class AidedINS(INSMixin):
         wn_dim = 9 if ignore_bias_acc else 12  # white noise dimension
         self._I = np.eye(dx_dim)
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
-        self._f_imu_prev = np.zeros(3)
-        self._w_imu_prev = np.zeros(3)
 
         # Strapdown algorithm / INS state
         self._ins = StrapdownINS(self._fs, x0_prior, lat=self._lat)
