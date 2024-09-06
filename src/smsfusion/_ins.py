@@ -679,6 +679,20 @@ class AidedINS(INSMixin):
             self._I = np.eye(15)
 
     def x_prior(self):
+        """
+        Next a priori state vector estimate.
+
+        Returns
+        -------
+        numpy.ndarray, shape (16,)
+            A priori state vector estimate, containing the following elements in order:
+
+            * Position in x, y, z directions (3 elements).
+            * Velocity in x, y, z directions (3 elements).
+            * Attitude as unit quaternion (4 elements).
+            * Accelerometer bias in x, y, z directions (3 elements).
+            * Gyroscope bias in x, y, z directions (3 elements).
+        """
         return self._ins.x
 
     def dump(self):
