@@ -587,10 +587,11 @@ class AidedINS(INSMixin):
         * Accelerometer bias in x, y, z directions (3 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
     P0_prior : array-like, shape (15, 15) or (12, 12)
-        Initial a priori estimate of the error covariance matrix, **P**. If uncertain,
-        use a small diagonal matrix (e.g., ``1e-6 * numpy.eye(15)``). Note that if the
-        accelerometer bias is ignored (see ``ignore_bias_acc``), the matrix should be
-        of shape (12, 12).
+    The initial a priori estimate of the error covariance matrix, **P**. If uncertain, a
+    small diagonal matrix (e.g., ``1e-6 * numpy.eye(15)``) can be used. If the accelerometer
+    bias is excluded from the error estimate (see ``ignore_bias_acc``), the covariance
+    matrix should be of shape (12, 12) instead of (15, 15) to reflect the reduced state
+    dimensionality.
     err_acc : dict of {str: float}
         Dictionary containing accelerometer noise parameters with keys:
 
