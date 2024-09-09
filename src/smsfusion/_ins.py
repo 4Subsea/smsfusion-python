@@ -612,8 +612,12 @@ class AidedINS(INSMixin):
         Latitude used to calculate the gravitational acceleration. If ``None`` provided,
         the 'standard gravity' is assumed.
     ignore_bias_acc : bool, default True
-        Whether to ignore the accelerometer bias in the error-state estimate. Note that
-        this will reduce the error-state dimension from 15 to 12, and hence also the
+        Determines whether the accelerometer bias should be included in the error estimate.
+        If set to ``True``, the accelerometer bias provided in ``x0`` during initialization
+        will remain fixed and not updated. This option is useful in situations where the
+        accelerometer bias is unobservable, such as when there is insufficient aiding
+        information or minimal dynamic motion, making bias estimation unreliable. Note
+        that this will reduce the error-state dimension from 15 to 12, and hence also the
         error covariance matrix, **P**, from dimension (15, 15) to (12, 12).
     """
 
