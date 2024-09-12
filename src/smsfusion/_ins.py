@@ -677,14 +677,18 @@ class AidedINS(INSMixin):
         self._W = self._prep_W(err_acc, err_gyro)
 
         if self._ignore_bias_acc:
+            dx_dim = 12
+            wn_dim = 9
             # Filter out the accelerometer bias terms from the system matrices
-            self._F = (self._T_dx @ self._F @ self._T_dx.T)[:12, :12]
-            self._G = (self._T_dx @ self._G @ self._T_wn)[:12, :9]
-            self._H = (self._H @ self._T_dx)[:, :12]
-            self._W = (self._T_wn @ self._W @ self._T_wn.T)[:9, :9]
+            self._F = (self._T_dx @ self._F @ self._T_dx.T)[:dx_dim, :dx_dim]
+            self._G = (self._T_dx @ self._G @ self._T_wn)[:dx_dim, :wn_dim]
+            self._H = (self._H @ self._T_dx)[:, :dx_dim]
+            self._W = (self._T_wn @ self._W @ self._T_wn.T)[:wn_dim, :wn_dim]
             self._I = np.eye(12)
+            self._dx_dim = dx_dim
         else:
             self._I = np.eye(15)
+            self._dx_dim = 15
 
     @property
     def x_prior(self):
@@ -989,24 +993,26 @@ class AidedINS(INSMixin):
             if head_degrees:
                 head = (np.pi / 180.0) * head
                 head_var = (np.pi / 180.0) ** 2 * head_var
-            dz.append(_signed_smallest_angle(head - _h_head(q_ins_nm), degrees=False))
-            var.append(np.asarray(head_var, dtype=float))
+            delta_head = _signed_smallest_angle(head - _h_head(q_ins_nm), degrees=False)
+            dz.append(np.asarray([delta_head], dtype=float))
+            var.append(np.asarray([head_var], dtype=float))
             self._H[9:10, 6:9] = _dhda_head(q_ins_nm)
             idx.append([9])
 
-        P = self._P_prior
+        P = self._P_prior.copy()
         if dz:
+            # print(dz)
             dz = np.concatenate(dz)
             var = np.concatenate(var)
             idx = np.concatenate(idx)
 
             I_ = self._I
 
-            dx = np.zeros(15)
-            for idx, dz_i, var_i in zip(idx, dz, var):
-                H_i = self._H[idx, :]
+            dx = np.zeros(self._dx_dim)
+            for idx_i, dz_i, var_i in zip(idx, dz, var):
+                H_i = self._H[idx_i, :]
                 K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
-                dx += K_i @ dz_i
+                dx += K_i * dz_i
                 P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
 
             # Reset INS state
