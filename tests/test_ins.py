@@ -584,7 +584,48 @@ class Test_AidedINS:
             "tau_cb": 50,
         }
 
-        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro, lever_arm=np.ones(3))
+        ains = AidedINS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            lever_arm=np.ones(3),
+            ignore_bias_acc=False,
+        )
+        return ains
+
+    @pytest.fixture
+    def ains_nobias(self):
+        fs = 10.24
+
+        p_init = np.array([0.1, 0.0, 0.0])
+        v_init = np.array([0.0, -0.1, 0.0])
+
+        q_init = self.quaternion()
+
+        bias_acc_init = np.array([0.0, 0.0, 0.1])
+        bias_gyro_init = np.array([-0.1, 0.0, 0.0])
+
+        x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
+        P0_prior = 1e-6 * np.eye(12)
+
+        err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
+        err_gyro = {
+            "N": (np.pi) / 180.0 * 2.0e-3,
+            "B": (np.pi) / 180.0 * 8.0e-4,
+            "tau_cb": 50,
+        }
+
+        ains = AidedINS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            lever_arm=np.ones(3),
+            ignore_bias_acc=True,
+        )
         return ains
 
     def test__init__(self):
@@ -598,7 +639,6 @@ class Test_AidedINS:
 
         x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
         P0_prior = 1e-6 * np.eye(15)
-        dx0_prior = np.random.random(15)
 
         err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
         err_gyro = {
@@ -615,7 +655,7 @@ class Test_AidedINS:
             err_gyro,
             lever_arm=(1, 2, 3),
             lat=60.0,
-            dx0_prior=dx0_prior,
+            ignore_bias_acc=False,
         )
 
         assert isinstance(ains, AidedINS)
@@ -625,11 +665,10 @@ class Test_AidedINS:
         assert ains._err_acc == err_acc
         assert ains._err_gyro == err_gyro
         assert isinstance(ains._ins, StrapdownINS)
+        assert ains._ignore_bias_acc is False
 
         np.testing.assert_array_almost_equal(ains._x, x0)
         np.testing.assert_array_almost_equal(ains._ins._x, x0)
-        np.testing.assert_array_almost_equal(ains._dx, np.zeros(15))
-        np.testing.assert_array_almost_equal(ains._dx_prior, dx0_prior)
         np.testing.assert_array_almost_equal(ains._P_prior, P0_prior)
         np.testing.assert_array_almost_equal(ains._lever_arm, (1, 2, 3))
 
@@ -644,10 +683,49 @@ class Test_AidedINS:
         assert ains._W.shape == (12, 12)
         assert ains._H.shape == (10, 15)
 
+    def test__init__ignore_bias_acc(self):
+        fs = 10.24
+
+        p_init = np.array([0.0, 0.0, 0.0])
+        v_init = np.array([0.0, 0.0, 0.0])
+        q_init = np.array([1.0, 0.0, 0.0, 0.0])
+        bias_acc_init = np.array([0.0, 0.0, 0.0])
+        bias_gyro_init = np.array([0.0, 0.0, 0.0])
+
+        x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
+        P0_prior = 1e-6 * np.eye(12)
+
+        err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
+        err_gyro = {
+            "N": (np.pi) / 180.0 * 2.0e-3,
+            "B": (np.pi) / 180.0 * 8.0e-4,
+            "tau_cb": 50,
+        }
+
+        ains = AidedINS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            lever_arm=(1, 2, 3),
+            lat=60.0,
+            ignore_bias_acc=True,
+        )
+
+        assert ains._ignore_bias_acc is True
+        np.testing.assert_array_almost_equal(ains._P_prior, P0_prior)
+        assert ains._P_prior.shape == (12, 12)
+        assert ains._P.shape == (12, 12)
+        assert ains._F.shape == (12, 12)
+        assert ains._G.shape == (12, 9)
+        assert ains._W.shape == (9, 9)
+        assert ains._H.shape == (10, 12)
+
     def test__init__defualt_lever_arm(self):
         x0 = np.random.random(16)
         x0[6:10] = (1.0, 0.0, 0.0, 0.0)
-        P0_prior = np.eye(15)
+        P0_prior = np.eye(12)
 
         err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
         err_gyro = {
@@ -681,8 +759,10 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(ains_b._lever_arm, ains._lever_arm)
         assert ains_b._lat == ains._lat
         np.testing.assert_array_almost_equal(ains_b._ins._x, ains._ins._x)
-        np.testing.assert_array_almost_equal(ains_b._dx_prior, ains._dx_prior)
         np.testing.assert_array_almost_equal(ains_b._P_prior, ains._P_prior)
+        np.testing.assert_array_almost_equal(
+            ains_b._ignore_bias_acc, ains._ignore_bias_acc
+        )
 
     def test_x(self, ains):
         x_expect = np.array(
@@ -740,7 +820,7 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(quaternion_out, quaternion_expect)
         assert quaternion_out is not ains._q_nm
 
-    def test__combine_states(self, ains):
+    def test__reset_ins(self, ains):
         x_ins = np.array(
             [
                 1.0,
@@ -781,10 +861,10 @@ class Test_AidedINS:
             ]
         )
 
-        ains._ins._x = x_ins
-        ains._dx = dx
-        ains._combine_states()
-        x_out = ains._x
+        ains._ignore_bias_acc = False
+        ains._ins._x = x_ins.copy()
+        ains._reset_ins(dx)
+        x_out = ains._ins.x
 
         da = dx[6:9]
         dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
@@ -798,16 +878,92 @@ class Test_AidedINS:
 
         np.testing.assert_array_almost_equal(x_out, x_expect)
 
-    def test_P_prior(self, ains):
+    def test__reset_ins_ignore_bias_acc(self, ains):
+        x_ins = np.array(
+            [
+                1.0,
+                2.0,
+                3.0,
+                4.0,
+                5.0,
+                6.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.1,
+                0.2,
+                0.3,
+                0.4,
+                0.5,
+                0.5,
+            ]
+        )
+        dx = np.array(
+            [
+                0.1,
+                0.2,
+                0.3,
+                0.4,
+                0.5,
+                0.6,
+                0.05,
+                0.06,
+                0.07,
+                0.7,
+                0.8,
+                0.9,
+                0.10,
+                0.11,
+                0.12,
+            ]
+        )
+
+        ains._ignore_bias_acc = True
+        ains._ins._x = x_ins.copy()
+        ains._reset_ins(dx)
+        x_out = ains._ins.x
+
+        da = dx[6:9]
+        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
+
+        x_expect = np.r_[
+            x_ins[0:6] + dx[0:6],
+            _normalize(_quaternion_product(x_ins[6:10], dq)),
+            x_ins[10:13],
+            x_ins[13:16] + dx[12:15],
+        ]
+
+        np.testing.assert_array_almost_equal(x_out, x_expect)
+
+    def test_x_prior(self, ains):
+        x_prior_out = ains.x_prior
+        x_prior_expect = ains._ins.x
+        np.testing.assert_array_almost_equal(x_prior_out, x_prior_expect)
+
+    def test_P_prior(self, ains, ains_nobias):
+
+        # With bias
         P_prior_out = ains.P_prior
         P_prior_expect = 1e-6 * np.eye(15)
-
         np.testing.assert_array_almost_equal(P_prior_out, P_prior_expect)
         assert P_prior_out is not ains._P_prior
+
+        # Without bias
+        P_prior_out = ains_nobias.P_prior
+        P_prior_expect = 1e-6 * np.eye(12)
+        np.testing.assert_array_almost_equal(P_prior_out, P_prior_expect)
+        assert P_prior_out is not ains_nobias._P_prior
 
     def test_P(self, ains):
         P = np.random.random((15, 15))
         ains._P = P
+
+        # Permutation matrix for reordering bias terms
+        T = np.zeros((15, 15))
+        T[:9, :9] = np.eye(9)
+        T[9:12, 12:15] = np.eye(3)
+        T[12:15, 9:12] = np.eye(3)
 
         P_out = ains.P
         P_expect = P
@@ -988,142 +1144,6 @@ class Test_AidedINS:
             ains._H - H_matrix_init, delta_H_matrix_expect
         )
 
-    def test__reset(self, ains):
-        x_ins = np.array(
-            [
-                1.0,
-                2.0,
-                3.0,
-                4.0,
-                5.0,
-                6.0,
-                1.0,
-                0.0,
-                0.0,
-                0.0,
-                0.1,
-                0.2,
-                0.3,
-                0.4,
-                0.5,
-                0.5,
-            ]
-        )
-        dx = np.array(
-            [
-                0.1,
-                0.2,
-                0.3,
-                0.4,
-                0.5,
-                0.6,
-                0.05,
-                0.06,
-                0.07,
-                0.7,
-                0.8,
-                0.9,
-                0.10,
-                0.11,
-                0.12,
-            ]
-        )
-
-        da = dx[6:9]
-        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
-
-        x_tot = np.r_[
-            x_ins[0:6] + dx[0:6],
-            _normalize(_quaternion_product(x_ins[6:10], dq)),
-            x_ins[10:13] + dx[9:12],
-            x_ins[13:16] + dx[12:15],
-        ]
-
-        ains._x = x_tot
-        ains._ins._x = x_ins
-        ains._dx = dx
-        ains._reset(reset_bias_acc=True, reset_bias_gyro=True)
-
-        x_out = ains._x
-        x_ins_out = ains._ins._x
-        dx_out = ains._dx
-
-        x_expect = x_tot
-        x_ins_expect = x_tot
-        dx_expect = np.zeros(15)
-
-        np.testing.assert_array_almost_equal(x_out, x_expect)
-        np.testing.assert_array_almost_equal(x_ins_out, x_ins_expect)
-        np.testing.assert_array_almost_equal(dx_out, dx_expect)
-
-    def test__reset_not_bias(self, ains):
-        x_ins = np.array(
-            [
-                1.0,
-                2.0,
-                3.0,
-                4.0,
-                5.0,
-                6.0,
-                1.0,
-                0.0,
-                0.0,
-                0.0,
-                0.1,
-                0.2,
-                0.3,
-                0.4,
-                0.5,
-                0.5,
-            ]
-        )
-        dx = np.array(
-            [
-                0.1,
-                0.2,
-                0.3,
-                0.4,
-                0.5,
-                0.6,
-                0.05,
-                0.06,
-                0.07,
-                0.7,
-                0.8,
-                0.9,
-                0.10,
-                0.11,
-                0.12,
-            ]
-        )
-
-        da = dx[6:9]
-        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
-
-        x_tot = np.r_[
-            x_ins[0:6] + dx[0:6],
-            _normalize(_quaternion_product(x_ins[6:10], dq)),
-            x_ins[10:13] + dx[9:12],
-            x_ins[13:16] + dx[12:15],
-        ]
-
-        ains._x = x_tot
-        ains._ins._x = x_ins
-        ains._dx = dx
-        ains._reset(reset_bias_acc=False, reset_bias_gyro=False)
-
-        x_out = ains._x
-        x_ins_out = ains._ins._x
-        dx_out = ains._dx
-
-        x_expect = x_tot
-        x_ins_expect = np.r_[x_tot[:10], x_ins[10:]]
-        dx_expect = np.r_[np.zeros(9), dx[9:]]
-
-        np.testing.assert_array_almost_equal(x_out, x_expect)
-        np.testing.assert_array_almost_equal(x_ins_out, x_ins_expect)
-        np.testing.assert_array_almost_equal(dx_out, dx_expect)
-
     def test_update_return_self(self, ains):
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
@@ -1170,6 +1190,7 @@ class Test_AidedINS:
             P0_prior,
             err_acc,
             err_gyro,
+            ignore_bias_acc=False,
         )
 
         g = gravity()
@@ -1218,6 +1239,7 @@ class Test_AidedINS:
             P0_prior,
             err_acc,
             err_gyro,
+            ignore_bias_acc=False,
         )
 
         g = gravity()
@@ -1271,7 +1293,7 @@ class Test_AidedINS:
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
 
-        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro)
+        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro, ignore_bias_acc=False)
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
@@ -1307,7 +1329,7 @@ class Test_AidedINS:
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
 
-        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro)
+        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro, ignore_bias_acc=False)
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
@@ -1395,30 +1417,31 @@ class Test_AidedINS:
         ains.update(f_imu, w_imu, degrees=True, g_ref=True, g_var=g_var)
         np.testing.assert_array_almost_equal(ains.x, x0)
 
-    def test_update_reset_bias(self):
+    def test_update_ignore_bias_acc(self):
         fs = 10.24
 
         x0 = np.zeros(16)
         x0[6] = 1.0
-        P0_prior = 1e-6 * np.eye(15)
 
-        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 10.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 10.0}
 
-        ains_a = AidedINS(  # reset bias
+        ains_a = AidedINS(  # include accelerometer bias
             fs,
             x0,
-            P0_prior,
+            np.eye(15),
             err_acc,
             err_gyro,
+            ignore_bias_acc=False,
         )
 
-        ains_b = AidedINS(  # no reset bias
+        ains_b = AidedINS(  # ignore accelerometer bias
             fs,
             x0,
-            P0_prior,
+            np.eye(12),
             err_acc,
             err_gyro,
+            ignore_bias_acc=True,
         )
 
         g = gravity()
@@ -1443,9 +1466,21 @@ class Test_AidedINS:
             head=head,
             head_var=head_var,
             head_degrees=True,
-            reset_bias_acc=True,
-            reset_bias_gyro=True,
         )
+
+        ains_a.update(
+            f_imu,
+            w_imu,
+            degrees=True,
+            pos=pos,
+            pos_var=pos_var,
+            vel=vel,
+            vel_var=vel_var,
+            head=head,
+            head_var=head_var,
+            head_degrees=True,
+        )
+
         ains_b.update(
             f_imu,
             w_imu,
@@ -1457,15 +1492,23 @@ class Test_AidedINS:
             head=head,
             head_var=head_var,
             head_degrees=True,
-            reset_bias_acc=False,
-            reset_bias_gyro=False,
         )
 
-        x = ains_a.x
-        np.testing.assert_array_almost_equal(ains_a.x, x)
-        np.testing.assert_array_almost_equal(ains_b.x, x)
-        np.testing.assert_array_almost_equal(ains_a._ins.x[10:], x[10:])  # with reset
-        np.testing.assert_array_almost_equal(ains_b._ins.x[10:], x0[10:])  # no reset
+        ains_b.update(
+            f_imu,
+            w_imu,
+            degrees=True,
+            pos=pos,
+            pos_var=pos_var,
+            vel=vel,
+            vel_var=vel_var,
+            head=head,
+            head_var=head_var,
+            head_degrees=True,
+        )
+
+        assert not np.array_equal(ains_a.bias_acc(), x0[9:12])  # bias is updated
+        np.testing.assert_array_almost_equal(ains_b.bias_acc(), x0[9:12])  # no update
 
     @pytest.mark.parametrize(
         "benchmark_gen",
@@ -1551,13 +1594,12 @@ class Test_AidedINS:
             "B": (np.pi / 180.0) * 7.5e-4,
             "tau_cb": 50,
         }
-        P0_prior = np.eye(15)
-        P0_prior[9:12, 9:12] *= 1e-9
+        P0_prior = np.eye(12)
         x0 = np.zeros(16)
         x0[0:3] = pos_ref[0]
         x0[3:6] = vel_ref[0]
         x0[6:10] = _quaternion_from_euler(np.radians(euler_ref[0].flatten()))
-        mekf = AidedINS(fs_imu, x0, P0_prior, err_acc, err_gyro)
+        mekf = AidedINS(fs_imu, x0, P0_prior, err_acc, err_gyro, ignore_bias_acc=True)
 
         # Apply filter
         pos_out, vel_out, euler_out, bias_acc_out, bias_gyro_out = [], [], [], [], []
@@ -1578,8 +1620,6 @@ class Test_AidedINS:
                     head_degrees=True,
                     g_ref=True,
                     g_var=0.1**2 * np.ones(3),
-                    reset_bias_acc=False,
-                    reset_bias_gyro=True,
                 )
             else:  # without aiding
                 mekf.update(acc_i, gyro_i, degrees=True)
