@@ -969,63 +969,64 @@ class AidedINS(INSMixin):
         else:
             self._update_H(R_ins_nm, q_ins_nm, lever_arm)
 
-        dz_temp, var_z_temp, H_temp = [], [], []
-        # Position aiding
-        if pos is not None:
-            if pos_var is None:
-                raise ValueError("'pos_var' not provided.")
+            dz_temp, var_z_temp, H_temp = [], [], []
+            # Position aiding
+            if pos is not None:
+                if pos_var is None:
+                    raise ValueError("'pos_var' not provided.")
 
-            pos = np.asarray_chkfinite(pos, dtype=float).reshape(3).copy()
-            delta_pos = pos - pos_ins - R_ins_nm @ lever_arm
-            pos_var = np.asarray_chkfinite(pos_var, dtype=float).reshape(3).copy()
+                pos = np.asarray_chkfinite(pos, dtype=float).reshape(3).copy()
+                delta_pos = pos - pos_ins - R_ins_nm @ lever_arm
+                pos_var = np.asarray_chkfinite(pos_var, dtype=float).reshape(3).copy()
 
-            dz_temp.append(delta_pos)
-            var_z_temp.append(pos_var)
-            H_temp.append(self._H[0:3])
+                dz_temp.append(delta_pos)
+                var_z_temp.append(pos_var)
+                H_temp.append(self._H[0:3])
 
-        # Velocity aiding
-        if vel is not None:
-            if vel_var is None:
-                raise ValueError("'vel_var' not provided.")
+            # Velocity aiding
+            if vel is not None:
+                if vel_var is None:
+                    raise ValueError("'vel_var' not provided.")
 
-            vel = np.asarray_chkfinite(vel, dtype=float).reshape(3).copy()
-            delta_vel = vel - vel_ins
-            vel_var = np.asarray_chkfinite(vel_var, dtype=float).reshape(3).copy()
+                vel = np.asarray_chkfinite(vel, dtype=float).reshape(3).copy()
+                delta_vel = vel - vel_ins
+                vel_var = np.asarray_chkfinite(vel_var, dtype=float).reshape(3).copy()
 
-            dz_temp.append(delta_vel)
-            var_z_temp.append(vel_var)
-            H_temp.append(self._H[3:6])
+                dz_temp.append(delta_vel)
+                var_z_temp.append(vel_var)
+                H_temp.append(self._H[3:6])
 
-        # Gravity reference vector aiding
-        if g_ref:
-            if g_var is None:
-                raise ValueError("'g_var' not provided.")
+            # Gravity reference vector aiding
+            if g_ref:
+                if g_var is None:
+                    raise ValueError("'g_var' not provided.")
 
-            vg_ref_n = np.array([0.0, 0.0, 1.0])
-            vg_meas_m = -_normalize(f_imu - self._bias_acc)
-            delta_g = vg_meas_m - R_ins_nm.T @ vg_ref_n
-            g_var = np.asarray_chkfinite(g_var, dtype=float).reshape(3).copy()
+                vg_ref_n = np.array([0.0, 0.0, 1.0])
+                vg_meas_m = -_normalize(f_imu - self._bias_acc)
+                delta_g = vg_meas_m - R_ins_nm.T @ vg_ref_n
+                g_var = np.asarray_chkfinite(g_var, dtype=float).reshape(3).copy()
 
-            dz_temp.append(delta_g)
-            var_z_temp.append(g_var)
-            H_temp.append(self._H[6:9])
+                dz_temp.append(delta_g)
+                var_z_temp.append(g_var)
+                H_temp.append(self._H[6:9])
 
-        # Compass aiding
-        if head is not None:
-            if head_var is None:
-                raise ValueError("'head_var' not provided.")
+            # Compass aiding
+            if head is not None:
+                if head_var is None:
+                    raise ValueError("'head_var' not provided.")
 
-            if head_degrees:
-                head = (np.pi / 180.0) * head
-                head_var = (np.pi / 180.0) ** 2 * head_var
-            delta_head = _signed_smallest_angle(head - _h_head(q_ins_nm), degrees=False)
-            head_var = np.asarray_chkfinite(head_var, dtype=float).reshape(1).copy()
+                if head_degrees:
+                    head = (np.pi / 180.0) * head
+                    head_var = (np.pi / 180.0) ** 2 * head_var
+                delta_head = _signed_smallest_angle(
+                    head - _h_head(q_ins_nm), degrees=False
+                )
+                head_var = np.asarray_chkfinite(head_var, dtype=float).reshape(1).copy()
 
-            dz_temp.append(np.array([delta_head]))
-            var_z_temp.append(head_var)
-            H_temp.append(self._H[-1:])
+                dz_temp.append(np.array([delta_head]))
+                var_z_temp.append(head_var)
+                H_temp.append(self._H[-1:])
 
-        if dz_temp:
             dz = np.concatenate(dz_temp, axis=0)
             H = np.concatenate(H_temp, axis=0)
             R = np.diag(np.concatenate(var_z_temp, axis=0))
@@ -1049,7 +1050,7 @@ class AidedINS(INSMixin):
         Q = self._dt * self._G @ self._W @ self._G.T  # process noise covariance matrix
 
         # Update state
-        self._x = self._ins.x
+        self._x[:] = self._ins._x
 
         # Project ahead
         self._ins.update(f_imu, w_imu, degrees=False)
