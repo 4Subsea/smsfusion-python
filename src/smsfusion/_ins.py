@@ -962,7 +962,12 @@ class AidedINS(INSMixin):
         # Update system matrices
         self._update_F(R_ins_nm, f_ins, w_ins)
         self._update_G(R_ins_nm)
-        self._update_H(R_ins_nm, q_ins_nm, lever_arm)
+
+        if (pos is None) and (vel is None) and (head is None) and (g_ref is False):
+            # No aiding
+            self._P = self._P_prior
+        else:
+            self._update_H(R_ins_nm, q_ins_nm, lever_arm)
 
         dz_temp, var_z_temp, H_temp = [], [], []
         # Position aiding
@@ -1038,8 +1043,6 @@ class AidedINS(INSMixin):
             self._P = (self._I - K @ H) @ self._P_prior @ (
                 self._I - K @ H
             ).T + K @ R @ K.T
-        else:  # no aiding measurements
-            self._P = self._P_prior
 
         # Discretize system
         phi = self._I + self._dt * self._F  # state transition matrix
