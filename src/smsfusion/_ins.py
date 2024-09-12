@@ -489,15 +489,16 @@ class StrapdownINS(INSMixin):
         f_ins = f_imu - self._bias_acc
         w_ins = w_imu - self._bias_gyro
 
-        R_nm = _rot_matrix_from_quaternion(self._q_nm)  # body-to-ned
-        T = _angular_matrix_from_quaternion(self._q_nm)
+        q_nm = self._q_nm
+        R_nm = _rot_matrix_from_quaternion(q_nm)  # body-to-ned
+        T = _angular_matrix_from_quaternion(q_nm)
 
         # State propagation (assuming constant linear acceleration and angular velocity)
         acc = R_nm @ f_ins + self._g
         self._pos = self._pos + self._dt * self._vel
         self._vel = self._vel + self._dt * acc
-        self._q_nm = self._q_nm + self._dt * T @ w_ins
-        self._q_nm = _normalize(self._q_nm)
+        q_nm = q_nm + self._dt * T @ w_ins
+        self._q_nm = _normalize(q_nm)
 
         return self
 
