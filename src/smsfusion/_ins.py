@@ -623,6 +623,8 @@ class AidedINS(INSMixin):
         error covariance matrix, **P**, from dimension (15, 15) to (12, 12).
     """
 
+    _vg_ref_n = np.array([0.0, 0.0, 1.0])  # gravity reference vector in NED frame
+
     # Permutation matrix for reordering error-state bias terms, such that:
     # [pos, vel, quat, b_gyro, b_acc]^T = T_dx @ [pos, vel, quat, b_acc, b_gyro]^T
     _T_dx = np.zeros((15, 15))
@@ -964,87 +966,51 @@ class AidedINS(INSMixin):
         self._update_F(R_ins_nm, f_ins, w_ins)
         self._update_G(R_ins_nm)
 
-        if (pos is None) and (vel is None) and (head is None) and (g_ref is False):
-            # No aiding
-            self._P = self._P_prior
-        else:
-            self._update_H(R_ins_nm, q_ins_nm, lever_arm)
+        dz, var, idx = [], [], []
+        if pos is not None:
+            pos = np.asarray(pos, dtype=float)
+            dz.append(pos - pos_ins - R_ins_nm @ lever_arm)
+            var.append(np.asarray(pos_var, dtype=float))
+            idx.append([0, 1, 2])
+            self._H[0:3, 6:9] = -R_ins_nm @ _skew_symmetric(lever_arm)
+        if vel is not None:
+            vel = np.asarray(vel, dtype=float)
+            dz.append(vel - vel_ins)
+            var.append(np.asarray(vel_var, dtype=float))
+            idx.append([3, 4, 5])
+        if g_ref:
+            vg_meas_m = -_normalize(f_ins)
+            dz.append(vg_meas_m - R_ins_nm.T @ self._vg_ref_n)
+            var.append(np.asarray(g_var, dtype=float))
+            self._H[6:9, 6:9] = _skew_symmetric(R_ins_nm.T @ self._vg_ref_n)
+            idx.append([6, 7, 8])
+        if head is not None:
+            head = np.asarray(head, dtype=float)
+            if head_degrees:
+                head = (np.pi / 180.0) * head
+                head_var = (np.pi / 180.0) ** 2 * head_var
+            dz.append(_signed_smallest_angle(head - _h_head(q_ins_nm), degrees=False))
+            var.append(np.asarray(head_var, dtype=float))
+            self._H[9:10, 6:9] = _dhda_head(q_ins_nm)
+            idx.append([9])
 
-            dz_temp, var_z_temp, H_temp = [], [], []
-            # Position aiding
-            if pos is not None:
-                if pos_var is None:
-                    raise ValueError("'pos_var' not provided.")
+        P = self._P_prior
+        if dz:
+            dz = np.concatenate(dz)
+            var = np.concatenate(var)
+            idx = np.concatenate(idx)
 
-                pos = np.asarray_chkfinite(pos, dtype=float).reshape(3).copy()
-                delta_pos = pos - pos_ins - R_ins_nm @ lever_arm
-                pos_var = np.asarray_chkfinite(pos_var, dtype=float).reshape(3).copy()
+            I_ = self._I
 
-                dz_temp.append(delta_pos)
-                var_z_temp.append(pos_var)
-                H_temp.append(self._H[0:3])
-
-            # Velocity aiding
-            if vel is not None:
-                if vel_var is None:
-                    raise ValueError("'vel_var' not provided.")
-
-                vel = np.asarray_chkfinite(vel, dtype=float).reshape(3).copy()
-                delta_vel = vel - vel_ins
-                vel_var = np.asarray_chkfinite(vel_var, dtype=float).reshape(3).copy()
-
-                dz_temp.append(delta_vel)
-                var_z_temp.append(vel_var)
-                H_temp.append(self._H[3:6])
-
-            # Gravity reference vector aiding
-            if g_ref:
-                if g_var is None:
-                    raise ValueError("'g_var' not provided.")
-
-                vg_ref_n = np.array([0.0, 0.0, 1.0])
-                vg_meas_m = -_normalize(f_imu - self._bias_acc)
-                delta_g = vg_meas_m - R_ins_nm.T @ vg_ref_n
-                g_var = np.asarray_chkfinite(g_var, dtype=float).reshape(3).copy()
-
-                dz_temp.append(delta_g)
-                var_z_temp.append(g_var)
-                H_temp.append(self._H[6:9])
-
-            # Compass aiding
-            if head is not None:
-                if head_var is None:
-                    raise ValueError("'head_var' not provided.")
-
-                if head_degrees:
-                    head = (np.pi / 180.0) * head
-                    head_var = (np.pi / 180.0) ** 2 * head_var
-                delta_head = _signed_smallest_angle(
-                    head - _h_head(q_ins_nm), degrees=False
-                )
-                head_var = np.asarray_chkfinite(head_var, dtype=float).reshape(1).copy()
-
-                dz_temp.append(np.array([delta_head]))
-                var_z_temp.append(head_var)
-                H_temp.append(self._H[-1:])
-
-            dz = np.concatenate(dz_temp, axis=0)
-            H = np.concatenate(H_temp, axis=0)
-            R = np.diag(np.concatenate(var_z_temp, axis=0))
-
-            # Compute Kalman gain
-            K = self._P_prior @ H.T @ inv(H @ self._P_prior @ H.T + R)
-
-            # Update error-state estimate with measurement
-            dx = K @ dz
+            dx = np.zeros(15)
+            for idx, dz_i, var_i in zip(idx, dz, var):
+                H_i = self._H[idx, :]
+                K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
+                dx += K_i @ dz_i
+                P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
 
             # Reset INS state
             self._reset_ins(dx)
-
-            # Compute error covariance for updated estimate
-            self._P = (self._I - K @ H) @ self._P_prior @ (
-                self._I - K @ H
-            ).T + K @ R @ K.T
 
         # Discretize system
         phi = self._I + self._dt * self._F  # state transition matrix
@@ -1055,6 +1021,103 @@ class AidedINS(INSMixin):
 
         # Project ahead
         self._ins.update(f_imu, w_imu, degrees=False)
-        self._P_prior = phi @ self._P @ phi.T + Q
+        self._P_prior = phi @ P @ phi.T + Q
 
         return self
+
+        #     # for
+
+        #     # if (pos is None) and (vel is None) and (head is None) and (g_ref is False):
+        #     #     # No aiding
+        #     #     self._P = self._P_prior
+        #     # else:
+        #     #     self._update_H(R_ins_nm, q_ins_nm, lever_arm)
+
+        #     dz_temp, var_z_temp, H_temp = [], [], []
+        #     # Position aiding
+        #     if pos is not None:
+        #         if pos_var is None:
+        #             raise ValueError("'pos_var' not provided.")
+
+        #         pos = np.asarray_chkfinite(pos, dtype=float).reshape(3).copy()
+        #         delta_pos = pos - pos_ins - R_ins_nm @ lever_arm
+        #         pos_var = np.asarray_chkfinite(pos_var, dtype=float).reshape(3).copy()
+
+        #         dz_temp.append(delta_pos)
+        #         var_z_temp.append(pos_var)
+        #         H_temp.append(self._H[0:3])
+
+        #     # Velocity aiding
+        #     if vel is not None:
+        #         if vel_var is None:
+        #             raise ValueError("'vel_var' not provided.")
+
+        #         vel = np.asarray_chkfinite(vel, dtype=float).reshape(3).copy()
+        #         delta_vel = vel - vel_ins
+        #         vel_var = np.asarray_chkfinite(vel_var, dtype=float).reshape(3).copy()
+
+        #         dz_temp.append(delta_vel)
+        #         var_z_temp.append(vel_var)
+        #         H_temp.append(self._H[3:6])
+
+        #     # Gravity reference vector aiding
+        #     if g_ref:
+        #         if g_var is None:
+        #             raise ValueError("'g_var' not provided.")
+
+        #         vg_ref_n = np.array([0.0, 0.0, 1.0])
+        #         vg_meas_m = -_normalize(f_imu - self._bias_acc)
+        #         delta_g = vg_meas_m - R_ins_nm.T @ vg_ref_n
+        #         g_var = np.asarray_chkfinite(g_var, dtype=float).reshape(3).copy()
+
+        #         dz_temp.append(delta_g)
+        #         var_z_temp.append(g_var)
+        #         H_temp.append(self._H[6:9])
+
+        #     # Compass aiding
+        #     if head is not None:
+        #         if head_var is None:
+        #             raise ValueError("'head_var' not provided.")
+
+        #         if head_degrees:
+        #             head = (np.pi / 180.0) * head
+        #             head_var = (np.pi / 180.0) ** 2 * head_var
+        #         delta_head = _signed_smallest_angle(
+        #             head - _h_head(q_ins_nm), degrees=False
+        #         )
+        #         head_var = np.asarray_chkfinite(head_var, dtype=float).reshape(1).copy()
+
+        #         dz_temp.append(np.array([delta_head]))
+        #         var_z_temp.append(head_var)
+        #         H_temp.append(self._H[-1:])
+
+        #     dz = np.concatenate(dz_temp, axis=0)
+        #     H = np.concatenate(H_temp, axis=0)
+        #     R = np.diag(np.concatenate(var_z_temp, axis=0))
+
+        #     # Compute Kalman gain
+        #     K = self._P_prior @ H.T @ inv(H @ self._P_prior @ H.T + R)
+
+        #     # Update error-state estimate with measurement
+        #     dx = K @ dz
+
+        #     # Reset INS state
+        #     self._reset_ins(dx)
+
+        #     # Compute error covariance for updated estimate
+        #     self._P = (self._I - K @ H) @ self._P_prior @ (
+        #         self._I - K @ H
+        #     ).T + K @ R @ K.T
+
+        # # Discretize system
+        # phi = self._I + self._dt * self._F  # state transition matrix
+        # Q = self._dt * self._G @ self._W @ self._G.T  # process noise covariance matrix
+
+        # # Update state
+        # self._x[:] = self._ins._x
+
+        # # Project ahead
+        # self._ins.update(f_imu, w_imu, degrees=False)
+        # self._P_prior = phi @ self._P @ phi.T + Q
+
+        # return self
