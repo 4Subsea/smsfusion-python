@@ -999,7 +999,7 @@ class AidedINS(INSMixin):
             self._H[9:10, 6:9] = _dhda_head(q_ins_nm)
             idx.append([9])
 
-        P = self._P_prior.copy()
+        P = self._P_prior  # .copy()
         if dz:
             dz = np.concatenate(dz)
             var = np.concatenate(var)
@@ -1014,9 +1014,8 @@ class AidedINS(INSMixin):
                 dx += K_i * (dz_i - H_i @ dx)
                 P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
 
-            dx = dx.flatten()
             # Reset INS state
-            self._reset_ins(dx)
+            self._reset_ins(dx.flatten())
 
         # Discretize system
         phi = self._I + self._dt * self._F  # state transition matrix
