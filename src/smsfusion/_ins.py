@@ -1008,14 +1008,28 @@ class AidedINS(INSMixin):
 
             I_ = self._I
 
-            dx = np.zeros(self._dx_dim)
+            dx = np.zeros((self._dx_dim, 1))
             for idx_i, dz_i, var_i in zip(idx, dz, var):
-                H_i = self._H[idx_i, :]
+                H_i = self._H[idx_i, :].reshape(1, -1)
                 K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
+                H_i = H_i.reshape(1, -1)
+                K_i = K_i.reshape(-1, 1)
                 # dx += K_i * dz_i
                 dx += K_i * (dz_i - H_i @ dx)
+                # print(self._P_prior)
+                # print((I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T)
                 P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
+                # print(P)
+                # print("P max: ", np.max(P))
+                # print("P min: ", np.min(P))
+                # print("P diag: ", np.diag(P))
+                # print("K: ", K_i)
+                # print("H: ", H_i)
+                # print("K shape", K_i.shape)
+                # print("H shape", H_i.shape)
+                # print("-----------------")
 
+            dx = dx.flatten()
             # Reset INS state
             self._reset_ins(dx)
 
