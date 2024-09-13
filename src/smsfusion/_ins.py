@@ -670,7 +670,7 @@ class AidedINS(INSMixin):
 
         # Initialize Kalman filter
         self._P_prior = np.asarray_chkfinite(P0_prior).copy()
-        self._P = np.empty_like(self._P_prior)
+        self._P = self._P_prior.copy()
 
         # Prepare system matrices
         q0 = self._ins._q_nm
@@ -680,8 +680,8 @@ class AidedINS(INSMixin):
         self._W = self._prep_W(err_acc, err_gyro)
         self._I = np.eye(15)
 
+        # Filter out the accelerometer bias terms from the system matrices (if ignored)
         if self._ignore_bias_acc:
-            # Filter out the accelerometer bias terms from the system matrices
             dx_dim = 12
             wn_dim = 9
             self._F = (self._T_dx @ self._F @ self._T_dx.T)[:dx_dim, :dx_dim]
