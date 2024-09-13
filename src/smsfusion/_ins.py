@@ -665,6 +665,9 @@ class AidedINS(INSMixin):
         # Total state
         self._x = self._ins.x
 
+        # Error state
+        self._dx = np.zeros((15, 1))
+
         # Initialize Kalman filter
         self._P_prior = np.asarray_chkfinite(P0_prior).copy()
         self._P = np.empty_like(self._P_prior)
@@ -675,22 +678,18 @@ class AidedINS(INSMixin):
         self._G = self._prep_G(q0)
         self._H = self._prep_H(q0, self._lever_arm)
         self._W = self._prep_W(err_acc, err_gyro)
+        self._I = np.eye(15)
 
         if self._ignore_bias_acc:
+            # Filter out the accelerometer bias terms from the system matrices
             dx_dim = 12
             wn_dim = 9
-            self._dx_dim = dx_dim
-            # Filter out the accelerometer bias terms from the system matrices
             self._F = (self._T_dx @ self._F @ self._T_dx.T)[:dx_dim, :dx_dim]
             self._G = (self._T_dx @ self._G @ self._T_wn)[:dx_dim, :wn_dim]
             self._H = (self._H @ self._T_dx)[:, :dx_dim]
             self._W = (self._T_wn @ self._W @ self._T_wn.T)[:wn_dim, :wn_dim]
-            self._I = np.eye(12)
-        else:
-            self._I = np.eye(15)
-            self._dx_dim = 15
-
-        self._dx = np.zeros((self._dx_dim, 1))
+            self._I = self._I[:dx_dim, :dx_dim]
+            self._dx = self._dx[:dx_dim]
 
     @property
     def x_prior(self):
@@ -870,7 +869,7 @@ class AidedINS(INSMixin):
         self._ins._x[-3:] = self._ins._x[-3:] + dx[-3:]
         if not self._ignore_bias_acc:
             self._ins._x[10:13] = self._ins._x[10:13] + dx[9:12]
-        self._dx[:] = np.zeros((self._dx_dim, 1))
+        self._dx[:] = np.zeros((dx.size, 1))
 
     def update(
         self,
