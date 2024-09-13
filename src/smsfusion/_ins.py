@@ -1020,7 +1020,7 @@ class AidedINS(INSMixin):
         phi = I_ + dt * F  # state transition matrix
         Q = dt * G @ W @ G.T  # process noise covariance matrix
 
-        # Update state
+        # Update current state
         self._x[:] = self._ins._x
 
         # Project ahead
