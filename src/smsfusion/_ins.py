@@ -958,8 +958,17 @@ class AidedINS(INSMixin):
         q_ins_nm = self._ins._q_nm
         bias_acc_ins = self._ins._bias_acc
         bias_gyro_ins = self._ins._bias_gyro
-
         R_ins_nm = _rot_matrix_from_quaternion(q_ins_nm)  # body-to-ned rotation matrix
+
+        # Aliases
+        dx = self._dx
+        dt = self._dt
+        F = self._F
+        G = self._G
+        H = self._H
+        W = self._W
+        P = self._P_prior.copy()
+        I_ = self._I
 
         # Bias compensated IMU measurements
         f_ins = f_imu - bias_acc_ins
@@ -981,7 +990,7 @@ class AidedINS(INSMixin):
             dz.extend(pos - pos_ins - R_ins_nm @ lever_arm)
             var.extend(pos_var)
             idx.extend([0, 1, 2])
-            self._H[0:3, 6:9] = -R_ins_nm @ _skew_symmetric(lever_arm)
+            H[0:3, 6:9] = -R_ins_nm @ _skew_symmetric(lever_arm)
         if vel is not None:
             if vel_var is None:
                 raise ValueError("'vel_var' not provided.")
@@ -998,7 +1007,7 @@ class AidedINS(INSMixin):
             dz.extend(vg_meas_m - R_ins_nm.T @ self._vg_ref_n)
             var.extend(g_var)
             idx.extend([6, 7, 8])
-            self._H[6:9, 6:9] = _skew_symmetric(R_ins_nm.T @ self._vg_ref_n)
+            H[6:9, 6:9] = _skew_symmetric(R_ins_nm.T @ self._vg_ref_n)
         if head is not None:
             if head_var is None:
                 raise ValueError("'head_var' not provided.")
@@ -1010,24 +1019,22 @@ class AidedINS(INSMixin):
             dz.extend(_signed_smallest_angle(head - _h_head(q_ins_nm), degrees=False))
             var.extend(head_var)
             idx.extend([9])
-            self._H[9:10, 6:9] = _dhda_head(q_ins_nm)
+            H[9:10, 6:9] = _dhda_head(q_ins_nm)
 
-        P = self._P_prior
-        I_ = self._I
         for idx_i, dz_i, var_i in zip(idx, dz, var):
-            H_i = self._H[idx_i, :].reshape(1, -1)
+            H_i = H[idx_i, :].reshape(1, -1)
             K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
-            self._dx += K_i * (dz_i - H_i @ self._dx)
+            dx += K_i * (dz_i - H_i @ dx)
             P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
 
         if dz:
             # Reset INS state
-            self._reset_ins(self._dx.flatten())
-            self._dx = np.zeros((self._dx_dim, 1))
+            self._reset_ins(dx.ravel())
+            self._dx[:] = np.zeros((self._dx_dim, 1))
 
         # Discretize system
-        phi = self._I + self._dt * self._F  # state transition matrix
-        Q = self._dt * self._G @ self._W @ self._G.T  # process noise covariance matrix
+        phi = I_ + dt * F  # state transition matrix
+        Q = dt * G @ W @ G.T  # process noise covariance matrix
 
         # Update state
         self._x[:] = self._ins._x
