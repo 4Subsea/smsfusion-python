@@ -1012,7 +1012,8 @@ class AidedINS(INSMixin):
             for idx_i, dz_i, var_i in zip(idx, dz, var):
                 H_i = self._H[idx_i, :]
                 K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
-                dx += K_i * dz_i
+                # dx += K_i * dz_i
+                dx += K_i * (dz_i - H_i @ dx)
                 P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
 
             # Reset INS state
