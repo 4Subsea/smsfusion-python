@@ -1001,7 +1001,6 @@ class AidedINS(INSMixin):
 
         P = self._P_prior.copy()
         if dz:
-            # print(dz)
             dz = np.concatenate(dz)
             var = np.concatenate(var)
             idx = np.concatenate(idx)
@@ -1012,8 +1011,6 @@ class AidedINS(INSMixin):
             for idx_i, dz_i, var_i in zip(idx, dz, var):
                 H_i = self._H[idx_i, :].reshape(1, -1)
                 K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
-                H_i = H_i.reshape(1, -1)
-                K_i = K_i.reshape(-1, 1)
                 dx += K_i * (dz_i - H_i @ dx)
                 P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
 
