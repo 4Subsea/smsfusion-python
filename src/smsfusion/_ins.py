@@ -870,6 +870,7 @@ class AidedINS(INSMixin):
         self._ins._x[-3:] = self._ins._x[-3:] + dx[-3:]
         if not self._ignore_bias_acc:
             self._ins._x[10:13] = self._ins._x[10:13] + dx[9:12]
+        self._dx[:] = np.zeros((self._dx_dim, 1))
 
     def update(
         self,
@@ -964,7 +965,7 @@ class AidedINS(INSMixin):
         self._update_F(R_ins_nm, f_ins, w_ins)
         self._update_G(R_ins_nm)
 
-        # Concatenate aiding measurements available
+        # Concatenate available aiding measurements
         dz, var, idx = [], [], []
         if pos is not None:
             if pos_var is None:
@@ -1014,7 +1015,6 @@ class AidedINS(INSMixin):
         if dz:
             # Reset INS state
             self._reset_ins(dx.ravel())
-            self._dx[:] = np.zeros((self._dx_dim, 1))
 
         # Discretize system
         phi = I_ + dt * F  # state transition matrix
