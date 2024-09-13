@@ -974,6 +974,8 @@ class AidedINS(INSMixin):
 
         dz, var, idx = [], [], []
         if pos is not None:
+            if pos_var is None:
+                raise ValueError("'pos_var' not provided.")
             pos = np.asarray(pos, dtype=float)
             pos_var = np.asarray(pos_var, dtype=float)
             dz.extend(pos - pos_ins - R_ins_nm @ lever_arm)
@@ -981,12 +983,16 @@ class AidedINS(INSMixin):
             idx.extend([0, 1, 2])
             self._H[0:3, 6:9] = -R_ins_nm @ _skew_symmetric(lever_arm)
         if vel is not None:
+            if vel_var is None:
+                raise ValueError("'vel_var' not provided.")
             vel = np.asarray(vel, dtype=float)
             vel_var = np.asarray(vel_var, dtype=float)
             dz.extend(vel - vel_ins)
             var.extend(vel_var)
             idx.extend([3, 4, 5])
         if g_ref:
+            if g_var is None:
+                raise ValueError("'g_var' not provided.")
             vg_meas_m = -_normalize(f_ins)
             g_var = np.asarray(g_var, dtype=float)
             dz.extend(vg_meas_m - R_ins_nm.T @ self._vg_ref_n)
@@ -994,6 +1000,8 @@ class AidedINS(INSMixin):
             idx.extend([6, 7, 8])
             self._H[6:9, 6:9] = _skew_symmetric(R_ins_nm.T @ self._vg_ref_n)
         if head is not None:
+            if head_var is None:
+                raise ValueError("'head_var' not provided.")
             head = np.asarray([head], dtype=float)
             head_var = np.asarray([head_var], dtype=float)
             if head_degrees:
