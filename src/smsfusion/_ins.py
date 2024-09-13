@@ -690,6 +690,8 @@ class AidedINS(INSMixin):
             self._I = np.eye(15)
             self._dx_dim = 15
 
+        self._dx = np.zeros((self._dx_dim, 1))
+
     @property
     def x_prior(self):
         """
@@ -974,22 +976,22 @@ class AidedINS(INSMixin):
         if pos is not None:
             pos = np.asarray(pos, dtype=float)
             pos_var = np.asarray(pos_var, dtype=float)
-            dz.append(pos - pos_ins - R_ins_nm @ lever_arm)
-            var.append(pos_var)
-            idx.append([0, 1, 2])
+            dz.extend(pos - pos_ins - R_ins_nm @ lever_arm)
+            var.extend(pos_var)
+            idx.extend([0, 1, 2])
             self._H[0:3, 6:9] = -R_ins_nm @ _skew_symmetric(lever_arm)
         if vel is not None:
             vel = np.asarray(vel, dtype=float)
             vel_var = np.asarray(vel_var, dtype=float)
-            dz.append(vel - vel_ins)
-            var.append(vel_var)
-            idx.append([3, 4, 5])
+            dz.extend(vel - vel_ins)
+            var.extend(vel_var)
+            idx.extend([3, 4, 5])
         if g_ref:
             vg_meas_m = -_normalize(f_ins)
             g_var = np.asarray(g_var, dtype=float)
-            dz.append(vg_meas_m - R_ins_nm.T @ self._vg_ref_n)
-            var.append(g_var)
-            idx.append([6, 7, 8])
+            dz.extend(vg_meas_m - R_ins_nm.T @ self._vg_ref_n)
+            var.extend(g_var)
+            idx.extend([6, 7, 8])
             self._H[6:9, 6:9] = _skew_symmetric(R_ins_nm.T @ self._vg_ref_n)
         if head is not None:
             head = np.asarray([head], dtype=float)
@@ -997,28 +999,23 @@ class AidedINS(INSMixin):
             if head_degrees:
                 head = (np.pi / 180.0) * head
                 head_var = (np.pi / 180.0) ** 2 * head_var
-            dz.append(_signed_smallest_angle(head - _h_head(q_ins_nm), degrees=False))
-            var.append(head_var)
-            idx.append([9])
+            dz.extend(_signed_smallest_angle(head - _h_head(q_ins_nm), degrees=False))
+            var.extend(head_var)
+            idx.extend([9])
             self._H[9:10, 6:9] = _dhda_head(q_ins_nm)
 
         P = self._P_prior
+        I_ = self._I
+        for idx_i, dz_i, var_i in zip(idx, dz, var):
+            H_i = self._H[idx_i, :].reshape(1, -1)
+            K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
+            self._dx += K_i * (dz_i - H_i @ self._dx)
+            P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
+
         if dz:
-            dz = np.concatenate(dz)
-            var = np.concatenate(var)
-            idx = np.concatenate(idx)
-
-            I_ = self._I
-
-            dx = np.zeros((self._dx_dim, 1))
-            for idx_i, dz_i, var_i in zip(idx, dz, var):
-                H_i = self._H[idx_i, :].reshape(1, -1)
-                K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
-                dx += K_i * (dz_i - H_i @ dx)
-                P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
-
             # Reset INS state
-            self._reset_ins(dx.flatten())
+            self._reset_ins(self._dx.flatten())
+            self._dx = np.zeros((self._dx_dim, 1))
 
         # Discretize system
         phi = self._I + self._dt * self._F  # state transition matrix
