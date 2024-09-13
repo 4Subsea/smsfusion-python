@@ -838,22 +838,22 @@ class AidedINS(INSMixin):
         H[9:10, 6:9] = _dhda_head(q_nm)  # compass
         return H
 
-    def _update_H(
-        self,
-        R_nm: NDArray[np.float64],
-        q_nm: NDArray[np.float64],
-        lever_arm: NDArray[np.float64],
-    ) -> None:
-        """Update linearized measurement matrix, H."""
+    # def _update_H(
+    #     self,
+    #     R_nm: NDArray[np.float64],
+    #     q_nm: NDArray[np.float64],
+    #     lever_arm: NDArray[np.float64],
+    # ) -> None:
+    #     """Update linearized measurement matrix, H."""
 
-        # Reference vector
-        vg_ref_n = np.array([0.0, 0.0, 1.0])
+    #     # Reference vector
+    #     vg_ref_n = np.array([0.0, 0.0, 1.0])
 
-        S = _skew_symmetric  # alias skew symmetric matrix
+    #     S = _skew_symmetric  # alias skew symmetric matrix
 
-        self._H[0:3, 6:9] = -R_nm @ S(lever_arm)  # rigid transform IMU-to-aiding
-        self._H[6:9, 6:9] = S(R_nm.T @ vg_ref_n)  # gravity reference vector
-        self._H[9:10, 6:9] = _dhda_head(q_nm)  # compass
+    #     self._H[0:3, 6:9] = -R_nm @ S(lever_arm)  # rigid transform IMU-to-aiding
+    #     self._H[6:9, 6:9] = S(R_nm.T @ vg_ref_n)  # gravity reference vector
+    #     self._H[9:10, 6:9] = _dhda_head(q_nm)  # compass
 
     @staticmethod
     def _prep_W(
@@ -981,6 +981,7 @@ class AidedINS(INSMixin):
         self._update_F(R_ins_nm, f_ins, w_ins)
         self._update_G(R_ins_nm)
 
+        # Concatenate aiding measurements available
         dz, var, idx = [], [], []
         if pos is not None:
             if pos_var is None:
@@ -1021,7 +1022,7 @@ class AidedINS(INSMixin):
             idx.extend([9])
             H[9:10, 6:9] = _dhda_head(q_ins_nm)
 
-        for idx_i, dz_i, var_i in zip(idx, dz, var):
+        for dz_i, var_i, idx_i in zip(dz, var, idx):
             H_i = H[idx_i, :].reshape(1, -1)
             K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
             dx += K_i * (dz_i - H_i @ dx)
