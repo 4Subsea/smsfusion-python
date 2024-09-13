@@ -838,23 +838,6 @@ class AidedINS(INSMixin):
         H[9:10, 6:9] = _dhda_head(q_nm)  # compass
         return H
 
-    # def _update_H(
-    #     self,
-    #     R_nm: NDArray[np.float64],
-    #     q_nm: NDArray[np.float64],
-    #     lever_arm: NDArray[np.float64],
-    # ) -> None:
-    #     """Update linearized measurement matrix, H."""
-
-    #     # Reference vector
-    #     vg_ref_n = np.array([0.0, 0.0, 1.0])
-
-    #     S = _skew_symmetric  # alias skew symmetric matrix
-
-    #     self._H[0:3, 6:9] = -R_nm @ S(lever_arm)  # rigid transform IMU-to-aiding
-    #     self._H[6:9, 6:9] = S(R_nm.T @ vg_ref_n)  # gravity reference vector
-    #     self._H[9:10, 6:9] = _dhda_head(q_nm)  # compass
-
     @staticmethod
     def _prep_W(
         err_acc: dict[str, float], err_gyro: dict[str, float]

@@ -1115,35 +1115,6 @@ class Test_AidedINS:
         H_matrix_out = AidedINS._prep_H(q, lever_arm)
         np.testing.assert_array_almost_equal(H_matrix_out, H_matrix_expected)
 
-    def test__update_H_lever_arm(self, ains):
-        quaternion_init = ains.quaternion()
-
-        v01_ned = np.array([0.0, 0.0, 1.0])
-        lever_arm = np.array([1.0, 1.0, 1.0])
-
-        R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
-        S = _skew_symmetric  # skew symmetric matrix
-
-        H_matrix_init = ains._H.copy()
-
-        quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
-
-        ains._update_H(R(quaternion), quaternion, lever_arm)
-
-        delta_H_matrix_expect = np.zeros_like(H_matrix_init)
-        delta_H_matrix_expect[6:9, 6:9] = S(R(quaternion).T @ v01_ned) - S(
-            R(quaternion_init).T @ v01_ned
-        )
-        delta_H_matrix_expect[9:10, 6:9] = _dhda_head(quaternion) - _dhda_head(
-            quaternion_init
-        )
-        delta_H_matrix_expect[0:3, 6:9] = -R(quaternion) @ S(lever_arm) + R(
-            quaternion_init
-        ) @ S(lever_arm)
-        np.testing.assert_array_almost_equal(
-            ains._H - H_matrix_init, delta_H_matrix_expect
-        )
-
     def test_update_return_self(self, ains):
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
