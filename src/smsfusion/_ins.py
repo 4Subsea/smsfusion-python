@@ -679,13 +679,13 @@ class AidedINS(INSMixin):
         if self._ignore_bias_acc:
             dx_dim = 12
             wn_dim = 9
+            self._dx_dim = dx_dim
             # Filter out the accelerometer bias terms from the system matrices
             self._F = (self._T_dx @ self._F @ self._T_dx.T)[:dx_dim, :dx_dim]
             self._G = (self._T_dx @ self._G @ self._T_wn)[:dx_dim, :wn_dim]
             self._H = (self._H @ self._T_dx)[:, :dx_dim]
             self._W = (self._T_wn @ self._W @ self._T_wn.T)[:wn_dim, :wn_dim]
             self._I = np.eye(12)
-            self._dx_dim = dx_dim
         else:
             self._I = np.eye(15)
             self._dx_dim = 15
@@ -973,33 +973,36 @@ class AidedINS(INSMixin):
         dz, var, idx = [], [], []
         if pos is not None:
             pos = np.asarray(pos, dtype=float)
+            pos_var = np.asarray(pos_var, dtype=float)
             dz.append(pos - pos_ins - R_ins_nm @ lever_arm)
-            var.append(np.asarray(pos_var, dtype=float))
+            var.append(pos_var)
             idx.append([0, 1, 2])
             self._H[0:3, 6:9] = -R_ins_nm @ _skew_symmetric(lever_arm)
         if vel is not None:
             vel = np.asarray(vel, dtype=float)
+            vel_var = np.asarray(vel_var, dtype=float)
             dz.append(vel - vel_ins)
-            var.append(np.asarray(vel_var, dtype=float))
+            var.append(vel_var)
             idx.append([3, 4, 5])
         if g_ref:
             vg_meas_m = -_normalize(f_ins)
+            g_var = np.asarray(g_var, dtype=float)
             dz.append(vg_meas_m - R_ins_nm.T @ self._vg_ref_n)
-            var.append(np.asarray(g_var, dtype=float))
-            self._H[6:9, 6:9] = _skew_symmetric(R_ins_nm.T @ self._vg_ref_n)
+            var.append(g_var)
             idx.append([6, 7, 8])
+            self._H[6:9, 6:9] = _skew_symmetric(R_ins_nm.T @ self._vg_ref_n)
         if head is not None:
-            head = np.asarray(head, dtype=float)
+            head = np.asarray([head], dtype=float)
+            head_var = np.asarray([head_var], dtype=float)
             if head_degrees:
                 head = (np.pi / 180.0) * head
                 head_var = (np.pi / 180.0) ** 2 * head_var
-            delta_head = _signed_smallest_angle(head - _h_head(q_ins_nm), degrees=False)
-            dz.append(np.asarray([delta_head], dtype=float))
-            var.append(np.asarray([head_var], dtype=float))
-            self._H[9:10, 6:9] = _dhda_head(q_ins_nm)
+            dz.append(_signed_smallest_angle(head - _h_head(q_ins_nm), degrees=False))
+            var.append(head_var)
             idx.append([9])
+            self._H[9:10, 6:9] = _dhda_head(q_ins_nm)
 
-        P = self._P_prior  # .copy()
+        P = self._P_prior
         if dz:
             dz = np.concatenate(dz)
             var = np.concatenate(var)
