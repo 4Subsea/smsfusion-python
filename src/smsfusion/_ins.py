@@ -666,7 +666,7 @@ class AidedINS(INSMixin):
         self._x = self._ins.x
 
         # Error state
-        self._dx = np.zeros((15, 1))
+        self._dx = np.zeros((15, 1))  # always zero, but used in sequential update
 
         # Initialize Kalman filter
         self._P_prior = np.asarray_chkfinite(P0_prior).copy()
