@@ -666,7 +666,7 @@ class AidedINS(INSMixin):
         self._x = self._ins.x
 
         # Error state
-        self._dx = np.zeros((15, 1))  # always zero, but used in sequential update
+        self._dx = np.zeros(15)  # always zero, but used in sequential update
 
         # Initialize Kalman filter
         self._P_prior = np.asarray_chkfinite(P0_prior).copy()
@@ -884,14 +884,24 @@ class AidedINS(INSMixin):
         self._ins._x[-3:] = self._ins._x[-3:] + dx[-3:]
         if not self._ignore_bias_acc:
             self._ins._x[10:13] = self._ins._x[10:13] + dx[9:12]
-        self._dx[:] = np.zeros((dx.size, 1))
+        self._dx[:] = np.zeros(dx.size)
 
     @staticmethod
-    def _update_dx_P(dx, P, dz, var, H, I_):
+    @njit
+    def _update_dx_P(
+        dx: NDArray[np.float64],
+        P: NDArray[np.float64],
+        dz: NDArray[np.float64],
+        var: NDArray[np.float64],
+        H: NDArray[np.float64],
+        I_: NDArray[np.float64],
+    ):
         for i, (dz_i, var_i) in enumerate(zip(dz, var)):
-            H_i = H[i, :].reshape(1, -1)
+            H_i = H[i, :]
             K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
             dx += K_i * (dz_i - H_i @ dx)
+            K_i = K_i[:, np.newaxis]
+            H_i = H_i[np.newaxis, :]
             P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
         return dx, P
 
