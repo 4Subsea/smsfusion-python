@@ -818,24 +818,39 @@ class AidedINS(INSMixin):
         self._G[3:6, 0:3] = -R_nm
 
     @staticmethod
-    def _prep_H(
-        q_nm: NDArray[np.float64], lever_arm: NDArray[np.float64]
-    ) -> NDArray[np.float64]:
-        """Prepare linearized measurement matrix, H."""
-
-        # Reference vector
-        vg_ref_n = np.array([0.0, 0.0, 1.0])
-
+    def _prep_H() -> NDArray[np.float64]:
+        """Prepare linearized measurement matrix, H. Values are placeholders only"""
         S = _skew_symmetric  # alias skew symmetric matrix
-        R_nm = _rot_matrix_from_quaternion(q_nm)  # body-to-ned rotation matrix
 
         H = np.zeros((10, 15))
         H[0:3, 0:3] = np.eye(3)  # position
-        H[0:3, 6:9] = -R_nm @ S(lever_arm)  # rigid transform IMU-to-aiding
         H[3:6, 3:6] = np.eye(3)  # velocity
-        H[6:9, 6:9] = S(R_nm.T @ vg_ref_n)  # gravity reference vector
-        H[9:10, 6:9] = _dhda_head(q_nm)  # compass
+        H[6:9, 6:9] = S(np.array([0.0, 0.0, 1.0]))  # gravity reference vector
+        H[9:10, 6:9] = 0.5  # compass
         return H
+
+    def _update_H_pos(
+        self, R_nm: NDArray[np.float64], lever_arm: NDArray[np.float64]
+    ) -> NDArray[np.float64]:
+        """Update and return part of H matrix relevant for position aiding."""
+        S = _skew_symmetric
+        self._H[0:3, 6:9] = -R_nm @ S(lever_arm)
+        return self._H[0:3]
+
+    def _update_H_vel(self) -> NDArray[np.float64]:
+        """Update and return part of H matrix relevant for velocity aiding."""
+        return self._H[3:6]
+
+    def _update_H_g(self, R_nm: NDArray[np.float64]) -> NDArray[np.float64]:
+        """Update and return part of H matrix relevant for g_ref aiding."""
+        S = _skew_symmetric
+        self._H[6:9, 6:9] = S(R_nm.T @ self._vg_ref_n)
+        return self._H[6:9]
+
+    def _update_H_head(self, q_nm: NDArray[np.float64]) -> NDArray[np.float64]:
+        """Update and return part of H matrix relevant for heading aiding."""
+        self._H[9:10, 6:9] = _dhda_head(q_nm)
+        return self._H[9:10]
 
     @staticmethod
     def _prep_W(
@@ -957,7 +972,6 @@ class AidedINS(INSMixin):
         dt = self._dt
         F = self._F
         G = self._G
-        H = self._H
         W = self._W
         P = self._P_prior.copy()
         I_ = self._I
@@ -981,9 +995,7 @@ class AidedINS(INSMixin):
             pos = np.asarray(pos, dtype=float)
             pos_var = np.asarray(pos_var, dtype=float)
             dz_pos = pos - pos_ins - R_ins_nm @ lever_arm
-            H[0:3, 6:9] = -R_ins_nm @ _skew_symmetric(lever_arm)
-            H_pos = H[0:3]
-
+            H_pos = self._update_H_pos(R_ins_nm, lever_arm)
             dx, P = self._update_dx_P(dx, P, dz_pos, pos_var, H_pos, I_)
 
         if vel is not None:
@@ -993,8 +1005,7 @@ class AidedINS(INSMixin):
             vel = np.asarray(vel, dtype=float)
             vel_var = np.asarray(vel_var, dtype=float)
             dz_vel = vel - vel_ins
-            H_vel = H[3:6]
-
+            H_vel = self._update_H_vel()
             dx, P = self._update_dx_P(dx, P, dz_vel, vel_var, H_vel, I_)
 
         if g_ref:
@@ -1003,9 +1014,7 @@ class AidedINS(INSMixin):
             vg_meas_m = -_normalize(f_ins)
             g_var = np.asarray(g_var, dtype=float)
             dz_g = vg_meas_m - R_ins_nm.T @ self._vg_ref_n
-            H[6:9, 6:9] = _skew_symmetric(R_ins_nm.T @ self._vg_ref_n)
-            H_g = H[6:9]
-
+            H_g = self._update_H_g(R_ins_nm)
             dx, P = self._update_dx_P(dx, P, dz_g, g_var, H_g, I_)
 
         if head is not None:
@@ -1018,8 +1027,7 @@ class AidedINS(INSMixin):
                 head = (np.pi / 180.0) * head
                 head_var = (np.pi / 180.0) ** 2 * head_var
             dz_head = _signed_smallest_angle(head - _h_head(q_ins_nm), degrees=False)
-            H[9:10, 6:9] = _dhda_head(q_ins_nm)
-            H_head = H[9:10]
+            H_head = self._update_H_head(q_ins_nm)
 
             dx, P = self._update_dx_P(dx, P, dz_head, head_var, H_head, I_)
 
