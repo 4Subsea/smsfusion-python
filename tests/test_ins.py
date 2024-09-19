@@ -1131,6 +1131,13 @@ class Test_AidedINS:
         H_expect[0:3, 6:9] = S(R_nm.T @ ains._vg_ref_n)
         np.testing.assert_array_almost_equal(H_out, H_expect)
 
+    def test__update_H_head(self, ains):
+        q = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
+        H_out = ains._update_H_head(q)
+        H_expect = np.zeros((1, 15))
+        H_expect[0, 6:9] = _dhda_head(q)
+        np.testing.assert_array_almost_equal(H_out, H_expect)
+
     def test_update_return_self(self, ains):
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
