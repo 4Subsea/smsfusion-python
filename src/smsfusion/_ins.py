@@ -676,7 +676,7 @@ class AidedINS(INSMixin):
         q0 = self._ins._q_nm
         self._F = self._prep_F(err_acc, err_gyro, q0)
         self._G = self._prep_G(q0)
-        self._H = self._prep_H(q0, self._lever_arm)
+        self._H = self._prep_H()
         self._W = self._prep_W(err_acc, err_gyro)
         self._I = np.eye(15)
 
@@ -841,7 +841,7 @@ class AidedINS(INSMixin):
         """Update and return part of H matrix relevant for velocity aiding."""
         return self._H[3:6]
 
-    def _update_H_g(self, R_nm: NDArray[np.float64]) -> NDArray[np.float64]:
+    def _update_H_g_ref(self, R_nm: NDArray[np.float64]) -> NDArray[np.float64]:
         """Update and return part of H matrix relevant for g_ref aiding."""
         S = _skew_symmetric
         self._H[6:9, 6:9] = S(R_nm.T @ self._vg_ref_n)
@@ -1014,7 +1014,7 @@ class AidedINS(INSMixin):
             vg_meas_m = -_normalize(f_ins)
             g_var = np.asarray(g_var, dtype=float)
             dz_g = vg_meas_m - R_ins_nm.T @ self._vg_ref_n
-            H_g = self._update_H_g(R_ins_nm)
+            H_g = self._update_H_g_ref(R_ins_nm)
             dx, P = self._update_dx_P(dx, P, dz_g, g_var, H_g, I_)
 
         if head is not None:
