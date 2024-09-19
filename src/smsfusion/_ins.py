@@ -871,6 +871,15 @@ class AidedINS(INSMixin):
             self._ins._x[10:13] = self._ins._x[10:13] + dx[9:12]
         self._dx[:] = np.zeros((dx.size, 1))
 
+    @staticmethod
+    def _update_dx_P(dx, P, dz, var, H, I_):
+        for i, (dz_i, var_i) in enumerate(zip(dz, var)):
+            H_i = H[i, :].reshape(1, -1)
+            K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
+            dx += K_i * (dz_i - H_i @ dx)
+            P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
+        return dx, P
+
     def update(
         self,
         f_imu: ArrayLike,
@@ -944,7 +953,7 @@ class AidedINS(INSMixin):
         R_ins_nm = _rot_matrix_from_quaternion(q_ins_nm)  # body-to-ned rotation matrix
 
         # Aliases
-        dx = self._dx
+        dx = self._dx  # zeros
         dt = self._dt
         F = self._F
         G = self._G
@@ -964,54 +973,57 @@ class AidedINS(INSMixin):
         self._update_F(R_ins_nm, f_ins, w_ins)
         self._update_G(R_ins_nm)
 
-        # Concatenate available aiding measurements
-        dz, var, idx = [], [], []
+        # Update with available aiding measurements
         if pos is not None:
             if pos_var is None:
                 raise ValueError("'pos_var' not provided.")
+
             pos = np.asarray(pos, dtype=float)
             pos_var = np.asarray(pos_var, dtype=float)
-            dz.extend(pos - pos_ins - R_ins_nm @ lever_arm)
-            var.extend(pos_var)
-            idx.extend([0, 1, 2])
+            dz_pos = pos - pos_ins - R_ins_nm @ lever_arm
             H[0:3, 6:9] = -R_ins_nm @ _skew_symmetric(lever_arm)
+            H_pos = H[0:3]
+
+            dx, P = self._update_dx_P(dx, P, dz_pos, pos_var, H_pos, I_)
+
         if vel is not None:
             if vel_var is None:
                 raise ValueError("'vel_var' not provided.")
+
             vel = np.asarray(vel, dtype=float)
             vel_var = np.asarray(vel_var, dtype=float)
-            dz.extend(vel - vel_ins)
-            var.extend(vel_var)
-            idx.extend([3, 4, 5])
+            dz_vel = vel - vel_ins
+            H_vel = H[3:6]
+
+            dx, P = self._update_dx_P(dx, P, dz_vel, vel_var, H_vel, I_)
+
         if g_ref:
             if g_var is None:
                 raise ValueError("'g_var' not provided.")
             vg_meas_m = -_normalize(f_ins)
             g_var = np.asarray(g_var, dtype=float)
-            dz.extend(vg_meas_m - R_ins_nm.T @ self._vg_ref_n)
-            var.extend(g_var)
-            idx.extend([6, 7, 8])
+            dz_g = vg_meas_m - R_ins_nm.T @ self._vg_ref_n
             H[6:9, 6:9] = _skew_symmetric(R_ins_nm.T @ self._vg_ref_n)
+            H_g = H[6:9]
+
+            dx, P = self._update_dx_P(dx, P, dz_g, g_var, H_g, I_)
+
         if head is not None:
             if head_var is None:
                 raise ValueError("'head_var' not provided.")
+
             head = np.asarray([head], dtype=float)
             head_var = np.asarray([head_var], dtype=float)
             if head_degrees:
                 head = (np.pi / 180.0) * head
                 head_var = (np.pi / 180.0) ** 2 * head_var
-            dz.extend(_signed_smallest_angle(head - _h_head(q_ins_nm), degrees=False))
-            var.extend(head_var)
-            idx.extend([9])
+            dz_head = _signed_smallest_angle(head - _h_head(q_ins_nm), degrees=False)
             H[9:10, 6:9] = _dhda_head(q_ins_nm)
+            H_head = H[9:10]
 
-        for dz_i, var_i, idx_i in zip(dz, var, idx):
-            H_i = H[idx_i, :].reshape(1, -1)
-            K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
-            dx += K_i * (dz_i - H_i @ dx)
-            P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
+            dx, P = self._update_dx_P(dx, P, dz_head, head_var, H_head, I_)
 
-        if dz:
+        if dx.any():
             # Reset INS state
             self._reset_ins(dx.ravel())
 
