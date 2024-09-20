@@ -579,8 +579,8 @@ class AidedINS(INSMixin):
     ----------
     fs : float
         Sampling rate in Hz.
-    x0 : array-like, shape (16,)
-        Initial INS state vector containing the following elements in order:
+    x0_prior : array-like, shape (16,)
+        Initial (a priori) INS state estimate, containing the following elements in order:
 
         * Position in x, y, z directions (3 elements).
         * Velocity in x, y, z directions (3 elements).
@@ -588,11 +588,11 @@ class AidedINS(INSMixin):
         * Accelerometer bias in x, y, z directions (3 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
     P0_prior : array-like, shape (15, 15) or (12, 12)
-    The initial a priori estimate of the error covariance matrix, **P**. If uncertain, a
-    small diagonal matrix (e.g., ``1e-6 * numpy.eye(15)``) can be used. If the accelerometer
-    bias is excluded from the error estimate (see ``ignore_bias_acc``), the covariance
-    matrix should be of shape (12, 12) instead of (15, 15) to reflect the reduced state
-    dimensionality.
+        Initial (a priori) estimate of the error covariance matrix, **P**. If uncertain, a
+        small diagonal matrix (e.g., ``1e-6 * numpy.eye(15)``) can be used. If the accelerometer
+        bias is excluded from the error estimate (see ``ignore_bias_acc``), the covariance
+        matrix should be of shape (12, 12) instead of (15, 15) to reflect the reduced state
+        dimensionality.
     err_acc : dict of {str: float}
         Dictionary containing accelerometer noise parameters with keys:
 
