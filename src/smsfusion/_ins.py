@@ -669,8 +669,8 @@ class AidedINS(INSMixin):
         self._dx = np.zeros(15, order="C")  # always zero, but used in sequential update
 
         # Initialize Kalman filter
-        self._P_prior = np.asarray_chkfinite(P0_prior).copy()
-        self._P = self._P_prior.copy()
+        self._P_prior = np.asarray_chkfinite(P0_prior).copy(order="C")
+        self._P = self._P_prior.copy(order="C")
 
         # Prepare system matrices
         q0 = self._ins._q_nm
@@ -988,7 +988,7 @@ class AidedINS(INSMixin):
         F = self._F
         G = self._G
         W = self._W
-        P = self._P_prior.copy()
+        P = self._P_prior.copy(order="C")
         I_ = self._I
 
         # Bias compensated IMU measurements
@@ -1013,7 +1013,7 @@ class AidedINS(INSMixin):
             H_pos = self._update_H_pos(R_ins_nm, lever_arm)
             dx, P = self._update_dx_P(
                 dx,
-                np.ascontiguousarray(P),
+                P,
                 np.ascontiguousarray(dz_pos),
                 np.ascontiguousarray(pos_var),
                 np.ascontiguousarray(H_pos),
