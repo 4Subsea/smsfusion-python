@@ -612,7 +612,7 @@ class AidedINS(INSMixin):
         aiding position coincides with the IMU's origin.
     lat : float, optional
         Latitude used to calculate the gravitational acceleration. If ``None`` provided,
-        the 'standard gravity' is assumed.
+        the 'standard gravity' of 9.80665 is assumed.
     ignore_bias_acc : bool, default True
         Determines whether the accelerometer bias should be included in the error estimate.
         If set to ``True``, the accelerometer bias provided in ``x0`` during initialization
