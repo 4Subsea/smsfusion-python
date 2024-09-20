@@ -898,11 +898,16 @@ class AidedINS(INSMixin):
     ):
         for i, (dz_i, var_i) in enumerate(zip(dz, var)):
             H_i = H[i, :]
-            K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
+            H_i = np.ascontiguousarray(H_i)
+            H_i_T = np.ascontiguousarray(H_i.T)
+            K_i = P @ H_i_T / (H_i @ P @ H_i_T + var_i)
             dx += K_i * (dz_i - H_i @ dx)
             K_i = K_i[:, np.newaxis]
             H_i = H_i[np.newaxis, :]
-            P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
+            K_i = np.ascontiguousarray(K_i)
+            H_i = np.ascontiguousarray(H_i)
+            K_i_T = np.ascontiguousarray(K_i.T)
+            P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i_T
         return dx, P
 
     def update(
@@ -1006,7 +1011,14 @@ class AidedINS(INSMixin):
             pos_var = np.asarray(pos_var, dtype=float)
             dz_pos = pos - pos_ins - R_ins_nm @ lever_arm
             H_pos = self._update_H_pos(R_ins_nm, lever_arm)
-            dx, P = self._update_dx_P(dx, P, dz_pos, pos_var, H_pos, I_)
+            dx, P = self._update_dx_P(
+                np.ascontiguousarray(dx),
+                np.ascontiguousarray(P),
+                np.ascontiguousarray(dz_pos),
+                np.ascontiguousarray(pos_var),
+                np.ascontiguousarray(H_pos),
+                np.ascontiguousarray(I_),
+            )
 
         if vel is not None:
             if vel_var is None:
