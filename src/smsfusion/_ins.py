@@ -692,7 +692,7 @@ class AidedINS(INSMixin):
             self._dx = self._dx[:dx_dim]
 
     @property
-    def x_prior(self):
+    def x_prior(self) -> NDArray[np.float64]:
         """
         Next a priori state vector estimate.
 
@@ -709,7 +709,9 @@ class AidedINS(INSMixin):
         """
         return self._ins.x
 
-    def dump(self):
+    def dump(
+        self,
+    ) -> dict[str, np.float64 | list[np.float64] | dict[str, np.float64] | bool]:
         """
         Dump the configuration and current state of the AINS to a dictionary. The dumped
         parameters can be used to restore the AINS to its current state.
@@ -868,7 +870,7 @@ class AidedINS(INSMixin):
         W[9:12, 9:12] *= 2.0 * sigma_gyro**2 * beta_gyro
         return W
 
-    def _reset_ins(self, dx):
+    def _reset_ins(self, dx: NDArray[np.float64]) -> None:
         """Combine states and reset INS"""
         da = dx[6:9]
         self._dq_prealloc[1:4] = da
@@ -883,7 +885,7 @@ class AidedINS(INSMixin):
         self._dx[:] = np.zeros(dx.size)
 
     @staticmethod
-    @njit
+    @njit  # type: ignore[misc]
     def _update_dx_P(
         dx: NDArray[np.float64],
         P: NDArray[np.float64],
@@ -891,7 +893,7 @@ class AidedINS(INSMixin):
         var: NDArray[np.float64],
         H: NDArray[np.float64],
         I_: NDArray[np.float64],
-    ):
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         for i, (dz_i, var_i) in enumerate(zip(dz, var)):
             H_i = np.ascontiguousarray(H[i, :])
             K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
@@ -1027,14 +1029,19 @@ class AidedINS(INSMixin):
             if head_var is None:
                 raise ValueError("'head_var' not provided.")
 
-            head = np.asarray([head], dtype=float, order="C")
-            head_var = np.asarray([head_var], dtype=float, order="C")
             if head_degrees:
                 head = (np.pi / 180.0) * head
                 head_var = (np.pi / 180.0) ** 2 * head_var
-            dz_head = _signed_smallest_angle(head - _h_head(q_ins_nm), degrees=False)
+
+            head_var_ = np.asarray([head_var], dtype=float, order="C")
+            dz_head = np.asarray(
+                [_signed_smallest_angle(head - _h_head(q_ins_nm), degrees=False)],
+                dtype=float,
+                order="C",
+            )
+
             H_head = self._update_H_head(q_ins_nm)
-            dx, P = self._update_dx_P(dx, P, dz_head, head_var, H_head, I_)
+            dx, P = self._update_dx_P(dx, P, dz_head, head_var_, H_head, I_)
 
         if dx.any():
             # Reset INS state
