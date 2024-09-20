@@ -1034,7 +1034,6 @@ class AidedINS(INSMixin):
                 head_var = (np.pi / 180.0) ** 2 * head_var
             dz_head = _signed_smallest_angle(head - _h_head(q_ins_nm), degrees=False)
             H_head = self._update_H_head(q_ins_nm)
-
             dx, P = self._update_dx_P(dx, P, dz_head, head_var, H_head, I_)
 
         if dx.any():
