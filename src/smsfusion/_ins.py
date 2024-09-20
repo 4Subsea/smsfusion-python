@@ -901,9 +901,8 @@ class AidedINS(INSMixin):
             H_i = np.ascontiguousarray(H_i)
             K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
             dx += K_i * (dz_i - H_i @ dx)
-            K_i = K_i[:, np.newaxis]
+            K_i = np.ascontiguousarray(K_i[:, np.newaxis])
             H_i = H_i[np.newaxis, :]
-            K_i = np.ascontiguousarray(K_i)
             H_i = np.ascontiguousarray(H_i)
             K_i_T = np.ascontiguousarray(K_i.T)
             P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i_T
