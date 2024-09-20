@@ -884,7 +884,7 @@ class AidedINS(INSMixin):
         self._ins._x[-3:] = self._ins._x[-3:] + dx[-3:]
         if not self._ignore_bias_acc:
             self._ins._x[10:13] = self._ins._x[10:13] + dx[9:12]
-        self._dx[:] = np.zeros(dx.size, order="C")
+        self._dx[:] = np.zeros(dx.size)
 
     @staticmethod
     @njit
