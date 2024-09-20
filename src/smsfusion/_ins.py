@@ -1051,6 +1051,6 @@ class AidedINS(INSMixin):
 
         # Project ahead
         self._ins.update(f_imu, w_imu, degrees=False)
-        self._P_prior = phi @ P @ phi.T + Q
+        self._P_prior[:] = phi @ P @ phi.T + Q
 
         return self
