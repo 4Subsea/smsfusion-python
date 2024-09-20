@@ -1047,6 +1047,7 @@ class AidedINS(INSMixin):
 
         # Update current state
         self._x[:] = self._ins._x
+        self._P[:] = P
 
         # Project ahead
         self._ins.update(f_imu, w_imu, degrees=False)
