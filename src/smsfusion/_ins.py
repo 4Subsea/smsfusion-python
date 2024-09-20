@@ -899,8 +899,7 @@ class AidedINS(INSMixin):
         for i, (dz_i, var_i) in enumerate(zip(dz, var)):
             H_i = H[i, :]
             H_i = np.ascontiguousarray(H_i)
-            H_i_T = np.ascontiguousarray(H_i.T)
-            K_i = P @ H_i_T / (H_i @ P @ H_i_T + var_i)
+            K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
             dx += K_i * (dz_i - H_i @ dx)
             K_i = K_i[:, np.newaxis]
             H_i = H_i[np.newaxis, :]
