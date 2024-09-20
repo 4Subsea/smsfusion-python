@@ -979,7 +979,7 @@ class AidedINS(INSMixin):
         F = self._F
         G = self._G
         W = self._W
-        P = self._P_prior.copy(order="C")
+        P = self._P_prior
         I_ = self._I
 
         # Bias compensated IMU measurements
