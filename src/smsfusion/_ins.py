@@ -612,7 +612,7 @@ class AidedINS(INSMixin):
         aiding position coincides with the IMU's origin.
     lat : float, optional
         Latitude used to calculate the gravitational acceleration. If ``None`` provided,
-        the 'standard gravity' is assumed.
+        the 'standard gravity' of 9.80665 is assumed.
     ignore_bias_acc : bool, default True
         Determines whether the accelerometer bias should be included in the error estimate.
         If set to ``True``, the accelerometer bias provided in ``x0`` during initialization
@@ -723,8 +723,8 @@ class AidedINS(INSMixin):
         """
         params = {
             "fs": self._fs,
-            "x0_prior": self._ins._x.tolist(),
-            "P0_prior": self._P_prior.tolist(),
+            "x0_prior": self.x_prior.tolist(),
+            "P0_prior": self.P_prior.tolist(),
             "err_acc": self._err_acc,
             "err_gyro": self._err_gyro,
             "lever_arm": self._lever_arm.tolist(),
@@ -736,9 +736,8 @@ class AidedINS(INSMixin):
     @property
     def P(self) -> NDArray[np.float64]:
         """
-        Current updated error covariance matrix, **P**. I.e., the error covariance
-        matrix associated with the Kalman filter's updated (a posteriori) error-state
-        estimate.
+        Error covariance matrix, **P**. I.e., the error covariance matrix associated with
+        the Kalman filter's updated (a posteriori) error-state estimate.
         """
         P = self._P.copy()
         return P
@@ -746,7 +745,7 @@ class AidedINS(INSMixin):
     @property
     def P_prior(self) -> NDArray[np.float64]:
         """
-        Next a priori estimate of the error covariance matrix, **P**. I.e., the error
+        Next (a priori) estimate of the error covariance matrix, **P**. I.e., the error
         covariance matrix associated with the Kalman filter's projected (a priori)
         error-state estimate.
         """
@@ -919,7 +918,11 @@ class AidedINS(INSMixin):
         g_var: ArrayLike | None = None,
     ) -> "AidedINS":  # TODO: Replace with ``typing.Self`` when Python > 3.11
         """
-        Update the AINS state estimates based on measurements.
+        Update/correct the AINS' state estimate with aiding measurements, and project
+        ahead using IMU measurements.
+
+        If no aiding measurements are provided, the AINS is simply propagated ahead
+        using dead reckoning with the IMU measurements.
 
         Parameters
         ----------
