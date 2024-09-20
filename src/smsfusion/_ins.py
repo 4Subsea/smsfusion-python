@@ -820,13 +820,9 @@ class AidedINS(INSMixin):
     @staticmethod
     def _prep_H() -> NDArray[np.float64]:
         """Prepare linearized measurement matrix, H. Values are placeholders only"""
-        S = _skew_symmetric  # alias skew symmetric matrix
-
         H = np.zeros((10, 15))
         H[0:3, 0:3] = np.eye(3)  # position
         H[3:6, 3:6] = np.eye(3)  # velocity
-        H[6:9, 6:9] = S(np.array([0.0, 0.0, 1.0]))  # gravity reference vector
-        H[9:10, 6:9] = 0.5  # compass
         return H
 
     def _update_H_pos(

@@ -1080,14 +1080,11 @@ class Test_AidedINS:
         np.testing.assert_array_almost_equal(W_out, W_expect)
 
     def test__prep_H(self):
-        S = _skew_symmetric  # skew symmetric matrix
         H_out = AidedINS._prep_H()
 
         H_expect = np.zeros((10, 15))
         H_expect[0:3, 0:3] = np.eye(3)  # position
         H_expect[3:6, 3:6] = np.eye(3)  # velocity
-        H_expect[6:9, 6:9] = S(np.array([0.0, 0.0, 1.0]))  # gravity reference vector
-        H_expect[9:10, 6:9] = 0.5  # compass
 
         np.testing.assert_array_almost_equal(H_out, H_expect)
 
