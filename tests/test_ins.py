@@ -1079,70 +1079,61 @@ class Test_AidedINS:
 
         np.testing.assert_array_almost_equal(W_out, W_expect)
 
-    def test__prep_H_lever_arm_zero(self, ains):
-        R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
+    def test__prep_H(self):
+        H_out = AidedINS._prep_H()
+
+        H_expect = np.zeros((10, 15))
+        H_expect[0:3, 0:3] = np.eye(3)  # position
+        H_expect[3:6, 3:6] = np.eye(3)  # velocity
+
+        np.testing.assert_array_almost_equal(H_out, H_expect)
+
+    def test__update_H_pos_lever_arm_zero(self, ains):
+        R = self.rot_matrix_from_quaternion
+        q = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
+
+        H_out = ains._update_H_pos(R(q), np.zeros(0))
+        H_expect = np.zeros((3, 15))
+        H_expect[0:3, 0:3] = np.eye(3)  # position
+        np.testing.assert_array_almost_equal(H_out, H_expect)
+
+    def test__update_H_pos_lever_arm(self, ains):
+        R = self.rot_matrix_from_quaternion
         S = _skew_symmetric  # skew symmetric matrix
 
         q = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
+        lever_arm = np.array([1.0, 1.0, 1.0])
 
-        v01_ned = np.array([0.0, 0.0, 1.0])
+        H_out = ains._update_H_pos(R(q), lever_arm)
+        H_expect = np.zeros((3, 15))
+        H_expect[0:3, 0:3] = np.eye(3)  # position
+        H_expect[0:3, 6:9] = -R(q) @ S(lever_arm)
 
-        H_matrix_expected = np.zeros((10, 15))
-        H_matrix_expected[0:3, 0:3] = np.eye(3)  # position
-        H_matrix_expected[3:6, 3:6] = np.eye(3)  # velocity
-        H_matrix_expected[6:9, 6:9] = S(R(q).T @ v01_ned)  # gravity reference vector
-        H_matrix_expected[9:10, 6:9] = _dhda_head(q)  # compass
+        np.testing.assert_array_almost_equal(H_out, H_expect)
 
-        H_matrix_out = AidedINS._prep_H(q, np.zeros(3))
-        np.testing.assert_array_almost_equal(H_matrix_out, H_matrix_expected)
+    def test__update_H_vel(self, ains):
+        H_out = ains._update_H_vel()
+        H_expect = np.zeros((3, 15))
+        H_expect[0:3, 3:6] = np.eye(3)  # velocity
+        np.testing.assert_array_almost_equal(H_out, H_expect)
 
-    def test__prep_H_lever_arm(self, ains):
-        R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
+    def test__update_H_g_ref(self, ains):
+        R = self.rot_matrix_from_quaternion
         S = _skew_symmetric  # skew symmetric matrix
 
         q = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
+        R_nm = R(q)
+        H_out = ains._update_H_g_ref(R_nm)
+        H_expect = np.zeros((3, 15))
+        H_expect[0:3, 6:9] = S(R_nm.T @ ains._vg_ref_n)
+        np.testing.assert_array_almost_equal(H_out, H_expect)
 
-        v01_ned = np.array([0.0, 0.0, 1.0])
-        lever_arm = np.array([1.0, 1.0, 1.0])
-
-        H_matrix_expected = np.zeros((10, 15))
-        H_matrix_expected[0:3, 0:3] = np.eye(3)  # position
-        H_matrix_expected[0:3, 6:9] = -R(q) @ S(lever_arm)
-        H_matrix_expected[3:6, 3:6] = np.eye(3)  # velocity
-        H_matrix_expected[6:9, 6:9] = S(R(q).T @ v01_ned)  # gravity reference vector
-        H_matrix_expected[9:10, 6:9] = _dhda_head(q)  # compass
-
-        H_matrix_out = AidedINS._prep_H(q, lever_arm)
-        np.testing.assert_array_almost_equal(H_matrix_out, H_matrix_expected)
-
-    def test__update_H_lever_arm(self, ains):
-        quaternion_init = ains.quaternion()
-
-        v01_ned = np.array([0.0, 0.0, 1.0])
-        lever_arm = np.array([1.0, 1.0, 1.0])
-
-        R = self.rot_matrix_from_quaternion  # body-to-ned rotation matrix
-        S = _skew_symmetric  # skew symmetric matrix
-
-        H_matrix_init = ains._H.copy()
-
-        quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
-
-        ains._update_H(R(quaternion), quaternion, lever_arm)
-
-        delta_H_matrix_expect = np.zeros_like(H_matrix_init)
-        delta_H_matrix_expect[6:9, 6:9] = S(R(quaternion).T @ v01_ned) - S(
-            R(quaternion_init).T @ v01_ned
-        )
-        delta_H_matrix_expect[9:10, 6:9] = _dhda_head(quaternion) - _dhda_head(
-            quaternion_init
-        )
-        delta_H_matrix_expect[0:3, 6:9] = -R(quaternion) @ S(lever_arm) + R(
-            quaternion_init
-        ) @ S(lever_arm)
-        np.testing.assert_array_almost_equal(
-            ains._H - H_matrix_init, delta_H_matrix_expect
-        )
+    def test__update_H_head(self, ains):
+        q = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
+        H_out = ains._update_H_head(q)
+        H_expect = np.zeros((1, 15))
+        H_expect[0, 6:9] = _dhda_head(q)
+        np.testing.assert_array_almost_equal(H_out, H_expect)
 
     def test_update_return_self(self, ains):
         g = gravity()
