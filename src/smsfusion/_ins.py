@@ -666,7 +666,7 @@ class AidedINS(INSMixin):
         self._x = self._ins.x
 
         # Error state
-        self._dx = np.zeros(15, order="C")  # always zero, but used in sequential update
+        self._dx = np.zeros(15)  # always zero, but used in sequential update
 
         # Initialize Kalman filter
         self._P_prior = np.asarray_chkfinite(P0_prior).copy(order="C")
@@ -1007,14 +1007,14 @@ class AidedINS(INSMixin):
             if pos_var is None:
                 raise ValueError("'pos_var' not provided.")
 
-            pos = np.asarray(pos, dtype=float)
-            pos_var = np.asarray(pos_var, dtype=float)
+            pos = np.asarray(pos, dtype=float, order="C")
+            pos_var = np.asarray(pos_var, dtype=float, order="C")
             dz_pos = pos - pos_ins - R_ins_nm @ lever_arm
             H_pos = self._update_H_pos(R_ins_nm, lever_arm)
             dx, P = self._update_dx_P(
                 dx,
                 P,
-                np.ascontiguousarray(dz_pos),
+                dz_pos,
                 np.ascontiguousarray(pos_var),
                 np.ascontiguousarray(H_pos),
                 I_,
