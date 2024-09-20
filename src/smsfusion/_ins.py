@@ -678,7 +678,7 @@ class AidedINS(INSMixin):
         self._G = self._prep_G(q0)
         self._H = self._prep_H()
         self._W = self._prep_W(err_acc, err_gyro)
-        self._I = np.eye(15)
+        self._I = np.eye(15, order="C")
 
         # Filter out the accelerometer bias terms from the system matrices (if ignored)
         if self._ignore_bias_acc:
@@ -1017,7 +1017,7 @@ class AidedINS(INSMixin):
                 np.ascontiguousarray(dz_pos),
                 np.ascontiguousarray(pos_var),
                 np.ascontiguousarray(H_pos),
-                np.ascontiguousarray(I_),
+                I_,
             )
 
         if vel is not None:
