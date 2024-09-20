@@ -1008,8 +1008,8 @@ class AidedINS(INSMixin):
             if vel_var is None:
                 raise ValueError("'vel_var' not provided.")
 
-            vel = np.asarray(vel, dtype=float)
-            vel_var = np.asarray(vel_var, dtype=float)
+            vel = np.asarray(vel, dtype=float, order="C")
+            vel_var = np.asarray(vel_var, dtype=float, order="C")
             dz_vel = vel - vel_ins
             H_vel = self._update_H_vel()
             dx, P = self._update_dx_P(dx, P, dz_vel, vel_var, H_vel, I_)
@@ -1018,7 +1018,7 @@ class AidedINS(INSMixin):
             if g_var is None:
                 raise ValueError("'g_var' not provided.")
             vg_meas_m = -_normalize(f_ins)
-            g_var = np.asarray(g_var, dtype=float)
+            g_var = np.asarray(g_var, dtype=float, order="C")
             dz_g = vg_meas_m - R_ins_nm.T @ self._vg_ref_n
             H_g = self._update_H_g_ref(R_ins_nm)
             dx, P = self._update_dx_P(dx, P, dz_g, g_var, H_g, I_)
@@ -1027,8 +1027,8 @@ class AidedINS(INSMixin):
             if head_var is None:
                 raise ValueError("'head_var' not provided.")
 
-            head = np.asarray([head], dtype=float)
-            head_var = np.asarray([head_var], dtype=float)
+            head = np.asarray([head], dtype=float, order="C")
+            head_var = np.asarray([head_var], dtype=float, order="C")
             if head_degrees:
                 head = (np.pi / 180.0) * head
                 head_var = (np.pi / 180.0) ** 2 * head_var
