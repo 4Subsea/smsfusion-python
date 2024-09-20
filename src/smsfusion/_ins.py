@@ -1015,7 +1015,7 @@ class AidedINS(INSMixin):
                 dx,
                 P,
                 dz_pos,
-                np.ascontiguousarray(pos_var),
+                pos_var,
                 np.ascontiguousarray(H_pos),
                 I_,
             )
