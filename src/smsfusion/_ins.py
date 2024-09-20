@@ -1011,14 +1011,7 @@ class AidedINS(INSMixin):
             pos_var = np.asarray(pos_var, dtype=float, order="C")
             dz_pos = pos - pos_ins - R_ins_nm @ lever_arm
             H_pos = self._update_H_pos(R_ins_nm, lever_arm)
-            dx, P = self._update_dx_P(
-                dx,
-                P,
-                dz_pos,
-                pos_var,
-                np.ascontiguousarray(H_pos),
-                I_,
-            )
+            dx, P = self._update_dx_P(dx, P, dz_pos, pos_var, H_pos, I_)
 
         if vel is not None:
             if vel_var is None:
