@@ -916,7 +916,11 @@ class AidedINS(INSMixin):
         g_var: ArrayLike | None = None,
     ) -> "AidedINS":  # TODO: Replace with ``typing.Self`` when Python > 3.11
         """
-        Update the AINS state estimates based on measurements.
+        Update/correct the AINS' state estimate with aiding measurements, and project
+        ahead using IMU measurements.
+
+        If no aiding measurements are provided, the AINS is simply propagated ahead
+        using dead reckoning with the IMU measurements.
 
         Parameters
         ----------
