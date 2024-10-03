@@ -387,9 +387,8 @@ class StrapdownINS(INSMixin):
         * Attitude as unit quaternion (4 elements).
         * Accelerometer bias in x, y, z directions (3 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
-    lat : float, optional
-        Latitude used to calculate the gravitational acceleration. If none
-        provided, the 'standard gravity' is assumed.
+    g : float, default 9.80665
+        The gravitational acceleration. Default is 'standard gravity' of 9.80665.
 
     Notes
     -----
@@ -397,14 +396,14 @@ class StrapdownINS(INSMixin):
     ensure unity.
     """
 
-    def __init__(self, fs: float, x0: ArrayLike, lat: float | None = None) -> None:
+    def __init__(self, fs: float, x0: ArrayLike, g: float = 9.80665) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
 
         self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
         self._x0[6:10] = _normalize(self._x0[6:10])
         self._x = self._x0.copy()
-        self._g = np.array([0, 0, gravity(lat)])  # gravity vector in NED
+        self._g = np.array([0, 0, g])  # gravity vector in NED
 
     def reset(self, x_new: ArrayLike) -> None:
         """
@@ -610,9 +609,8 @@ class AidedINS(INSMixin):
         to the IMU expressed in the IMU's measurement frame. For instance, the location
         of the GNSS antenna relative to the IMU. By default it is assumed that the
         aiding position coincides with the IMU's origin.
-    lat : float, optional
-        Latitude used to calculate the gravitational acceleration. If ``None`` provided,
-        the 'standard gravity' of 9.80665 is assumed.
+    g : float, default 9.80665
+        The gravitational acceleration. Default is 'standard gravity' of 9.80665.
     ignore_bias_acc : bool, default True
         Determines whether the accelerometer bias should be included in the error estimate.
         If set to ``True``, the accelerometer bias provided in ``x0`` during initialization
@@ -647,20 +645,20 @@ class AidedINS(INSMixin):
         err_acc: dict[str, float],
         err_gyro: dict[str, float],
         lever_arm: ArrayLike = np.zeros(3),
-        lat: float | None = None,
+        g: float = 9.80665,
         ignore_bias_acc: bool = True,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
         self._err_acc = err_acc
         self._err_gyro = err_gyro
-        self._lat = lat
+        self._g = g
         self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
         self._ignore_bias_acc = ignore_bias_acc
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
         # Strapdown algorithm / INS state
-        self._ins = StrapdownINS(self._fs, x0_prior, lat=self._lat)
+        self._ins = StrapdownINS(self._fs, x0_prior, g=self._g)
 
         # Total state
         self._x = self._ins.x
@@ -728,7 +726,7 @@ class AidedINS(INSMixin):
             "err_acc": self._err_acc,
             "err_gyro": self._err_gyro,
             "lever_arm": self._lever_arm.tolist(),
-            "lat": self._lat,
+            "g": self._g,
             "ignore_bias_acc": self._ignore_bias_acc,
         }
         return params
