@@ -410,7 +410,7 @@ class StrapdownINS(INSMixin):
         self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
         self._x0[6:10] = _normalize(self._x0[6:10])
         self._x = self._x0.copy()
-        self._inertial__frame = inertial_frame.lower()
+        self._inertial_frame = inertial_frame.lower()
 
         if self._inertial_frame == "ned":
             self._g = np.array([0.0, 0.0, g])
@@ -676,7 +676,7 @@ class AidedINS(INSMixin):
         self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
         self._ignore_bias_acc = ignore_bias_acc
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
-        self._inertial__frame = inertial_frame.lower()
+        self._inertial_frame = inertial_frame.lower()
 
         # Normalized gravity vector in the navigation frame
         if self._inertial_frame == "ned":
