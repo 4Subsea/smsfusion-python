@@ -676,7 +676,7 @@ class AidedINS(INSMixin):
 
         # Strapdown algorithm / INS state
         self._ins = StrapdownINS(self._fs, x0_prior, g=g, inertial_frame=inertial_frame)
-        self._vg_ref_n = _normalize(self._ins._g_n)
+        self._vg_ref_n = _normalize(self._ins._g_n)  # gravity reference vector
 
         # Total state
         self._x = self._ins.x
