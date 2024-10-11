@@ -275,8 +275,8 @@ class Test_StrapdownINS:
         assert update_return is ins
 
     def test_update(self, ins):
-        g = ins._g
-        f = np.array([1.0, 2.0, 3.0]) - g
+        g_n = ins._g_n
+        f = np.array([1.0, 2.0, 3.0]) - g_n
         w = np.array([0.04, 0.05, 0.06])
 
         x0_out = ins.x
@@ -328,8 +328,8 @@ class Test_StrapdownINS:
         np.testing.assert_array_almost_equal(x1_out, x1_expect)
 
     def test_update_deg(self, ins):
-        g = ins._g
-        f_imu = np.array([1.0, 2.0, 3.0]) - g
+        g_n = ins._g_n
+        f_imu = np.array([1.0, 2.0, 3.0]) - g_n
         w_imu = np.array([4.0, 5.0, 6.0])
 
         x0_out = ins.x
@@ -386,8 +386,8 @@ class Test_StrapdownINS:
         x0[10:13] = ba
         x0[13:16] = bg
         ins = StrapdownINS(10.0, x0)
-        g = ins._g
-        f = np.array([1.0, 2.0, 3.0]) + ba - g  # IMU measurements w/bias
+        g_n = ins._g_n
+        f = np.array([1.0, 2.0, 3.0]) + ba - g_n  # IMU measurements w/bias
         w = np.array([0.04, 0.05, 0.06]) + bg  # IMU measurements w/bias
 
         x0_out = ins.x
@@ -439,8 +439,8 @@ class Test_StrapdownINS:
         np.testing.assert_array_almost_equal(x1_out, x1_expect)
 
     def test_update_twise(self, ins):
-        g = ins._g
-        f_imu = np.array([1.0, 2.0, 3.0]) - g
+        g_n = ins._g_n
+        f_imu = np.array([1.0, 2.0, 3.0]) - g_n
         w_imu = np.array([0.004, 0.005, 0.006])
 
         x0_out = ins.x
@@ -474,7 +474,7 @@ class Test_StrapdownINS:
         # Calculate x1
         R0_expect = np.eye(3)
         T0_expect = _angular_matrix_from_quaternion(x0_expect[6:10])
-        a0_expect = R0_expect @ f_imu + g
+        a0_expect = R0_expect @ f_imu + g_n
         x1_expect = np.zeros(16)
         x1_expect[0:3] = x0_expect[0:3] + dt * x0_expect[3:6]
         x1_expect[3:6] = x0_expect[3:6] + dt * a0_expect
@@ -484,7 +484,7 @@ class Test_StrapdownINS:
         # Calculate x2 by forward Euler
         R1_expect = _rot_matrix_from_quaternion(x1_expect[6:10])
         T1_expect = _angular_matrix_from_quaternion(x1_expect[6:10])
-        a1_expect = R1_expect @ f_imu + g
+        a1_expect = R1_expect @ f_imu + g_n
         x2_expect = np.zeros(16)
         x2_expect[0:3] = x1_expect[0:3] + dt * x1_expect[3:6]
         x2_expect[3:6] = x1_expect[3:6] + dt * a1_expect
