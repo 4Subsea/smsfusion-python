@@ -413,9 +413,9 @@ class StrapdownINS(INSMixin):
         self._inertial_frame = inertial_frame.lower()
 
         if self._inertial_frame == "ned":
-            self._g = np.array([0.0, 0.0, g])
+            self._g_n = np.array([0.0, 0.0, g])
         elif self._inertial_frame == "enu":
-            self._g = np.array([0.0, 0.0, -g])
+            self._g_n = np.array([0.0, 0.0, -g])
         else:
             raise ValueError("Invalid inertial frame. Must be 'NED' or 'ENU'.")
 
@@ -507,7 +507,7 @@ class StrapdownINS(INSMixin):
         T = _angular_matrix_from_quaternion(q_nm)
 
         # State propagation (assuming constant linear acceleration and angular velocity)
-        acc = R_nm @ f_ins + self._g
+        acc = R_nm @ f_ins + self._g_n
         self._pos = self._pos + self._dt * self._vel
         self._vel = self._vel + self._dt * acc
         q_nm = q_nm + self._dt * T @ w_ins
@@ -670,21 +670,13 @@ class AidedINS(INSMixin):
         self._dt = 1.0 / fs
         self._err_acc = err_acc
         self._err_gyro = err_gyro
-        self._g = g
         self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
         self._ignore_bias_acc = ignore_bias_acc
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
-        self._inertial_frame = inertial_frame.lower()
-
-        if self._inertial_frame == "ned":
-            self._g_norm_n = np.array([0.0, 0.0, 1.0])
-        elif self._inertial_frame == "enu":
-            self._g_norm_n = np.array([0.0, 0.0, -1.0])
-        else:
-            raise ValueError("Invalid inertial frame. Must be 'NED' or 'ENU'.")
 
         # Strapdown algorithm / INS state
         self._ins = StrapdownINS(self._fs, x0_prior, g=g, inertial_frame=inertial_frame)
+        self._g_norm_n = _normalize(self._ins._g_n)
 
         # Total state
         self._x = self._ins.x
@@ -752,7 +744,7 @@ class AidedINS(INSMixin):
             "err_acc": self._err_acc,
             "err_gyro": self._err_gyro,
             "lever_arm": self._lever_arm.tolist(),
-            "g": self._g,
+            "g": self._ins._g,
             "ignore_bias_acc": self._ignore_bias_acc,
         }
         return params
