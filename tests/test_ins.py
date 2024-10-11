@@ -626,6 +626,7 @@ class Test_AidedINS:
             err_gyro,
             lever_arm=np.ones(3),
             ignore_bias_acc=True,
+            inertial_frame="NED",
         )
         return ains
 
@@ -677,7 +678,7 @@ class Test_AidedINS:
 
         # Check that correct latitude (and thus gravity) is used
         g_expect = np.array([0.0, 0.0, 9.81])
-        np.testing.assert_array_almost_equal(ains._ins._g, g_expect)
+        np.testing.assert_array_almost_equal(ains._ins._g_n, g_expect)
 
         assert ains._F.shape == (15, 15)
         assert ains._G.shape == (15, 12)
@@ -758,7 +759,7 @@ class Test_AidedINS:
         assert ains_b._err_acc == ains._err_acc
         assert ains_b._err_gyro == ains._err_gyro
         np.testing.assert_array_almost_equal(ains_b._lever_arm, ains._lever_arm)
-        assert ains_b._g == ains._g
+        assert ains_b._ins._g == ains._ins._g
         np.testing.assert_array_almost_equal(ains_b._ins._x, ains._ins._x)
         np.testing.assert_array_almost_equal(ains_b._P_prior, ains._P_prior)
         np.testing.assert_array_almost_equal(

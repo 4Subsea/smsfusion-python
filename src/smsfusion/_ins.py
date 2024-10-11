@@ -410,6 +410,7 @@ class StrapdownINS(INSMixin):
         self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
         self._x0[6:10] = _normalize(self._x0[6:10])
         self._x = self._x0.copy()
+        self._g = g
         self._inertial_frame = inertial_frame.lower()
 
         if self._inertial_frame == "ned":
