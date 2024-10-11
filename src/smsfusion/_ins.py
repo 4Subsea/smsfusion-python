@@ -640,8 +640,6 @@ class AidedINS(INSMixin):
         this frame, and that the aiding heading angle is interpreted relative to this frame.
     """
 
-    # _vg_ref_n = np.array([0.0, 0.0, 1.0])  # gravity reference vector in NED frame
-
     # Permutation matrix for reordering error-state bias terms, such that:
     # [pos, vel, quat, b_gyro, b_acc]^T = T_dx @ [pos, vel, quat, b_acc, b_gyro]^T
     _T_dx = np.zeros((15, 15))
@@ -678,7 +676,6 @@ class AidedINS(INSMixin):
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
         self._inertial_frame = inertial_frame.lower()
 
-        # Normalized gravity vector in the navigation frame
         if self._inertial_frame == "ned":
             self._g_norm_n = np.array([0.0, 0.0, 1.0])
         elif self._inertial_frame == "enu":
@@ -1003,7 +1000,7 @@ class AidedINS(INSMixin):
         q_ins_nm = self._ins._q_nm
         bias_acc_ins = self._ins._bias_acc
         bias_gyro_ins = self._ins._bias_gyro
-        R_ins_nm = _rot_matrix_from_quaternion(q_ins_nm)  # body-to-ned rotation matrix
+        R_ins_nm = _rot_matrix_from_quaternion(q_ins_nm)  # body-to-inertial rot matrix
 
         # Aliases
         dx = self._dx  # zeros
