@@ -284,8 +284,67 @@ class Test_StrapdownINS:
         update_return = ins.update(f, w)
         assert update_return is ins
 
-    def test_update(self, ins):
-        g_n = ins._g_n
+    def test_update_ned(self, x0):
+
+        ins = StrapdownINS(10.0, x0, g=9.81, inertial_frame="NED")
+
+        g_n = np.array([0.0, 0.0, 9.81])
+        f = np.array([1.0, 2.0, 3.0]) - g_n
+        w = np.array([0.04, 0.05, 0.06])
+
+        x0_out = ins.x
+        ins.update(f, w)
+        x1_out = ins.x
+
+        x0_expect = np.array(
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ]
+        )
+        x1_expect = np.array(
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.1,
+                0.2,
+                0.3,
+                0.99999,
+                0.002,
+                0.0025,
+                0.003,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ]
+        )
+
+        np.testing.assert_array_almost_equal(x0_out, x0_expect)
+        np.testing.assert_array_almost_equal(x1_out, x1_expect)
+
+    def test_update_enu(self, x0):
+
+        ins = StrapdownINS(10.0, x0, g=9.81, inertial_frame="ENU")
+
+        g_n = np.array([0.0, 0.0, -9.81])
         f = np.array([1.0, 2.0, 3.0]) - g_n
         w = np.array([0.04, 0.05, 0.06])
 
