@@ -390,10 +390,9 @@ class StrapdownINS(INSMixin):
     g : float, default 9.80665
         The gravitational acceleration. Default is 'standard gravity' of 9.80665.
     inertial_frame : {'NED', 'ENU'}, default 'NED'
-        Specifies the inertial frame used by the filter. Should be set to 'NED' (North-East-Down)
-        (default) or 'ENU' (East-North-Up) depending on the desired orientation of the
-        navigation frame. Note that the filter will output degrees of freedom relative to
-        this frame, and that the aiding heading angle is interpreted relative to this frame.
+        Specifies the assumed inertial frame. Should be set to 'NED' (North-East-Down) (default)
+        or 'ENU' (East-North-Up) depending on the desired orientation of the navigation
+        frame.
 
     Notes
     -----
@@ -635,10 +634,11 @@ class AidedINS(INSMixin):
         that this will reduce the error-state dimension from 15 to 12, and hence also the
         error covariance matrix, **P**, from dimension (15, 15) to (12, 12).
     inertial_frame : {'NED', 'ENU'}, default 'NED'
-        Specifies the inertial frame used by the filter. Should be set to 'NED' (North-East-Down)
-        (default) or 'ENU' (East-North-Up) depending on the desired orientation of the
-        navigation frame. Note that the filter will output degrees of freedom relative to
-        this frame, and that the aiding heading angle is interpreted relative to this frame.
+        Specifies the assumed inertial frame. Should be set to 'NED' (North-East-Down) (default)
+        or 'ENU' (East-North-Up) depending on the desired orientation of the navigation
+        frame. Note that the filter will output its degrees of freedom relative
+        to this frame. Furthermore, the aiding heading angle is also interpreted relative
+        to this frame.
     """
 
     # Permutation matrix for reordering error-state bias terms, such that:
