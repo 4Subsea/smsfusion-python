@@ -389,6 +389,11 @@ class StrapdownINS(INSMixin):
         * Gyroscope bias in x, y, z directions (3 elements).
     g : float, default 9.80665
         The gravitational acceleration. Default is 'standard gravity' of 9.80665.
+    inertial_frame : {'NED', 'ENU'}, default 'NED'
+        Specifies the inertial frame used by the filter. Should be set to 'NED' (North-East-Down)
+        (default) or 'ENU' (East-North-Up) depending on the desired orientation of the
+        navigation frame. Note that the filter will output degrees of freedom relative to
+        this frame, and that the aiding heading angle is interpreted relative to this frame.
 
     Notes
     -----
@@ -396,14 +401,23 @@ class StrapdownINS(INSMixin):
     ensure unity.
     """
 
-    def __init__(self, fs: float, x0: ArrayLike, g: float = 9.80665) -> None:
+    def __init__(
+        self, fs: float, x0: ArrayLike, g: float = 9.80665, inertial_frame="NED"
+    ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
 
         self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
         self._x0[6:10] = _normalize(self._x0[6:10])
         self._x = self._x0.copy()
-        self._g = np.array([0, 0, g])  # gravity vector in NED
+        self._inertial__frame = inertial_frame.lower()
+
+        if self._inertial_frame == "ned":
+            self._g = np.array([0.0, 0.0, g])
+        elif self._inertial_frame == "enu":
+            self._g = np.array([0.0, 0.0, -g])
+        else:
+            raise ValueError("Invalid inertial frame. Must be 'NED' or 'ENU'.")
 
     def reset(self, x_new: ArrayLike) -> None:
         """
@@ -619,9 +633,14 @@ class AidedINS(INSMixin):
         information or minimal dynamic motion, making bias estimation unreliable. Note
         that this will reduce the error-state dimension from 15 to 12, and hence also the
         error covariance matrix, **P**, from dimension (15, 15) to (12, 12).
+    inertial_frame : {'NED', 'ENU'}, default 'NED'
+        Specifies the inertial frame used by the filter. Should be set to 'NED' (North-East-Down)
+        (default) or 'ENU' (East-North-Up) depending on the desired orientation of the
+        navigation frame. Note that the filter will output degrees of freedom relative to
+        this frame, and that the aiding heading angle is interpreted relative to this frame.
     """
 
-    _vg_ref_n = np.array([0.0, 0.0, 1.0])  # gravity reference vector in NED frame
+    # _vg_ref_n = np.array([0.0, 0.0, 1.0])  # gravity reference vector in NED frame
 
     # Permutation matrix for reordering error-state bias terms, such that:
     # [pos, vel, quat, b_gyro, b_acc]^T = T_dx @ [pos, vel, quat, b_acc, b_gyro]^T
@@ -647,6 +666,7 @@ class AidedINS(INSMixin):
         lever_arm: ArrayLike = np.zeros(3),
         g: float = 9.80665,
         ignore_bias_acc: bool = True,
+        inertial_frame: str = "NED",
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
@@ -656,9 +676,18 @@ class AidedINS(INSMixin):
         self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
         self._ignore_bias_acc = ignore_bias_acc
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
+        self._inertial__frame = inertial_frame.lower()
+
+        # Normalized gravity vector in the navigation frame
+        if self._inertial_frame == "ned":
+            self._g_norm_n = np.array([0.0, 0.0, 1.0])
+        elif self._inertial_frame == "enu":
+            self._g_norm_n = np.array([0.0, 0.0, -1.0])
+        else:
+            raise ValueError("Invalid inertial frame. Must be 'NED' or 'ENU'.")
 
         # Strapdown algorithm / INS state
-        self._ins = StrapdownINS(self._fs, x0_prior, g=self._g)
+        self._ins = StrapdownINS(self._fs, x0_prior, g=g, inertial_frame=inertial_frame)
 
         # Total state
         self._x = self._ins.x
@@ -1022,7 +1051,7 @@ class AidedINS(INSMixin):
                 raise ValueError("'g_var' not provided.")
             vg_meas_m = -_normalize(f_ins)
             g_var = np.asarray(g_var, dtype=float, order="C")
-            dz_g = vg_meas_m - R_ins_nm.T @ self._vg_ref_n
+            dz_g = vg_meas_m - R_ins_nm.T @ self._g_norm_n
             H_g = self._update_H_g_ref(R_ins_nm)
             dx, P = self._update_dx_P(dx, P, dz_g, g_var, H_g, I_)
 
