@@ -637,7 +637,7 @@ class AidedINS(INSMixin):
         Specifies the assumed inertial-like 'navigation frame'. Should be 'NED' (North-East-Down)
         (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
         will be expressed relative to this frame. Furthermore, the aiding heading angle is
-        also interpreted relative to this frame.
+        also interpreted relative to this frame according to the right-hand rule.
     """
 
     # Permutation matrix for reordering error-state bias terms, such that:
