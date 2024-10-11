@@ -754,6 +754,49 @@ class Test_AidedINS:
         assert ains._W.shape == (12, 12)
         assert ains._H.shape == (10, 15)
 
+    def test__init__inertial_frame(self):
+        x0 = np.zeros(16)
+        x0[6:10] = (1.0, 0.0, 0.0, 0.0)
+
+        P0_prior = np.eye(12)
+
+        err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
+        err_gyro = {
+            "N": (np.pi) / 180.0 * 2.0e-3,
+            "B": (np.pi) / 180.0 * 8.0e-4,
+            "tau_cb": 50,
+        }
+
+        # ENU
+        ains_enu = AidedINS(
+            10.24,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            g=9.81,
+            ignore_bias_acc=False,
+            inertial_frame="ENU",
+        )
+        assert ains_enu._ins._inertial_frame == "enu"
+        np.testing.assert_array_almost_equal(ains_enu._ins._g_n, [0.0, 0.0, -9.81])
+        np.testing.assert_array_almost_equal(ains_enu._vg_ref_n, [0.0, 0.0, -1.0])
+
+        # NED
+        ains_ned = AidedINS(
+            10.24,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            g=9.81,
+            ignore_bias_acc=False,
+            inertial_frame="NED",
+        )
+        assert ains_ned._ins._inertial_frame == "ned"
+        np.testing.assert_array_almost_equal(ains_ned._ins._g_n, [0.0, 0.0, 9.81])
+        np.testing.assert_array_almost_equal(ains_ned._vg_ref_n, [0.0, 0.0, 1.0])
+
     def test__init__ignore_bias_acc(self):
         fs = 10.24
 
