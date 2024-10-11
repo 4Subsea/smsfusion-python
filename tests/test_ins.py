@@ -178,19 +178,19 @@ class Test_StrapdownINS:
         return x0
 
     def test__init__(self, x0_nonzero):
-        ins = StrapdownINS(10.24, x0_nonzero, g=9.81, inertial_frame="NED")
+        ins = StrapdownINS(10.24, x0_nonzero, g=9.81, nav_frame="NED")
 
         assert isinstance(ins, INSMixin)
         assert ins._fs == 10.24
         assert ins._g == approx(9.81)
-        assert ins._inertial_frame == "ned"
+        assert ins._nav_frame == "ned"
         np.testing.assert_array_equal(ins._g_n, [0.0, 0.0, 9.81])
         np.testing.assert_array_equal(ins._x0, x0_nonzero)
         np.testing.assert_array_equal(ins._x, x0_nonzero)
 
     def test__init__enu(self, x0_nonzero):
-        ins = StrapdownINS(10.24, x0_nonzero, g=9.81, inertial_frame="ENU")
-        assert ins._inertial_frame == "enu"
+        ins = StrapdownINS(10.24, x0_nonzero, g=9.81, nav_frame="ENU")
+        assert ins._nav_frame == "enu"
         np.testing.assert_array_equal(ins._g_n, [0.0, 0.0, -9.81])
 
     def test_x(self, x0_nonzero):
@@ -286,7 +286,7 @@ class Test_StrapdownINS:
 
     def test_update_ned(self, x0):
 
-        ins = StrapdownINS(10.0, x0, g=9.81, inertial_frame="NED")
+        ins = StrapdownINS(10.0, x0, g=9.81, nav_frame="NED")
 
         g_n = np.array([0.0, 0.0, 9.81])
         f = np.array([1.0, 2.0, 3.0]) - g_n
@@ -342,7 +342,7 @@ class Test_StrapdownINS:
 
     def test_update_enu(self, x0):
 
-        ins = StrapdownINS(10.0, x0, g=9.81, inertial_frame="ENU")
+        ins = StrapdownINS(10.0, x0, g=9.81, nav_frame="ENU")
 
         g_n = np.array([0.0, 0.0, -9.81])
         f = np.array([1.0, 2.0, 3.0]) - g_n
@@ -661,7 +661,7 @@ class Test_AidedINS:
             err_gyro,
             lever_arm=np.ones(3),
             ignore_bias_acc=False,
-            inertial_frame="NED",
+            nav_frame="NED",
         )
         return ains
 
@@ -695,7 +695,7 @@ class Test_AidedINS:
             err_gyro,
             lever_arm=np.ones(3),
             ignore_bias_acc=True,
-            inertial_frame="NED",
+            nav_frame="NED",
         )
         return ains
 
@@ -754,7 +754,7 @@ class Test_AidedINS:
         assert ains._W.shape == (12, 12)
         assert ains._H.shape == (10, 15)
 
-    def test__init__inertial_frame(self):
+    def test__init__nav_frame(self):
         x0 = np.zeros(16)
         x0[6:10] = (1.0, 0.0, 0.0, 0.0)
 
@@ -776,9 +776,9 @@ class Test_AidedINS:
             err_gyro,
             g=9.81,
             ignore_bias_acc=False,
-            inertial_frame="ENU",
+            nav_frame="ENU",
         )
-        assert ains_enu._ins._inertial_frame == "enu"
+        assert ains_enu._ins._nav_frame == "enu"
         np.testing.assert_array_almost_equal(ains_enu._ins._g_n, [0.0, 0.0, -9.81])
         np.testing.assert_array_almost_equal(ains_enu._vg_ref_n, [0.0, 0.0, -1.0])
 
@@ -791,9 +791,9 @@ class Test_AidedINS:
             err_gyro,
             g=9.81,
             ignore_bias_acc=False,
-            inertial_frame="NED",
+            nav_frame="NED",
         )
-        assert ains_ned._ins._inertial_frame == "ned"
+        assert ains_ned._ins._nav_frame == "ned"
         np.testing.assert_array_almost_equal(ains_ned._ins._g_n, [0.0, 0.0, 9.81])
         np.testing.assert_array_almost_equal(ains_ned._vg_ref_n, [0.0, 0.0, 1.0])
 

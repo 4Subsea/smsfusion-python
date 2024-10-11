@@ -963,7 +963,7 @@ class AidedINS(INSMixin):
         head : float, optional
             Heading measurement, i.e., yaw angle of the sensor frame relative to the
             inertial frame. If ``None``, compass aiding is not used. See ``head_degrees``
-            for units. The inertial frame's orientation is specified by the ``inertial_frame``
+            for units. The inertial frame's orientation is specified by the ``nav_frame``
             parameter during initialization.
         head_var : float, optional
             Variance of heading measurement noise. Units must be compatible with ``head``.
