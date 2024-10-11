@@ -969,8 +969,10 @@ class AidedINS(INSMixin):
         vel_var : array-like, shape (3,), optional
             Variance of velocity measurement noise in (m/s)^2. Required for ``vel``.
         head : float, optional
-            Heading measurement, i.e., yaw angle. If ``None``, compass aiding is not used.
-            See ``head_degrees`` for units.
+            Heading measurement, i.e., yaw angle of the sensor frame relative to the
+            inertial frame. If ``None``, compass aiding is not used. See ``head_degrees``
+            for units. The inertial frame's orientation is specified by the ``inertial_frame``
+            parameter during initialization.
         head_var : float, optional
             Variance of heading measurement noise. Units must be compatible with ``head``.
              See ``head_degrees`` for units. Required for ``head``.
