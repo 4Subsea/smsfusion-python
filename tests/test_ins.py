@@ -13,6 +13,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 from pandas import read_parquet
+from pytest import approx
 from scipy.signal import resample_poly
 from scipy.spatial.transform import Rotation
 
@@ -177,11 +178,20 @@ class Test_StrapdownINS:
         return x0
 
     def test__init__(self, x0_nonzero):
-        ins = StrapdownINS(10.24, x0_nonzero)
+        ins = StrapdownINS(10.24, x0_nonzero, g=9.81, inertial_frame="NED")
 
         assert isinstance(ins, INSMixin)
+        assert ins._fs == 10.24
+        assert ins._g == approx(9.81)
+        assert ins._inertial_frame == "ned"
+        np.testing.assert_array_equal(ins._g_n, [0.0, 0.0, 9.81])
         np.testing.assert_array_equal(ins._x0, x0_nonzero)
         np.testing.assert_array_equal(ins._x, x0_nonzero)
+
+    def test__init__enu(self, x0_nonzero):
+        ins = StrapdownINS(10.24, x0_nonzero, g=9.81, inertial_frame="ENU")
+        assert ins._inertial_frame == "enu"
+        np.testing.assert_array_equal(ins._g_n, [0.0, 0.0, -9.81])
 
     def test_x(self, x0_nonzero):
         ins = StrapdownINS(10.24, x0_nonzero)
