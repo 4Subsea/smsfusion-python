@@ -857,7 +857,7 @@ class AidedINS(INSMixin):
     def _update_H_g_ref(self, R_nm: NDArray[np.float64]) -> NDArray[np.float64]:
         """Update and return part of H matrix relevant for g_ref aiding."""
         S = _skew_symmetric
-        self._H[6:9, 6:9] = S(R_nm.T @ self._vg_ref_n)
+        self._H[6:9, 6:9] = S(R_nm.T @ self._g_norm_n)
         return self._H[6:9]
 
     def _update_H_head(self, q_nm: NDArray[np.float64]) -> NDArray[np.float64]:
