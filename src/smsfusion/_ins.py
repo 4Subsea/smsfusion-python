@@ -389,6 +389,10 @@ class StrapdownINS(INSMixin):
         * Gyroscope bias in x, y, z directions (3 elements).
     g : float, default 9.80665
         The gravitational acceleration. Default is 'standard gravity' of 9.80665.
+    nav_frame : {'NED', 'ENU'}, default 'NED'
+        Specifies the assumed inertial-like 'navigation frame'. Should be 'NED' (North-East-Down)
+        (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
+        will be expressed relative to this frame.
 
     Notes
     -----
@@ -396,14 +400,24 @@ class StrapdownINS(INSMixin):
     ensure unity.
     """
 
-    def __init__(self, fs: float, x0: ArrayLike, g: float = 9.80665) -> None:
+    def __init__(
+        self, fs: float, x0: ArrayLike, g: float = 9.80665, nav_frame="NED"
+    ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
 
         self._x0 = np.asarray_chkfinite(x0).reshape(16).copy()
         self._x0[6:10] = _normalize(self._x0[6:10])
         self._x = self._x0.copy()
-        self._g = np.array([0, 0, g])  # gravity vector in NED
+        self._g = g
+        self._nav_frame = nav_frame.lower()
+
+        if self._nav_frame == "ned":
+            self._g_n = np.array([0.0, 0.0, g])
+        elif self._nav_frame == "enu":
+            self._g_n = np.array([0.0, 0.0, -g])
+        else:
+            raise ValueError("Invalid navigation frame. Must be 'NED' or 'ENU'.")
 
     def reset(self, x_new: ArrayLike) -> None:
         """
@@ -493,7 +507,7 @@ class StrapdownINS(INSMixin):
         T = _angular_matrix_from_quaternion(q_nm)
 
         # State propagation (assuming constant linear acceleration and angular velocity)
-        acc = R_nm @ f_ins + self._g
+        acc = R_nm @ f_ins + self._g_n
         self._pos = self._pos + self._dt * self._vel
         self._vel = self._vel + self._dt * acc
         q_nm = q_nm + self._dt * T @ w_ins
@@ -619,9 +633,12 @@ class AidedINS(INSMixin):
         information or minimal dynamic motion, making bias estimation unreliable. Note
         that this will reduce the error-state dimension from 15 to 12, and hence also the
         error covariance matrix, **P**, from dimension (15, 15) to (12, 12).
+    nav_frame : {'NED', 'ENU'}, default 'NED'
+        Specifies the assumed inertial-like 'navigation frame'. Should be 'NED' (North-East-Down)
+        (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
+        will be expressed relative to this frame. Furthermore, the aiding heading angle is
+        also interpreted relative to this frame according to the right-hand rule.
     """
-
-    _vg_ref_n = np.array([0.0, 0.0, 1.0])  # gravity reference vector in NED frame
 
     # Permutation matrix for reordering error-state bias terms, such that:
     # [pos, vel, quat, b_gyro, b_acc]^T = T_dx @ [pos, vel, quat, b_acc, b_gyro]^T
@@ -647,18 +664,19 @@ class AidedINS(INSMixin):
         lever_arm: ArrayLike = np.zeros(3),
         g: float = 9.80665,
         ignore_bias_acc: bool = True,
+        nav_frame: str = "NED",
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
         self._err_acc = err_acc
         self._err_gyro = err_gyro
-        self._g = g
         self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
         self._ignore_bias_acc = ignore_bias_acc
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
         # Strapdown algorithm / INS state
-        self._ins = StrapdownINS(self._fs, x0_prior, g=self._g)
+        self._ins = StrapdownINS(self._fs, x0_prior, g=g, nav_frame=nav_frame)
+        self._vg_ref_n = _normalize(self._ins._g_n)  # gravity reference vector
 
         # Total state
         self._x = self._ins.x
@@ -726,7 +744,7 @@ class AidedINS(INSMixin):
             "err_acc": self._err_acc,
             "err_gyro": self._err_gyro,
             "lever_arm": self._lever_arm.tolist(),
-            "g": self._g,
+            "g": self._ins._g,
             "ignore_bias_acc": self._ignore_bias_acc,
         }
         return params
@@ -943,8 +961,9 @@ class AidedINS(INSMixin):
         vel_var : array-like, shape (3,), optional
             Variance of velocity measurement noise in (m/s)^2. Required for ``vel``.
         head : float, optional
-            Heading measurement, i.e., yaw angle. If ``None``, compass aiding is not used.
-            See ``head_degrees`` for units.
+            Heading measurement. I.e., the yaw angle of the body-frame relative to the
+            assumed navigation frame (NED or ENU) specified during initialization.
+            If ``None``, compass aiding is not used. See ``head_degrees`` for units.
         head_var : float, optional
             Variance of heading measurement noise. Units must be compatible with ``head``.
              See ``head_degrees`` for units. Required for ``head``.
@@ -974,7 +993,7 @@ class AidedINS(INSMixin):
         q_ins_nm = self._ins._q_nm
         bias_acc_ins = self._ins._bias_acc
         bias_gyro_ins = self._ins._bias_gyro
-        R_ins_nm = _rot_matrix_from_quaternion(q_ins_nm)  # body-to-ned rotation matrix
+        R_ins_nm = _rot_matrix_from_quaternion(q_ins_nm)  # body-to-inertial rot matrix
 
         # Aliases
         dx = self._dx  # zeros

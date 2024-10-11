@@ -13,6 +13,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 from pandas import read_parquet
+from pytest import approx
 from scipy.signal import resample_poly
 from scipy.spatial.transform import Rotation
 
@@ -177,11 +178,20 @@ class Test_StrapdownINS:
         return x0
 
     def test__init__(self, x0_nonzero):
-        ins = StrapdownINS(10.24, x0_nonzero)
+        ins = StrapdownINS(10.24, x0_nonzero, g=9.81, nav_frame="NED")
 
         assert isinstance(ins, INSMixin)
+        assert ins._fs == 10.24
+        assert ins._g == approx(9.81)
+        assert ins._nav_frame == "ned"
+        np.testing.assert_array_equal(ins._g_n, [0.0, 0.0, 9.81])
         np.testing.assert_array_equal(ins._x0, x0_nonzero)
         np.testing.assert_array_equal(ins._x, x0_nonzero)
+
+    def test__init__enu(self, x0_nonzero):
+        ins = StrapdownINS(10.24, x0_nonzero, g=9.81, nav_frame="ENU")
+        assert ins._nav_frame == "enu"
+        np.testing.assert_array_equal(ins._g_n, [0.0, 0.0, -9.81])
 
     def test_x(self, x0_nonzero):
         ins = StrapdownINS(10.24, x0_nonzero)
@@ -274,9 +284,68 @@ class Test_StrapdownINS:
         update_return = ins.update(f, w)
         assert update_return is ins
 
-    def test_update(self, ins):
-        g = ins._g
-        f = np.array([1.0, 2.0, 3.0]) - g
+    def test_update_ned(self, x0):
+
+        ins = StrapdownINS(10.0, x0, g=9.81, nav_frame="NED")
+
+        g_n = np.array([0.0, 0.0, 9.81])
+        f = np.array([1.0, 2.0, 3.0]) - g_n
+        w = np.array([0.04, 0.05, 0.06])
+
+        x0_out = ins.x
+        ins.update(f, w)
+        x1_out = ins.x
+
+        x0_expect = np.array(
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ]
+        )
+        x1_expect = np.array(
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.1,
+                0.2,
+                0.3,
+                0.99999,
+                0.002,
+                0.0025,
+                0.003,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ]
+        )
+
+        np.testing.assert_array_almost_equal(x0_out, x0_expect)
+        np.testing.assert_array_almost_equal(x1_out, x1_expect)
+
+    def test_update_enu(self, x0):
+
+        ins = StrapdownINS(10.0, x0, g=9.81, nav_frame="ENU")
+
+        g_n = np.array([0.0, 0.0, -9.81])
+        f = np.array([1.0, 2.0, 3.0]) - g_n
         w = np.array([0.04, 0.05, 0.06])
 
         x0_out = ins.x
@@ -328,8 +397,8 @@ class Test_StrapdownINS:
         np.testing.assert_array_almost_equal(x1_out, x1_expect)
 
     def test_update_deg(self, ins):
-        g = ins._g
-        f_imu = np.array([1.0, 2.0, 3.0]) - g
+        g_n = ins._g_n
+        f_imu = np.array([1.0, 2.0, 3.0]) - g_n
         w_imu = np.array([4.0, 5.0, 6.0])
 
         x0_out = ins.x
@@ -386,8 +455,8 @@ class Test_StrapdownINS:
         x0[10:13] = ba
         x0[13:16] = bg
         ins = StrapdownINS(10.0, x0)
-        g = ins._g
-        f = np.array([1.0, 2.0, 3.0]) + ba - g  # IMU measurements w/bias
+        g_n = ins._g_n
+        f = np.array([1.0, 2.0, 3.0]) + ba - g_n  # IMU measurements w/bias
         w = np.array([0.04, 0.05, 0.06]) + bg  # IMU measurements w/bias
 
         x0_out = ins.x
@@ -439,8 +508,8 @@ class Test_StrapdownINS:
         np.testing.assert_array_almost_equal(x1_out, x1_expect)
 
     def test_update_twise(self, ins):
-        g = ins._g
-        f_imu = np.array([1.0, 2.0, 3.0]) - g
+        g_n = ins._g_n
+        f_imu = np.array([1.0, 2.0, 3.0]) - g_n
         w_imu = np.array([0.004, 0.005, 0.006])
 
         x0_out = ins.x
@@ -474,7 +543,7 @@ class Test_StrapdownINS:
         # Calculate x1
         R0_expect = np.eye(3)
         T0_expect = _angular_matrix_from_quaternion(x0_expect[6:10])
-        a0_expect = R0_expect @ f_imu + g
+        a0_expect = R0_expect @ f_imu + g_n
         x1_expect = np.zeros(16)
         x1_expect[0:3] = x0_expect[0:3] + dt * x0_expect[3:6]
         x1_expect[3:6] = x0_expect[3:6] + dt * a0_expect
@@ -484,7 +553,7 @@ class Test_StrapdownINS:
         # Calculate x2 by forward Euler
         R1_expect = _rot_matrix_from_quaternion(x1_expect[6:10])
         T1_expect = _angular_matrix_from_quaternion(x1_expect[6:10])
-        a1_expect = R1_expect @ f_imu + g
+        a1_expect = R1_expect @ f_imu + g_n
         x2_expect = np.zeros(16)
         x2_expect[0:3] = x1_expect[0:3] + dt * x1_expect[3:6]
         x2_expect[3:6] = x1_expect[3:6] + dt * a1_expect
@@ -592,6 +661,7 @@ class Test_AidedINS:
             err_gyro,
             lever_arm=np.ones(3),
             ignore_bias_acc=False,
+            nav_frame="NED",
         )
         return ains
 
@@ -625,6 +695,7 @@ class Test_AidedINS:
             err_gyro,
             lever_arm=np.ones(3),
             ignore_bias_acc=True,
+            nav_frame="NED",
         )
         return ains
 
@@ -676,12 +747,55 @@ class Test_AidedINS:
 
         # Check that correct latitude (and thus gravity) is used
         g_expect = np.array([0.0, 0.0, 9.81])
-        np.testing.assert_array_almost_equal(ains._ins._g, g_expect)
+        np.testing.assert_array_almost_equal(ains._ins._g_n, g_expect)
 
         assert ains._F.shape == (15, 15)
         assert ains._G.shape == (15, 12)
         assert ains._W.shape == (12, 12)
         assert ains._H.shape == (10, 15)
+
+    def test__init__nav_frame(self):
+        x0 = np.zeros(16)
+        x0[6:10] = (1.0, 0.0, 0.0, 0.0)
+
+        P0_prior = np.eye(12)
+
+        err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
+        err_gyro = {
+            "N": (np.pi) / 180.0 * 2.0e-3,
+            "B": (np.pi) / 180.0 * 8.0e-4,
+            "tau_cb": 50,
+        }
+
+        # ENU
+        ains_enu = AidedINS(
+            10.24,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            g=9.81,
+            ignore_bias_acc=False,
+            nav_frame="ENU",
+        )
+        assert ains_enu._ins._nav_frame == "enu"
+        np.testing.assert_array_almost_equal(ains_enu._ins._g_n, [0.0, 0.0, -9.81])
+        np.testing.assert_array_almost_equal(ains_enu._vg_ref_n, [0.0, 0.0, -1.0])
+
+        # NED
+        ains_ned = AidedINS(
+            10.24,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            g=9.81,
+            ignore_bias_acc=False,
+            nav_frame="NED",
+        )
+        assert ains_ned._ins._nav_frame == "ned"
+        np.testing.assert_array_almost_equal(ains_ned._ins._g_n, [0.0, 0.0, 9.81])
+        np.testing.assert_array_almost_equal(ains_ned._vg_ref_n, [0.0, 0.0, 1.0])
 
     def test__init__ignore_bias_acc(self):
         fs = 10.24
@@ -757,7 +871,7 @@ class Test_AidedINS:
         assert ains_b._err_acc == ains._err_acc
         assert ains_b._err_gyro == ains._err_gyro
         np.testing.assert_array_almost_equal(ains_b._lever_arm, ains._lever_arm)
-        assert ains_b._g == ains._g
+        assert ains_b._ins._g == ains._ins._g
         np.testing.assert_array_almost_equal(ains_b._ins._x, ains._ins._x)
         np.testing.assert_array_almost_equal(ains_b._P_prior, ains._P_prior)
         np.testing.assert_array_almost_equal(
