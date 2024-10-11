@@ -592,6 +592,7 @@ class Test_AidedINS:
             err_gyro,
             lever_arm=np.ones(3),
             ignore_bias_acc=False,
+            inertial_frame="NED",
         )
         return ains
 

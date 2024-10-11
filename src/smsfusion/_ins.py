@@ -676,7 +676,7 @@ class AidedINS(INSMixin):
 
         # Strapdown algorithm / INS state
         self._ins = StrapdownINS(self._fs, x0_prior, g=g, inertial_frame=inertial_frame)
-        self._g_norm_n = _normalize(self._ins._g_n)
+        self._vg_ref_n = _normalize(self._ins._g_n)
 
         # Total state
         self._x = self._ins.x
@@ -857,7 +857,7 @@ class AidedINS(INSMixin):
     def _update_H_g_ref(self, R_nm: NDArray[np.float64]) -> NDArray[np.float64]:
         """Update and return part of H matrix relevant for g_ref aiding."""
         S = _skew_symmetric
-        self._H[6:9, 6:9] = S(R_nm.T @ self._g_norm_n)
+        self._H[6:9, 6:9] = S(R_nm.T @ self._vg_ref_n)
         return self._H[6:9]
 
     def _update_H_head(self, q_nm: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -1042,7 +1042,7 @@ class AidedINS(INSMixin):
                 raise ValueError("'g_var' not provided.")
             vg_meas_m = -_normalize(f_ins)
             g_var = np.asarray(g_var, dtype=float, order="C")
-            dz_g = vg_meas_m - R_ins_nm.T @ self._g_norm_n
+            dz_g = vg_meas_m - R_ins_nm.T @ self._vg_ref_n
             H_g = self._update_H_g_ref(R_ins_nm)
             dx, P = self._update_dx_P(dx, P, dz_g, g_var, H_g, I_)
 
