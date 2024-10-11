@@ -401,7 +401,7 @@ class StrapdownINS(INSMixin):
     """
 
     def __init__(
-        self, fs: float, x0: ArrayLike, g: float = 9.80665, inertial_frame="NED"
+        self, fs: float, x0: ArrayLike, g: float = 9.80665, nav_frame="NED"
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
@@ -410,14 +410,14 @@ class StrapdownINS(INSMixin):
         self._x0[6:10] = _normalize(self._x0[6:10])
         self._x = self._x0.copy()
         self._g = g
-        self._inertial_frame = inertial_frame.lower()
+        self._nav_frame = nav_frame.lower()
 
-        if self._inertial_frame == "ned":
+        if self._nav_frame == "ned":
             self._g_n = np.array([0.0, 0.0, g])
-        elif self._inertial_frame == "enu":
+        elif self._nav_frame == "enu":
             self._g_n = np.array([0.0, 0.0, -g])
         else:
-            raise ValueError("Invalid inertial frame. Must be 'NED' or 'ENU'.")
+            raise ValueError("Invalid navigation frame. Must be 'NED' or 'ENU'.")
 
     def reset(self, x_new: ArrayLike) -> None:
         """
@@ -664,7 +664,7 @@ class AidedINS(INSMixin):
         lever_arm: ArrayLike = np.zeros(3),
         g: float = 9.80665,
         ignore_bias_acc: bool = True,
-        inertial_frame: str = "NED",
+        nav_frame: str = "NED",
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
@@ -675,7 +675,7 @@ class AidedINS(INSMixin):
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
         # Strapdown algorithm / INS state
-        self._ins = StrapdownINS(self._fs, x0_prior, g=g, inertial_frame=inertial_frame)
+        self._ins = StrapdownINS(self._fs, x0_prior, g=g, nav_frame=nav_frame)
         self._vg_ref_n = _normalize(self._ins._g_n)  # gravity reference vector
 
         # Total state
