@@ -389,7 +389,7 @@ class StrapdownINS(INSMixin):
         * Gyroscope bias in x, y, z directions (3 elements).
     g : float, default 9.80665
         The gravitational acceleration. Default is 'standard gravity' of 9.80665.
-    inertial_frame : {'NED', 'ENU'}, default 'NED'
+    nav_frame : {'NED', 'ENU'}, default 'NED'
         Specifies the assumed inertial-like 'navigation frame'. Should be 'NED' (North-East-Down)
         (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
         will be expressed relative to this frame.
