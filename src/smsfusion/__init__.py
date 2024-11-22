@@ -1,4 +1,4 @@
-from . import benchmark, calibrate, noise, constants
+from . import benchmark, calibrate, constants, noise
 from ._ahrs import AHRS
 from ._ins import AidedINS, FixedNED, StrapdownINS, gravity
 
