@@ -52,7 +52,7 @@ def test_ERR_GYRO_MOTION2():
     err_expect = {
         "N": 0.00005,
         "B": 0.00003,
-        "tau_cb": 50,
+        "tau_cb": 50.0,
     }
 
     err_out = constants.ERR_GYRO_MOTION2
