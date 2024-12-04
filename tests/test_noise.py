@@ -293,7 +293,7 @@ class Test_IMUNoise:
 
     def test__init__scalar(self):
 
-        acc_err_scalar = {
+        err_acc_scalar = {
             "bc": 0.0,
             "N": 4.0e-4,
             "B": 1.5e-4,
@@ -301,7 +301,7 @@ class Test_IMUNoise:
             "tau_cb": 50,
             "tau_ck": 5e5,
         }
-        gyro_err_scalar = {
+        err_gyro_scalar = {
             "bc": 0.0,
             "N": 1.9e-3,
             "B": 7.5e-4,
@@ -310,12 +310,12 @@ class Test_IMUNoise:
             "tau_ck": 5e5,
         }
 
-        noise = IMUNoise(acc_err_scalar, gyro_err_scalar)
+        noise = IMUNoise(err_acc_scalar, err_gyro_scalar)
 
-        err_list_expect = [acc_err_scalar] * 3 + [gyro_err_scalar] * 3
+        err_list_expect = [err_acc_scalar] * 3 + [err_gyro_scalar] * 3
 
-        assert noise._err_acc == acc_err_scalar
-        assert noise._err_gyro == gyro_err_scalar
+        assert noise._err_acc == err_acc_scalar
+        assert noise._err_gyro == err_gyro_scalar
         assert noise._seed is None
         assert noise._err_list == err_list_expect
 
