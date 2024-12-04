@@ -429,6 +429,9 @@ class IMUNoise:
         "tau_ck": (5e5, 5e5, 5e5),
     }
 
+    _REQUIRED_KEYS = {"N", "B", "tau_cb"}
+    _DEFAULTS = {"K": None, "tau_ck": 5e5, "bc": 0.0}
+
     def __init__(
         self,
         err_acc: dict[str, tuple[float, float, float]] | None = None,
@@ -439,11 +442,14 @@ class IMUNoise:
         self._err_gyro = err_gyro or self._DEFAULT_ERR_GYRO
         self._seed = seed
 
-        if set(self._err_acc) != {"bc", "N", "B", "K", "tau_cb", "tau_ck"}:
-            raise ValueError("Noise parameter names are not valid.")
+        if not self._REQUIRED_KEYS.issubset(self._err_acc.keys()):
+            raise ValueError("Missing required keys in accelerometer noise parameters.")
+        if not self._REQUIRED_KEYS.issubset(self._err_gyro.keys()):
+            raise ValueError("Missing required keys in gyroscope noise parameters.")
 
-        if set(self._err_gyro) != {"bc", "N", "B", "K", "tau_cb", "tau_ck"}:
-            raise ValueError("Noise parameter names are not valid.")
+        for key in self._DEFAULTS:
+            self._err_acc.setdefault(key, self._DEFAULTS[key])
+            self._err_gyro.setdefault(key, self._DEFAULTS[key])
 
         self._err_list = self._to_list(self._err_acc) + self._to_list(self._err_gyro)
 
