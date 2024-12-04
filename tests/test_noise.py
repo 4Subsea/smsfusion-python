@@ -154,7 +154,7 @@ class Test_NoiseModel:
 
     def test__call__constant_bias(self):
         N, B, K, tau_cb, tau_ck, bc = 0.0, 0.0, 0.0, 10, None, 1.0
-        noise = NoiseModel(N, B, K, tau_cb, tau_ck, bc, 123)
+        noise = NoiseModel(N, B, tau_cb, K, tau_ck, bc, 123)
         x_out = noise(10.24, 100)
 
         assert np.mean(x_out) == 1.0
