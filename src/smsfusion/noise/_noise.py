@@ -388,8 +388,9 @@ class IMUNoise:
     smsfusion.gauss_markov, smsfusion.random_walk, smsfusion.white_noise
     """
 
-    _REQUIRED_KEYS = {"N", "B", "tau_cb"}
-    _DEFAULTS = {"K": None, "tau_ck": 5e5, "bc": 0.0}
+    _REQUIRED_PARAMS = {"N", "B", "tau_cb"}
+    _OPTIONAL_PARAMS_DEFAULTS = {"K": None, "tau_ck": 5e5, "bc": 0.0}
+    _ALLOWED_PARAMS = _REQUIRED_PARAMS | set(_OPTIONAL_PARAMS_DEFAULTS.keys())
 
     def __init__(
         self,
@@ -401,14 +402,19 @@ class IMUNoise:
         self._err_gyro = err_gyro
         self._seed = seed
 
-        if not self._REQUIRED_KEYS.issubset(self._err_acc.keys()):
+        if not self._REQUIRED_PARAMS.issubset(self._err_acc.keys()):
             raise ValueError("Missing required keys in accelerometer noise parameters.")
-        if not self._REQUIRED_KEYS.issubset(self._err_gyro.keys()):
+        if not self._REQUIRED_PARAMS.issubset(self._err_gyro.keys()):
             raise ValueError("Missing required keys in gyroscope noise parameters.")
 
-        for key in self._DEFAULTS:
-            self._err_acc.setdefault(key, self._DEFAULTS[key])
-            self._err_gyro.setdefault(key, self._DEFAULTS[key])
+        if not self._ALLOWED_PARAMS.issuperset(self._err_acc.keys()):
+            raise ValueError("Invalid keys in accelerometer noise parameters.")
+        if not self._ALLOWED_PARAMS.issuperset(self._err_gyro.keys()):
+            raise ValueError("Invalid keys in gyroscope noise parameters.")
+
+        for key, default_val in self._OPTIONAL_PARAMS_DEFAULTS.items():
+            self._err_acc.setdefault(key, default_val)
+            self._err_gyro.setdefault(key, default_val)
 
         self._err_list = self._to_list(self._err_acc) + self._to_list(self._err_gyro)
 

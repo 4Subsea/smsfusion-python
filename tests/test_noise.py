@@ -313,8 +313,24 @@ class Test_IMUNoise:
         with pytest.raises(ValueError):
             IMUNoise(err_acc=err_acc, err_gyro=err_gyro, seed=123)
 
+        err_acc = {
+            "bc": (1.0, 2.0, 3.0),
+            "N": (4.0, 5.0, 6.0),
+            "B": (7.0, 8.0, 9.0),
+            "K": (10.0, 11.0, 12.0),
+            "tau_cb": (13.0, 14.0, 15.0),
+            "tau_ck": (16.0, 17.0, 18.0),
+        }
+        err_gyro = {
+            "invalid_key": (10.0, 20.0, 30.0),
+            "N": (40.0, 50.0, 60.0),
+            "B": (70.0, 80.0, 90.0),
+            "K": (100.0, 110.0, 120.0),
+            "tau_cb": (130.0, 140.0, 150.0),
+            "tau_ck": (160.0, 170.0, 180.0),
+        }
         with pytest.raises(ValueError):
-            IMUNoise(err_acc={"bc": 1.0}, seed=123)
+            IMUNoise(err_acc=err_acc, err_gyro=err_gyro, seed=123)
 
     def test__init__raises_values(self):
         err_acc = {
