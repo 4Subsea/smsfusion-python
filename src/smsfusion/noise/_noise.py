@@ -420,7 +420,7 @@ class IMUNoise:
 
         if not len(self._err_list) == 6:
             raise ValueError("Not enough noise parameters provided.")
-        
+
     @staticmethod
     def _full(value):
         value = np.asarray_chkfinite(value)
@@ -429,7 +429,9 @@ class IMUNoise:
         elif value.size == 3:
             return value
         else:
-            raise ValueError("Parameter values must be a scalar or an array-like of size 3.")
+            raise ValueError(
+                "Parameter values must be a scalar or an array-like of size 3."
+            )
 
     def _to_list(self, dict_of_lists):
         """Convert dict of lists to list of dicts."""
