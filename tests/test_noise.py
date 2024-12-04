@@ -125,29 +125,32 @@ class Test_NoiseModel:
         B = 3.0e-4
         tau_cb = 10
         K = 3.0e-5
-        tau_ck = 5e5
+        tau_ck = 5e5  # Gauss-Markov (GM) drift model
         bc = 0.1
         noise = NoiseModel(N, B, tau_cb, K, tau_ck, bc, seed=123)
         x_out = noise(10.24, 10_000)
 
         x_expect = pd.read_csv(
-            TEST_PATH / "testdata" / "NoiseModel_GM.csv", index_col=0
+            TEST_PATH / "testdata" / "NoiseModel_GMdrift.csv", index_col=0
         ).values.flatten()
 
         np.testing.assert_array_almost_equal(x_out, x_expect)
 
     def test__call__RW(self):
+        """
+        Random walk drift model.
+        """
         N = 4.0e-4
         B = 3.0e-4
         tau_cb = 10
         K = 3.0e-5
-        tau_ck = None
+        tau_ck = None  # Random walk (RW) drift model
         bc = 0.1
         noise = NoiseModel(N, B, tau_cb, K, tau_ck, bc, seed=123)
         x_out = noise(10.24, 10_000)
 
         x_expect = pd.read_csv(
-            TEST_PATH / "testdata" / "NoiseModel_RW.csv", index_col=0
+            TEST_PATH / "testdata" / "NoiseModel_RWdrift.csv", index_col=0
         ).values.flatten()
 
         np.testing.assert_array_almost_equal(x_out, x_expect, decimal=5)
@@ -156,7 +159,7 @@ class Test_NoiseModel:
         N = 4.0e-4
         B = 3.0e-4
         tau_cb = 10
-        K = None
+        K = None  # No drift
         tau_ck = None
         bc = 0.1
         noise = NoiseModel(N, B, tau_cb, K, tau_ck, bc, seed=123)
