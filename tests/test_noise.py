@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import smsfusion as sf
 from smsfusion.noise import (
     IMUNoise,
     NoiseModel,
@@ -119,6 +120,15 @@ class Test_NoiseModel:
         assert noise._tau_ck is None
         assert noise._bc == 0.0
         assert noise._seed is None
+
+    def test__init__constants(self):
+        noise = NoiseModel(**sf.constants.ERR_ACC_MOTION1)
+        assert noise._N == sf.constants.ERR_ACC_MOTION1["N"]
+        assert noise._B == sf.constants.ERR_ACC_MOTION1["B"]
+        assert noise._tau_cb == sf.constants.ERR_ACC_MOTION1["tau_cb"]
+        assert noise._K is None
+        assert noise._tau_ck is None
+        assert noise._bc == 0.0
 
     def test__call__GM(self):
         N = 4.0e-4
