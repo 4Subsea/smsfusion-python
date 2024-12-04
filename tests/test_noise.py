@@ -265,28 +265,33 @@ class Test_IMUNoise:
         ]
         assert noise._err_list == err_list_expect
 
-    def test__init__default(self):
-        acc_err_expect = {
-            "bc": (0.0, 0.0, 0.0),
-            "N": (4.0e-4, 4.0e-4, 4.5e-4),
-            "B": (1.5e-4, 1.5e-4, 3.0e-4),
-            "K": (4.5e-6, 4.5e-6, 1.5e-5),
-            "tau_cb": (50, 50, 30),
-            "tau_ck": (5e5, 5e5, 5e5),
-        }
-        gyro_err_expect = {
-            "bc": (0.0, 0.0, 0.0),
-            "N": (1.9e-3, 1.9e-3, 1.7e-3),
-            "B": (7.5e-4, 4.0e-4, 8.8e-4),
-            "K": (2.5e-5, 2.5e-5, 4.0e-5),
-            "tau_cb": (50, 50, 50),
-            "tau_ck": (5e5, 5e5, 5e5),
-        }
-        noise = IMUNoise()
+    def test__init__scalar(self):
 
-        assert noise._err_acc == acc_err_expect
-        assert noise._err_gyro == gyro_err_expect
+        acc_err_scalar = {
+            "bc": 0.0,
+            "N": 4.0e-4,
+            "B": 1.5e-4,
+            "K": 4.5e-6,
+            "tau_cb": 50,
+            "tau_ck": 5e5,
+        }
+        gyro_err_scalar = {
+            "bc": 0.0,
+            "N": 1.9e-3,
+            "B": 7.5e-4,
+            "K": 2.5e-5,
+            "tau_cb": 50,
+            "tau_ck": 5e5,
+        }
+
+        noise = IMUNoise(acc_err_scalar, gyro_err_scalar)
+
+        err_list_expect = [acc_err_scalar] * 3 + [gyro_err_scalar] * 3
+
+        assert noise._err_acc == acc_err_scalar
+        assert noise._err_gyro == gyro_err_scalar
         assert noise._seed is None
+        assert noise._err_list == err_list_expect
 
     def test__init__raises_keys(self):
         err_acc = {
