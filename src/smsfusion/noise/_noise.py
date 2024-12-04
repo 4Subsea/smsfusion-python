@@ -342,14 +342,13 @@ class NoiseModel:
 
 class IMUNoise:
     """
-    Provides an interface for adding random measurement noise to IMU sensor
-    signals.
+    Provides an interface for generating random IMU sensor measurement noise.
 
     Parameters
     ----------
-    err_acc : dict of {str : tuple of (float, float, float)}, optional
+    err_acc : dict, optional
         Accelerometer noise parameters (see Notes).
-    err_gyro : dict of {str : tuple of (float, float, float)}, optional
+    err_gyro : dict, optional
         Gyroscope noise parameters (see Notes).
     seed : int, optional
         A seed used to initialize a random number generator.
@@ -358,51 +357,29 @@ class IMUNoise:
     -----
     The noise parameters are given as dictionaries where the key represents the
     parameter name and the value represents the corresponding noise parameter
-    values. The values are given as lists with values for the x-, y- and z-axis
-    (in that order).
+    value(s). The dictionary values can be either a scalar or an array-like of size 3.
+    If scalar values are provided, they are broadcasted to size 3 such that all
+    axes have the same noise characteristics.
 
-    The noise parameters should include:
-
+    The following noise parameters are supported:
+        * ``bc`` : float
+            Constant bias given in the same units as the output noise.
         * ``N`` : float
             White noise spectral density given in units ``V/sqrt(Hz)``, where
             ``V`` represents the unit of the output noise.
         * ``B`` : float
             Bias stability / pink noise power spectral density coefficient
             given in the same units as the output noise.
-        * ``K`` : float
-            Brownian noise power spectral density coefficient given in units
-            ``V*sqrt(Hz)`` where ``V`` represents the unit of the output noise.
         * ``tau_cb`` : float
             Correlation time in seconds for the pink noise (i.e., flicker
             noise).
+        * ``K`` : float
+            Brownian noise power spectral density coefficient given in units
+            ``V*sqrt(Hz)``, where ``V`` represents the unit of the output noise.
         * ``tau_ck`` : float or None
             Correlation time in seconds for the Brownian noise. If ``None``, the
             Brownian noise is modeled as a random walk (RW) process. Otherwise,
             it is modelled as a first-order Gauss-Markov (GM) process.
-
-    Default accelerometer and gyroscope noise parameters are::
-
-        err_acc = {
-            'bc': (0.0, 0.0, 0.0),
-            'N': (4.0e-4, 4.0e-4, 4.5e-4),
-            'B': (1.5e-4, 1.5e-4, 3.0e-4),
-            'K': (4.5e-6, 4.5e-6, 1.5e-5),
-            'tau_cb': (50, 50, 30),
-            'tau_ck': (5e5, 5e5, 5e5),
-        }
-
-        err_gyro = {
-            'bc': (0.0, 0.0, 0.0),
-            'N': (1.9e-3, 1.9e-3, 1.7e-3),
-            'B': (7.5e-4, 4.0e-4, 8.8e-4),
-            'K': (2.5e-5, 2.5e-5, 4.0e-5),
-            'tau_cb': (50, 50, 50),
-            'tau_ck': (5e5, 5e5, 5e5),
-        }
-
-    The default parameters represent noise with units m/s^2 for the
-    accelerometer, and deg/s for the gyroscope. To generate noise with
-    different units, the parameters must be scaled accordingly.
 
     See Also
     --------
@@ -411,35 +388,17 @@ class IMUNoise:
     smsfusion.gauss_markov, smsfusion.random_walk, smsfusion.white_noise
     """
 
-    _DEFAULT_ERR_ACC = {
-        "bc": (0.0, 0.0, 0.0),
-        "N": (4.0e-4, 4.0e-4, 4.5e-4),
-        "B": (1.5e-4, 1.5e-4, 3.0e-4),
-        "K": (4.5e-6, 4.5e-6, 1.5e-5),
-        "tau_cb": (50, 50, 30),
-        "tau_ck": (5e5, 5e5, 5e5),
-    }
-
-    _DEFAULT_ERR_GYRO = {
-        "bc": (0.0, 0.0, 0.0),
-        "N": (1.9e-3, 1.9e-3, 1.7e-3),
-        "B": (7.5e-4, 4.0e-4, 8.8e-4),
-        "K": (2.5e-5, 2.5e-5, 4.0e-5),
-        "tau_cb": (50, 50, 50),
-        "tau_ck": (5e5, 5e5, 5e5),
-    }
-
     _REQUIRED_KEYS = {"N", "B", "tau_cb"}
     _DEFAULTS = {"K": None, "tau_ck": 5e5, "bc": 0.0}
 
     def __init__(
         self,
-        err_acc: dict[str, tuple[float, float, float]] | None = None,
-        err_gyro: dict[str, tuple[float, float, float]] | None = None,
+        err_acc,
+        err_gyro,
         seed: int | None = None,
     ) -> None:
-        self._err_acc = err_acc or self._DEFAULT_ERR_ACC
-        self._err_gyro = err_gyro or self._DEFAULT_ERR_GYRO
+        self._err_acc = err_acc
+        self._err_gyro = err_gyro
         self._seed = seed
 
         if not self._REQUIRED_KEYS.issubset(self._err_acc.keys()):
