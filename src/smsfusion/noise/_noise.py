@@ -237,11 +237,12 @@ class NoiseModel:
     B : float
         Bias stability / pink noise power spectral density coefficient given in
         the same units as the output noise.
-    K : float
-        Brownian noise power spectral density coefficient given in units
-        ``V*sqrt(Hz)`` where ``V`` represents the unit of the output noise.
     tau_cb : float
         Correlation time in seconds for the pink noise (i.e., flicker noise).
+    K : float, optional
+        Brownian noise power spectral density coefficient given in units
+        ``V*sqrt(Hz)`` where ``V`` represents the unit of the output noise. If
+        ``None``, the Brownian noise contribution is not included.
     tau_ck : float, optional
         Correlation time in seconds for the Brownian noise. If ``None``, the
         Brownian noise is modeled as a random walk (RW) process. Otherwise, it
@@ -260,16 +261,16 @@ class NoiseModel:
         self,
         N: float,
         B: float,
-        K: float,
         tau_cb: float,
+        K: float | None = None,
         tau_ck: float | None = None,
         bc: float = 0.0,
         seed: int | None = None,
     ) -> None:
         self._N = N
         self._B = B
-        self._K = K
         self._tau_cb = tau_cb
+        self._K = K
         self._tau_ck = tau_ck
         self._bc = bc
         self._seed = seed
@@ -296,6 +297,8 @@ class NoiseModel:
         """
         Generate Brownian noise with spectral density coefficient ``K``.
         """
+        if not self._K:
+            return np.zeros(n)
         if self._tau_ck:
             sigma = self._K * np.sqrt(self._tau_ck / 2.0)
             return gauss_markov(sigma, self._tau_ck, fs, n, seed=seed)
@@ -324,12 +327,16 @@ class NoiseModel:
         parameters given during initialization.
         """
         seeds = _gen_seeds(self._seed, 3)
+
         x = (
             self._bc
             + self._gen_white_noise(fs, n, seed=seeds[0])
             + self._gen_pink_noise(fs, n, seed=seeds[1])
-            + self._gen_brown_noise(fs, n, seed=seeds[2])
         )
+
+        if self._K is not None:
+            x += self._gen_brown_noise(fs, n, seed=seeds[2])
+
         return x
 
 
@@ -445,7 +452,7 @@ class IMUNoise:
 
     @staticmethod
     def _to_list(
-        dict_of_lists: dict[str, tuple[float, float, float]]
+        dict_of_lists: dict[str, tuple[float, float, float]],
     ) -> list[dict[str, float]]:
         """Convert dict of lists to list of dicts."""
         if len(set(map(len, dict_of_lists.values()))) != 1:
