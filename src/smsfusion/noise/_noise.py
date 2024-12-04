@@ -449,9 +449,28 @@ class IMUNoise:
 
         if not len(self._err_list) == 6:
             raise ValueError("Not enough noise parameters provided.")
+        
+    @staticmethod
+    def _full(value):
+        value = np.asarray_chkfinite(value)
+        if value.size == 1:
+            return np.full(3, value.item())
+        elif value.size == 3:
+            return value
+        else:
+            raise ValueError("Parameter values must be a scalar or an array-like of size 3.")
+
+    def _to_list(self, dict_of_lists):
+        """Convert dict of lists to list of dicts."""
+        dict_of_lists = {key: self._full(val) for key, val in dict_of_lists.items()}
+        list_of_dicts = [
+            {key_i: val_i for key_i, val_i in zip(dict_of_lists.keys(), values_j)}
+            for values_j in zip(*dict_of_lists.values())
+        ]
+        return list_of_dicts
 
     @staticmethod
-    def _to_list(
+    def _to_list_old(
         dict_of_lists: dict[str, tuple[float, float, float]],
     ) -> list[dict[str, float]]:
         """Convert dict of lists to list of dicts."""

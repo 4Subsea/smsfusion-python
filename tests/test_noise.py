@@ -340,7 +340,7 @@ class Test_IMUNoise:
     def test__to_list(self):
         dict_in = {"a": [1, 2, 3], "b": [4, 5, 6]}
         list_expect = [{"a": 1, "b": 4}, {"a": 2, "b": 5}, {"a": 3, "b": 6}]
-        list_out = IMUNoise._to_list(dict_in)
+        list_out = IMUNoise()._to_list(dict_in)
         assert list_out == list_expect
 
     def test__call__(self):
