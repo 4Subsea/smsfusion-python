@@ -152,6 +152,22 @@ class Test_NoiseModel:
 
         np.testing.assert_array_almost_equal(x_out, x_expect, decimal=5)
 
+    def test__call__nodrift(self):
+        N = 4.0e-4
+        B = 3.0e-4
+        tau_cb = 10
+        K = None
+        tau_ck = None
+        bc = 0.1
+        noise = NoiseModel(N, B, tau_cb, K, tau_ck, bc, seed=123)
+        x_out = noise(10.24, 10_000)
+
+        x_expect = pd.read_csv(
+            TEST_PATH / "testdata" / "NoiseModel_nodrift.csv", index_col=0
+        ).values.flatten()
+
+        np.testing.assert_array_almost_equal(x_out, x_expect, decimal=5)
+
     def test__call__constant_bias(self):
         N, B, K, tau_cb, tau_ck, bc = 0.0, 0.0, 0.0, 10, None, 1.0
         noise = NoiseModel(N, B, tau_cb, K, tau_ck, bc, 123)
