@@ -298,7 +298,19 @@ class Test_AHRS:
         euler_ref = np.degrees(euler_ref)
         gyro_ref = np.degrees(gyro_ref)
 
-        noise_model = IMUNoise(seed=96)
+        err_acc = {
+            "N": 0.0007,
+            "B": 0.0005,
+            "tau_cb": 50.0,
+        }
+
+        err_gyro = {
+            "N": 0.00005,
+            "B": 0.00003,
+            "tau_cb": 50.0,
+        }
+
+        noise_model = IMUNoise(err_acc, err_gyro, seed=96)
         imu_noise = noise_model(fs, len(t))
 
         acc_noise = acc_ref + imu_noise[:, :3]
