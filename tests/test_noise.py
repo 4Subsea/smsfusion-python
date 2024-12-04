@@ -123,11 +123,11 @@ class Test_NoiseModel:
     def test__call__GM(self):
         N = 4.0e-4
         B = 3.0e-4
-        K = 3.0e-5
         tau_cb = 10
+        K = 3.0e-5
         tau_ck = 5e5
         bc = 0.1
-        noise = NoiseModel(N, B, K, tau_cb, tau_ck, bc, seed=123)
+        noise = NoiseModel(N, B, tau_cb, K, tau_ck, bc, seed=123)
         x_out = noise(10.24, 10_000)
 
         x_expect = pd.read_csv(
@@ -139,11 +139,11 @@ class Test_NoiseModel:
     def test__call__RW(self):
         N = 4.0e-4
         B = 3.0e-4
-        K = 3.0e-5
         tau_cb = 10
+        K = 3.0e-5
         tau_ck = None
         bc = 0.1
-        noise = NoiseModel(N, B, K, tau_cb, tau_ck, bc, seed=123)
+        noise = NoiseModel(N, B, tau_cb, K, tau_ck, bc, seed=123)
         x_out = noise(10.24, 10_000)
 
         x_expect = pd.read_csv(
