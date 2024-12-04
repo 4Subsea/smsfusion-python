@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.typing import NDArray
+from numpy.typing import NDArray, ArrayLike
 
 
 def _standard_normal(n: int, seed: int | None = None) -> NDArray[np.float64]:
@@ -422,7 +422,7 @@ class IMUNoise:
             raise ValueError("Not enough noise parameters provided.")
 
     @staticmethod
-    def _full(value):
+    def _full(value: float | ArrayLike[np.float64]) -> NDArray[np.float64]:
         value = np.asarray_chkfinite(value)
         if value.size == 1:
             return np.full(3, value.item())
@@ -433,7 +433,7 @@ class IMUNoise:
                 "Parameter values must be a scalar or an array-like of size 3."
             )
 
-    def _to_list(self, dict_of_lists):
+    def _to_list(self, dict_of_lists) -> list:
         """Convert dict of lists to list of dicts."""
         dict_of_lists = {key: self._full(val) for key, val in dict_of_lists.items()}
         list_of_dicts = [
