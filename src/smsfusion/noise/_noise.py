@@ -469,21 +469,6 @@ class IMUNoise:
         ]
         return list_of_dicts
 
-    @staticmethod
-    def _to_list_old(
-        dict_of_lists: dict[str, tuple[float, float, float]],
-    ) -> list[dict[str, float]]:
-        """Convert dict of lists to list of dicts."""
-        if len(set(map(len, dict_of_lists.values()))) != 1:
-            raise ValueError("lists must be of same length")
-
-        list_of_dicts = [
-            {key: val_i for key, val_i in zip(dict_of_lists.keys(), values)}
-            for values in zip(*dict_of_lists.values())
-        ]
-
-        return list_of_dicts
-
     def __call__(self, fs: float, n: int) -> NDArray[np.float64]:
         """
         Generates discrete-time random IMU measurement noise.
