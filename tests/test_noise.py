@@ -190,6 +190,32 @@ class Test_NoiseModel:
 
 
 class Test_IMUNoise:
+
+    @pytest.fixture
+    def err_acc(self):
+        err_acc = {
+            "bc": 0.0,
+            "N": 4.0e-4,
+            "B": 1.5e-4,
+            "K": 4.5e-6,
+            "tau_cb": 50,
+            "tau_ck": 5e5,
+        }
+
+        return err_acc
+
+    @pytest.fixture
+    def err_gyro(self):
+        err_gyro = {
+            "bc": 0.0,
+            "N": 1.9e-3,
+            "B": 7.5e-4,
+            "K": 2.5e-5,
+            "tau_cb": 50,
+            "tau_ck": 5e5,
+        }
+        return err_gyro
+
     def test__init__(self):
         err_acc = {
             "bc": (1.0, 2.0, 3.0),
@@ -366,10 +392,10 @@ class Test_IMUNoise:
         with pytest.raises(ValueError):  # extra value gyro
             IMUNoise(err_acc=err_valid, err_gyro=err_extra_value, seed=123)
 
-    def test__to_list(self):
+    def test__to_list(self, err_acc, err_gyro):
         dict_in = {"a": [1, 2, 3], "b": [4, 5, 6]}
         list_expect = [{"a": 1, "b": 4}, {"a": 2, "b": 5}, {"a": 3, "b": 6}]
-        list_out = IMUNoise()._to_list(dict_in)
+        list_out = IMUNoise(err_acc, err_gyro)._to_list(dict_in)
         assert list_out == list_expect
 
     def test__call__(self):
