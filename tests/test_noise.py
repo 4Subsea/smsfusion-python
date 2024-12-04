@@ -103,19 +103,19 @@ class Test_NoiseModel:
 
         assert noise._N == 1
         assert noise._B == 2
-        assert noise._K == 3
-        assert noise._tau_cb == 4
+        assert noise._tau_cb == 3
+        assert noise._K == 4
         assert noise._tau_ck == 5
         assert noise._bc == 6
         assert noise._seed == 7
 
     def test__init__default(self):
-        noise = NoiseModel(1, 2, 3, 4)
+        noise = NoiseModel(1, 2, 3)
 
         assert noise._N == 1
         assert noise._B == 2
-        assert noise._K == 3
-        assert noise._tau_cb == 4
+        assert noise._tau_cb == 3
+        assert noise._K is None
         assert noise._tau_ck is None
         assert noise._bc == 0.0
         assert noise._seed is None
