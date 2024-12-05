@@ -422,7 +422,7 @@ class IMUNoise:
             raise ValueError("Not enough noise parameters provided.")
 
     @staticmethod
-    def _full(value: float | ArrayLike[np.float64]) -> NDArray[np.float64]:
+    def _full(value):
         value = np.asarray_chkfinite(value)
         if value.size == 1:
             return np.full(3, value.item())
@@ -433,7 +433,7 @@ class IMUNoise:
                 "Parameter values must be a scalar or an array-like of size 3."
             )
 
-    def _to_list(self, dict_of_lists) -> list:
+    def _to_list(self, dict_of_lists: dict[str, list[float]]) -> list[dict[str, float]]:
         """Convert dict of lists to list of dicts."""
         dict_of_lists = {key: self._full(val) for key, val in dict_of_lists.items()}
         list_of_dicts = [
