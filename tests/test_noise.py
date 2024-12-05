@@ -315,6 +315,36 @@ class Test_IMUNoise:
         assert noise._seed is None
         assert noise._err_list == err_list_expect
 
+    def test__init__default(self):
+        err_acc_minimal = {
+            "N": 1.0e-4,
+            "B": 1.0e-5,
+            "tau_cb": 10.0,
+        }
+        err_gyro_minimal = {
+            "N": 4.0e-4,
+            "B": 4.0e-5,
+            "tau_cb": 40.0,
+        }
+
+        noise = IMUNoise(err_acc_minimal, err_gyro_minimal)
+
+        DEFAULTS = {
+            "bc": 0.0,
+            "K": None,
+            "tau_ck": 5e5,
+        }
+
+
+        err_acc_expect = err_acc_minimal | DEFAULTS
+        err_gyro_expect = err_gyro_minimal | DEFAULTS
+        err_list_expect = [err_acc_expect] * 3 + [err_gyro_expect] * 3
+
+        assert noise._err_acc == err_acc_expect
+        assert noise._err_gyro == err_gyro_expect
+        assert noise._seed is None
+        assert noise._err_list == err_list_expect
+
     def test__init__raises_keys(self):
         err_acc = {
             "invalid_key": (1.0, 2.0, 3.0),
