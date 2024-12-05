@@ -398,26 +398,9 @@ class Test_IMUNoise:
         assert x_out.shape == (1_000, 6)
         np.testing.assert_array_almost_equal(x_out, x_expect)
 
-    def test_different_seeds(self):
-        # All channels given same noise parameters
-        err_acc = {
-            "bc": (0.0, 0.0, 0.0),
-            "N": (5.0e-4, 5.0e-4, 5.0e-4),
-            "B": (1.0e-4, 1.0e-4, 1.0e-4),
-            "K": (3.0e-5, 3.0e-5, 3.0e-5),
-            "tau_cb": (50, 50, 50),
-            "tau_ck": (5e5, 5e5, 5e5),
-        }
-        err_gyro = {
-            "bc": (0.0, 0.0, 0.0),
-            "N": (5.0e-4, 5.0e-4, 5.0e-4),
-            "B": (1.0e-4, 1.0e-4, 1.0e-4),
-            "K": (3.0e-5, 3.0e-5, 3.0e-5),
-            "tau_cb": (50, 50, 50),
-            "tau_ck": (5e5, 5e5, 5e5),
-        }
-
-        noise = IMUNoise(err_acc=err_acc, err_gyro=err_gyro, seed=123)
+    def test_different_seeds(self, err_acc_scalar):
+        err = err_acc_scalar  # all channels given same noise parameters
+        noise = IMUNoise(err_acc=err, err_gyro=err, seed=123)
         x = noise(10.24, 100)
 
         for i, j in product([0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5]):
