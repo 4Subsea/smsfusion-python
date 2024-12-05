@@ -190,7 +190,6 @@ class Test_NoiseModel:
 
 
 class Test_IMUNoise:
-
     @pytest.fixture
     def err_acc_scalar(self):
         err_acc = {
@@ -228,10 +227,6 @@ class Test_IMUNoise:
         }
 
         return err_acc
-    
-    @pytest.fixture
-    def noise(self, err_acc_full, err_gyro_full):
-        return IMUNoise(err_acc=err_acc_full, err_gyro=err_gyro_full, seed=123)
 
     @pytest.fixture
     def err_gyro_full(self):
@@ -244,6 +239,10 @@ class Test_IMUNoise:
             "tau_ck": [4_000.0, 5_000.0, 6_000.0],
         }
         return err_gyro
+
+    @pytest.fixture
+    def noise(self, err_acc_full, err_gyro_full):
+        return IMUNoise(err_acc=err_acc_full, err_gyro=err_gyro_full, seed=123)
 
     def test__init__full(self, err_acc_full, err_gyro_full):
         noise = IMUNoise(err_acc=err_acc_full, err_gyro=err_gyro_full, seed=123)
@@ -305,7 +304,6 @@ class Test_IMUNoise:
         assert noise._err_list == err_list_expect
 
     def test__init__scalar(self, err_acc_scalar, err_gyro_scalar):
-
         noise = IMUNoise(err_acc_scalar, err_gyro_scalar)
 
         err_list_expect = [err_acc_scalar] * 3 + [err_gyro_scalar] * 3
@@ -335,7 +333,6 @@ class Test_IMUNoise:
             "tau_ck": 5e5,
         }
 
-
         err_acc_expect = err_acc_minimal | DEFAULTS
         err_gyro_expect = err_gyro_minimal | DEFAULTS
         err_list_expect = [err_acc_expect] * 3 + [err_gyro_expect] * 3
@@ -354,39 +351,18 @@ class Test_IMUNoise:
         with pytest.raises(ValueError):
             IMUNoise(err_acc=err_acc_scalar, err_gyro=err_invalid, seed=123)
 
-    def test__init__raises_values(self):
-        err_valid = {
-            "bc": (1.0, 2.0, 3.0),  # one value missing
-            "N": (4.0, 5.0, 6.0),
-            "B": (7.0, 8.0, 9.0),
-            "K": (10.0, 11.0, 12.0),
-            "tau_cb": (13.0, 14.0, 15.0),
-            "tau_ck": (16.0, 17.0, 18.0),
-        }
-        err_missing_value = {
-            "bc": (1.0, 2.0),  # one value missing
-            "N": (4.0, 5.0, 6.0),
-            "B": (7.0, 8.0, 9.0),
-            "K": (10.0, 11.0, 12.0),
-            "tau_cb": (13.0, 14.0, 15.0),
-            "tau_ck": (16.0, 17.0, 18.0),
-        }
-        err_extra_value = {
-            "bc": (10.0, 20.0, 30.0, 40.0),  # one value extra
-            "N": (40.0, 50.0, 60.0),
-            "B": (70.0, 80.0, 90.0),
-            "K": (100.0, 110.0, 120.0),
-            "tau_cb": (130.0, 140.0, 150.0),
-            "tau_ck": (160.0, 170.0, 180.0),
-        }
+    def test__init__raises_values(self, err_acc_full, err_gyro_full):
+        err_missing_value = {**err_acc_full, **{"bc": [0.1, 0.2]}}
+        err_extra_value = {**err_acc_full, **{"bc": [0.1, 0.2, 0.3, 0.4]}}
+
         with pytest.raises(ValueError):  # missing value accelerometer
-            IMUNoise(err_acc=err_missing_value, err_gyro=err_valid, seed=123)
+            IMUNoise(err_acc=err_missing_value, err_gyro=err_gyro_full, seed=123)
         with pytest.raises(ValueError):  # missing value gyro
-            IMUNoise(err_acc=err_valid, err_gyro=err_missing_value, seed=123)
+            IMUNoise(err_acc=err_acc_full, err_gyro=err_missing_value, seed=123)
         with pytest.raises(ValueError):  # extra value accelerometer
-            IMUNoise(err_acc=err_extra_value, err_gyro=err_valid, seed=123)
+            IMUNoise(err_acc=err_extra_value, err_gyro=err_gyro_full, seed=123)
         with pytest.raises(ValueError):  # extra value gyro
-            IMUNoise(err_acc=err_valid, err_gyro=err_extra_value, seed=123)
+            IMUNoise(err_acc=err_acc_full, err_gyro=err_extra_value, seed=123)
 
     def test__to_list(self, noise):
         dict_in = {"a": [1, 2, 3], "b": [4, 5, 6]}
