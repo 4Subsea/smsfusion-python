@@ -384,31 +384,8 @@ class IMUNoise:
 
     Examples
     --------
-    Same noise characteristics for all axes:
 
-    .. code-block:: python
-
-        err_acc = {
-            "bc": 0.1,
-            "N": 1.0e-4,
-            "B": 1.0e-5,
-            "K": 1.0e-6,
-            "tau_cb": 10.0,
-            "tau_ck": 1_000.0,
-        }
-
-        err_gyro = {
-            "bc": 0.4,
-            "N": 4.0e-4,
-            "B": 4.0e-5,
-            "K": 4.0e-6,
-            "tau_cb": 40.0,
-            "tau_ck": 4_000.0,
-        }
-
-        imu_noise = IMUNoise(err_acc, err_gyro)
-
-    Different noise characteristics for each axis:
+    Full example with different noise characteristics for all axes:
 
     .. code-block:: python
 
@@ -428,6 +405,25 @@ class IMUNoise:
             "K": [4.0e-6, 5.0e-6, 6.0e-6],
             "tau_cb": [40.0, 50.0, 60.0],
             "tau_ck": [4_000.0, 5_000.0, 6_000.0],
+        }
+
+        imu_noise = IMUNoise(err_acc, err_gyro)
+
+    Minimal example with the same noise characteristics for all axes, and excluding
+    Brownian noise and constant bias:
+
+    .. code-block:: python
+
+        err_acc = {
+            "N": 1.0e-4,
+            "B": 1.0e-5,
+            "tau_cb": 10.0,
+        }
+
+        err_gyro = {
+            "N": 4.0e-4,
+            "B": 4.0e-5,
+            "tau_cb": 40.0,
         }
 
         imu_noise = IMUNoise(err_acc, err_gyro)
