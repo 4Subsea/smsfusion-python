@@ -346,40 +346,67 @@ class IMUNoise:
 
     Parameters
     ----------
-    err_acc : dict, optional
-        Accelerometer noise parameters (see Notes).
-    err_gyro : dict, optional
-        Gyroscope noise parameters (see Notes).
+    err_acc : dict
+        Noise parameters for the accelerometer (see Notes). The dictionary values
+        can either be scalar (same noise characteristics for all axes) or per-axis
+        (list of values).
+    err_gyro : dict
+        Noise parameters for the gyroscope (see Notes). The dictionary values
+        can either be scalar (same noise characteristics for all axes) or per-axis
+        (list of values).
     seed : int, optional
         A seed used to initialize a random number generator.
 
     Notes
     -----
-    The noise parameters are given as dictionaries where the key represents the
-    parameter name and the value represents the corresponding noise parameter
-    value(s). The dictionary values can be either a scalar or an array-like of size 3.
-    If scalar values are provided, they are broadcasted to size 3 such that all
-    axes have the same noise characteristics.
+    The input dictionaries must include the following keys with the associated meanings:
 
-    The following noise parameters are supported:
-        * ``bc`` : float
-            Constant bias given in the same units as the output noise.
-        * ``N`` : float
-            White noise spectral density given in units ``V/sqrt(Hz)``, where
-            ``V`` represents the unit of the output noise.
-        * ``B`` : float
-            Bias stability / pink noise power spectral density coefficient
-            given in the same units as the output noise.
-        * ``tau_cb`` : float
-            Correlation time in seconds for the pink noise (i.e., flicker
-            noise).
-        * ``K`` : float
-            Brownian noise power spectral density coefficient given in units
-            ``V*sqrt(Hz)``, where ``V`` represents the unit of the output noise.
-        * ``tau_ck`` : float or None
-            Correlation time in seconds for the Brownian noise. If ``None``, the
-            Brownian noise is modeled as a random walk (RW) process. Otherwise,
-            it is modelled as a first-order Gauss-Markov (GM) process.
+    - **bc**:
+        Constant bias given in the same units as the desired output noise.
+    - **N**:
+        White noise spectral density given in units ``V/sqrt(Hz)``, where
+      ``V`` represents the unit of the output noise.
+    - **B**:
+        Bias stability / pink noise power spectral density coefficient given in
+        the same units as the output noise.
+    - **tau_cb**:
+        Correlation time in seconds for the pink noise (i.e., flicker noise).
+    - **K**:
+        Brownian noise power spectral density coefficient given in units
+        ``V*sqrt(Hz)``, where ``V`` represents the unit of the output noise.
+    - **tau_ck**:
+        Correlation time in seconds for the Brownian noise. If ``None``, the
+        Brownian noise is modeled as a random walk (RW) process. Otherwise, it
+        is modelled as a first-order Gauss-Markov (GM) process.
+
+    The values for each key can be:
+
+    - **Scalar values**: A single value applied to all axes (x, y, z).
+    - **Per-axis values**: List of length 3 with values for each axis (x, y, z).
+
+    Scalar dictionary example:
+    ```
+    {
+        "bc": 0.1,
+        "N": 1.0e-4,
+        "B": 1.0e-5,
+        "K": 1.0e-6,
+        "tau_cb": 10.0,
+        "tau_ck": 1_000.0,
+    }
+    ```
+
+    Per-axis dictionary example:
+    ```
+    {
+        "bc": [0.1, 0.2, 0.3],
+        "N": [1.0e-4, 2.0e-4, 3e-4],
+        "B": [1.0e-5, 2.0e-5, 3.0e-5],
+        "K": [1.0e-6, 2.0e-6, 3.0e-6],
+        "tau_cb": [10.0, 20.0, 30.0],
+        "tau_ck": [1_000.0, 2_000.0, 3_000.0],
+    }
+    ```
 
     See Also
     --------
