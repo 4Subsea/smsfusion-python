@@ -268,7 +268,7 @@ class NoiseModel:
         tau_cb: float,
         K: float | None = None,
         tau_ck: float | None = None,
-        bc: float = 0.0,
+        bc: float | None = None,
         seed: int | None = None,
     ) -> None:
         self._N = N
@@ -276,38 +276,8 @@ class NoiseModel:
         self._tau_cb = tau_cb
         self._K = K
         self._tau_ck = tau_ck
-        self._bc = bc
+        self._bc = bc or 0.0
         self._seed = seed
-
-    def _gen_white_noise(
-        self, fs: float, n: int, seed: int | None = None
-    ) -> NDArray[np.float64]:
-        """
-        Generate white noise with spectral density ``N``.
-        """
-        return white_noise(self._N, fs, n, seed=seed)
-
-    def _gen_pink_noise(
-        self, fs: float, n: int, seed: int | None = None
-    ) -> NDArray[np.float64]:
-        """
-        Generate pink noise with spectral density coefficient ``B``.
-        """
-        return gauss_markov(self._B, self._tau_cb, fs, n, seed=seed)
-
-    def _gen_brown_noise(
-        self, fs: float, n: int, seed: int | None = None
-    ) -> NDArray[np.float64]:
-        """
-        Generate Brownian noise with spectral density coefficient ``K``.
-        """
-        if not self._K:
-            return np.zeros(n)
-        if self._tau_ck:
-            sigma = self._K * np.sqrt(self._tau_ck / 2.0)
-            return gauss_markov(sigma, self._tau_ck, fs, n, seed=seed)
-        else:
-            return random_walk(self._K, fs, n, seed=seed)
 
     def __call__(self, fs: float, n: int) -> NDArray[np.float64]:
         """
@@ -332,16 +302,25 @@ class NoiseModel:
         """
         seeds = _gen_seeds(self._seed, 3)
 
-        x = (
-            self._bc
-            + self._gen_white_noise(fs, n, seed=seeds[0])
-            + self._gen_pink_noise(fs, n, seed=seeds[1])
-        )
+        # Constant bias
+        bc = self._bc
 
-        if self._K is not None:
-            x += self._gen_brown_noise(fs, n, seed=seeds[2])
+        # White noise
+        wn = white_noise(self._N, fs, n, seed=seeds[0])
 
-        return x
+        # Flicker noise / pink noise
+        pn = gauss_markov(self._B, self._tau_cb, fs, n, seed=seeds[1])
+
+        # Drift / Brownian noise
+        if self._K and self._tau_ck:
+            sigma = self._K * np.sqrt(self._tau_ck / 2.0)
+            bn = gauss_markov(sigma, self._tau_ck, fs, n, seed=seeds[2])
+        elif self._K:
+            bn = random_walk(self._K, fs, n, seed=seeds[2])
+        else:
+            bn = np.zeros(n)
+
+        return bc + wn + pn + bn
 
 
 class IMUNoise:
