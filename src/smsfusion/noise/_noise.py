@@ -376,9 +376,9 @@ class IMUNoise:
       Brownian noise is modeled as a random walk (RW) process. Otherwise, it
       is modeled as a first-order Gauss-Markov (GM) process.
 
-    The values for each key can be:
+    The value for each key can be:
 
-    - **Scalar values**: A single value applied to all axes (x, y, z).
+    - **Scalar value**: A single value applied to all axes (x, y, z).
     - **Per-axis values**: List of length 3 with values for each axis (x, y, z).
 
     Examples
