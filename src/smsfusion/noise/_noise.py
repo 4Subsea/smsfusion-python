@@ -441,7 +441,7 @@ class IMUNoise:
 
         imu_noise = IMUNoise(err_acc, err_gyro)
 
-    Minimal example with the same noise characteristics for all axes, and excluding
+    Minimal example with the same noise characteristics for all axes, while excluding
     Brownian noise and constant bias:
 
     .. code-block:: python
