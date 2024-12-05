@@ -389,7 +389,7 @@ class IMUNoise:
 
     Notes
     -----
-    The input dictionaries must include the following keys with the associated meanings:
+    The input dictionaries must include the following parameters:
 
     - **N** (required): White noise spectral density given in units ``V/sqrt(Hz)``, where
       ``V`` represents the unit of the output noise.
@@ -397,7 +397,7 @@ class IMUNoise:
       the same units as the output noise.
     - **tau_cb**: Correlation time in seconds for the pink noise (i.e., flicker noise).
 
-    The following keys are optional and can be omitted or set to `None`:
+    The following parameters are optional and can be omitted or set to `None`:
 
     - **bc** (optional): Constant bias given in the same units as the desired output noise.
     - **K** (optional): Brownian noise power spectral density coefficient given in units
