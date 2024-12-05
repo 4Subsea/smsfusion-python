@@ -361,57 +361,55 @@ class IMUNoise:
     -----
     The input dictionaries must include the following keys with the associated meanings:
 
-    - **bc**:
-        Constant bias given in the same units as the desired output noise.
-    - **N**:
-        White noise spectral density given in units ``V/sqrt(Hz)``, where
+    - **bc**: Constant bias given in the same units as the desired output noise.
+    - **N**: White noise spectral density given in units ``V/sqrt(Hz)``, where
       ``V`` represents the unit of the output noise.
-    - **B**:
-        Bias stability / pink noise power spectral density coefficient given in
-        the same units as the output noise.
-    - **tau_cb**:
-        Correlation time in seconds for the pink noise (i.e., flicker noise).
-    - **K**:
-        Brownian noise power spectral density coefficient given in units
-        ``V*sqrt(Hz)``, where ``V`` represents the unit of the output noise.
-    - **tau_ck**:
-        Correlation time in seconds for the Brownian noise. If ``None``, the
-        Brownian noise is modeled as a random walk (RW) process. Otherwise, it
-        is modelled as a first-order Gauss-Markov (GM) process.
+    - **B**: Bias stability / pink noise power spectral density coefficient given in
+      the same units as the output noise.
+    - **tau_cb**: Correlation time in seconds for the pink noise (i.e., flicker noise).
+    - **K**: Brownian noise power spectral density coefficient given in units
+      ``V*sqrt(Hz)``, where ``V`` represents the unit of the output noise.
+    - **tau_ck**: Correlation time in seconds for the Brownian noise. If ``None``, the
+      Brownian noise is modeled as a random walk (RW) process. Otherwise, it
+      is modeled as a first-order Gauss-Markov (GM) process.
 
     The values for each key can be:
 
     - **Scalar values**: A single value applied to all axes (x, y, z).
     - **Per-axis values**: List of length 3 with values for each axis (x, y, z).
 
+    Examples
+    --------
     Scalar dictionary example:
-    ```
-    {
-        "bc": 0.1,
-        "N": 1.0e-4,
-        "B": 1.0e-5,
-        "K": 1.0e-6,
-        "tau_cb": 10.0,
-        "tau_ck": 1_000.0,
-    }
-    ```
+
+    .. code-block:: python
+
+        {
+            "bc": 0.1,
+            "N": 1.0e-4,
+            "B": 1.0e-5,
+            "K": 1.0e-6,
+            "tau_cb": 10.0,
+            "tau_ck": 1_000.0,
+        }
 
     Per-axis dictionary example:
-    ```
-    {
-        "bc": [0.1, 0.2, 0.3],
-        "N": [1.0e-4, 2.0e-4, 3e-4],
-        "B": [1.0e-5, 2.0e-5, 3.0e-5],
-        "K": [1.0e-6, 2.0e-6, 3.0e-6],
-        "tau_cb": [10.0, 20.0, 30.0],
-        "tau_ck": [1_000.0, 2_000.0, 3_000.0],
-    }
-    ```
+
+    .. code-block:: python
+
+        {
+            "bc": [0.1, 0.2, 0.3],
+            "N": [1.0e-4, 2.0e-4, 3e-4],
+            "B": [1.0e-5, 2.0e-5, 3.0e-5],
+            "K": [1.0e-6, 2.0e-6, 3.0e-6],
+            "tau_cb": [10.0, 20.0, 30.0],
+            "tau_ck": [1_000.0, 2_000.0, 3_000.0],
+        }
 
     See Also
     --------
     smsfusion.NoiseModel : Used to generate the specific noise for each sensor
-                           signal.
+        signal.
     smsfusion.gauss_markov, smsfusion.random_walk, smsfusion.white_noise
     """
 
