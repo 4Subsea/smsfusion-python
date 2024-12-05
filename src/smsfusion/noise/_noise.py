@@ -216,11 +216,12 @@ class NoiseModel:
     time ``tau_cb``.
 
     A Brownian noise (or drift) sequence, ``BN[k]``, is simulated using one of the
-    following processes:
+    following processes, depending on whether the correlation time, ``tau_ck``,
+    is provided or not:
 
-    - Random walk (RW) process (if no correlation time is provided).
-    - First-order Gauss-Markov (GM) process with long-term standard deviation
-      ``K * sqrt(tau_ck / 2)`` and correlation time ``tau_cb``.
+    - Random walk (RW) process (if no correlation time ``tau_ck`` is provided).
+    - First-order Gauss-Markov (GM) process, with a long-term  standard deviation
+      ``K * sqrt(tau_ck / 2)`` and correlation time ``tau_ck``.
 
     The total noise is computed as::
 
@@ -361,11 +362,12 @@ class IMUNoise:
     time ``tau_cb``.
 
     A Brownian noise (or drift) sequence, ``BN[k]``, is simulated using one of the
-    following processes:
+    following processes, depending on whether the correlation time, ``tau_ck``,
+    is provided or not:
 
-    - Random walk (RW) process (if no correlation time is provided).
-    - First-order Gauss-Markov (GM) process with long-term standard deviation
-      ``K * sqrt(tau_ck / 2)`` and correlation time ``tau_cb``.
+    - Random walk (RW) process (if no correlation time ``tau_ck`` is provided).
+    - First-order Gauss-Markov (GM) process, with a long-term  standard deviation
+      ``K * sqrt(tau_ck / 2)`` and correlation time ``tau_ck``.
 
     The total noise is computed as::
 
