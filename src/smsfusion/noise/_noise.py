@@ -430,9 +430,10 @@ class IMUNoise:
 
     See Also
     --------
-    smsfusion.NoiseModel : Used to generate the specific noise for each sensor
-        signal.
-    smsfusion.gauss_markov, smsfusion.random_walk, smsfusion.white_noise
+    smsfusion.constants.ERR_ACC_MOTION1, smsfusion.constants.ERR_GYRO_MOTION1,
+    smsfusion.constants.ERR_ACC_MOTION2, smsfusion.constants.ERR_GYRO_MOTION2
+    smsfusion.NoiseModel : Generates the specific noise for one single sensor axis.
+
     """
 
     _REQUIRED_KEYS = {"N", "B", "tau_cb"}
