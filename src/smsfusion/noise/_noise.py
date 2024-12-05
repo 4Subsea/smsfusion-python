@@ -361,15 +361,19 @@ class IMUNoise:
     -----
     The input dictionaries must include the following keys with the associated meanings:
 
-    - **bc**: Constant bias given in the same units as the desired output noise.
-    - **N**: White noise spectral density given in units ``V/sqrt(Hz)``, where
+    - **N** (required): White noise spectral density given in units ``V/sqrt(Hz)``, where
       ``V`` represents the unit of the output noise.
-    - **B**: Bias stability / pink noise power spectral density coefficient given in
+    - **B** (required): Bias stability / pink noise power spectral density coefficient given in
       the same units as the output noise.
     - **tau_cb**: Correlation time in seconds for the pink noise (i.e., flicker noise).
-    - **K**: Brownian noise power spectral density coefficient given in units
-      ``V*sqrt(Hz)``, where ``V`` represents the unit of the output noise.
-    - **tau_ck**: Correlation time in seconds for the Brownian noise. If ``None``, the
+
+    The following keys are optional and can be omitted or set to `None`:
+
+    - **bc** (optional): Constant bias given in the same units as the desired output noise.
+    - **K** (optional): Brownian noise power spectral density coefficient given in units
+      ``V*sqrt(Hz)``, where ``V`` represents the unit of the output noise. If ``None``,
+      Brownian noise is excluded.
+    - **tau_ck** (optional): Correlation time in seconds for the Brownian noise. If ``None``, the
       Brownian noise is modeled as a random walk (RW) process. Otherwise, it
       is modeled as a first-order Gauss-Markov (GM) process.
 
@@ -430,8 +434,10 @@ class IMUNoise:
 
     See Also
     --------
-    smsfusion.constants.ERR_ACC_MOTION1, smsfusion.constants.ERR_GYRO_MOTION1,
-    smsfusion.constants.ERR_ACC_MOTION2, smsfusion.constants.ERR_GYRO_MOTION2
+    smsfusion.constants.ERR_ACC_MOTION1
+    smsfusion.constants.ERR_GYRO_MOTION1
+    smsfusion.constants.ERR_ACC_MOTION2
+    smsfusion.constants.ERR_GYRO_MOTION2
     smsfusion.NoiseModel : Generates the specific noise for one single sensor axis.
 
     """
