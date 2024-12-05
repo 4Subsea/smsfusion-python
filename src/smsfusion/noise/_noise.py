@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.typing import NDArray, ArrayLike
+from numpy.typing import ArrayLike, NDArray
 
 
 def _standard_normal(n: int, seed: int | None = None) -> NDArray[np.float64]:
