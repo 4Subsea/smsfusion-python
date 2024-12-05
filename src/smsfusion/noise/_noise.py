@@ -232,8 +232,8 @@ class NoiseModel:
     Parameters
     ----------
     N : float
-        White noise spectral density given in units ``V/sqrt(Hz)``, where ``V``
-        represents the unit of the desired output noise.
+        White noise spectral density coefficient given in units ``V/sqrt(Hz)``,
+        where ``V`` represents the unit of the desired output noise.
     B : float
         Bias stability given in the same units as the desired output noise; represents
         the power spectral density coefficient for the flicker noise (or pink noise).
@@ -391,10 +391,10 @@ class IMUNoise:
     -----
     The input dictionaries must include the following parameters:
 
-    - **N** (required): White noise spectral density given in units ``V/sqrt(Hz)``, where
-      ``V`` represents the unit of the output noise.
-    - **B** (required): Bias stability / pink noise power spectral density coefficient given in
-      the same units as the output noise.
+    - **N** (required): White noise spectral density coefficient given in units
+      ``V/sqrt(Hz)``, where ``V`` represents the unit of the output noise.
+    - **B** (required): Bias stability / pink noise power spectral density coefficient
+      given in the same units as the output noise.
     - **tau_cb**: Correlation time in seconds for the pink noise (i.e., flicker noise).
 
     The following parameters are optional and can be omitted or set to `None`:
