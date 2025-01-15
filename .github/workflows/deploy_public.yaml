@@ -33,7 +33,7 @@ jobs:
     outputs:
       version_number: ${{ steps.version_number.outputs.VERSION_NUMBER }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
