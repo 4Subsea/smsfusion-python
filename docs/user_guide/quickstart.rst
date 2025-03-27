@@ -95,7 +95,7 @@ provided by ``smsfusion``:
     x0 = np.concatenate((p0, v0, q0, ba0, bg0))
 
     # Initial (a priori) error covariance matrix
-    P0 = np.eye(12) * 1e-6
+    P0 = np.eye(12) * 1e-3
 
     # IMU noise characteristics
     err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
@@ -162,7 +162,7 @@ class provided by ``smsfusion`` operated in VRU mode:
     x0 = np.concatenate((p0, v0, q0, ba0, bg0))
 
     # Initial (a priori) error covariance matrix
-    P0 = np.eye(12) * 1e-6
+    P0 = np.eye(12) * 1e-3
 
     # IMU noise characteristics
     err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
