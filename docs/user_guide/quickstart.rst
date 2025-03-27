@@ -32,6 +32,7 @@ attitude (PVA) degrees of freedom using :func:`~smsfusion.benchmark.benchmark_fu
 
     fs = 10.24  # Sampling rate in Hz
     t, pos, vel, euler, acc, gyro = benchmark_full_pva_beat_202311A(fs)
+    head = euler[:, 2]
 
 To emulate real sensor recordings, these reference signals must be polluted with noise.
 The ``noise`` module that comes with ``smsfusion`` provides a variety of noise models
