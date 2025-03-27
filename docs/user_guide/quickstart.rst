@@ -65,11 +65,11 @@ Similarly, white noise can be added to the position and heading measurements usi
     import numpy as np
 
 
-    gnss_noise_std = 0.1  # m
-    compass_noise_std = 0.01  # rad
+    pos_noise_std = 0.1  # m
+    head_noise_std = 0.01  # rad
     rng = np.random.default_rng()
-    pos_aid = pos + gnss_noise_std * rng.standard_normal(pos.shape)
-    head_aid = head + compass_noise_std * rng.standard_normal(head.shape)
+    pos_aid = pos + pos_noise_std * rng.standard_normal(pos.shape)
+    head_aid = head + head_noise_std * rng.standard_normal(head.shape)
 
 Estimate position, velocity and attitude (PVA)
 ----------------------------------------------
@@ -110,9 +110,9 @@ provided by ``smsfusion``:
             gyro_i,
             degrees=False,
             pos=pos_i,
-            pos_var=gnss_noise_std ** 2 * np.ones(3),
+            pos_var=pos_noise_std**2 * np.ones(3),
             head=head_i,
-            head_var=compass_noise_std ** 2,
+            head_var=head_noise_std**2,
             head_degrees=False,
         )
         pos_est.append(ains.position())
