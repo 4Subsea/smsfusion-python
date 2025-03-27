@@ -18,3 +18,4 @@ Inertial navigation
    :maxdepth: 2
 
    ains--gnss-compass
+   vru
