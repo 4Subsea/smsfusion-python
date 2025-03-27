@@ -102,7 +102,7 @@ provided by ``smsfusion``:
     # Initialize AINS
     ains = sf.AidedINS(fs, x0, P0_prior, err_acc, err_gyro)
 
-    # Sequential state estimation
+    # Estimate PVA states sequentially using AINS
     pos_est, vel_est, euler_est = [], [], []
     for acc_i, gyro_i, pos_i, head_i in zip(acc_imu, gyro_imu, pos_aid, head_aid):
         ains.update(
