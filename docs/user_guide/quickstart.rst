@@ -46,6 +46,7 @@ class can be used to add IMU-like noise to accelerometer and gyroscope signals:
 
 .. code-block:: python
 
+    import smsfusion as sf
     from smsfusion.noise import IMUNoise
 
 
@@ -69,3 +70,55 @@ Similarly, white noise can be added to the position and heading measurements usi
     rng = np.random.default_rng()
     pos_aid = pos + gnss_noise_std * rng.standard_normal(pos.shape)
     head_aid = head + compass_noise_std * rng.standard_normal(head.shape)
+
+Estimate position, velocity and attitude (PVA)
+----------------------------------------------
+If you have access to accelerometer and gyroscope data from an IMU sensor, as well
+as position and heading data from other aiding sensors, you can estimate the position,
+velocity and attitude (PVA) of a moving body using the :func:`~smsfusion.AidedINS` class
+provided by ``smsfusion``:
+
+.. code-block:: python
+
+    import smsfusion as sf
+    from smsfusion._transforms import _quaternion_from_euler
+
+
+    # Initial state
+    p0 = pos[0]  # position [m]
+    v0 = vel[0]  # velocity [m/s]
+    q0 = _quaternion_from_euler(euler[0])  # attitude as unit quaternion
+    ba0 = np.zeros(3)  # accelerometer bias [m/s^2]
+    bg0 = np.zeros(3)  # gyroscope bias [rad/s]
+    x0 = np.concatenate((p0, v0, q0, ba0, bg0))
+
+    # Initial error covariance matrix
+    P0_prior = np.eye(12) * 1e-6
+
+    # IMU noise characteristics
+    err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
+    err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
+
+    # Initialize AINS
+    ains = sf.AidedINS(fs, x0, P0_prior, err_acc, err_gyro)
+
+    # Sequential state estimation
+    pos_est, vel_est, euler_est = [], [], []
+    for acc_i, gyro_i, pos_i, head_i in zip(acc_imu, gyro_imu, pos_aid, head_aid):
+        ains.update(
+            acc_i,
+            gyro_i,
+            degrees=False,
+            pos=pos_i,
+            pos_var=gnss_noise_std ** 2 * np.ones(3),
+            head=head_i,
+            head_var=compass_noise_std ** 2,
+            head_degrees=False,
+        )
+        pos_est.append(ains.position())
+        vel_est.append(ains.velocity())
+        euler_est.append(ains.euler(degrees=False))
+
+    pos_est = np.array(pos_est)
+    vel_est = np.array(vel_est)
+    euler_est = np.array(euler_est)
