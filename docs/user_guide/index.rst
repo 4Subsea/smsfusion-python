@@ -11,6 +11,12 @@ Getting started
    installation
    quickstart
 
+IMU noise
+---------
+.. toctree::
+   :maxdepth: 2
+
+   imu-noise
 
 Inertial navigation
 -------------------
