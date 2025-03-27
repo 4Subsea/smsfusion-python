@@ -31,6 +31,38 @@ attitude (PVA) degrees of freedom using :func:`~smsfusion.benchmark.benchmark_fu
 
 
     fs = 10.24  # Sampling rate in Hz
-    t, pos, vel, euler, acc, gyro = sf.benchmark_full_pva_beat_202311A(fs)
+    t, pos, vel, euler, acc, gyro = benchmark_full_pva_beat_202311A(fs)
 
-This will
+To emulate real sensor recordings, these reference signals must be polluted with noise.
+The ``noise`` module that comes with ``smsfusion`` provides a variety of noise models
+that can be used to corrupt the reference signals. For example, the :func:`~smsfusion.noise.IMUNoise`
+class can be used to add IMU-like noise to accelerometer and gyroscope signals:
+
+.. code-block:: python
+
+    from smsfusion.noise import IMUNoise
+
+    fs = 10.24
+    err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
+    err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
+    imu_noise = sf.noise.IMUNoise(err_acc, err_gyro)(fs, len(acc))
+    acc_imu = acc + imu_noise[:, :3]
+    gyro_imu = gyro + imu_noise[:, 3:]
+
+Similarly, white noise can be added to the position and heading measurements using
+``NumPy``'s random number generator:
+
+.. code-block:: python
+
+    import numpy as np
+
+    rng = np.random.default_rng()
+
+    gps_noise_std = 0.1  # m
+    pos_wn = rng.standard_normal(pos.shape)
+    pos_aid = pos + pos_wn
+
+    compass_noise_std = 0.01  # rad
+    head_wn = rng.standard_normal(head.shape)
+    head_aid = head + head_wn
+
