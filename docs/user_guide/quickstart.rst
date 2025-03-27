@@ -43,6 +43,7 @@ class can be used to add IMU-like noise to accelerometer and gyroscope signals:
 
     from smsfusion.noise import IMUNoise
 
+
     fs = 10.24
     err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
     err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
@@ -57,13 +58,9 @@ Similarly, white noise can be added to the position and heading measurements usi
 
     import numpy as np
 
-    rng = np.random.default_rng()
 
-    gps_noise_std = 0.1  # m
-    pos_wn = rng.standard_normal(pos.shape)
-    pos_aid = pos + pos_wn
-
+    gnss_noise_std = 0.1  # m
     compass_noise_std = 0.01  # rad
-    head_wn = rng.standard_normal(head.shape)
-    head_aid = head + head_wn
-
+    rng = np.random.default_rng()
+    pos_aid = pos + gnss_noise_std * rng.standard_normal(pos.shape)
+    head_aid = head + compass_noise_std * rng.standard_normal(head.shape)
