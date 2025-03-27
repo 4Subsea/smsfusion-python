@@ -17,9 +17,9 @@ must be incorporated to ensure convergence of these states.
 Measurement data
 ----------------
 This quickstart guide assumes that you have access to accelerometer and gyroscope
-data from an IMU, as well as position and heading data from aiding sensors. If
-you do not have access to such data, you can generate synthetic measurements using
-the code given below.
+data from an IMU sensor, as well as position and heading data from other aiding sensors.
+If you do not have access to such data, you can generate synthetic measurements using
+the code provided here.
 
 Using the ``benchmark`` module, you can generate synthetic 3D motion data with ``smsfusion``.
 For example, you can generate beating signals representing position, velocity and
