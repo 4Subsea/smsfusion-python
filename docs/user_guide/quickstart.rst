@@ -81,6 +81,7 @@ provided by ``smsfusion``:
 
 .. code-block:: python
 
+    import numpy as np
     import smsfusion as sf
     from smsfusion._transforms import _quaternion_from_euler
 
@@ -122,4 +123,66 @@ provided by ``smsfusion``:
 
     pos_est = np.array(pos_est)
     vel_est = np.array(vel_est)
+    euler_est = np.array(euler_est)
+
+Estimate attitude in aiding-denied scenarios
+--------------------------------------------
+In aiding-denied scenarios, where you don't have access to long-term stable aiding
+sensors like GNSS or compass, you must rely soley on the IMU's measurements to estimate
+the body's motions. Only the roll and pitch degrees of freedom are observable in these
+scenarios, as they are still observable using accelerometer measurements and the
+known direction of the gravitational field. When the AINS is operated in this mode,
+we call it a Vertical Reference Unit (VRU).
+
+To limit integration drift in VRU mode, we must assume that the sensor on average
+is stationary. The static assumtion is incorporated as so-called psedo aiding measurements
+of zero with corresponding variances. For most applications, the following pseudo
+aiding is sufficient:
+
+* Position: 0 m with 100 m standard deviation
+* Velocity: 0 m/s with 10 m/s standard deviation
+
+If you have access to accelerometer and gyroscope data from an IMU sensor, you can
+estimate the roll and pitch defrees of freedom of a moving body using the :func:`~smsfusion.AidedINS`
+class provided by ``smsfusion`` operated in VRU mode:
+
+.. code-block:: python
+
+    import numpy as np
+    import smsfusion as sf
+    from smsfusion._transforms import _quaternion_from_euler
+
+
+    # Initial state
+    p0 = pos[0]  # position [m]
+    v0 = vel[0]  # velocity [m/s]
+    q0 = _quaternion_from_euler(euler[0])  # attitude as unit quaternion
+    ba0 = np.zeros(3)  # accelerometer bias [m/s^2]
+    bg0 = np.zeros(3)  # gyroscope bias [rad/s]
+    x0 = np.concatenate((p0, v0, q0, ba0, bg0))
+
+    # Initial error covariance matrix
+    P0_prior = np.eye(12) * 1e-6
+
+    # IMU noise characteristics
+    err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
+    err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
+
+    # Initialize AINS
+    ains = sf.AidedINS(fs, x0, P0_prior, err_acc, err_gyro)
+
+    # Estimate PVA states sequentially using AINS
+    euler_est = []
+    for acc_i, gyro_i in zip(acc_imu, gyro_imu):
+        ains.update(
+            acc_i,
+            gyro_i,
+            degrees=False,
+            pos=np.zeros(3),
+            pos_var=1000.0**2 * np.ones(3),
+            vel=np.zeros(3),
+            vel_var=10.0**2 * np.ones(3),
+        )
+        euler_est.append(ains.euler(degrees=False))
+
     euler_est = np.array(euler_est)
