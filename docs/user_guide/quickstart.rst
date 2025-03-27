@@ -86,7 +86,7 @@ provided by ``smsfusion``:
     from smsfusion._transforms import _quaternion_from_euler
 
 
-    # Initial state
+    # Initial (a priori) state
     p0 = pos[0]  # position [m]
     v0 = vel[0]  # velocity [m/s]
     q0 = _quaternion_from_euler(euler[0])  # attitude as unit quaternion
@@ -94,15 +94,15 @@ provided by ``smsfusion``:
     bg0 = np.zeros(3)  # gyroscope bias [rad/s]
     x0 = np.concatenate((p0, v0, q0, ba0, bg0))
 
-    # Initial error covariance matrix
-    P0_prior = np.eye(12) * 1e-6
+    # Initial (a priori) error covariance matrix
+    P0 = np.eye(12) * 1e-6
 
     # IMU noise characteristics
     err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
     err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
 
     # Initialize AINS
-    ains = sf.AidedINS(fs, x0, P0_prior, err_acc, err_gyro)
+    ains = sf.AidedINS(fs, x0, P0, err_acc, err_gyro)
 
     # Estimate PVA states sequentially using AINS
     pos_est, vel_est, euler_est = [], [], []
@@ -153,7 +153,7 @@ class provided by ``smsfusion`` operated in VRU mode:
     from smsfusion._transforms import _quaternion_from_euler
 
 
-    # Initial state
+    # Initial (a priori) state
     p0 = pos[0]  # position [m]
     v0 = vel[0]  # velocity [m/s]
     q0 = _quaternion_from_euler(euler[0])  # attitude as unit quaternion
@@ -161,15 +161,15 @@ class provided by ``smsfusion`` operated in VRU mode:
     bg0 = np.zeros(3)  # gyroscope bias [rad/s]
     x0 = np.concatenate((p0, v0, q0, ba0, bg0))
 
-    # Initial error covariance matrix
-    P0_prior = np.eye(12) * 1e-6
+    # Initial (a priori) error covariance matrix
+    P0 = np.eye(12) * 1e-6
 
     # IMU noise characteristics
     err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
     err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
 
     # Initialize AINS
-    ains = sf.AidedINS(fs, x0, P0_prior, err_acc, err_gyro)
+    ains = sf.AidedINS(fs, x0, P0, err_acc, err_gyro)
 
     # Estimate PVA states sequentially using AINS
     euler_est = []
