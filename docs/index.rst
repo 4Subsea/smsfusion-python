@@ -1,9 +1,9 @@
 Welcome to SMS Fusion's documentation!
 ======================================
+Sensor fusion algorithms and utilities for SMS Motion
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
    :hidden:
 
    user_guide/index
