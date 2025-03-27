@@ -130,7 +130,7 @@ Estimate attitude in aiding-denied scenarios
 In aiding-denied scenarios, where you don't have access to long-term stable aiding
 sensors like GNSS or compass, you must rely soley on the IMU's measurements to estimate
 the body's motions. Only the roll and pitch degrees of freedom are observable in these
-scenarios, as they are still observable using accelerometer measurements and the
+scenarios, as they are still be corrected using accelerometer measurements and the
 known direction of the gravitational field. When the AINS is operated in this mode,
 we call it a Vertical Reference Unit (VRU).
 
@@ -139,11 +139,11 @@ is stationary. The static assumtion is incorporated as so-called psedo aiding me
 of zero with corresponding variances. For most applications, the following pseudo
 aiding is sufficient:
 
-* Position: 0 m with 100 m standard deviation
+* Position: 0 m with 1000 m standard deviation
 * Velocity: 0 m/s with 10 m/s standard deviation
 
 If you have access to accelerometer and gyroscope data from an IMU sensor, you can
-estimate the roll and pitch defrees of freedom of a moving body using the :func:`~smsfusion.AidedINS`
+estimate the roll and pitch degrees of freedom of a moving body using the :func:`~smsfusion.AidedINS`
 class provided by ``smsfusion`` operated in VRU mode:
 
 .. code-block:: python
