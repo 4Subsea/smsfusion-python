@@ -37,7 +37,7 @@ attitude (PVA) degrees of freedom using :func:`~smsfusion.benchmark.benchmark_fu
 Note that the generated position signals are in meters (m), velocity signals are in meters
 per second (m/s), and attitude signals are in radians (rad). The accelerometer signals
 are in meters per second squared (m/s^2), and the gyroscope signals are in radians
-per second (rad/s). 
+per second (rad/s).
 
 To emulate real sensor recordings, these reference signals must be polluted with noise.
 The ``noise`` module that comes with ``smsfusion`` provides a variety of noise models
