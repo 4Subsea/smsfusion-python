@@ -50,7 +50,6 @@ class can be used to add IMU-like noise to accelerometer and gyroscope signals:
 .. code-block:: python
 
     import smsfusion as sf
-    from smsfusion.noise import IMUNoise
 
 
     fs = 10.24
