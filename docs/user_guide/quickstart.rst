@@ -18,6 +18,14 @@ and pitch degrees of freedom are observable, as they can still be corrected usin
 the IMU's accelerometer measurements and the known direction of the gravitational field.
 When the AINS is operated in this mode, we call it a `Vertical Reference Unit` (VRU).
 
+``smsfusion`` provides Python implementations of a few INS algorithms, including:
+
+* :class:`~smsfusion.benchmark.StrapdownINS`: Simple strapdown INS algorithm, where the
+  IMU measurements are integrated without incorporating any additional aiding measurements.
+  The PVA estimates will therefore drift over time and quickly diverge from their true values.
+  This class is primarily used for PVA propagation in other aided INS algorithms.
+* :class:`~smsfusion.benchmark.AidedINS`: Aided INS algorithm based on the `multiplicative extended Kalman filter` (MEKF).
+
 
 Measurement data
 ----------------
