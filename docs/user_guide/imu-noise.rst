@@ -1,3 +1,0 @@
-IMU noise
-=========
-TODO.

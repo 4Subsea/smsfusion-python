@@ -1,5 +1,5 @@
-SMS Fusion Quickstart
-=====================
+Quickstart
+==========
 This is a quick introduction to the `SMS Fusion` Python package. The package provides
 Python implementations of INS algorithms; specifically, aided INS algorithms for
 estimating the position, velocity, and attitude (PVA) of a moving body using inertial

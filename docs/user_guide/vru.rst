@@ -1,3 +1,3 @@
-Vertical reference unit (VRU)
+Vertical Reference Unit (VRU)
 =============================
 TODO.
