@@ -18,11 +18,11 @@ from scipy.signal import resample_poly
 from scipy.spatial.transform import Rotation
 
 from smsfusion._ins import (
+    VRU,
     AidedINS,
     FixedNED,
     INSMixin,
     StrapdownINS,
-    VRU,
     _dhda_head,
     _h_head,
     _signed_smallest_angle,
@@ -1776,7 +1776,6 @@ class Test_AidedINS:
         assert bias_gyro_z_rms <= 1e-3
 
 
-
 class Test_VRU:
     # @staticmethod
     # def quaternion(alpha=-10.0, beta=5.0, gamma=25.0, degrees=True):
@@ -1956,12 +1955,11 @@ class Test_VRU:
         w_imu = np.zeros(3)
 
         pos = np.zeros(3)
-        pos_var = np.ones(3) * 1.e6
+        pos_var = np.ones(3) * 1.0e6
         vel = np.zeros(3)
         vel_var = np.ones(3) * 100.0
         head = None
         head_var = None
-
 
         for _ in range(5):
             ains.update(

@@ -1210,5 +1210,5 @@ class VRU(AidedINS):
             head=None,
             head_var=None,
             g_ref=g_ref,
-            g_var=g_var
+            g_var=g_var,
         )
