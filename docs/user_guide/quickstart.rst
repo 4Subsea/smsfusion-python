@@ -26,6 +26,11 @@ When the AINS is operated in this mode, we call it a `Vertical Reference Unit` (
   This class is primarily used for PVA propagation in other aided INS algorithms.
 * :class:`~smsfusion.benchmark.AidedINS`: Aided INS algorithm based on the `multiplicative extended Kalman filter` (MEKF).
 
+In this quickstart guide, we will demonstrate how to use the AINS algorithm privided
+by ``smsfusion`` to estimate PVA of a moving body using IMU measurements and aiding
+measurements.
+
+
 
 Measurement data
 ----------------
