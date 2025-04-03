@@ -1158,7 +1158,7 @@ class VRU(AidedINS):
         w_imu: ArrayLike,
         degrees: bool = False,
         pos_var: ArrayLike = np.array([1e6, 1e6, 1e6]),
-        vel_var: ArrayLike = np.array([100.0, 100.0, 100.0]),
+        vel_var: ArrayLike = np.array([1e2, 1e2, 1e2]),
     ) -> "VRU":  # TODO: Replace with ``typing.Self`` when Python > 3.11
         """
         Update/correct the AINS' state estimate with aiding measurements, and project
