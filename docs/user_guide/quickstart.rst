@@ -192,8 +192,8 @@ class operated in VRU mode:
     # Initialize AINS
     ains = sf.AidedINS(fs, x0, P0, err_acc, err_gyro)
 
-    # Estimate PVA states sequentially using AINS
-    euler_est = []
+    # Estimate roll and pitch sequentially using AINS
+    roll_pitch_est = []
     for acc_i, gyro_i in zip(acc_imu, gyro_imu):
         ains.update(
             acc_i,
@@ -204,6 +204,6 @@ class operated in VRU mode:
             vel=np.zeros(3),
             vel_var=10.0**2 * np.ones(3),
         )
-        euler_est.append(ains.euler(degrees=False))
+        roll_pitch_est.append(ains.euler(degrees=False)[:2])
 
-    euler_est = np.array(euler_est)
+    roll_pitch_est = np.array(roll_pitch_est)
