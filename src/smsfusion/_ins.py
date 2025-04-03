@@ -1082,82 +1082,83 @@ class AidedINS(INSMixin):
 
 
 class VRU(AidedINS):
-    def __init__(
-        self,
-        fs: float,
-        x0_prior: ArrayLike,
-        P0_prior: ArrayLike,
-        err_acc: dict[str, float],
-        err_gyro: dict[str, float],
-        g: float = 9.80665,
-        nav_frame: str = "NED",
-    ):
-        """
-        Vertical Reference Unit system (VRU) using a multiplicative extended
-        Kalman filter (MEKF).
+    """
+    Vertical Reference Unit system (VRU) using a multiplicative extended
+    Kalman filter (MEKF).
 
-        This class inherits from :class:``smsfusion.AidedINS`` but applies
-        sensible defaults for vertical reference applications and simplifies
-        the interface by hiding non-essential configuration options.
+    VRU is intended for applicatoins with negligble sustained linear accelerations.
+    For applications with sustained linear accelerations, accurate position
+    and/or velocity aiding is required. :class:``smsfusion.AidedINS`` is
+    recommended for those cases.
 
-        Parameters
-        ----------
-        fs : float
-            Sampling rate in Hz.
-        x0_prior : array-like, shape (7,)
-            Initial (a priori) VRU state estimate, containing the following elements in order:
+    This class inherits from :class:``smsfusion.AidedINS`` but applies
+    sensible defaults for vertical reference applications and simplifies
+    the interface by hiding non-essential configuration options.
 
-            * Attitude as unit quaternion (4 elements).
-            * Gyroscope bias in x, y, z directions (3 elements).
-        P0_prior : array-like, shape (6, 6)
-            Initial (a priori) estimate of the error covariance matrix, **P**. If uncertain, a
-            small diagonal matrix (e.g., ``1e-6 * numpy.eye(6)``) can be used.
-        err_acc : dict of {str: float}
-            Dictionary containing accelerometer noise parameters with keys:
+    Velocity aiding is set to zero with a standard deviation of 10 m/s.
+    Position aiding also assumes zero values but with high uncertainty
+    (standard deviation of 1000 m), making it effectively non-constraining.
+    Heading aiding is completely disabled.
 
-            * ``N``: White noise power spectral density in (m/s^2)/sqrt(Hz).
-            * ``B``: Bias stability in m/s^2.
-            * ``tau_cb``: Bias correlation time in seconds.
-        err_gyro : dict of {str: float}
-            Dictionary containing gyroscope noise parameters with keys:
+    Parameters
+    ----------
+    fs : float
+        Sampling rate in Hz.
+    x0_prior : array-like, shape (16,)
+        Initial (a priori) INS state estimate, containing the following elements in order:
 
-            * ``N``: White noise power spectral density in (rad/s)/sqrt(Hz).
-            * ``B``: Bias stability in rad/s.
-            * ``tau_cb``: Bias correlation time in seconds.
-        g : float, default 9.80665
-            The gravitational acceleration. Default is 'standard gravity' of 9.80665.
-        nav_frame : {'NED', 'ENU'}, default 'NED'
-            Specifies the assumed inertial-like 'navigation frame'. Should be 'NED' (North-East-Down)
-            (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
-            will be expressed relative to this frame. Furthermore, the aiding heading angle is
-            also interpreted relative to this frame according to the right-hand rule.
-        """
-        x0_prior_ = np.zeros(16)
-        x0_prior_[6:10], x0_prior_[13:] = x0_prior[:4], x0_prior[4:]
+        * Position in x, y, z directions (3 elements), should be zeros.
+        * Velocity in x, y, z directions (3 elements), should be zeros.
+        * Attitude as unit quaternion (4 elements).
+        * Accelerometer bias in x, y, z directions (3 elements).
+        * Gyroscope bias in x, y, z directions (3 elements).
+    P0_prior : array-like, shape (15, 15) or (12, 12)
+        Initial (a priori) estimate of the error covariance matrix, **P**. If uncertain, a
+        small diagonal matrix (e.g., ``1e-6 * numpy.eye(15)``) can be used. If the accelerometer
+        bias is excluded from the error estimate (see ``ignore_bias_acc``), the covariance
+        matrix should be of shape (12, 12) instead of (15, 15) to reflect the reduced state
+        dimensionality.
+    err_acc : dict of {str: float}
+        Dictionary containing accelerometer noise parameters with keys:
 
-        P0_prior_ = 1e-6 * np.eye(12)
-        P0_prior_[6:9, 6:9], P0_prior_[9:, 9:] = P0_prior[:3, :3], P0_prior[3:, 3:]
+        * ``N``: White noise power spectral density in (m/s^2)/sqrt(Hz).
+        * ``B``: Bias stability in m/s^2.
+        * ``tau_cb``: Bias correlation time in seconds.
+    err_gyro : dict of {str: float}
+        Dictionary containing gyroscope noise parameters with keys:
 
-        super().__init__(
-            fs,
-            x0_prior_,
-            P0_prior_,
-            err_acc,
-            err_gyro,
-            g=g,
-            ignore_bias_acc=True,
-            nav_frame=nav_frame,
-        )
-
+        * ``N``: White noise power spectral density in (rad/s)/sqrt(Hz).
+        * ``B``: Bias stability in rad/s.
+        * ``tau_cb``: Bias correlation time in seconds.
+    lever_arm : array-like, shape (3,), default numpy.zeros(3)
+        Lever-arm vector describing the location of position aiding (in meters) relative
+        to the IMU expressed in the IMU's measurement frame. For instance, the location
+        of the GNSS antenna relative to the IMU. By default it is assumed that the
+        aiding position coincides with the IMU's origin.
+    g : float, default 9.80665
+        The gravitational acceleration. Default is 'standard gravity' of 9.80665.
+    ignore_bias_acc : bool, default True
+        Determines whether the accelerometer bias should be included in the error estimate.
+        If set to ``True``, the accelerometer bias provided in ``x0`` during initialization
+        will remain fixed and not updated. This option is useful in situations where the
+        accelerometer bias is unobservable, such as when there is insufficient aiding
+        information or minimal dynamic motion, making bias estimation unreliable. Note
+        that this will reduce the error-state dimension from 15 to 12, and hence also the
+        error covariance matrix, **P**, from dimension (15, 15) to (12, 12).
+    nav_frame : {'NED', 'ENU'}, default 'NED'
+        Specifies the assumed inertial-like 'navigation frame'. Should be 'NED' (North-East-Down)
+        (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
+        will be expressed relative to this frame. Furthermore, the aiding heading angle is
+        also interpreted relative to this frame according to the right-hand rule.
+    """
+    
     def update(
         self,
         f_imu: ArrayLike,
         w_imu: ArrayLike,
         degrees: bool = False,
-        vel: ArrayLike = np.array([0.0, 0.0, 0.0]),
+        pos_var: ArrayLike = np.array([1e6, 1e6, 1e6]),
         vel_var: ArrayLike = np.array([100.0, 100.0, 100.0]),
-        g_ref: bool = False,
-        g_var: ArrayLike | None = None,
     ) -> "VRU":  # TODO: Replace with ``typing.Self`` when Python > 3.11
         """
         Update/correct the AINS' state estimate with aiding measurements, and project
@@ -1186,12 +1187,7 @@ class VRU(AidedINS):
             (not recommended).
         vel_var : array-like, shape (3,), default [10**2, 10**2, 10**2]
             Variance of velocity measurement noise in (m/s)^2. Defaults to
-            standard deviation of 10 m/s. Required for ``vel``.
-        g_ref : bool, optional, default False
-            Specifies whether the gravity reference vector is used as an aiding measurement.
-        g_var : array-like, shape (3,), optional
-            Variance of gravitational reference vector measurement noise. Required for
-            ``g_ref``.
+            standard deviation of 10 m/s, while assuming zero velocity.
 
         Returns
         -------
@@ -1203,11 +1199,9 @@ class VRU(AidedINS):
             w_imu,
             degrees=degrees,
             pos=np.array([0.0, 0.0, 0.0]),
-            pos_var=np.array([1.0e6, 1.0e6, 1.0e6]),
-            vel=vel,
+            pos_var=pos_var,
+            vel=np.array([0.0, 0.0, 0.0]),
             vel_var=vel_var,
             head=None,
             head_var=None,
-            g_ref=g_ref,
-            g_var=g_var,
         )
