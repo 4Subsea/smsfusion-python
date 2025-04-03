@@ -22,6 +22,7 @@ from smsfusion._ins import (
     FixedNED,
     INSMixin,
     StrapdownINS,
+    VRU,
     _dhda_head,
     _h_head,
     _signed_smallest_angle,
@@ -1773,6 +1774,222 @@ class Test_AidedINS:
         assert bias_gyro_x_rms <= 1e-3
         assert bias_gyro_y_rms <= 1e-3
         assert bias_gyro_z_rms <= 1e-3
+
+
+
+class Test_VRU:
+    # @staticmethod
+    # def quaternion(alpha=-10.0, beta=5.0, gamma=25.0, degrees=True):
+    #     """
+    #     Convert Euler to quaternions using SciPy.
+    #     """
+    #     q = Rotation.from_euler("ZYX", (gamma, beta, alpha), degrees=degrees).as_quat()
+    #     q = np.r_[q[3], q[:3]]
+    #     return q
+
+    # @staticmethod
+    # def rot_matrix_from_quaternion(q):
+    #     """
+    #     Convert quaternion to rotation matrix using SciPy.
+    #     """
+    #     q = np.r_[q[1:], q[0]]
+    #     return Rotation.from_quat(q).as_matrix()
+
+    # @pytest.fixture
+    # def ains(self):
+    #     fs = 10.24
+
+    #     p_init = np.array([0.1, 0.0, 0.0])
+    #     v_init = np.array([0.0, -0.1, 0.0])
+
+    #     q_init = self.quaternion()
+
+    #     bias_acc_init = np.array([0.0, 0.0, 0.1])
+    #     bias_gyro_init = np.array([-0.1, 0.0, 0.0])
+
+    #     x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
+    #     P0_prior = 1e-6 * np.eye(15)
+
+    #     err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
+    #     err_gyro = {
+    #         "N": (np.pi) / 180.0 * 2.0e-3,
+    #         "B": (np.pi) / 180.0 * 8.0e-4,
+    #         "tau_cb": 50,
+    #     }
+
+    #     ains = AidedINS(
+    #         fs,
+    #         x0,
+    #         P0_prior,
+    #         err_acc,
+    #         err_gyro,
+    #         lever_arm=np.ones(3),
+    #         ignore_bias_acc=False,
+    #         nav_frame="NED",
+    #     )
+    #     return ains
+
+    # @pytest.fixture
+    # def ains_nobias(self):
+    #     fs = 10.24
+
+    #     p_init = np.array([0.1, 0.0, 0.0])
+    #     v_init = np.array([0.0, -0.1, 0.0])
+
+    #     q_init = self.quaternion()
+
+    #     bias_acc_init = np.array([0.0, 0.0, 0.1])
+    #     bias_gyro_init = np.array([-0.1, 0.0, 0.0])
+
+    #     x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
+    #     P0_prior = 1e-6 * np.eye(12)
+
+    #     err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
+    #     err_gyro = {
+    #         "N": (np.pi) / 180.0 * 2.0e-3,
+    #         "B": (np.pi) / 180.0 * 8.0e-4,
+    #         "tau_cb": 50,
+    #     }
+
+    #     ains = AidedINS(
+    #         fs,
+    #         x0,
+    #         P0_prior,
+    #         err_acc,
+    #         err_gyro,
+    #         lever_arm=np.ones(3),
+    #         ignore_bias_acc=True,
+    #         nav_frame="NED",
+    #     )
+    #     return ains
+
+    def test__init__(self):
+        fs = 10.24
+
+        p_init = np.array([0.0, 0.0, 0.0])
+        v_init = np.array([0.0, 0.0, 0.0])
+        q_init = np.array([1.0, 0.0, 0.0, 0.0])
+        bias_acc_init = np.array([0.0, 0.0, 0.0])
+        bias_gyro_init = np.array([0.1, 0.1, 0.1])
+
+        x0_ = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
+        P0_prior_ = 1e-6 * np.eye(12)
+
+        x0 = np.r_[q_init, bias_gyro_init]
+        P0_prior = 1e-6 * np.eye(6)
+
+        err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
+        err_gyro = {
+            "N": (np.pi) / 180.0 * 2.0e-3,
+            "B": (np.pi) / 180.0 * 8.0e-4,
+            "tau_cb": 50,
+        }
+
+        vru = VRU(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+            g=9.81,
+        )
+
+        assert isinstance(vru, AidedINS)
+        assert isinstance(vru, INSMixin)
+        assert vru._fs == 10.24
+        assert vru._dt == 1.0 / 10.24
+        assert vru._err_acc == err_acc
+        assert vru._err_gyro == err_gyro
+        assert isinstance(vru._ins, StrapdownINS)
+        assert vru._ignore_bias_acc is True
+
+        np.testing.assert_array_almost_equal(vru._x, x0_)
+        np.testing.assert_array_almost_equal(vru._ins._x, x0_)
+        np.testing.assert_array_almost_equal(vru._P_prior, P0_prior_)
+        np.testing.assert_array_almost_equal(vru._lever_arm, (0, 0, 0))
+
+        assert vru._P.shape == (12, 12)
+
+        # Check that correct latitude (and thus gravity) is used
+        g_expect = np.array([0.0, 0.0, 9.81])
+        np.testing.assert_array_almost_equal(vru._ins._g_n, g_expect)
+
+        assert vru._F.shape == (12, 12)
+        assert vru._G.shape == (12, 9)
+        assert vru._W.shape == (9, 9)
+        assert vru._H.shape == (10, 12)
+
+    def test_update_compare_to_ains(self):
+        """Update using aiding variances in update method."""
+        fs = 10.24
+
+        x0_ = np.zeros(16)
+        x0_[6] = 1.0
+        P0_prior_ = 1e-6 * np.eye(15)
+
+        x0 = np.zeros(7)
+        x0[0] = 1.0
+        P0_prior = 1e-6 * np.eye(6)
+
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+
+        ains = AidedINS(
+            fs,
+            x0_,
+            P0_prior_,
+            err_acc,
+            err_gyro,
+            ignore_bias_acc=False,
+        )
+
+        vru = VRU(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+        )
+
+        g = gravity()
+        f_imu = np.array([0.0, 0.0, -g])
+        w_imu = np.zeros(3)
+
+        pos = np.zeros(3)
+        pos_var = np.ones(3) * 1.e6
+        vel = np.zeros(3)
+        vel_var = np.ones(3) * 100.0
+        head = None
+        head_var = None
+
+
+        for _ in range(5):
+            ains.update(
+                f_imu,
+                w_imu,
+                degrees=True,
+                pos=pos,
+                pos_var=pos_var,
+                vel=vel,
+                vel_var=vel_var,
+                head=head,
+                head_var=head_var,
+            )
+
+            vru.update(
+                f_imu,
+                w_imu,
+                degrees=True,
+                vel=vel,
+                vel_var=vel_var,
+            )
+
+        np.testing.assert_allclose(ains.position(), vru.position())
+        np.testing.assert_allclose(ains.velocity(), vru.velocity())
+        np.testing.assert_allclose(ains.euler(), vru.euler())
+        np.testing.assert_allclose(ains.quaternion(), vru.quaternion())
+        np.testing.assert_allclose(ains.bias_acc(), vru.bias_acc())
+        np.testing.assert_allclose(ains.bias_gyro(), vru.bias_gyro())
 
 
 class Test_FixedNed:

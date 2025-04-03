@@ -1136,8 +1136,8 @@ class VRU(AidedINS):
         x0_prior_ = np.zeros(16)
         x0_prior_[6:10], x0_prior_[13:] = x0_prior[:4], x0_prior[4:]
 
-        P0_prior_ = np.eye(15)
-        P0_prior_[6:9, 6:9], P0_prior_[12:, 12:] = P0_prior[:3, :3], P0_prior[3:, 3:]
+        P0_prior_ = 1e-6 * np.eye(12)
+        P0_prior_[6:9, 6:9], P0_prior_[9:, 9:] = P0_prior[:3, :3], P0_prior[3:, 3:]
 
         super().__init__(
             fs,
@@ -1149,7 +1149,6 @@ class VRU(AidedINS):
             ignore_bias_acc=True,
             nav_frame=nav_frame,
         )
-
 
     def update(
         self,
