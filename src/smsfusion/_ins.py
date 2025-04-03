@@ -1151,7 +1151,7 @@ class VRU(AidedINS):
         will be expressed relative to this frame. Furthermore, the aiding heading angle is
         also interpreted relative to this frame according to the right-hand rule.
     """
-    
+
     def update(
         self,
         f_imu: ArrayLike,
