@@ -3,9 +3,63 @@ Quickstart
 
 Inertial navigation primer
 --------------------------
-Measurement data from an inertial measurement unit (IMU) forms the backbone of an
-inertial navigation system (INS). These measurements are integrated to estimate the
+Measurement data from an `inertial measurement unit` (IMU) forms the backbone of an
+`inertial navigation system` (INS). These measurements are integrated to estimate the
 position, velocity, and attitude (PVA) of the moving object to which the IMU is attached.
+Since the IMU's measurements are subject to noise and bias, the PVA estimates will drift
+over time if they are not corrected. Thus, Aided INS (AINS) systems incorporate additional
+long-term stable aiding measurements to ensure convergence and stability of the INS.
+The aiding measuruments are typically provided by a `global navigation satellite system`
+(GNSS) or a compass, providing absolute position, velocity, and heading information.
+
+In scenarios where aiding measurements are not available, the INS must rely solely
+on the IMU's measurements to estimate the body's motions. In such scenarios, only the roll
+and pitch degrees of freedom are observable, as they can still be corrected using
+the IMU's accelerometer measurements and the known direction of the gravitational field.
+When the AINS is operated in this mode, we call it a `Vertical Reference Unit` (VRU).
+
+
+
+The direction of the gravitational
+field can 
+
+
+Then, the only available
+aiding reference is the known direction of the gravitational field, which can be used to
+correct the roll and pitch degrees of freedom.
+
+
+
+
+In such scenarios, only the
+roll and pitch degrees of freedom are observable. To ensure
+convergence of these states, an assumption of stationarity must be incorporated.
+When the AINS is operated in this mode, we call it a Vertical Reference Unit (VRU).
+
+
+In aiding-denied scenarios, where GNSS or compass aiding is not available, the INS
+must rely solely on the IMU's measurements to estimate the body's motion. In such
+scenarios, only the roll and pitch degrees of freedom are observable. To ensure
+convergence of these states, an assumption of stationarity must be incorporated.
+When the AINS is operated in this mode, we call it a Vertical Reference Unit (VRU).
+
+
+
+
+
+To mitigate this drift, Aided INS (AINS) systems
+incorporates additional long-term stable aiding measurements.
+
+
+
+
+Thus, Aided INS (AINS) systems incorporates
+additional long-term stable aiding measurements to mitigate integration drift of
+the PVA estimates.
+
+
+To mitigate integration drift, aided INS (AINS) systems 
+
 To mitigate integration drift, aided INS (AINS) systems incorporate additional long-term
 stable aiding sensors like a global navigation satellite system (GNSS) or a compass
 to provide absolute position, velocity, and attitude information.
