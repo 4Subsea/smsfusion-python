@@ -15,7 +15,12 @@ Since the IMU's measurements are subject to noise and bias, the PVA estimates wi
 over time if they are not corrected. Thus, Aided INS (AINS) systems incorporate additional
 long-term stable aiding measurements to ensure convergence and stability of the INS.
 The aiding measuruments are typically provided by a `global navigation satellite system`
-(GNSS) or a compass, providing absolute position, velocity, and heading information.
+(GNSS) and a compass, providing absolute position, velocity, and heading information.
+
+In scenarios where only compass aiding (but no GNSS) is available, the INS cannot provide
+reliable position and velocity information but still deliver stable attitude estimates.
+When the AINS is operated in this mode, we call it a `Attitude and Heading Reference System`
+(AHRS).
 
 In scenarios where aiding measurements are not available, the INS must rely solely
 on the IMU's measurements to estimate the body's motions. In such scenarios, only the roll
@@ -36,13 +41,12 @@ by ``smsfusion`` to estimate PVA of a moving body using IMU measurements and aid
 measurements.
 
 
-
 Measurement data
 ----------------
 This quickstart guide assumes that you have access to accelerometer and gyroscope
-data from an IMU sensor, as well as position and heading data from other aiding sensors.
-If you do not have access to such data, you can generate synthetic measurements using
-the code provided here.
+data from an IMU sensor, and maybe position and heading data from other aiding
+sensors. If you do not have access to such data, you can generate synthetic
+measurements using the code provided here.
 
 Using the ``benchmark`` module, you can generate synthetic 3D motion data with ``smsfusion``.
 For example, you can generate beating signals representing position, velocity and
@@ -94,8 +98,14 @@ Similarly, white noise can be added to the position and heading measurements usi
     pos_aid = pos + pos_noise_std * rng.standard_normal(pos.shape)
     head_aid = head + head_noise_std * rng.standard_normal(head.shape)
 
-Estimate position, velocity and attitude (PVA)
-----------------------------------------------
+
+For simpler cases where only compass or no aiding is available, consider using
+:func:`~smsfusion.benchmark.benchmark_pure_attitude_beat_202311A` instead to
+generate synthetic data.
+
+
+Aided INS: Estimate position, velocity and attitude (PVA)
+--------------------------------------------------------
 If you have access to accelerometer and gyroscope data from an IMU sensor, as well
 as position and heading data from other aiding sensors, you can estimate the position,
 velocity and attitude (PVA) of a moving body using the :func:`~smsfusion.AidedINS` class:
@@ -146,16 +156,9 @@ velocity and attitude (PVA) of a moving body using the :func:`~smsfusion.AidedIN
     vel_est = np.array(vel_est)
     euler_est = np.array(euler_est)
 
-Estimate attitude in aiding-denied scenarios
---------------------------------------------
-In aiding-denied scenarios, where you don't have access to long-term stable aiding
-sensors like GNSS or compass, you must rely soley on the IMU's measurements to estimate
-the body's motions. Only the roll and pitch degrees of freedom are observable in these
-scenarios. Roll and pitch can still be corrected using accelerometer measurements and the
-known direction of the gravitational field. When the AINS is operated in this mode,
-we call it a Vertical Reference Unit (VRU).
-
-To limit integration drift in VRU mode, we must assume that the sensor on average
+AHRS: Estimate attitude with compass-aiding
+-------------------------------------------
+To limit integration drift in AHRS mode, we must assume that the sensor on average
 is stationary. The static assumtion is incorporated as so-called psedo aiding measurements
 of zero with corresponding error variances. For most applications, the following pseudo
 aiding is sufficient:
@@ -163,9 +166,9 @@ aiding is sufficient:
 * Position: 0 m with 1000 m standard deviation
 * Velocity: 0 m/s with 10 m/s standard deviation
 
-If you have access to accelerometer and gyroscope data from an IMU sensor, you can
-estimate the roll and pitch degrees of freedom of a moving body using the :func:`~smsfusion.AidedINS`
-class operated in VRU mode:
+If you have access to accelerometer and gyroscope data from an IMU sensor and
+compass measurements, you can estimate the attituted of a moving body using
+the :func:`~smsfusion.AHRS` class:
 
 .. code-block:: python
 
@@ -175,8 +178,62 @@ class operated in VRU mode:
 
 
     # Initial (a priori) state
-    p0 = pos[0]  # position [m]
-    v0 = vel[0]  # velocity [m/s]
+    p0 = np.zeros(3)  # position [m]
+    v0 = np.zeros(3)  # velocity [m/s]
+    q0 = _quaternion_from_euler(euler[0])  # attitude as unit quaternion
+    ba0 = np.zeros(3)  # accelerometer bias [m/s^2]
+    bg0 = np.zeros(3)  # gyroscope bias [rad/s]
+    x0 = np.concatenate((p0, v0, q0, ba0, bg0))
+
+    # Initial (a priori) error covariance matrix
+    P0 = np.eye(12) * 1e-3
+
+    # IMU noise characteristics
+    err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
+    err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
+
+    # Initialize AHRS
+    ahrs = sf.AHRS(fs, x0, P0, err_acc, err_gyro)
+
+    # Estimate roll and pitch sequentially using AHRS
+    euler_est = []
+    for acc_i, gyro_i, head_i in zip(acc_imu, gyro_imu, head_aid):
+        ahrs.update(
+            acc_i,
+            gyro_i,
+            degrees=False,
+            head=head_i,
+            head_var=head_noise_std**2,
+            head_degrees=False,
+        )
+        euler_est.append(ahrs.euler(degrees=False)[:2])
+
+    euler_est = np.array(euler_est)
+
+VRU: Estimate partial attitude in aiding-denied scenarios
+---------------------------------------------------------
+To limit integration drift in VRU mode, we must assume that the sensor on average
+is stationary. The static assumtion is incorporated as so-called psedo aiding measurements
+of zero with corresponding error variances. For most applications, the following pseudo
+aiding is sufficient:
+
+* Position: 0 m with 1000 m standard deviation
+* Velocity: 0 m/s with 10 m/s standard deviation
+
+If you have access to accelerometer and gyroscope data from an IMU sensor, you can
+estimate the roll and pitch degrees of freedom of a moving body using the
+:func:`~smsfusion.VRU` class:
+
+.. code-block:: python
+
+    import numpy as np
+    import smsfusion as sf
+    from smsfusion._transforms import _quaternion_from_euler
+
+
+    # Initial (a priori) state
+    p0 = np.zeros(3)  # position [m]
+    v0 = np.zeros(3)  # velocity [m/s]
     q0 = _quaternion_from_euler(euler[0])  # attitude as unit quaternion
     ba0 = np.zeros(3)  # accelerometer bias [m/s^2]
     bg0 = np.zeros(3)  # gyroscope bias [rad/s]
@@ -190,20 +247,20 @@ class operated in VRU mode:
     err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
 
     # Initialize AINS
-    ains = sf.AidedINS(fs, x0, P0, err_acc, err_gyro)
+    vru = sf.VRU(fs, x0, P0, err_acc, err_gyro)
 
     # Estimate roll and pitch sequentially using AINS
     roll_pitch_est = []
     for acc_i, gyro_i in zip(acc_imu, gyro_imu):
-        ains.update(
+        vru.update(
             acc_i,
             gyro_i,
-            degrees=False,
-            pos=np.zeros(3),
-            pos_var=1000.0**2 * np.ones(3),
-            vel=np.zeros(3),
-            vel_var=10.0**2 * np.ones(3),
+            degrees=False
         )
-        roll_pitch_est.append(ains.euler(degrees=False)[:2])
+        roll_pitch_est.append(vru.euler(degrees=False)[:2])
 
     roll_pitch_est = np.array(roll_pitch_est)
+
+
+Note that the yaw degree of freedom will drift since no heading aiding is
+provided.
