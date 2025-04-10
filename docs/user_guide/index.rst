@@ -11,11 +11,3 @@ Getting started
 
    installation
    quickstart
-
-Inertial navigation
--------------------
-.. toctree::
-   :maxdepth: 2
-
-   ains--gnss-compass
-   vru

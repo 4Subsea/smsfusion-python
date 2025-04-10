@@ -1,10 +1,7 @@
 Quickstart
 ==========
 This is a quick introduction to the `SMS Fusion` Python package. The package provides
-Python implementations of INS algorithms; specifically, aided INS algorithms for
-estimating the position, velocity, and attitude (PVA) of a moving body using inertial
-measurement unit (IMU) data.
-
+Python implementations of INS algorithms as presented below.
 
 Inertial navigation primer
 --------------------------
@@ -30,16 +27,17 @@ When the AINS is operated in this mode, we call it a `Vertical Reference Unit` (
 
 ``smsfusion`` provides Python implementations of a few INS algorithms, including:
 
-* :class:`~smsfusion.benchmark.StrapdownINS`: Simple strapdown INS algorithm, where the
+* :class:`~smsfusion.StrapdownINS`: Simple strapdown INS algorithm, where the
   IMU measurements are integrated without incorporating any additional aiding measurements.
   The PVA estimates will therefore drift over time and quickly diverge from their true values.
   This class is primarily used for PVA propagation in other aided INS algorithms.
-* :class:`~smsfusion.benchmark.AidedINS`: Aided INS algorithm based on the `multiplicative extended Kalman filter` (MEKF).
+* :class:`~smsfusion.AidedINS`: Aided INS algorithm based on the `multiplicative extended Kalman filter` (MEKF).
+* :class:`~smsfusion.AHRS`: AHRS wrapper around :class:`~smsfusion.AidedINS` with sane defaults.
+* :class:`~smsfusion.VRU`: VRU wrapper around :class:`~smsfusion.AidedINS` with sane defaults.
 
-In this quickstart guide, we will demonstrate how to use the AINS algorithm privided
-by ``smsfusion`` to estimate PVA of a moving body using IMU measurements and aiding
-measurements.
-
+In this quickstart guide, we will demonstrate how to use the AINS algorithms
+available in ``smsfusion`` to estimate PVA of a moving body using IMU measurements
+and aiding measurements.
 
 Measurement data
 ----------------
@@ -103,9 +101,8 @@ For simpler cases where only compass or no aiding is available, consider using
 :func:`~smsfusion.benchmark.benchmark_pure_attitude_beat_202311A` instead to
 generate synthetic data.
 
-
 Aided INS: Estimate position, velocity and attitude (PVA)
---------------------------------------------------------
+---------------------------------------------------------
 If you have access to accelerometer and gyroscope data from an IMU sensor, as well
 as position and heading data from other aiding sensors, you can estimate the position,
 velocity and attitude (PVA) of a moving body using the :func:`~smsfusion.AidedINS` class:
