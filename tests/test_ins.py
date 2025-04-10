@@ -875,9 +875,7 @@ class Test_AidedINS:
         assert ains_b._ins._g == ains._ins._g
         np.testing.assert_allclose(ains_b._ins._x, ains._ins._x)
         np.testing.assert_allclose(ains_b._P_prior, ains._P_prior)
-        np.testing.assert_allclose(
-            ains_b._ignore_bias_acc, ains._ignore_bias_acc
-        )
+        np.testing.assert_allclose(ains_b._ignore_bias_acc, ains._ignore_bias_acc)
 
     def test_x(self, ains):
         x_expect = np.array(
@@ -1143,9 +1141,7 @@ class Test_AidedINS:
         delta_F_matrix_expect[3:6, 9:12] = -R(quaternion) - (-R(quaternion_init))
         delta_F_matrix_expect[6:9, 6:9] = -S(w_ins) - (-S(w_ins_init))
 
-        np.testing.assert_allclose(
-            ains._F - F_matrix_init, delta_F_matrix_expect
-        )
+        np.testing.assert_allclose(ains._F - F_matrix_init, delta_F_matrix_expect)
 
     def test__prep_G(self):
         quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
