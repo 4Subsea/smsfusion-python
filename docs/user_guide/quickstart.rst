@@ -164,7 +164,7 @@ aiding is sufficient:
 * Velocity: 0 m/s with 10 m/s standard deviation
 
 If you have access to accelerometer and gyroscope data from an IMU sensor and
-compass measurements, you can estimate the attituted of a moving body using
+compass measurements, you can estimate the attitude of a moving body using
 the :func:`~smsfusion.AHRS` class:
 
 .. code-block:: python
