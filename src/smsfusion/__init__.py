@@ -1,6 +1,6 @@
 from . import benchmark, calibrate, constants, noise
 from ._ahrs import AHRS
-from ._ins import AidedINS, FixedNED, StrapdownINS, gravity
+from ._ins import VRU, AidedINS, FixedNED, StrapdownINS, gravity
 
 __all__ = [
     "AHRS",
@@ -12,4 +12,5 @@ __all__ = [
     "gravity",
     "noise",
     "StrapdownINS",
+    "VRU",
 ]

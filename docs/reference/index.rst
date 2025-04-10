@@ -11,6 +11,7 @@ API reference
    AHRS
    AidedINS
    StrapdownINS
+   VRU
    gravity
    benchmark.BeatSignal
    benchmark.ChirpSignal
