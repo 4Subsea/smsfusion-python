@@ -660,10 +660,10 @@ class AidedINS(INSMixin):
         P0_prior: ArrayLike,
         err_acc: dict[str, float],
         err_gyro: dict[str, float],
-        lever_arm: ArrayLike = np.zeros(3),
         g: float = 9.80665,
-        ignore_bias_acc: bool = True,
         nav_frame: str = "NED",
+        lever_arm: ArrayLike = np.zeros(3),
+        ignore_bias_acc: bool = True,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
