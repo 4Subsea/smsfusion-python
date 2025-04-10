@@ -1083,22 +1083,22 @@ class AidedINS(INSMixin):
 
 class VRU(AidedINS):
     """
-    Vertical Reference Unit system (VRU) using a multiplicative extended
-    Kalman filter (MEKF).
+    Vertical Reference Unit system (VRU) using a multiplicative extended Kalman
+    filter (MEKF).
 
     VRU is intended for applicatoins with negligble sustained linear accelerations.
-    For applications with sustained linear accelerations, accurate position
-    and/or velocity aiding is required. :class:``smsfusion.AidedINS`` is
-    recommended for those cases.
+    For applications with sustained linear accelerations, accurate position and/or
+    velocity aiding is required. :class:``smsfusion.AidedINS`` is recommended for
+    those cases.
 
-    This class inherits from :class:``smsfusion.AidedINS`` but applies
-    sensible defaults for vertical reference applications and simplifies
-    the interface by hiding non-essential configuration options.
+    This class inherits from :class:``smsfusion.AidedINS`` but applies sensible
+    defaults for vertical reference applications and simplifies the interface by
+    hiding non-essential configuration options.
 
-    Velocity aiding is set to zero with a standard deviation of 10 m/s.
-    Position aiding also assumes zero values but with high uncertainty
-    (standard deviation of 1000 m), making it effectively non-constraining.
-    Heading aiding is completely disabled.
+    Velocity aiding is set to zero with a default standard deviation of 10 m/s.
+    Position aiding also assumes zero values but with high uncertainty (default
+    standard deviation of 1000 m), making it effectively non-constraining. Heading
+    aiding is completely disabled.
 
     Parameters
     ----------
@@ -1161,11 +1161,9 @@ class VRU(AidedINS):
         vel_var: ArrayLike = np.array([1e2, 1e2, 1e2]),
     ) -> "VRU":  # TODO: Replace with ``typing.Self`` when Python > 3.11
         """
-        Update/correct the AINS' state estimate with aiding measurements, and project
-        ahead using IMU measurements.
-
-        If no aiding measurements are provided, the AINS is simply propagated ahead
-        using dead reckoning with the IMU measurements.
+        Update/correct the AINS' state estimate with pseudo aiding measurements
+        (i.e., zero velocity and zero position with corresponding variances), and
+        project ahead using IMU measurements.
 
         Parameters
         ----------
@@ -1179,12 +1177,9 @@ class VRU(AidedINS):
             and z-axis, respectively.
         degrees : bool, default False
             Specifies whether the unit of ``w_imu`` are in degrees or radians.
-        vel : array-like, shape (3,), default [0.0, 0.0, 0.0]
-            Velocity aiding measurement in m/s. Defaults to zero velocity with
-            high uncertainity (i.e., almost quasi-static scenarios). However,
-            accurate velocity aiding required for applications with sustained
-            linear accelerations. If ``None``, velocity aiding is not used
-            (not recommended).
+        pos_var : array-like, shape (3,), default [10**2, 10**2, 10**2]
+            Variance of position measurement noise in (m/s)^2. Defaults to
+            standard deviation of 10 m/s, while assuming zero velocity.
         vel_var : array-like, shape (3,), default [10**2, 10**2, 10**2]
             Variance of velocity measurement noise in (m/s)^2. Defaults to
             standard deviation of 10 m/s, while assuming zero velocity.
