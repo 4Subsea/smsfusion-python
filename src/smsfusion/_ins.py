@@ -1083,8 +1083,8 @@ class AidedINS(INSMixin):
 
 class VRU(AidedINS):
     """
-    Vertical Reference Unit system (VRU) using a multiplicative extended Kalman
-    filter (MEKF).
+    Vertical Reference Unit (VRU) based on a multiplicative extended Kalman filter
+    (MEKF).
 
     VRU is intended for applicatoins with negligble sustained linear accelerations.
     For applications with sustained linear accelerations, accurate position and/or
