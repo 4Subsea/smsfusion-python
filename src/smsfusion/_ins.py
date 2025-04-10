@@ -1179,7 +1179,7 @@ class VRU(AidedINS):
             Specifies whether the unit of ``w_imu`` are in degrees or radians.
         pos_var : array-like, shape (3,), default [10**2, 10**2, 10**2]
             Variance of position measurement noise in (m/s)^2. Defaults to
-            standard deviation of 10 m/s, while assuming zero velocity.
+            standard deviation of 10 m/s, while assuming zero position.
         vel_var : array-like, shape (3,), default [10**2, 10**2, 10**2]
             Variance of velocity measurement noise in (m/s)^2. Defaults to
             standard deviation of 10 m/s, while assuming zero velocity.
