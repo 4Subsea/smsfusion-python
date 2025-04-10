@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any
 
 import numpy as np
 from numba import njit
@@ -1140,6 +1141,29 @@ class VRU(AidedINS):
     **kwargs :
         Ignored. For compatibility with parent class.
     """
+
+    def __init__(
+        self,
+        fs: float,
+        x0_prior: ArrayLike,
+        P0_prior: ArrayLike,
+        err_acc: dict[str, float],
+        err_gyro: dict[str, float],
+        g: float = 9.80665,
+        nav_frame: str = "NED",
+        **kwargs: dict[str, Any],
+    ) -> None:
+        super().__init__(
+            fs=fs,
+            x0_prior=x0_prior,
+            P0_prior=P0_prior,
+            err_acc=err_acc,
+            err_gyro=err_gyro,
+            g=g,
+            nav_frame=nav_frame,
+            lever_arm=np.zeros(3),
+            ignore_bias_acc=True,
+        )
 
     def update(
         self,
