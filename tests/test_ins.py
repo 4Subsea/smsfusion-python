@@ -1207,7 +1207,7 @@ class Test_AidedINS:
         R = self.rot_matrix_from_quaternion
         q = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
 
-        H_out = ains._update_H_pos(R(q), np.zeros(0))
+        H_out = ains._update_H_pos(R(q), np.zeros(3))
         H_expect = np.zeros((3, 15))
         H_expect[0:3, 0:3] = np.eye(3)  # position
         np.testing.assert_allclose(H_out, H_expect, atol=1e-8)
