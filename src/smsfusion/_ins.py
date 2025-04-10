@@ -1130,26 +1130,15 @@ class VRU(AidedINS):
         * ``N``: White noise power spectral density in (rad/s)/sqrt(Hz).
         * ``B``: Bias stability in rad/s.
         * ``tau_cb``: Bias correlation time in seconds.
-    lever_arm : array-like, shape (3,), default numpy.zeros(3)
-        Lever-arm vector describing the location of position aiding (in meters) relative
-        to the IMU expressed in the IMU's measurement frame. For instance, the location
-        of the GNSS antenna relative to the IMU. By default it is assumed that the
-        aiding position coincides with the IMU's origin.
     g : float, default 9.80665
         The gravitational acceleration. Default is 'standard gravity' of 9.80665.
-    ignore_bias_acc : bool, default True
-        Determines whether the accelerometer bias should be included in the error estimate.
-        If set to ``True``, the accelerometer bias provided in ``x0`` during initialization
-        will remain fixed and not updated. This option is useful in situations where the
-        accelerometer bias is unobservable, such as when there is insufficient aiding
-        information or minimal dynamic motion, making bias estimation unreliable. Note
-        that this will reduce the error-state dimension from 15 to 12, and hence also the
-        error covariance matrix, **P**, from dimension (15, 15) to (12, 12).
     nav_frame : {'NED', 'ENU'}, default 'NED'
         Specifies the assumed inertial-like 'navigation frame'. Should be 'NED' (North-East-Down)
         (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
         will be expressed relative to this frame. Furthermore, the aiding heading angle is
         also interpreted relative to this frame according to the right-hand rule.
+    **kwargs :
+        Ignored. For compatibility with parent class.
     """
 
     def update(
