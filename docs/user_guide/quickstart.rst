@@ -28,13 +28,19 @@ Unit (VRU).
 
 ``smsfusion`` provides Python implementations of a few INS algorithms, including:
 
+* :class:`~smsfusion.AidedINS`: Aided INS (AINS) algorithm. Used to estimate position,
+  velocity and attitude (PVA) using IMU data, GNSS data and compass data.
+* :class:`~smsfusion.AHRS`: AHRS wrapper around :class:`~smsfusion.AidedINS` with sane defaults.
+  Used to estimate attitude only using IMU data and compass data.
+* :class:`~smsfusion.VRU`: VRU wrapper around :class:`~smsfusion.AidedINS` with sane defaults.
+  Used to estimate roll and pitch only using IMU data.
 * :class:`~smsfusion.StrapdownINS`: Simple strapdown INS algorithm, where the
   IMU measurements are integrated without incorporating any additional aiding measurements.
-  The PVA estimates will therefore drift over time and quickly diverge from their true values.
+  The state estimates will therefore drift over time and quickly diverge from their true values.
   This class is primarily used for PVA propagation in other aided INS algorithms.
-* :class:`~smsfusion.AidedINS`: Aided INS algorithm based on the `multiplicative extended Kalman filter` (MEKF).
-* :class:`~smsfusion.AHRS`: AHRS wrapper around :class:`~smsfusion.AidedINS` with sane defaults.
-* :class:`~smsfusion.VRU`: VRU wrapper around :class:`~smsfusion.AidedINS` with sane defaults.
+
+All AINS algorithms in ``smsfusion`` are based on a fusion filtering teqhnique known
+as the `multiplicative extended Kalman filter` (MEKF).
 
 In this quickstart guide, we will demonstrate how to use the AINS algorithms
 available in ``smsfusion`` to estimate PVA of a moving body using IMU measurements
