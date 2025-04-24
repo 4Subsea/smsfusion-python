@@ -9,7 +9,7 @@ Measurement data from an `inertial measurement unit` (IMU) forms the backbone of
 `inertial navigation system` (INS). These measurements are integrated to estimate the
 position, velocity, and attitude (PVA) of the moving object to which the IMU is attached.
 Since the IMU's measurements are subject to noise and bias, the PVA estimates will drift
-over time if they are not corrected. Thus, Aided INS (AINS) systems incorporate additional
+over time if they are not corrected. Thus, `Aided INS` (AINS) systems incorporate additional
 long-term stable aiding measurements to ensure convergence and stability of the INS.
 The aiding measuruments are typically provided by a `global navigation satellite system`
 (GNSS) and a compass, providing absolute position, velocity, and heading information.
@@ -24,7 +24,7 @@ must rely solely on the IMU's measurements to estimate the body's motion. In suc
 scenarios, only the roll and pitch degrees of freedom are observable, as they can
 still be corrected using the IMU's accelerometer data and the known direction of
 the gravitational field. When operated in this mode, the AINS is referred to as
-a Vertical Reference Unit (VRU).
+a `Vertical Reference Unit` (VRU).
 
 ``smsfusion`` provides Python implementations of a few INS algorithms, including:
 
