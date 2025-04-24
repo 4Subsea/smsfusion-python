@@ -18,6 +18,7 @@ from scipy.signal import resample_poly
 from scipy.spatial.transform import Rotation
 
 from smsfusion._ins import (
+    AHRS,
     VRU,
     AidedINS,
     FixedNED,
@@ -1902,6 +1903,142 @@ class Test_VRU:
         np.testing.assert_allclose(ains.quaternion(), vru.quaternion())
         np.testing.assert_allclose(ains.bias_acc(), vru.bias_acc())
         np.testing.assert_allclose(ains.bias_gyro(), vru.bias_gyro())
+
+
+class Test_AHRS:
+    def test_update_compare_to_ains(self):
+        """Update using aiding variances in update method."""
+        fs = 10.24
+
+        x0 = np.zeros(16)
+        x0[6] = 1.0
+        P0_prior = 1e-6 * np.eye(12)
+
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+
+        ains = AidedINS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+        )
+
+        ahrs = AHRS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+        )
+
+        g = gravity()
+        f_imu = np.array([0.0, 0.0, -g])
+        w_imu = np.zeros(3)
+
+        pos = np.zeros(3)
+        pos_var = np.ones(3) * 1.0e6
+        vel = np.zeros(3)
+        vel_var = np.ones(3) * 100.0
+        head = None
+        head_var = None
+
+        for _ in range(5):
+            ains.update(
+                f_imu,
+                w_imu,
+                degrees=True,
+                pos=pos,
+                pos_var=pos_var,
+                vel=vel,
+                vel_var=vel_var,
+                head=head,
+                head_var=head_var,
+            )
+
+            ahrs.update(
+                f_imu,
+                w_imu,
+                degrees=True,
+                head=head,
+                head_var=head_var,
+            )
+
+        np.testing.assert_allclose(ains.position(), ahrs.position())
+        np.testing.assert_allclose(ains.velocity(), ahrs.velocity())
+        np.testing.assert_allclose(ains.euler(), ahrs.euler())
+        np.testing.assert_allclose(ains.quaternion(), ahrs.quaternion())
+        np.testing.assert_allclose(ains.bias_acc(), ahrs.bias_acc())
+        np.testing.assert_allclose(ains.bias_gyro(), ahrs.bias_gyro())
+
+    def test_update_compare_to_ains_other_aid(self):
+        """Update using aiding variances in update method."""
+        fs = 10.24
+
+        x0 = np.zeros(16)
+        x0[6] = 1.0
+        P0_prior = 1e-6 * np.eye(12)
+
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+
+        ains = AidedINS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+        )
+
+        ahrs = AHRS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+        )
+
+        g = gravity()
+        f_imu = np.array([0.0, 0.0, -g])
+        w_imu = np.zeros(3)
+
+        pos = np.zeros(3)
+        pos_var = np.ones(3) * 3.0e6
+        vel = np.zeros(3)
+        vel_var = np.ones(3) * 10.0
+        head = None
+        head_var = None
+
+        for _ in range(5):
+            ains.update(
+                f_imu,
+                w_imu,
+                degrees=True,
+                pos=pos,
+                pos_var=pos_var,
+                vel=vel,
+                vel_var=vel_var,
+                head=head,
+                head_var=head_var,
+            )
+
+            ahrs.update(
+                f_imu,
+                w_imu,
+                pos_var=np.ones(3) * 3.0e6,
+                vel_var=np.ones(3) * 10.0,
+                degrees=True,
+                head=head,
+                head_var=head_var,
+            )
+
+        np.testing.assert_allclose(ains.position(), ahrs.position())
+        np.testing.assert_allclose(ains.velocity(), ahrs.velocity())
+        np.testing.assert_allclose(ains.euler(), ahrs.euler())
+        np.testing.assert_allclose(ains.quaternion(), ahrs.quaternion())
+        np.testing.assert_allclose(ains.bias_acc(), ahrs.bias_acc())
+        np.testing.assert_allclose(ains.bias_gyro(), ahrs.bias_gyro())
 
 
 class Test_FixedNed:
