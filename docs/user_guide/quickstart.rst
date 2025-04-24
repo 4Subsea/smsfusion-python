@@ -1,7 +1,7 @@
 Quickstart
 ==========
 This is a quick introduction to the `SMS Fusion` Python package. The package provides
-Python implementations of a INS algorithms as presented below.
+Python implementations of INS algorithms as presented below.
 
 Inertial navigation primer
 --------------------------
@@ -76,7 +76,7 @@ class can be used to add IMU-like noise to accelerometer and gyroscope signals:
     import smsfusion as sf
 
 
-    fs = 10.24
+    fs = 10.24  # sampling rate in Hz
     err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
     err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
     imu_noise = sf.noise.IMUNoise(err_acc, err_gyro)(fs, len(acc))
@@ -135,14 +135,14 @@ velocity and attitude (PVA) of a moving body using the :func:`~smsfusion.AidedIN
 
     # Estimate PVA states sequentially using AINS
     pos_est, vel_est, euler_est = [], [], []
-    for acc_i, gyro_i, pos_i, head_i in zip(acc_imu, gyro_imu, pos_aid, head_aid):
+    for f_i, w_i, p_i, h_i in zip(acc_imu, gyro_imu, pos_aid, head_aid):
         ains.update(
-            acc_i,
-            gyro_i,
+            f_i,
+            w_i,
             degrees=False,
-            pos=pos_i,
+            pos=p_i,
             pos_var=pos_noise_std**2 * np.ones(3),
-            head=head_i,
+            head=h_i,
             head_var=head_noise_std**2,
             head_degrees=False,
         )
@@ -157,7 +157,7 @@ velocity and attitude (PVA) of a moving body using the :func:`~smsfusion.AidedIN
 AHRS: Estimate attitude with compass-aiding
 -------------------------------------------
 To limit integration drift in AHRS mode, we must assume that the sensor on average
-is stationary. The static assumtion is incorporated as so-called psedo aiding measurements
+is stationary. The static assumtion is incorporated as so-called pseudo aiding measurements
 of zero with corresponding error variances. For most applications, the following pseudo
 aiding is sufficient:
 
@@ -195,12 +195,12 @@ the :func:`~smsfusion.AHRS` class:
 
     # Estimate roll and pitch sequentially using AHRS
     euler_est = []
-    for acc_i, gyro_i, head_i in zip(acc_imu, gyro_imu, head_aid):
+    for f_i, w_i, h_i in zip(acc_imu, gyro_imu, head_aid):
         ahrs.update(
-            acc_i,
-            gyro_i,
+            f_i,
+            w_i,
             degrees=False,
-            head=head_i,
+            head=h_i,
             head_var=head_noise_std**2,
             head_degrees=False,
         )
@@ -211,12 +211,15 @@ the :func:`~smsfusion.AHRS` class:
 VRU: Estimate partial attitude in aiding-denied scenarios
 ---------------------------------------------------------
 To limit integration drift in VRU mode, we must assume that the sensor on average
-is stationary. The static assumtion is incorporated as so-called psedo aiding measurements
+is stationary. The static assumtion is incorporated as so-called pseudo aiding measurements
 of zero with corresponding error variances. For most applications, the following pseudo
 aiding is sufficient:
 
 * Position: 0 m with 1000 m standard deviation
 * Velocity: 0 m/s with 10 m/s standard deviation
+
+Note that the heading is not corrected in VRU mode, and the yaw degree of freedom
+will thus drift arbitrarily.
 
 If you have access to accelerometer and gyroscope data from an IMU sensor, you can
 estimate the roll and pitch degrees of freedom of a moving body using the
@@ -249,16 +252,12 @@ estimate the roll and pitch degrees of freedom of a moving body using the
 
     # Estimate roll and pitch sequentially using AINS
     roll_pitch_est = []
-    for acc_i, gyro_i in zip(acc_imu, gyro_imu):
+    for f_i, w_i in zip(acc_imu, gyro_imu):
         vru.update(
-            acc_i,
-            gyro_i,
+            f_i,
+            w_i,
             degrees=False
         )
         roll_pitch_est.append(vru.euler(degrees=False)[:2])
 
     roll_pitch_est = np.array(roll_pitch_est)
-
-
-Note that the yaw degree of freedom will drift since no heading aiding is
-provided.
