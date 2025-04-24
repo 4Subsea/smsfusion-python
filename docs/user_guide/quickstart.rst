@@ -1,7 +1,7 @@
 Quickstart
 ==========
 This is a quick introduction to the `SMS Fusion` Python package. The package provides
-Python implementations of INS algorithms as presented below.
+Python implementations of a few INS algorithms as presented below.
 
 Inertial navigation primer
 --------------------------
