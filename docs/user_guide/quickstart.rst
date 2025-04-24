@@ -199,7 +199,7 @@ the :func:`~smsfusion.AHRS` class:
     # Initialize AHRS
     ahrs = sf.AHRS(fs, x0, P0, err_acc, err_gyro)
 
-    # Estimate roll and pitch sequentially using AHRS
+    # Estimate attitude sequentially using AHRS
     euler_est = []
     for f_i, w_i, h_i in zip(acc_imu, gyro_imu, head_aid):
         ahrs.update(
@@ -253,10 +253,10 @@ estimate the roll and pitch degrees of freedom of a moving body using the
     err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
     err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
 
-    # Initialize AINS
+    # Initialize VRU
     vru = sf.VRU(fs, x0, P0, err_acc, err_gyro)
 
-    # Estimate roll and pitch sequentially using AINS
+    # Estimate roll and pitch sequentially using VRU
     roll_pitch_est = []
     for f_i, w_i in zip(acc_imu, gyro_imu):
         vru.update(
