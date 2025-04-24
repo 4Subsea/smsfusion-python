@@ -19,12 +19,12 @@ reliable position and velocity information but still deliver stable attitude est
 When the AINS is operated in this mode, we call it an `Attitude and Heading Reference System`
 (AHRS).
 
-Furthermore, if no aiding measurements are available, the INS must rely solely on
-the IMU's measurements to estimate the body's motion. In such scenarios, only the
-roll and pitch degrees of freedom are observable, as they can still be corrected
-using the IMU's accelerometer data and the known direction of the gravitational
-field. When operated in this mode, the AINS is referred to as a Vertical Reference
-Unit (VRU).
+In aidinig-denied scenaris, where no aiding measurements are available, the INS
+must rely solely on the IMU's measurements to estimate the body's motion. In such
+scenarios, only the roll and pitch degrees of freedom are observable, as they can
+still be corrected using the IMU's accelerometer data and the known direction of
+the gravitational field. When operated in this mode, the AINS is referred to as
+a Vertical Reference Unit (VRU).
 
 ``smsfusion`` provides Python implementations of a few INS algorithms, including:
 
