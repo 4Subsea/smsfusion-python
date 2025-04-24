@@ -203,7 +203,7 @@ the :func:`~smsfusion.AHRS` class:
             head_var=head_noise_std**2,
             head_degrees=False,
         )
-        euler_est.append(ahrs.euler(degrees=False)[:2])
+        euler_est.append(ahrs.euler(degrees=False))
 
     euler_est = np.array(euler_est)
 
