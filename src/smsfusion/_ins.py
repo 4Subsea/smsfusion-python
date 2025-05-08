@@ -1227,8 +1227,8 @@ class AHRS(AidedINS):
     those cases.
 
     This class inherits from :class:``smsfusion.AidedINS`` but applies sensible
-    defaults for vertical reference applications and simplifies the interface by
-    hiding non-essential configuration options.
+    defaults for attitude heading reference applications and simplifies the
+    interface by hiding non-essential configuration options.
 
     Velocity aiding is set to zero with a default standard deviation of 10 m/s.
     Position aiding also assumes zero values but with high uncertainty (default
