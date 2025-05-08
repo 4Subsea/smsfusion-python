@@ -1090,10 +1090,10 @@ class VRU(AidedINS):
 
     VRU is intended for applicatoins with negligble sustained linear accelerations.
     For applications with sustained linear accelerations, accurate position and/or
-    velocity aiding is required. :class:``smsfusion.AidedINS`` is recommended for
+    velocity aiding is required. :class:`smsfusion.AidedINS` is recommended for
     those cases.
 
-    This class inherits from :class:``smsfusion.AidedINS`` but applies sensible
+    This class inherits from :class:`smsfusion.AidedINS` but applies sensible
     defaults for vertical reference applications and simplifies the interface by
     hiding non-essential configuration options.
 
@@ -1117,9 +1117,9 @@ class VRU(AidedINS):
     P0_prior : array-like, shape (15, 15) or (12, 12)
         Initial (a priori) estimate of the error covariance matrix, **P**. If uncertain, a
         small diagonal matrix (e.g., ``1e-6 * numpy.eye(15)``) can be used. If the accelerometer
-        bias is excluded from the error estimate (see ``ignore_bias_acc``), the covariance
-        matrix should be of shape (12, 12) instead of (15, 15) to reflect the reduced state
-        dimensionality.
+        bias is excluded from the error estimate (see ``ignore_bias_acc`` in
+        :class:`smsfusion.AidedINS`), the covariance matrix should be of shape (12, 12) instead
+        of (15, 15) to reflect the reduced state dimensionality.
     err_acc : dict of {str: float}
         Dictionary containing accelerometer noise parameters with keys:
 
@@ -1223,10 +1223,10 @@ class AHRS(AidedINS):
 
     AHRS is intended for applicatoins with negligble sustained linear accelerations.
     For applications with sustained linear accelerations, accurate position and/or
-    velocity aiding is required. :class:``smsfusion.AidedINS`` is recommended for
+    velocity aiding is required. :class:`smsfusion.AidedINS` is recommended for
     those cases.
 
-    This class inherits from :class:``smsfusion.AidedINS`` but applies sensible
+    This class inherits from :class:`smsfusion.AidedINS` but applies sensible
     defaults for attitude heading reference applications and simplifies the
     interface by hiding non-essential configuration options.
 
