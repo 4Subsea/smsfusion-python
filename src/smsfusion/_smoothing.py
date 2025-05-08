@@ -49,7 +49,6 @@ class FixedIntervalSmoother:
         phi_fwd = np.zeros((len(f_imu), *self._ains.P.shape))
         x_fwd = np.zeros((len(f_imu), *self._ains.x.shape))
         dx_fwd = np.zeros((len(f_imu), self._ains.P.shape[0]))
-        dx_prior_fwd = np.zeros((len(f_imu), self._ains.P.shape[0]))  # Always zero
         P_fwd = np.zeros((len(f_imu), *self._ains.P.shape))
         P_prior_fwd = np.zeros((len(f_imu), *self._ains.P.shape))
         x_smth = np.zeros((len(f_imu), *self._ains.x.shape))
@@ -75,32 +74,13 @@ class FixedIntervalSmoother:
                 g_var=g_var,
             )
 
-            # phi_fwd[k, :, :] = self._ains._phi_fwd
-            # phi_fwd[k, :, :] = self.ains._I + self._ains._dt * self.ains._F  # state transition matrix
             P_fwd[k, :, :] = self._ains.P
             x_fwd[k, :] = self._ains.x
             dx_fwd[k, :] = self._ains._dx_fwd
 
-        dx_smth[-1, :] = dx_fwd[-1, :]
         # Backward sweep
+        dx_smth[-1, :] = dx_fwd[-1, :]
         for k in range(len(f_imu) - 2, -1, -1):
-            # A_k = P_fwd[k] @ phi_fwd[k+1].T @ np.linalg.inv(P_fwd[k+1])
-            # x_smth[k, :] = x_fwd[k] + A_k @ (x_smth[k+1] - x_fwd[k+1])
-            # P_smth[k] = P_fwd[k] + A_k @ (P_smth[k+1] - P_fwd[k+1]) @ A_k.T
-
-            # A_k = P_fwd[k] @ phi_fwd[k+1].T @ np.linalg.inv(P_fwd[k+1])
-            # dx_smth[k] = A_k @ (dx_smth[k+1])
-            # P_smth[k] = P_fwd[k] + A_k @ (P_smth[k+1] - P_fwd[k+1]) @ A_k.T
-
-            # da = dx_smth[k][6:9]
-            # dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
-            # x_smth[k, :3] = x_fwd[k, :3] + dx_smth[k, :3]
-            # x_smth[k, 3:6] = x_fwd[k, 3:6] + dx_smth[k, 3:6]
-            # x_smth[k, 6:10] = _quaternion_product(x_fwd[k, 6:10], dq)
-            # x_smth[k, 6:10] = _normalize(x_smth[k, 6:10])
-            # x_smth[k, -3:] = x_fwd[k, -3:] + dx_smth[k, -3:]
-            # if not self._ains._ignore_bias_acc:
-            #     x_smth[k, 10:13] = x_fwd[k, 10:13] + dx_smth[k, 9:12]
 
             A_k = P_fwd[k] @ phi_fwd[k+1].T @ np.linalg.inv(P_prior_fwd[k+1])
             dx_smth[k] = dx_fwd[k] + A_k @ (dx_smth[k+1])
