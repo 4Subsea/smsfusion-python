@@ -13,5 +13,5 @@ __all__ = [
     "noise",
     "StrapdownINS",
     "VRU",
-    "quaternion_from_euler"
+    "quaternion_from_euler",
 ]

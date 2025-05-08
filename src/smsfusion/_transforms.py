@@ -281,7 +281,9 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def quaternion_from_euler(euler: NDArray[np.float64], degrees=False) -> NDArray[np.float64]:
+def quaternion_from_euler(
+    euler: NDArray[np.float64], degrees=False
+) -> NDArray[np.float64]:
     """
     Compute the unit quaternion (representing transformation from-body-to-origin)
     from Euler angles using the ZYX convention.
@@ -291,7 +293,7 @@ def quaternion_from_euler(euler: NDArray[np.float64], degrees=False) -> NDArray[
     euler : numpy.ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
-        
+
             - Roll (alpha): Rotation about the x-axis.
             - Pitch (beta): Rotation about the y-axis.
             - Yaw (gamma): Rotation about the z-axis.

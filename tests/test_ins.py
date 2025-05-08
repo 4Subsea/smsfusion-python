@@ -31,8 +31,8 @@ from smsfusion._ins import (
 )
 from smsfusion._transforms import (
     _angular_matrix_from_quaternion,
-    quaternion_from_euler,
     _rot_matrix_from_quaternion,
+    quaternion_from_euler,
 )
 from smsfusion._vectorops import _normalize, _quaternion_product, _skew_symmetric
 from smsfusion.benchmark import (
