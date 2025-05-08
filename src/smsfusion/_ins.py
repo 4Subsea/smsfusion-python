@@ -1191,9 +1191,9 @@ class VRU(AidedINS):
             and z-axis, respectively.
         degrees : bool, default False
             Specifies whether the unit of ``w_imu`` are in degrees or radians.
-        pos_var : array-like, shape (3,), default [10**2, 10**2, 10**2]
-            Variance of position measurement noise in (m/s)^2. Defaults to
-            standard deviation of 10 m/s, while assuming zero position.
+        pos_var : array-like, shape (3,), default [10**6, 10**6, 10**6]
+            Variance of position measurement noise in m^2. Defaults to
+            standard deviation of 1000 m, while assuming zero position.
         vel_var : array-like, shape (3,), default [10**2, 10**2, 10**2]
             Variance of velocity measurement noise in (m/s)^2. Defaults to
             standard deviation of 10 m/s, while assuming zero velocity.
@@ -1336,9 +1336,9 @@ class AHRS(AidedINS):
         head_degrees : bool, default False
             Specifies whether the unit of ``head`` and ``head_var`` are in degrees and degrees^2,
             or radians and radians^2. Default is in radians and radians^2.
-        pos_var : array-like, shape (3,), default [10**2, 10**2, 10**2]
-            Variance of position measurement noise in (m/s)^2. Defaults to
-            standard deviation of 10 m/s, while assuming zero position.
+        pos_var : array-like, shape (3,), default [10**6, 10**6, 10**6]
+            Variance of position measurement noise in m^2. Defaults to
+            standard deviation of 1000 m, while assuming zero position.
         vel_var : array-like, shape (3,), default [10**2, 10**2, 10**2]
             Variance of velocity measurement noise in (m/s)^2. Defaults to
             standard deviation of 10 m/s, while assuming zero velocity.
