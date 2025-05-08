@@ -79,15 +79,14 @@ class FixedIntervalSmoother:
         P_fwd = P.copy()
 
         # Backward sweep
-        dP = np.zeros_like(P[0])
+        dP_prev = np.zeros_like(P[0])
         for k in range(len(f_imu) - 2, -1, -1):
 
             A = P[k] @ phi[k+1].T @ np.linalg.inv(P_prior[k+1])
-            ddx = A @ dx[k+1]  # error-state smoothing correction
-            dP = A @ dP @ A.T
+            ddx = A @ dx[k+1]
+            dP = A @ dP_prev @ A.T
             P[k] = P[k] + dP
 
-            # Update total state
             dda = ddx[6:9]
             ddq = (1.0 / np.sqrt(4.0 + dda.T @ dda)) * np.r_[2.0, dda]
             x[k, :3] = x[k, :3] + ddx[:3]
@@ -99,6 +98,7 @@ class FixedIntervalSmoother:
                 x[k, 10:13] = x[k, 10:13] + ddx[9:12]
 
             dx[k] = dx[k] + ddx
+            dP_prev = dP
 
         self._x_fwd = x_fwd
         self._P_fwd = P_fwd
