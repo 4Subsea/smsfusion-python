@@ -11,7 +11,7 @@ position, velocity, and attitude (PVA) of the moving object to which the IMU is 
 Since the IMU's measurements are subject to noise and bias, the PVA estimates will drift
 over time if they are not corrected. Thus, `Aided INS` (AINS) systems incorporate additional
 long-term stable aiding measurements to ensure convergence and stability of the INS.
-The aiding measuruments are typically provided by a `global navigation satellite system`
+The aiding measurements are typically provided by a `global navigation satellite system`
 (GNSS) and a compass, providing absolute position, velocity, and heading information.
 
 In scenarios where only compass aiding (but no GNSS) is available, the INS cannot provide
@@ -19,7 +19,7 @@ reliable position and velocity information but still deliver stable attitude est
 When the AINS is operated in this mode, we call it an `Attitude and Heading Reference System`
 (AHRS).
 
-In aidinig-denied scenaris, where no aiding measurements are available, the INS
+In aiding-denied scenarios, where no aiding measurements are available, the INS
 must rely solely on the IMU's measurements to estimate the body's motion. In such
 scenarios, only the roll and pitch degrees of freedom are observable, as they can
 still be corrected using the IMU's accelerometer data and the known direction of
@@ -39,7 +39,7 @@ a `Vertical Reference Unit` (VRU).
   The state estimates will therefore drift over time and quickly diverge from their true values.
   This class is primarily used for PVA propagation in other aided INS algorithms.
 
-All AINS algorithms in ``smsfusion`` are based on a fusion filtering teqhnique known
+All AINS algorithms in ``smsfusion`` are based on a fusion filtering technique known
 as the `multiplicative extended Kalman filter` (MEKF).
 
 In this quickstart guide, we will demonstrate how to use the AINS algorithms
@@ -217,7 +217,7 @@ the :func:`~smsfusion.AHRS` class:
 VRU: Estimate partial attitude in aiding-denied scenarios
 ---------------------------------------------------------
 To limit integration drift in VRU mode, we must assume that the sensor on average
-is stationary. The static assumtion is incorporated as so-called pseudo aiding measurements
+is stationary. The static assumption is incorporated as so-called pseudo aiding measurements
 of zero with corresponding error variances. For most applications, the following pseudo
 aiding is sufficient:
 
