@@ -18,6 +18,8 @@ from scipy.signal import resample_poly
 from scipy.spatial.transform import Rotation
 
 from smsfusion._ins import (
+    AHRS,
+    VRU,
     AidedINS,
     FixedNED,
     INSMixin,
@@ -267,14 +269,14 @@ class Test_StrapdownINS:
         x[6:10] = x[6:10] / np.linalg.norm(x[6:10])  # unit quaternion
         ins.reset(x)
 
-        np.testing.assert_array_almost_equal(ins.x, x)
+        np.testing.assert_allclose(ins.x, x)
 
     def test_reset_2d(self, ins):
         x = np.random.random(16).reshape(-1, 1)
         x[6:10] = x[6:10] / np.linalg.norm(x[6:10])  # unit quaternion
         ins.reset(x)
 
-        np.testing.assert_array_almost_equal(ins.x, x.flatten())
+        np.testing.assert_allclose(ins.x, x.flatten())
 
     def test_update_return_self(self, ins):
         g = 9.80665
@@ -337,8 +339,8 @@ class Test_StrapdownINS:
             ]
         )
 
-        np.testing.assert_array_almost_equal(x0_out, x0_expect)
-        np.testing.assert_array_almost_equal(x1_out, x1_expect)
+        np.testing.assert_allclose(x0_out, x0_expect, atol=1e-6)
+        np.testing.assert_allclose(x1_out, x1_expect, atol=1e-6)
 
     def test_update_enu(self, x0):
 
@@ -393,8 +395,8 @@ class Test_StrapdownINS:
             ]
         )
 
-        np.testing.assert_array_almost_equal(x0_out, x0_expect)
-        np.testing.assert_array_almost_equal(x1_out, x1_expect)
+        np.testing.assert_allclose(x0_out, x0_expect, atol=1e-6)
+        np.testing.assert_allclose(x1_out, x1_expect, atol=1e-6)
 
     def test_update_deg(self, ins):
         g_n = ins._g_n
@@ -446,8 +448,8 @@ class Test_StrapdownINS:
             ]
         )
 
-        np.testing.assert_array_almost_equal(x0_out, x0_expect)
-        np.testing.assert_array_almost_equal(x1_out, x1_expect)
+        np.testing.assert_allclose(x0_out, x0_expect, atol=1e-6)
+        np.testing.assert_allclose(x1_out, x1_expect, atol=1e-6)
 
     def test_update_with_bias(self, x0):
         ba = np.array([0.1, 0.2, 0.3])
@@ -504,8 +506,8 @@ class Test_StrapdownINS:
             ]
         )
 
-        np.testing.assert_array_almost_equal(x0_out, x0_expect)
-        np.testing.assert_array_almost_equal(x1_out, x1_expect)
+        np.testing.assert_allclose(x0_out, x0_expect, atol=1e-6)
+        np.testing.assert_allclose(x1_out, x1_expect, atol=1e-6)
 
     def test_update_twise(self, ins):
         g_n = ins._g_n
@@ -560,9 +562,9 @@ class Test_StrapdownINS:
         x2_expect[6:10] = x1_expect[6:10] + dt * T1_expect @ w_imu
         x2_expect[6:10] = x2_expect[6:10] / np.linalg.norm(x2_expect[6:10])
 
-        np.testing.assert_array_almost_equal(x0_out, x0_expect.flatten())
-        np.testing.assert_array_almost_equal(x1_out, x1_expect.flatten())
-        np.testing.assert_array_almost_equal(x2_out, x2_expect.flatten())
+        np.testing.assert_allclose(x0_out, x0_expect.flatten(), atol=1e-8)
+        np.testing.assert_allclose(x1_out, x1_expect.flatten(), atol=1e-8)
+        np.testing.assert_allclose(x2_out, x2_expect.flatten(), atol=1e-8)
 
 
 @pytest.mark.parametrize(
@@ -610,7 +612,7 @@ def test__h_head(angles):
 )
 def test__dhda(quaternion, dhda_expect):
     dhda_out = _dhda_head(quaternion)
-    np.testing.assert_array_almost_equal(dhda_out, dhda_expect)
+    np.testing.assert_allclose(dhda_out, dhda_expect)
 
 
 class Test_AidedINS:
@@ -738,16 +740,16 @@ class Test_AidedINS:
         assert isinstance(ains._ins, StrapdownINS)
         assert ains._ignore_bias_acc is False
 
-        np.testing.assert_array_almost_equal(ains._x, x0)
-        np.testing.assert_array_almost_equal(ains._ins._x, x0)
-        np.testing.assert_array_almost_equal(ains._P_prior, P0_prior)
-        np.testing.assert_array_almost_equal(ains._lever_arm, (1, 2, 3))
+        np.testing.assert_allclose(ains._x, x0)
+        np.testing.assert_allclose(ains._ins._x, x0)
+        np.testing.assert_allclose(ains._P_prior, P0_prior)
+        np.testing.assert_allclose(ains._lever_arm, (1, 2, 3))
 
         assert ains._P.shape == (15, 15)
 
         # Check that correct latitude (and thus gravity) is used
         g_expect = np.array([0.0, 0.0, 9.81])
-        np.testing.assert_array_almost_equal(ains._ins._g_n, g_expect)
+        np.testing.assert_allclose(ains._ins._g_n, g_expect)
 
         assert ains._F.shape == (15, 15)
         assert ains._G.shape == (15, 12)
@@ -779,8 +781,8 @@ class Test_AidedINS:
             nav_frame="ENU",
         )
         assert ains_enu._ins._nav_frame == "enu"
-        np.testing.assert_array_almost_equal(ains_enu._ins._g_n, [0.0, 0.0, -9.81])
-        np.testing.assert_array_almost_equal(ains_enu._vg_ref_n, [0.0, 0.0, -1.0])
+        np.testing.assert_allclose(ains_enu._ins._g_n, [0.0, 0.0, -9.81])
+        np.testing.assert_allclose(ains_enu._vg_ref_n, [0.0, 0.0, -1.0])
 
         # NED
         ains_ned = AidedINS(
@@ -794,8 +796,8 @@ class Test_AidedINS:
             nav_frame="NED",
         )
         assert ains_ned._ins._nav_frame == "ned"
-        np.testing.assert_array_almost_equal(ains_ned._ins._g_n, [0.0, 0.0, 9.81])
-        np.testing.assert_array_almost_equal(ains_ned._vg_ref_n, [0.0, 0.0, 1.0])
+        np.testing.assert_allclose(ains_ned._ins._g_n, [0.0, 0.0, 9.81])
+        np.testing.assert_allclose(ains_ned._vg_ref_n, [0.0, 0.0, 1.0])
 
     def test__init__ignore_bias_acc(self):
         fs = 10.24
@@ -828,7 +830,7 @@ class Test_AidedINS:
         )
 
         assert ains._ignore_bias_acc is True
-        np.testing.assert_array_almost_equal(ains._P_prior, P0_prior)
+        np.testing.assert_allclose(ains._P_prior, P0_prior)
         assert ains._P_prior.shape == (12, 12)
         assert ains._P.shape == (12, 12)
         assert ains._F.shape == (12, 12)
@@ -857,7 +859,7 @@ class Test_AidedINS:
             # no lever_arm
         )
 
-        np.testing.assert_array_almost_equal(ains._lever_arm, np.zeros(3))
+        np.testing.assert_allclose(ains._lever_arm, np.zeros(3))
 
     def test_dump(self, tmp_path, ains):
         kwargs_out = ains.dump()
@@ -870,13 +872,11 @@ class Test_AidedINS:
         assert ains_b._fs == ains._fs
         assert ains_b._err_acc == ains._err_acc
         assert ains_b._err_gyro == ains._err_gyro
-        np.testing.assert_array_almost_equal(ains_b._lever_arm, ains._lever_arm)
+        np.testing.assert_allclose(ains_b._lever_arm, ains._lever_arm)
         assert ains_b._ins._g == ains._ins._g
-        np.testing.assert_array_almost_equal(ains_b._ins._x, ains._ins._x)
-        np.testing.assert_array_almost_equal(ains_b._P_prior, ains._P_prior)
-        np.testing.assert_array_almost_equal(
-            ains_b._ignore_bias_acc, ains._ignore_bias_acc
-        )
+        np.testing.assert_allclose(ains_b._ins._x, ains._ins._x)
+        np.testing.assert_allclose(ains_b._P_prior, ains._P_prior)
+        np.testing.assert_allclose(ains_b._ignore_bias_acc, ains._ignore_bias_acc)
 
     def test_x(self, ains):
         x_expect = np.array(
@@ -898,40 +898,40 @@ class Test_AidedINS:
         )
         x_out = ains.x
 
-        np.testing.assert_array_almost_equal(x_out, x_expect)
+        np.testing.assert_allclose(x_out, x_expect)
         assert x_out is not ains._x
 
     def test_position(self, ains):
         pos_out = ains.position()
         pos_expect = np.array([0.1, 0.0, 0.0])
 
-        np.testing.assert_array_almost_equal(pos_out, pos_expect)
+        np.testing.assert_allclose(pos_out, pos_expect)
         assert pos_out is not ains._pos
 
     def test_velocity(self, ains):
         vel_out = ains.velocity()
         vel_expect = np.array([0.0, -0.1, 0.0])
 
-        np.testing.assert_array_almost_equal(vel_out, vel_expect)
+        np.testing.assert_allclose(vel_out, vel_expect)
         assert vel_out is not ains._vel
 
     def test_euler_radians(self, ains):
         theta_out = ains.euler(degrees=False)
         theta_expect = np.radians(np.array([-10.0, 5.0, 25.0]))
 
-        np.testing.assert_array_almost_equal(theta_out, theta_expect)
+        np.testing.assert_allclose(theta_out, theta_expect)
 
     def test_euler_degrees(self, ains):
         theta_out = ains.euler(degrees=True)
         theta_expect = np.array([-10.0, 5.0, 25.0])
 
-        np.testing.assert_array_almost_equal(theta_out, theta_expect)
+        np.testing.assert_allclose(theta_out, theta_expect)
 
     def test_quaternion(self, ains):
         quaternion_out = ains.quaternion()
         quaternion_expect = self.quaternion()
 
-        np.testing.assert_array_almost_equal(quaternion_out, quaternion_expect)
+        np.testing.assert_allclose(quaternion_out, quaternion_expect)
         assert quaternion_out is not ains._q_nm
 
     def test__reset_ins(self, ains):
@@ -990,7 +990,7 @@ class Test_AidedINS:
             x_ins[13:16] + dx[12:15],
         ]
 
-        np.testing.assert_array_almost_equal(x_out, x_expect)
+        np.testing.assert_allclose(x_out, x_expect)
 
     def test__reset_ins_ignore_bias_acc(self, ains):
         x_ins = np.array(
@@ -1048,25 +1048,25 @@ class Test_AidedINS:
             x_ins[13:16] + dx[12:15],
         ]
 
-        np.testing.assert_array_almost_equal(x_out, x_expect)
+        np.testing.assert_allclose(x_out, x_expect)
 
     def test_x_prior(self, ains):
         x_prior_out = ains.x_prior
         x_prior_expect = ains._ins.x
-        np.testing.assert_array_almost_equal(x_prior_out, x_prior_expect)
+        np.testing.assert_allclose(x_prior_out, x_prior_expect)
 
     def test_P_prior(self, ains, ains_nobias):
 
         # With bias
         P_prior_out = ains.P_prior
         P_prior_expect = 1e-6 * np.eye(15)
-        np.testing.assert_array_almost_equal(P_prior_out, P_prior_expect)
+        np.testing.assert_allclose(P_prior_out, P_prior_expect)
         assert P_prior_out is not ains._P_prior
 
         # Without bias
         P_prior_out = ains_nobias.P_prior
         P_prior_expect = 1e-6 * np.eye(12)
-        np.testing.assert_array_almost_equal(P_prior_out, P_prior_expect)
+        np.testing.assert_allclose(P_prior_out, P_prior_expect)
         assert P_prior_out is not ains_nobias._P_prior
 
     def test_P(self, ains):
@@ -1082,7 +1082,7 @@ class Test_AidedINS:
         P_out = ains.P
         P_expect = P
 
-        np.testing.assert_array_almost_equal(P_out, P_expect)
+        np.testing.assert_allclose(P_out, P_expect)
         assert P_out is not ains._P
 
     def test__prep_F(self):
@@ -1114,7 +1114,7 @@ class Test_AidedINS:
         F_matrix_expect[9:12, 9:12] = -(1.0 / err_acc["tau_cb"]) * np.eye(3)
         F_matrix_expect[12:15, 12:15] = -(1.0 / err_gyro["tau_cb"]) * np.eye(3)
 
-        np.testing.assert_array_almost_equal(F_matrix_out, F_matrix_expect)
+        np.testing.assert_allclose(F_matrix_out, F_matrix_expect, atol=1e-8)
 
     def test__update_F(self, ains):
         quaternion_init = ains.quaternion()
@@ -1142,9 +1142,7 @@ class Test_AidedINS:
         delta_F_matrix_expect[3:6, 9:12] = -R(quaternion) - (-R(quaternion_init))
         delta_F_matrix_expect[6:9, 6:9] = -S(w_ins) - (-S(w_ins_init))
 
-        np.testing.assert_array_almost_equal(
-            ains._F - F_matrix_init, delta_F_matrix_expect
-        )
+        np.testing.assert_allclose(ains._F - F_matrix_init, delta_F_matrix_expect)
 
     def test__prep_G(self):
         quaternion = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
@@ -1159,7 +1157,7 @@ class Test_AidedINS:
         G_matrix_expect[9:12, 6:9] = np.eye(3)
         G_matrix_expect[12:15, 9:12] = np.eye(3)
 
-        np.testing.assert_array_almost_equal(G_matrix_out, G_matrix_expect)
+        np.testing.assert_allclose(G_matrix_out, G_matrix_expect, atol=1e-8)
 
     def test__update_G(self, ains):
         quaternion_init = ains.quaternion()
@@ -1174,8 +1172,8 @@ class Test_AidedINS:
 
         delta_G_matrix_expect = np.zeros_like(G_matrix_init)
         delta_G_matrix_expect[3:6, 0:3] = -R(quaternion) - (-R(quaternion_init))
-        np.testing.assert_array_almost_equal(
-            ains._G - G_matrix_init, delta_G_matrix_expect
+        np.testing.assert_allclose(
+            ains._G - G_matrix_init, delta_G_matrix_expect, atol=1e-8
         )
 
     def test__prep_W(self):
@@ -1191,7 +1189,7 @@ class Test_AidedINS:
         W_expect[6:9, 6:9] *= 2.0 * err_acc["B"] ** 2 * (1.0 / err_acc["tau_cb"])
         W_expect[9:12, 9:12] *= 2.0 * err_gyro["B"] ** 2 * (1.0 / err_gyro["tau_cb"])
 
-        np.testing.assert_array_almost_equal(W_out, W_expect)
+        np.testing.assert_allclose(W_out, W_expect)
 
     def test__prep_H(self):
         H_out = AidedINS._prep_H()
@@ -1200,16 +1198,16 @@ class Test_AidedINS:
         H_expect[0:3, 0:3] = np.eye(3)  # position
         H_expect[3:6, 3:6] = np.eye(3)  # velocity
 
-        np.testing.assert_array_almost_equal(H_out, H_expect)
+        np.testing.assert_allclose(H_out, H_expect)
 
     def test__update_H_pos_lever_arm_zero(self, ains):
         R = self.rot_matrix_from_quaternion
         q = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
 
-        H_out = ains._update_H_pos(R(q), np.zeros(0))
+        H_out = ains._update_H_pos(R(q), np.zeros(3))
         H_expect = np.zeros((3, 15))
         H_expect[0:3, 0:3] = np.eye(3)  # position
-        np.testing.assert_array_almost_equal(H_out, H_expect)
+        np.testing.assert_allclose(H_out, H_expect, atol=1e-8)
 
     def test__update_H_pos_lever_arm(self, ains):
         R = self.rot_matrix_from_quaternion
@@ -1223,13 +1221,13 @@ class Test_AidedINS:
         H_expect[0:3, 0:3] = np.eye(3)  # position
         H_expect[0:3, 6:9] = -R(q) @ S(lever_arm)
 
-        np.testing.assert_array_almost_equal(H_out, H_expect)
+        np.testing.assert_allclose(H_out, H_expect)
 
     def test__update_H_vel(self, ains):
         H_out = ains._update_H_vel()
         H_expect = np.zeros((3, 15))
         H_expect[0:3, 3:6] = np.eye(3)  # velocity
-        np.testing.assert_array_almost_equal(H_out, H_expect)
+        np.testing.assert_allclose(H_out, H_expect)
 
     def test__update_H_g_ref(self, ains):
         R = self.rot_matrix_from_quaternion
@@ -1240,14 +1238,14 @@ class Test_AidedINS:
         H_out = ains._update_H_g_ref(R_nm)
         H_expect = np.zeros((3, 15))
         H_expect[0:3, 6:9] = S(R_nm.T @ ains._vg_ref_n)
-        np.testing.assert_array_almost_equal(H_out, H_expect)
+        np.testing.assert_allclose(H_out, H_expect)
 
     def test__update_H_head(self, ains):
         q = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
         H_out = ains._update_H_head(q)
         H_expect = np.zeros((1, 15))
         H_expect[0, 6:9] = _dhda_head(q)
-        np.testing.assert_array_almost_equal(H_out, H_expect)
+        np.testing.assert_allclose(H_out, H_expect)
 
     def test_update_return_self(self, ains):
         g = gravity()
@@ -1422,7 +1420,7 @@ class Test_AidedINS:
                 g_ref=True,
                 g_var=np.ones(3),
             )
-            np.testing.assert_array_almost_equal(ains.x, x0)
+            np.testing.assert_allclose(ains.x, x0)
 
     def test_update_irregular_aiding(self):
         fs = 10.24
@@ -1461,13 +1459,13 @@ class Test_AidedINS:
             g_ref=True,
             g_var=g_var,
         )
-        np.testing.assert_array_almost_equal(ains.x, x0)
+        np.testing.assert_allclose(ains.x, x0)
         ains.update(
             f_imu,
             w_imu,
             degrees=True,
         )
-        np.testing.assert_array_almost_equal(ains.x, x0)
+        np.testing.assert_allclose(ains.x, x0)
 
         ains.update(
             f_imu,
@@ -1483,7 +1481,7 @@ class Test_AidedINS:
             g_ref=True,
             g_var=g_var,
         )
-        np.testing.assert_array_almost_equal(ains.x, x0)
+        np.testing.assert_allclose(ains.x, x0)
 
         ains.update(
             f_imu,
@@ -1495,7 +1493,7 @@ class Test_AidedINS:
             head_var=head_var,
             head_degrees=True,
         )
-        np.testing.assert_array_almost_equal(ains.x, x0)
+        np.testing.assert_allclose(ains.x, x0)
 
         ains.update(
             f_imu,
@@ -1507,7 +1505,7 @@ class Test_AidedINS:
             head_var=head_var,
             head_degrees=True,
         )
-        np.testing.assert_array_almost_equal(ains.x, x0)
+        np.testing.assert_allclose(ains.x, x0)
 
         ains.update(
             f_imu,
@@ -1517,10 +1515,10 @@ class Test_AidedINS:
             head_var=head_var,
             head_degrees=True,
         )
-        np.testing.assert_array_almost_equal(ains.x, x0)
+        np.testing.assert_allclose(ains.x, x0)
 
         ains.update(f_imu, w_imu, degrees=True, g_ref=True, g_var=g_var)
-        np.testing.assert_array_almost_equal(ains.x, x0)
+        np.testing.assert_allclose(ains.x, x0)
 
     def test_update_ignore_bias_acc(self):
         fs = 10.24
@@ -1613,7 +1611,7 @@ class Test_AidedINS:
         )
 
         assert not np.array_equal(ains_a.bias_acc(), x0[9:12])  # bias is updated
-        np.testing.assert_array_almost_equal(ains_b.bias_acc(), x0[9:12])  # no update
+        np.testing.assert_allclose(ains_b.bias_acc(), x0[9:12])  # no update
 
     @pytest.mark.parametrize(
         "benchmark_gen",
@@ -1773,6 +1771,274 @@ class Test_AidedINS:
         assert bias_gyro_x_rms <= 1e-3
         assert bias_gyro_y_rms <= 1e-3
         assert bias_gyro_z_rms <= 1e-3
+
+
+class Test_VRU:
+    def test_update_compare_to_ains(self):
+        """Update using aiding variances in update method."""
+        fs = 10.24
+
+        x0 = np.zeros(16)
+        x0[6] = 1.0
+        P0_prior = 1e-6 * np.eye(12)
+
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+
+        ains = AidedINS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+        )
+
+        vru = VRU(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+        )
+
+        g = gravity()
+        f_imu = np.array([0.0, 0.0, -g])
+        w_imu = np.zeros(3)
+
+        pos = np.zeros(3)
+        pos_var = np.ones(3) * 1.0e6
+        vel = np.zeros(3)
+        vel_var = np.ones(3) * 100.0
+        head = None
+        head_var = None
+
+        for _ in range(5):
+            ains.update(
+                f_imu,
+                w_imu,
+                degrees=True,
+                pos=pos,
+                pos_var=pos_var,
+                vel=vel,
+                vel_var=vel_var,
+                head=head,
+                head_var=head_var,
+            )
+
+            vru.update(
+                f_imu,
+                w_imu,
+                degrees=True,
+            )
+
+        np.testing.assert_allclose(ains.position(), vru.position())
+        np.testing.assert_allclose(ains.velocity(), vru.velocity())
+        np.testing.assert_allclose(ains.euler(), vru.euler())
+        np.testing.assert_allclose(ains.quaternion(), vru.quaternion())
+        np.testing.assert_allclose(ains.bias_acc(), vru.bias_acc())
+        np.testing.assert_allclose(ains.bias_gyro(), vru.bias_gyro())
+
+    def test_update_compare_to_ains_other_aid(self):
+        """Update using aiding variances in update method."""
+        fs = 10.24
+
+        x0 = np.zeros(16)
+        x0[6] = 1.0
+        P0_prior = 1e-6 * np.eye(12)
+
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+
+        ains = AidedINS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+        )
+
+        vru = VRU(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+        )
+
+        g = gravity()
+        f_imu = np.array([0.0, 0.0, -g])
+        w_imu = np.zeros(3)
+
+        pos = np.zeros(3)
+        pos_var = np.ones(3) * 3.0e6
+        vel = np.zeros(3)
+        vel_var = np.ones(3) * 10.0
+        head = None
+        head_var = None
+
+        for _ in range(5):
+            ains.update(
+                f_imu,
+                w_imu,
+                degrees=True,
+                pos=pos,
+                pos_var=pos_var,
+                vel=vel,
+                vel_var=vel_var,
+                head=head,
+                head_var=head_var,
+            )
+
+            vru.update(
+                f_imu,
+                w_imu,
+                pos_var=np.ones(3) * 3.0e6,
+                vel_var=np.ones(3) * 10.0,
+                degrees=True,
+            )
+
+        np.testing.assert_allclose(ains.position(), vru.position())
+        np.testing.assert_allclose(ains.velocity(), vru.velocity())
+        np.testing.assert_allclose(ains.euler(), vru.euler())
+        np.testing.assert_allclose(ains.quaternion(), vru.quaternion())
+        np.testing.assert_allclose(ains.bias_acc(), vru.bias_acc())
+        np.testing.assert_allclose(ains.bias_gyro(), vru.bias_gyro())
+
+
+class Test_AHRS:
+    def test_update_compare_to_ains(self):
+        """Update using aiding variances in update method."""
+        fs = 10.24
+
+        x0 = np.zeros(16)
+        x0[6] = 1.0
+        P0_prior = 1e-6 * np.eye(12)
+
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+
+        ains = AidedINS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+        )
+
+        ahrs = AHRS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+        )
+
+        g = gravity()
+        f_imu = np.array([0.0, 0.0, -g])
+        w_imu = np.zeros(3)
+
+        pos = np.zeros(3)
+        pos_var = np.ones(3) * 1.0e6
+        vel = np.zeros(3)
+        vel_var = np.ones(3) * 100.0
+        head = None
+        head_var = None
+
+        for _ in range(5):
+            ains.update(
+                f_imu,
+                w_imu,
+                degrees=True,
+                pos=pos,
+                pos_var=pos_var,
+                vel=vel,
+                vel_var=vel_var,
+                head=head,
+                head_var=head_var,
+            )
+
+            ahrs.update(
+                f_imu,
+                w_imu,
+                degrees=True,
+                head=head,
+                head_var=head_var,
+            )
+
+        np.testing.assert_allclose(ains.position(), ahrs.position())
+        np.testing.assert_allclose(ains.velocity(), ahrs.velocity())
+        np.testing.assert_allclose(ains.euler(), ahrs.euler())
+        np.testing.assert_allclose(ains.quaternion(), ahrs.quaternion())
+        np.testing.assert_allclose(ains.bias_acc(), ahrs.bias_acc())
+        np.testing.assert_allclose(ains.bias_gyro(), ahrs.bias_gyro())
+
+    def test_update_compare_to_ains_other_aid(self):
+        """Update using aiding variances in update method."""
+        fs = 10.24
+
+        x0 = np.zeros(16)
+        x0[6] = 1.0
+        P0_prior = 1e-6 * np.eye(12)
+
+        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
+        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
+
+        ains = AidedINS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+        )
+
+        ahrs = AHRS(
+            fs,
+            x0,
+            P0_prior,
+            err_acc,
+            err_gyro,
+        )
+
+        g = gravity()
+        f_imu = np.array([0.0, 0.0, -g])
+        w_imu = np.zeros(3)
+
+        pos = np.zeros(3)
+        pos_var = np.ones(3) * 3.0e6
+        vel = np.zeros(3)
+        vel_var = np.ones(3) * 10.0
+        head = None
+        head_var = None
+
+        for _ in range(5):
+            ains.update(
+                f_imu,
+                w_imu,
+                degrees=True,
+                pos=pos,
+                pos_var=pos_var,
+                vel=vel,
+                vel_var=vel_var,
+                head=head,
+                head_var=head_var,
+            )
+
+            ahrs.update(
+                f_imu,
+                w_imu,
+                pos_var=np.ones(3) * 3.0e6,
+                vel_var=np.ones(3) * 10.0,
+                degrees=True,
+                head=head,
+                head_var=head_var,
+            )
+
+        np.testing.assert_allclose(ains.position(), ahrs.position())
+        np.testing.assert_allclose(ains.velocity(), ahrs.velocity())
+        np.testing.assert_allclose(ains.euler(), ahrs.euler())
+        np.testing.assert_allclose(ains.quaternion(), ahrs.quaternion())
+        np.testing.assert_allclose(ains.bias_acc(), ahrs.bias_acc())
+        np.testing.assert_allclose(ains.bias_gyro(), ahrs.bias_gyro())
 
 
 class Test_FixedNed:
