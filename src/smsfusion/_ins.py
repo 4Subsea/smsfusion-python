@@ -6,6 +6,8 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
+from smsfusion.constants import DEFAULT_P0_VALUE, ERR_ACC_MOTION2, ERR_GYRO_MOTION2
+
 from ._transforms import (
     _angular_matrix_from_quaternion,
     _euler_from_quaternion,
@@ -601,19 +603,19 @@ class AidedINS(INSMixin):
         * Attitude as unit quaternion (4 elements).
         * Accelerometer bias in x, y, z directions (3 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
-    P0_prior : array-like, shape (15, 15) or (12, 12)
-        Initial (a priori) estimate of the error covariance matrix, **P**. If uncertain, a
-        small diagonal matrix (e.g., ``1e-6 * numpy.eye(15)``) can be used. If the accelerometer
-        bias is excluded from the error estimate (see ``ignore_bias_acc``), the covariance
-        matrix should be of shape (12, 12) instead of (15, 15) to reflect the reduced state
-        dimensionality.
-    err_acc : dict of {str: float}
+    P0_prior : array-like (shape (15, 15) or (12, 12)) or None, default None
+        Initial (a priori) estimate of the error covariance matrix, **P**. If not given, a
+        small diagonal matrix (``1e-6 * numpy.eye(15)`` or ``1e-6 * numpy.eye(12)``) will be used.
+        If the accelerometer bias is excluded from the error estimate (see ``ignore_bias_acc``),
+        the covariance matrix should be of shape (12, 12) instead of (15, 15) to reflect the reduced
+        state dimensionality.
+    err_acc : dict of {str: float}, default :const:`smsfusion.constants.ERR_ACC_MOTION2`
         Dictionary containing accelerometer noise parameters with keys:
 
         * ``N``: White noise power spectral density in (m/s^2)/sqrt(Hz).
         * ``B``: Bias stability in m/s^2.
         * ``tau_cb``: Bias correlation time in seconds.
-    err_gyro : dict of {str: float}
+    err_gyro : dict of {str: float}, default :const:`smsfusion.constants.ERR_GYRO_MOTION2`
         Dictionary containing gyroscope noise parameters with keys:
 
         * ``N``: White noise power spectral density in (rad/s)/sqrt(Hz).
@@ -659,9 +661,9 @@ class AidedINS(INSMixin):
         self,
         fs: float,
         x0_prior: ArrayLike,
-        P0_prior: ArrayLike,
-        err_acc: dict[str, float],
-        err_gyro: dict[str, float],
+        P0_prior: ArrayLike | None = None,
+        err_acc: dict[str, float] = ERR_ACC_MOTION2,
+        err_gyro: dict[str, float] = ERR_GYRO_MOTION2,
         g: float = 9.80665,
         nav_frame: str = "NED",
         lever_arm: ArrayLike = np.zeros(3),
@@ -684,6 +686,13 @@ class AidedINS(INSMixin):
 
         # Error state
         self._dx = np.zeros(15)  # always zero, but used in sequential update
+
+        # If not provided, set error covariance matrix, P0_prior
+        if P0_prior is None:
+            if ignore_bias_acc:
+                P0_prior = np.eye(12) * DEFAULT_P0_VALUE
+            else:
+                P0_prior = np.eye(15) * DEFAULT_P0_VALUE
 
         # Initialize Kalman filter
         self._P_prior = np.asarray_chkfinite(P0_prior).copy(order="C")
@@ -1114,19 +1123,16 @@ class VRU(AidedINS):
         * Attitude as unit quaternion (4 elements).
         * Accelerometer bias in x, y, z directions (3 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
-    P0_prior : array-like, shape (15, 15) or (12, 12)
-        Initial (a priori) estimate of the error covariance matrix, **P**. If uncertain, a
-        small diagonal matrix (e.g., ``1e-6 * numpy.eye(15)``) can be used. If the accelerometer
-        bias is excluded from the error estimate (see ``ignore_bias_acc`` in
-        :class:`smsfusion.AidedINS`), the covariance matrix should be of shape (12, 12) instead
-        of (15, 15) to reflect the reduced state dimensionality.
-    err_acc : dict of {str: float}
+    P0_prior : array-like, shape (12, 12), default np.eye(12) * :const:`DEFAULT_P0_VALUE`
+        Initial (a priori) estimate of the error covariance matrix, **P**. If not given, a
+        small diagonal matrix (``1e-6 * numpy.eye(12)``) will be used.
+    err_acc : dict of {str: float}, default :const:`smsfusion.constants.ERR_ACC_MOTION2`
         Dictionary containing accelerometer noise parameters with keys:
 
         * ``N``: White noise power spectral density in (m/s^2)/sqrt(Hz).
         * ``B``: Bias stability in m/s^2.
         * ``tau_cb``: Bias correlation time in seconds.
-    err_gyro : dict of {str: float}
+    err_gyro : dict of {str: float}, default :const:`smsfusion.constants.ERR_GYRO_MOTION2`
         Dictionary containing gyroscope noise parameters with keys:
 
         * ``N``: White noise power spectral density in (rad/s)/sqrt(Hz).
@@ -1147,9 +1153,9 @@ class VRU(AidedINS):
         self,
         fs: float,
         x0_prior: ArrayLike,
-        P0_prior: ArrayLike,
-        err_acc: dict[str, float],
-        err_gyro: dict[str, float],
+        P0_prior: ArrayLike = np.eye(12) * DEFAULT_P0_VALUE,
+        err_acc: dict[str, float] = ERR_ACC_MOTION2,
+        err_gyro: dict[str, float] = ERR_GYRO_MOTION2,
         g: float = 9.80665,
         nav_frame: str = "NED",
         **kwargs: dict[str, Any],
@@ -1246,19 +1252,16 @@ class AHRS(AidedINS):
         * Attitude as unit quaternion (4 elements).
         * Accelerometer bias in x, y, z directions (3 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
-    P0_prior : array-like, shape (15, 15) or (12, 12)
-        Initial (a priori) estimate of the error covariance matrix, **P**. If uncertain, a
-        small diagonal matrix (e.g., ``1e-6 * numpy.eye(15)``) can be used. If the accelerometer
-        bias is excluded from the error estimate (see ``ignore_bias_acc``), the covariance
-        matrix should be of shape (12, 12) instead of (15, 15) to reflect the reduced state
-        dimensionality.
-    err_acc : dict of {str: float}
+    P0_prior : array-like, shape (12, 12)
+        Initial (a priori) estimate of the error covariance matrix, **P**. If not given, a
+        small diagonal matrix (``1e-6 * numpy.eye(15)``) will be used.
+    err_acc : dict of {str: float}, default :const:`smsfusion.constants.ERR_ACC_MOTION2`
         Dictionary containing accelerometer noise parameters with keys:
 
         * ``N``: White noise power spectral density in (m/s^2)/sqrt(Hz).
         * ``B``: Bias stability in m/s^2.
         * ``tau_cb``: Bias correlation time in seconds.
-    err_gyro : dict of {str: float}
+    err_gyro : dict of {str: float}, default :const:`smsfusion.constants.ERR_GYRO_MOTION2`
         Dictionary containing gyroscope noise parameters with keys:
 
         * ``N``: White noise power spectral density in (rad/s)/sqrt(Hz).
@@ -1279,9 +1282,9 @@ class AHRS(AidedINS):
         self,
         fs: float,
         x0_prior: ArrayLike,
-        P0_prior: ArrayLike,
-        err_acc: dict[str, float],
-        err_gyro: dict[str, float],
+        P0_prior: ArrayLike = np.eye(12) * DEFAULT_P0_VALUE,
+        err_acc: dict[str, float] = ERR_ACC_MOTION2,
+        err_gyro: dict[str, float] = ERR_GYRO_MOTION2,
         g: float = 9.80665,
         nav_frame: str = "NED",
         **kwargs: dict[str, Any],
