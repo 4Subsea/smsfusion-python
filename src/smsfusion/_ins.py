@@ -1175,7 +1175,7 @@ class VRU(AidedINS):
         vel_var: ArrayLike = np.array([1e2, 1e2, 1e2]),
     ) -> "VRU":  # TODO: Replace with ``typing.Self`` when Python > 3.11
         """
-        Update/correct the AINS' state estimate with pseudo aiding measurements
+        Update/correct the VRU's state estimate with pseudo aiding measurements
         (i.e., zero velocity and zero position with corresponding variances), and
         project ahead using IMU measurements.
 
@@ -1191,9 +1191,9 @@ class VRU(AidedINS):
             and z-axis, respectively.
         degrees : bool, default False
             Specifies whether the unit of ``w_imu`` are in degrees or radians.
-        pos_var : array-like, shape (3,), default [10**2, 10**2, 10**2]
-            Variance of position measurement noise in (m/s)^2. Defaults to
-            standard deviation of 10 m/s, while assuming zero position.
+        pos_var : array-like, shape (3,), default [10**6, 10**6, 10**6]
+            Variance of position measurement noise in m^2. Defaults to
+            standard deviation of 1000 m, while assuming zero position.
         vel_var : array-like, shape (3,), default [10**2, 10**2, 10**2]
             Variance of velocity measurement noise in (m/s)^2. Defaults to
             standard deviation of 10 m/s, while assuming zero velocity.
@@ -1213,4 +1213,150 @@ class VRU(AidedINS):
             vel_var=vel_var,
             head=None,
             head_var=None,
+        )
+
+
+class AHRS(AidedINS):
+    """
+    Attitude and Heading Reference System (AHRS) based on a multiplicative extended
+    Kalman filter (MEKF).
+
+    AHRS is intended for applicatoins with negligble sustained linear accelerations.
+    For applications with sustained linear accelerations, accurate position and/or
+    velocity aiding is required. :class:``smsfusion.AidedINS`` is recommended for
+    those cases.
+
+    This class inherits from :class:``smsfusion.AidedINS`` but applies sensible
+    defaults for attitude heading reference applications and simplifies the
+    interface by hiding non-essential configuration options.
+
+    Velocity aiding is set to zero with a default standard deviation of 10 m/s.
+    Position aiding also assumes zero values but with high uncertainty (default
+    standard deviation of 1000 m), making it effectively non-constraining.
+
+    Parameters
+    ----------
+    fs : float
+        Sampling rate in Hz.
+    x0_prior : array-like, shape (16,)
+        Initial (a priori) INS state estimate, containing the following elements in order:
+
+        * Position in x, y, z directions (3 elements), should be zeros.
+        * Velocity in x, y, z directions (3 elements), should be zeros.
+        * Attitude as unit quaternion (4 elements).
+        * Accelerometer bias in x, y, z directions (3 elements).
+        * Gyroscope bias in x, y, z directions (3 elements).
+    P0_prior : array-like, shape (15, 15) or (12, 12)
+        Initial (a priori) estimate of the error covariance matrix, **P**. If uncertain, a
+        small diagonal matrix (e.g., ``1e-6 * numpy.eye(15)``) can be used. If the accelerometer
+        bias is excluded from the error estimate (see ``ignore_bias_acc``), the covariance
+        matrix should be of shape (12, 12) instead of (15, 15) to reflect the reduced state
+        dimensionality.
+    err_acc : dict of {str: float}
+        Dictionary containing accelerometer noise parameters with keys:
+
+        * ``N``: White noise power spectral density in (m/s^2)/sqrt(Hz).
+        * ``B``: Bias stability in m/s^2.
+        * ``tau_cb``: Bias correlation time in seconds.
+    err_gyro : dict of {str: float}
+        Dictionary containing gyroscope noise parameters with keys:
+
+        * ``N``: White noise power spectral density in (rad/s)/sqrt(Hz).
+        * ``B``: Bias stability in rad/s.
+        * ``tau_cb``: Bias correlation time in seconds.
+    g : float, default 9.80665
+        The gravitational acceleration. Default is 'standard gravity' of 9.80665.
+    nav_frame : {'NED', 'ENU'}, default 'NED'
+        Specifies the assumed inertial-like 'navigation frame'. Should be 'NED' (North-East-Down)
+        (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
+        will be expressed relative to this frame. Furthermore, the aiding heading angle is
+        also interpreted relative to this frame according to the right-hand rule.
+    **kwargs :
+        Ignored. For compatibility with parent class.
+    """
+
+    def __init__(
+        self,
+        fs: float,
+        x0_prior: ArrayLike,
+        P0_prior: ArrayLike,
+        err_acc: dict[str, float],
+        err_gyro: dict[str, float],
+        g: float = 9.80665,
+        nav_frame: str = "NED",
+        **kwargs: dict[str, Any],
+    ) -> None:
+        super().__init__(
+            fs=fs,
+            x0_prior=x0_prior,
+            P0_prior=P0_prior,
+            err_acc=err_acc,
+            err_gyro=err_gyro,
+            g=g,
+            nav_frame=nav_frame,
+            lever_arm=np.zeros(3),
+            ignore_bias_acc=True,
+        )
+
+    def update(
+        self,
+        f_imu: ArrayLike,
+        w_imu: ArrayLike,
+        degrees: bool = False,
+        head: float | None = None,
+        head_var: float | None = None,
+        head_degrees: bool = True,
+        pos_var: ArrayLike = np.array([1e6, 1e6, 1e6]),
+        vel_var: ArrayLike = np.array([1e2, 1e2, 1e2]),
+    ) -> "AHRS":  # TODO: Replace with ``typing.Self`` when Python > 3.11
+        """
+        Update/correct the AHRS' state estimate with pseudo aiding measurements
+        (i.e., zero velocity and zero position with corresponding variances), and
+        project ahead using IMU measurements.
+
+        Parameters
+        ----------
+        f_imu : array-like, shape (3,)
+            Specific force measurements (i.e., accelerations + gravity), given
+            as [f_x, f_y, f_z]^T where f_x, f_y and f_z are
+            acceleration measurements in x-, y-, and z-direction, respectively.
+        w_imu : array-like, shape (3,)
+            Angular rate measurements, given as [w_x, w_y, w_z]^T where
+            w_x, w_y and w_z are angular rates about the x-, y-,
+            and z-axis, respectively.
+        degrees : bool, default False
+            Specifies whether the unit of ``w_imu`` are in degrees or radians.
+        head : float, optional
+            Heading measurement. I.e., the yaw angle of the body-frame relative to the
+            assumed navigation frame (NED or ENU) specified during initialization.
+            If ``None``, compass aiding is not used. See ``head_degrees`` for units.
+        head_var : float, optional
+            Variance of heading measurement noise. Units must be compatible with ``head``.
+             See ``head_degrees`` for units. Required for ``head``.
+        head_degrees : bool, default False
+            Specifies whether the unit of ``head`` and ``head_var`` are in degrees and degrees^2,
+            or radians and radians^2. Default is in radians and radians^2.
+        pos_var : array-like, shape (3,), default [10**6, 10**6, 10**6]
+            Variance of position measurement noise in m^2. Defaults to
+            standard deviation of 1000 m, while assuming zero position.
+        vel_var : array-like, shape (3,), default [10**2, 10**2, 10**2]
+            Variance of velocity measurement noise in (m/s)^2. Defaults to
+            standard deviation of 10 m/s, while assuming zero velocity.
+
+        Returns
+        -------
+        AHRS
+            A reference to the instance itself after the update.
+        """
+        super().update(
+            f_imu,
+            w_imu,
+            degrees=degrees,
+            pos=np.array([0.0, 0.0, 0.0]),
+            pos_var=pos_var,
+            vel=np.array([0.0, 0.0, 0.0]),
+            vel_var=vel_var,
+            head=head,
+            head_var=head_var,
+            head_degrees=head_degrees,
         )
