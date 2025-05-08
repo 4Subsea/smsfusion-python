@@ -605,7 +605,8 @@ class AidedINS(INSMixin):
         * Gyroscope bias in x, y, z directions (3 elements).
     P0_prior : array-like (shape (15, 15) or (12, 12)) or None, default None
         Initial (a priori) estimate of the error covariance matrix, **P**. If not given, a
-        small diagonal matrix (``1e-6 * numpy.eye(15)`` or ``1e-6 * numpy.eye(12)``) will be used.
+        small diagonal matrix (``smsfusion.constants.DEFAULT_P0_VALUE * numpy.eye(15)`` or
+        ``smsfusion.constants.DEFAULT_P0_VALUE * numpy.eye(12)``) will be used.
         If the accelerometer bias is excluded from the error estimate (see ``ignore_bias_acc``),
         the covariance matrix should be of shape (12, 12) instead of (15, 15) to reflect the reduced
         state dimensionality.
@@ -1123,9 +1124,8 @@ class VRU(AidedINS):
         * Attitude as unit quaternion (4 elements).
         * Accelerometer bias in x, y, z directions (3 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
-    P0_prior : array-like, shape (12, 12), default np.eye(12) * :const:`DEFAULT_P0_VALUE`
-        Initial (a priori) estimate of the error covariance matrix, **P**. If not given, a
-        small diagonal matrix (``1e-6 * numpy.eye(12)``) will be used.
+    P0_prior : array-like, shape (12, 12), default np.eye(12) * :const:`smsfusion.constants.DEFAULT_P0_VALUE`
+        Initial (a priori) estimate of the error covariance matrix, **P**.
     err_acc : dict of {str: float}, default :const:`smsfusion.constants.ERR_ACC_MOTION2`
         Dictionary containing accelerometer noise parameters with keys:
 
@@ -1252,9 +1252,8 @@ class AHRS(AidedINS):
         * Attitude as unit quaternion (4 elements).
         * Accelerometer bias in x, y, z directions (3 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
-    P0_prior : array-like, shape (12, 12)
-        Initial (a priori) estimate of the error covariance matrix, **P**. If not given, a
-        small diagonal matrix (``1e-6 * numpy.eye(15)``) will be used.
+    P0_prior : array-like, shape (12, 12), default np.eye(12) * :const:`smsfusion.constants.DEFAULT_P0_VALUE`
+        Initial (a priori) estimate of the error covariance matrix, **P**.
     err_acc : dict of {str: float}, default :const:`smsfusion.constants.ERR_ACC_MOTION2`
         Dictionary containing accelerometer noise parameters with keys:
 
