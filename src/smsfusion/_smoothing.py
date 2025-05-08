@@ -4,11 +4,11 @@ from numpy.typing import ArrayLike, NDArray
 from ._vectorops import _normalize, _quaternion_product
 
 
-class FixedIntervalSmoother:
+class FixedIntervalSmoothing:
     def __init__(self, ains):
         self._ains = ains
 
-    def smooth(
+    def update(
         self,
         f_imu: NDArray,
         w_imu: NDArray,
@@ -25,6 +25,15 @@ class FixedIntervalSmoother:
     ):
         f_imu = np.asarray_chkfinite(f_imu).reshape(-1, 3)
         w_imu = np.asarray_chkfinite(w_imu).reshape(-1, 3)
+
+        # pos = np.asarray_chkfinite(pos).reshape(-1, 3) if pos else None
+        # pos_var = np.asarray_chkfinite(pos).reshape(-1, 3) if pos_var else None
+        # vel = np.asarray_chkfinite(vel).reshape(-1, 3) if vel else None
+        # vel_var = np.asarray_chkfinite(vel_var).reshape(-1, 3) if vel_var else None
+        # head = np.asarray_chkfinite(head).reshape(-1) if head else None
+        # head_var = np.asarray_chkfinite(head_var).reshape(-1, 3) if head_var else None
+        # g_var = np.asarray_chkfinite(g_var).reshape(-1, 3) if g_var else None
+
         if pos is not None:
             pos = np.asarray_chkfinite(pos).reshape(-1, 3)
             pos_var = np.asarray_chkfinite(pos_var).reshape(-1, 3)
