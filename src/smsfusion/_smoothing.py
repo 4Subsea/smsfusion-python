@@ -52,7 +52,7 @@ class FixedIntervalSmoother:
         P_fwd = np.zeros((len(f_imu), *self._ains.P.shape))
         P_prior_fwd = np.zeros((len(f_imu), *self._ains.P.shape))
         x_smth = np.zeros((len(f_imu), *self._ains.x.shape))
-        dx_smth = np.zeros((len(f_imu), self._ains.P.shape[0]))
+        # dx_smth = np.zeros((len(f_imu), self._ains.P.shape[0]))
         P_smth = np.zeros((len(f_imu), *self._ains.P.shape))
 
         # Forward sweep
@@ -82,7 +82,8 @@ class FixedIntervalSmoother:
         # dx_smth[-1, :] = dx_fwd[-1, :]
         # dx_smth_prev = self._ains._dx_fwd.copy()
 
-        ddx_prev = 0.0
+        dx = self._ains._dx_fwd.copy()
+        ddx = 0.0
         for k in range(len(f_imu) - 2, -1, -1):
 
             # A_k = P_fwd[k] @ phi_fwd[k+1].T @ np.linalg.inv(P_prior_fwd[k+1])
@@ -101,7 +102,7 @@ class FixedIntervalSmoother:
             #     x_smth[k, 10:13] = x_fwd[k, 10:13] + ddx_k[9:12]
 
             A = P_fwd[k] @ phi_fwd[k+1].T @ np.linalg.inv(P_prior_fwd[k+1])
-            ddx = A @ (dx_fwd[k+1] + ddx_prev)
+            ddx = A @ dx
             P_smth[k] = P_fwd[k] + A @ (P_smth[k+1] - P_fwd[k+1]) @ A.T
 
             dda = ddx[6:9]
@@ -114,7 +115,8 @@ class FixedIntervalSmoother:
             if not self._ains._ignore_bias_acc:
                 x_smth[k, 10:13] = x_fwd[k, 10:13] + ddx[9:12]
 
-            ddx_prev = ddx.copy()
+            dx = dx_fwd[k] + ddx
+            ddx = ddx.copy()
 
 
 
