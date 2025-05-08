@@ -298,15 +298,16 @@ class INSMixin:
 
         Notes
         -----
-        The Euler angles describe how to transition from the 'NED' frame to the 'body'
-        frame through three consecutive intrinsic and passive rotations in the ZYX order:
+        The Euler angles describe how to transition from the navigation frame
+        ('NED' or 'ENU) to the 'body' frame through three consecutive intrinsic
+        and passive rotations in the ZYX order:
 
         #. A rotation by an angle gamma (often called yaw) about the z-axis.
         #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
         #. A final rotation by an angle alpha (often called roll) about the x-axis.
 
         This sequence of rotations is used to describe the orientation of the 'body' frame
-        relative to the 'NED' frame in 3D space.
+        relative to the navigation frame ('NED' or 'ENU) in 3D space.
 
         Intrinsic rotations mean that the rotations are with respect to the changing
         coordinate system; as one rotation is applied, the next is about the axis of
@@ -325,7 +326,7 @@ class INSMixin:
 
     def quaternion(self) -> NDArray[np.float64]:
         """
-        Get current attitude estimate as unit quaternion (from-body-to-NED).
+        Get current attitude estimate as unit quaternion (from-body-to-NED/ENU).
 
         Returns
         -------
