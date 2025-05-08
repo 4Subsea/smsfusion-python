@@ -50,12 +50,15 @@ class FixedIntervalSmoother:
         x_fwd = np.zeros((len(f_imu), *self._ains.x.shape))
         dx_fwd = np.zeros((len(f_imu), self._ains.P.shape[0]))
         P_fwd = np.zeros((len(f_imu), *self._ains.P.shape))
+        P_prior_fwd = np.zeros((len(f_imu), *self._ains.P.shape))
         x_smth = np.zeros((len(f_imu), *self._ains.x.shape))
         dx_smth = np.zeros((len(f_imu), self._ains.P.shape[0]))
         P_smth = np.zeros((len(f_imu), *self._ains.P.shape))
 
         # Forward sweep
         for k in range(len(f_imu)):
+            P_prior_fwd[k, :, :] = self._ains.P_prior
+            phi_fwd[k, :, :] = self._ains._I + self._ains._dt * self._ains._F  # state transition matrix
             self._ains.update(
                 f_imu[k],
                 w_imu[k],
@@ -71,11 +74,13 @@ class FixedIntervalSmoother:
                 g_var=g_var,
             )
 
-            phi_fwd[k, :, :] = self._ains._phi_fwd
+            # phi_fwd[k, :, :] = self._ains._phi_fwd
+            # phi_fwd[k, :, :] = self.ains._I + self._ains._dt * self.ains._F  # state transition matrix
             P_fwd[k, :, :] = self._ains.P
             x_fwd[k, :] = self._ains.x
             dx_fwd[k, :] = self._ains._dx_fwd
 
+        dx_smth[-1, :] = dx_fwd[-1, :]
         # Backward sweep
         for k in range(len(f_imu) - 2, -1, -1):
             # A_k = P_fwd[k] @ phi_fwd[k+1].T @ np.linalg.inv(P_fwd[k+1])
@@ -96,20 +101,20 @@ class FixedIntervalSmoother:
             # if not self._ains._ignore_bias_acc:
             #     x_smth[k, 10:13] = x_fwd[k, 10:13] + dx_smth[k, 9:12]
 
-            A_k = P_fwd[k] @ phi_fwd[k+1].T @ np.linalg.inv(P_fwd[k+1])
+            A_k = P_fwd[k] @ phi_fwd[k+1].T @ np.linalg.inv(P_prior_fwd[k+1])
             dx_smth[k, :] = dx_fwd[k] + A_k @ (dx_smth[k+1] - dx_fwd[k+1])
             P_smth[k] = P_fwd[k] + A_k @ (P_smth[k+1] - P_fwd[k+1]) @ A_k.T
 
-            ddx_k = dx_smth[k] - dx_fwd[k]
-            da = ddx_k[6:9]
+            dx_k = dx_smth[k] - dx_fwd[k]
+            da = dx_k[6:9]
             dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
-            x_smth[k, :3] = x_fwd[k, :3] + ddx_k[:3]
-            x_smth[k, 3:6] = x_fwd[k, 3:6] + ddx_k[3:6]
+            x_smth[k, :3] = x_fwd[k, :3] + dx_k[:3]
+            x_smth[k, 3:6] = x_fwd[k, 3:6] + dx_k[3:6]
             x_smth[k, 6:10] = _quaternion_product(x_fwd[k, 6:10], dq)
-            x_smth[k, 6:10] = _normalize(ddx_k[6:10])
-            x_smth[k, -3:] = x_fwd[k, -3:] + ddx_k[-3:]
+            x_smth[k, 6:10] = _normalize(x_smth[k, 6:10])
+            x_smth[k, -3:] = x_fwd[k, -3:] + dx_k[-3:]
             if not self._ains._ignore_bias_acc:
-                x_smth[k, 10:13] = x_fwd[k, 10:13] + ddx_k[9:12]
+                x_smth[k, 10:13] = x_fwd[k, 10:13] + dx_k[9:12]
 
         self._x_fwd = x_fwd
         self._x = x_smth
