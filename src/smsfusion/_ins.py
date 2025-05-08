@@ -1064,6 +1064,8 @@ class AidedINS(INSMixin):
             H_head = self._update_H_head(q_ins_nm)
             dx, P = self._update_dx_P(dx, P, dz_head, head_var_, H_head, I_)
 
+        self._dx_fwd = dx.copy()  # for smoothing
+
         if dx.any():
             # Reset INS state
             self._reset_ins(dx.ravel())
@@ -1075,7 +1077,8 @@ class AidedINS(INSMixin):
         # Update current state
         self._x[:] = self._ins._x
         self._P[:] = P
-        self._phi = phi
+
+        self._phi_fwd = phi.copy()  # for smoothing
 
         # Project ahead
         self._ins.update(f_imu, w_imu, degrees=False)
