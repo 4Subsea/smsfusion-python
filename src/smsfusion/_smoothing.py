@@ -49,6 +49,7 @@ class FixedIntervalSmoother:
         phi_fwd = np.zeros((len(f_imu), *self._ains.P.shape))
         x_fwd = np.zeros((len(f_imu), *self._ains.x.shape))
         dx_fwd = np.zeros((len(f_imu), self._ains.P.shape[0]))
+        dx_prior_fwd = np.zeros((len(f_imu), self._ains.P.shape[0]))  # Always zero
         P_fwd = np.zeros((len(f_imu), *self._ains.P.shape))
         P_prior_fwd = np.zeros((len(f_imu), *self._ains.P.shape))
         x_smth = np.zeros((len(f_imu), *self._ains.x.shape))
@@ -102,7 +103,7 @@ class FixedIntervalSmoother:
             #     x_smth[k, 10:13] = x_fwd[k, 10:13] + dx_smth[k, 9:12]
 
             A_k = P_fwd[k] @ phi_fwd[k+1].T @ np.linalg.inv(P_prior_fwd[k+1])
-            dx_smth[k, :] = dx_fwd[k] + A_k @ (dx_smth[k+1] - dx_fwd[k+1])
+            dx_smth[k, :] = dx_fwd[k] + A_k @ (dx_smth[k+1] - dx_prior_fwd[k+1])
             P_smth[k] = P_fwd[k] + A_k @ (P_smth[k+1] - P_fwd[k+1]) @ A_k.T
 
             dx_k = dx_smth[k] - dx_fwd[k]
