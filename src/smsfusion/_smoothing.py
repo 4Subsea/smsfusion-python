@@ -1,6 +1,8 @@
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
+from ._vectorops import _normalize, _quaternion_product
+
 
 class FixedIntervalSmoother:
     def __init__(self, ains):
@@ -49,6 +51,7 @@ class FixedIntervalSmoother:
         P_fwd = np.zeros((len(f_imu), *self._ains.P.shape))
         x_smth = np.zeros((len(f_imu), *self._ains.x.shape))
         P_smth = np.zeros((len(f_imu), *self._ains.P.shape))
+        dx_smth = np.zeros((len(f_imu), self._ains.P.shape[0]))
 
         # Forward sweep
         for k in range(len(f_imu)):
@@ -72,10 +75,25 @@ class FixedIntervalSmoother:
             x_fwd[k, :] = self._ains.x
 
         # Backward sweep
-        for k in range(len(f_imu) - 1, 0, -1):
-            A_k = P_fwd[k] @ phi_fwd[k+1, :, :].T @ np.linalg.inv(P_fwd[k+1])
-            x_smth[k, :] = x_fwd[k, :] + A_k @ (x_smth[k+1, :] - x_fwd[k+1, :])
+        for k in range(len(f_imu) - 2, -1, -1):
+            # A_k = P_fwd[k] @ phi_fwd[k+1].T @ np.linalg.inv(P_fwd[k+1])
+            # x_smth[k, :] = x_fwd[k] + A_k @ (x_smth[k+1] - x_fwd[k+1])
+            # P_smth[k] = P_fwd[k] + A_k @ (P_smth[k+1] - P_fwd[k+1]) @ A_k.T
+
+            A_k = P_fwd[k] @ phi_fwd[k+1].T @ np.linalg.inv(P_fwd[k+1])
+            dx_smth[k] = A_k @ (dx_smth[k+1])
             P_smth[k] = P_fwd[k] + A_k @ (P_smth[k+1] - P_fwd[k+1]) @ A_k.T
 
+            da = dx_smth[k][6:9]
+            dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
+            x_smth[k, :3] = x_fwd[k, :3] + dx_smth[k, :3]
+            x_smth[k, 3:6] = x_fwd[k, 3:6] + dx_smth[k, 3:6]
+            x_smth[k, 6:10] = _quaternion_product(x_fwd[k, 6:10], dq)
+            x_smth[k, 6:10] = _normalize(x_smth[k, 6:10])
+            x_smth[k, -3:] = x_fwd[k, -3:] + dx_smth[k, -3:]
+            if not self._ains._ignore_bias_acc:
+                x_smth[k, 10:13] = x_fwd[k, 10:13] + dx_smth[k, 9:12]
+
+        self._x_fwd = x_fwd
         self._x = x_smth
         self._P = P_smth
