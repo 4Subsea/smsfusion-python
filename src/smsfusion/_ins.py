@@ -1078,8 +1078,6 @@ class AidedINS(INSMixin):
         self._x[:] = self._ins._x
         self._P[:] = P
 
-        self._phi_fwd = phi.copy()  # for smoothing
-
         # Project ahead
         self._ins.update(f_imu, w_imu, degrees=False)
         self._P_prior[:] = phi @ P @ phi.T + Q
