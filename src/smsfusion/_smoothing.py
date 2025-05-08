@@ -46,16 +46,12 @@ class FixedIntervalSmoother:
         if g_ref:
             g_var = np.asarray_chkfinite(g_var).reshape(-1, 3)
 
-        phi_fwd = np.zeros((len(f_imu), *self._ains.P.shape))
+        # Forward sweep
         x_fwd = np.zeros((len(f_imu), *self._ains.x.shape))
         dx_fwd = np.zeros((len(f_imu), self._ains.P.shape[0]))
+        phi_fwd = np.zeros((len(f_imu), *self._ains.P.shape))
         P_fwd = np.zeros((len(f_imu), *self._ains.P.shape))
         P_prior_fwd = np.zeros((len(f_imu), *self._ains.P.shape))
-        x_smth = np.zeros((len(f_imu), *self._ains.x.shape))
-        # dx_smth = np.zeros((len(f_imu), self._ains.P.shape[0]))
-        P_smth = np.zeros((len(f_imu), *self._ains.P.shape))
-
-        # Forward sweep
         for k in range(len(f_imu)):
             P_prior_fwd[k, :, :] = self._ains.P_prior
             phi_fwd[k, :, :] = self._ains._I + self._ains._dt * self._ains._F  # state transition matrix
@@ -79,32 +75,16 @@ class FixedIntervalSmoother:
             dx_fwd[k, :] = self._ains._dx_fwd
 
         # Backward sweep
-        # dx_smth[-1, :] = dx_fwd[-1, :]
-        # dx_smth_prev = self._ains._dx_fwd.copy()
-
-        dx = self._ains._dx_fwd.copy()
-        ddx = 0.0
+        x_smth = np.zeros((len(f_imu), *self._ains.x.shape))
+        P_smth = np.zeros((len(f_imu), *self._ains.P.shape))
+        dx_smth = self._ains._dx_fwd.copy()
         for k in range(len(f_imu) - 2, -1, -1):
 
-            # A_k = P_fwd[k] @ phi_fwd[k+1].T @ np.linalg.inv(P_prior_fwd[k+1])
-            # dx_smth = dx_fwd[k] + A_k @ dx_smth_prev
-            # P_smth[k] = P_fwd[k] + A_k @ (P_smth[k+1] - P_fwd[k+1]) @ A_k.T
-
-            # ddx_k = dx_smth - dx_fwd[k]
-            # da = ddx_k[6:9]
-            # dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * np.r_[2.0, da]
-            # x_smth[k, :3] = x_fwd[k, :3] + ddx_k[:3]
-            # x_smth[k, 3:6] = x_fwd[k, 3:6] + ddx_k[3:6]
-            # x_smth[k, 6:10] = _quaternion_product(x_fwd[k, 6:10], dq)
-            # x_smth[k, 6:10] = _normalize(x_smth[k, 6:10])
-            # x_smth[k, -3:] = x_fwd[k, -3:] + ddx_k[-3:]
-            # if not self._ains._ignore_bias_acc:
-            #     x_smth[k, 10:13] = x_fwd[k, 10:13] + ddx_k[9:12]
-
             A = P_fwd[k] @ phi_fwd[k+1].T @ np.linalg.inv(P_prior_fwd[k+1])
-            ddx = A @ dx
+            ddx = A @ dx_smth
             P_smth[k] = P_fwd[k] + A @ (P_smth[k+1] - P_fwd[k+1]) @ A.T
 
+            # Update total state
             dda = ddx[6:9]
             ddq = (1.0 / np.sqrt(4.0 + dda.T @ dda)) * np.r_[2.0, dda]
             x_smth[k, :3] = x_fwd[k, :3] + ddx[:3]
@@ -115,10 +95,7 @@ class FixedIntervalSmoother:
             if not self._ains._ignore_bias_acc:
                 x_smth[k, 10:13] = x_fwd[k, 10:13] + ddx[9:12]
 
-            dx = dx_fwd[k] + ddx
-            ddx = ddx.copy()
-
-
+            dx_smth = dx_fwd[k] + ddx
 
         self._x_fwd = x_fwd
         self._x = x_smth
