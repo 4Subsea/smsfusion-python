@@ -15,6 +15,7 @@ API reference
    StrapdownINS
    VRU
    gravity
+   quaternion_from_euler
    benchmark.BeatSignal
    benchmark.ChirpSignal
    benchmark.benchmark_full_pva_beat_202311A
