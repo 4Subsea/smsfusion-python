@@ -757,8 +757,7 @@ class Test_AidedINS:
         assert ains._W.shape == (12, 12)
         assert ains._H.shape == (10, 15)
 
-    @pytest.mark.parametrize("ignore_bias_acc", [True, False])
-    def test__init__without_p0_err(self, ignore_bias_acc):
+    def test__init__without_p0_err(self):
         # Test initialization without P0_prior and err_acc/err_gyro
         fs = 10.24
         x0 = np.zeros(16)
@@ -767,34 +766,35 @@ class Test_AidedINS:
         ains = AidedINS(
             fs,
             x0,
-            ignore_bias_acc=ignore_bias_acc,
         )
 
         assert ains._err_acc == ERR_ACC_MOTION2
         assert ains._err_gyro == ERR_GYRO_MOTION2
-        assert ains._ignore_bias_acc is ignore_bias_acc
 
+        np.testing.assert_allclose(ains._P_prior, np.eye(12) * DEFAULT_P0_VALUE)
+        assert ains._P.shape == (12, 12)
+        assert ains._F.shape == (12, 12)
+        assert ains._G.shape == (12, 9)
+        assert ains._W.shape == (9, 9)
+        assert ains._H.shape == (10, 12)
+
+    @pytest.mark.parametrize("ignore_bias_acc", [True, False])
+    def test__init__raises_P0_shape(self, ignore_bias_acc):
+        # Test initialization with invalid P0_prior
+        x0 = np.zeros(16)
+        x0[6] = 1.0
         if ignore_bias_acc:
-            np.testing.assert_allclose(ains._P_prior, np.eye(12) * DEFAULT_P0_VALUE)
-            assert ains._P.shape == (12, 12)
-            assert ains._F.shape == (12, 12)
-            assert ains._G.shape == (12, 9)
-            assert ains._W.shape == (9, 9)
-            assert ains._H.shape == (10, 12)
-
+            P0_prior = np.eye(15) * DEFAULT_P0_VALUE
         else:
-            np.testing.assert_allclose(ains._P_prior, np.eye(15) * DEFAULT_P0_VALUE)
-            assert ains._P.shape == (15, 15)
-            assert ains._F.shape == (15, 15)
-            assert ains._G.shape == (15, 12)
-            assert ains._W.shape == (12, 12)
-            assert ains._H.shape == (10, 15)
+            P0_prior = np.eye(12) * DEFAULT_P0_VALUE
+        with pytest.raises(ValueError):
+            AidedINS(10.24, x0, P0_prior, ignore_bias_acc=ignore_bias_acc)
 
     def test__init__nav_frame(self):
         x0 = np.zeros(16)
         x0[6:10] = (1.0, 0.0, 0.0, 0.0)
 
-        P0_prior = np.eye(12)
+        P0_prior = np.eye(15)
 
         err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
         err_gyro = {

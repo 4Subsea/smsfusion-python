@@ -603,25 +603,27 @@ class AidedINS(INSMixin):
         * Attitude as unit quaternion (4 elements).
         * Accelerometer bias in x, y, z directions (3 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
-    P0_prior : array-like (shape (15, 15) or (12, 12)) or None, default None
+    P0_prior : array-like (shape (12, 12) or (15, 15)), default np.eye(12) * :const:`smsfusion.constants.DEFAULT_P0_VALUE`
         Initial (a priori) estimate of the error covariance matrix, **P**. If not given, a
-        small diagonal matrix (``smsfusion.constants.DEFAULT_P0_VALUE * numpy.eye(15)`` or
-        ``smsfusion.constants.DEFAULT_P0_VALUE * numpy.eye(12)``) will be used.
-        If the accelerometer bias is excluded from the error estimate (see ``ignore_bias_acc``),
-        the covariance matrix should be of shape (12, 12) instead of (15, 15) to reflect the reduced
-        state dimensionality.
+        small diagonal matrix will be used. If the accelerometer bias is excluded from the
+        error estimate (see ``ignore_bias_acc``), the covariance matrix should be of shape
+        (12, 12), otherwise (15, 15).
     err_acc : dict of {str: float}, default :const:`smsfusion.constants.ERR_ACC_MOTION2`
         Dictionary containing accelerometer noise parameters with keys:
 
         * ``N``: White noise power spectral density in (m/s^2)/sqrt(Hz).
         * ``B``: Bias stability in m/s^2.
         * ``tau_cb``: Bias correlation time in seconds.
+
+        Defaults to error characteristics of SMS Motion gen. 2.
     err_gyro : dict of {str: float}, default :const:`smsfusion.constants.ERR_GYRO_MOTION2`
         Dictionary containing gyroscope noise parameters with keys:
 
         * ``N``: White noise power spectral density in (rad/s)/sqrt(Hz).
         * ``B``: Bias stability in rad/s.
         * ``tau_cb``: Bias correlation time in seconds.
+
+        Defaults to error characteristics of SMS Motion gen. 2.
     g : float, default 9.80665
         The gravitational acceleration. Default is 'standard gravity' of 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
@@ -641,7 +643,8 @@ class AidedINS(INSMixin):
         accelerometer bias is unobservable, such as when there is insufficient aiding
         information or minimal dynamic motion, making bias estimation unreliable. Note
         that this will reduce the error-state dimension from 15 to 12, and hence also the
-        error covariance matrix, **P**, from dimension (15, 15) to (12, 12).
+        error covariance matrix, **P**, from dimension (15, 15) to (12, 12). When set to
+        false, the P0_prior argument must have shape (15, 15).
     """
 
     # Permutation matrix for reordering error-state bias terms, such that:
@@ -662,7 +665,7 @@ class AidedINS(INSMixin):
         self,
         fs: float,
         x0_prior: ArrayLike,
-        P0_prior: ArrayLike | None = None,
+        P0_prior: ArrayLike = np.eye(12) * DEFAULT_P0_VALUE,
         err_acc: dict[str, float] = ERR_ACC_MOTION2,
         err_gyro: dict[str, float] = ERR_GYRO_MOTION2,
         g: float = 9.80665,
@@ -688,16 +691,19 @@ class AidedINS(INSMixin):
         # Error state
         self._dx = np.zeros(15)  # always zero, but used in sequential update
 
-        # If not provided, set error covariance matrix, P0_prior
-        if P0_prior is None:
-            if ignore_bias_acc:
-                P0_prior = np.eye(12) * DEFAULT_P0_VALUE
-            else:
-                P0_prior = np.eye(15) * DEFAULT_P0_VALUE
-
         # Initialize Kalman filter
         self._P_prior = np.asarray_chkfinite(P0_prior).copy(order="C")
         self._P = self._P_prior.copy(order="C")
+
+        # Verify error covariance matrix shape
+        if ignore_bias_acc and self._P_prior.shape != (12, 12):
+            raise ValueError(
+                f"P0_prior must be of shape (12, 12) when ignore_bias_acc is set to True. Was {self._P_prior.shape}."
+            )
+        if not ignore_bias_acc and self._P_prior.shape != (15, 15):
+            raise ValueError(
+                f"P0_prior must be of shape (15, 15) when ignore_bias_acc is set to False. Was {self._P_prior.shape}."
+            )
 
         # Prepare system matrices
         q0 = self._ins._q_nm
@@ -1132,12 +1138,16 @@ class VRU(AidedINS):
         * ``N``: White noise power spectral density in (m/s^2)/sqrt(Hz).
         * ``B``: Bias stability in m/s^2.
         * ``tau_cb``: Bias correlation time in seconds.
+
+        Defaults to error characteristics of SMS Motion gen. 2.
     err_gyro : dict of {str: float}, default :const:`smsfusion.constants.ERR_GYRO_MOTION2`
         Dictionary containing gyroscope noise parameters with keys:
 
         * ``N``: White noise power spectral density in (rad/s)/sqrt(Hz).
         * ``B``: Bias stability in rad/s.
         * ``tau_cb``: Bias correlation time in seconds.
+
+        Defaults to error characteristics of SMS Motion gen. 2.
     g : float, default 9.80665
         The gravitational acceleration. Default is 'standard gravity' of 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
@@ -1260,12 +1270,16 @@ class AHRS(AidedINS):
         * ``N``: White noise power spectral density in (m/s^2)/sqrt(Hz).
         * ``B``: Bias stability in m/s^2.
         * ``tau_cb``: Bias correlation time in seconds.
+
+        Defaults to error characteristics of SMS Motion gen. 2.
     err_gyro : dict of {str: float}, default :const:`smsfusion.constants.ERR_GYRO_MOTION2`
         Dictionary containing gyroscope noise parameters with keys:
 
         * ``N``: White noise power spectral density in (rad/s)/sqrt(Hz).
         * ``B``: Bias stability in rad/s.
         * ``tau_cb``: Bias correlation time in seconds.
+
+        Defaults to error characteristics of SMS Motion gen. 2.
     g : float, default 9.80665
         The gravitational acceleration. Default is 'standard gravity' of 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
