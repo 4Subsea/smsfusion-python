@@ -143,12 +143,13 @@ class FixedIntervalSmoothing:
         phi = np.asarray_chkfinite(self._phi)
 
         # Backward sweep
-        dP_prev = np.zeros_like(P[0])
+        dP = np.zeros_like(P[0])
         for k in range(self._n_samples - 2, -1, -1):
 
             A = P[k] @ phi[k + 1].T @ np.linalg.inv(P_prior[k + 1])
             ddx = A @ dx[k + 1]
-            dP = A @ dP_prev @ A.T
+            dx[k] = dx[k] + ddx
+            dP = A @ dP @ A.T
             P[k] = P[k] + dP
 
             dda = ddx[6:9]
@@ -160,9 +161,6 @@ class FixedIntervalSmoothing:
             x[k, -3:] = x[k, -3:] + ddx[-3:]
             if not self._ains._ignore_bias_acc:
                 x[k, 10:13] = x[k, 10:13] + ddx[9:12]
-
-            dx[k] = dx[k] + ddx
-            dP_prev = dP
 
         self._x_smth = x
         self._P_smth = P
