@@ -60,7 +60,6 @@ complete = [
 dependencies = [
   "sphinx",
   "myst-parser",
-  "snowballstemmer<3.0.0"
 ]
 
 [tool.hatch.envs.docs.scripts]

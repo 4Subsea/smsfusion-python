@@ -61,3 +61,8 @@ def test_ERR_GYRO_MOTION2():
 
     for key_i in err_expect:
         assert err_out[key_i] == approx(err_expect[key_i])
+
+
+def test_DEFAULT_P0_VALUE():
+    p0_expect = 1.0e-6
+    assert constants.DEFAULT_P0_VALUE == p0_expect

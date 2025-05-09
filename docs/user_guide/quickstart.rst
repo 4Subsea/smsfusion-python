@@ -129,15 +129,8 @@ velocity and attitude (PVA) of a moving body using the :func:`~smsfusion.AidedIN
     bg0 = np.zeros(3)  # gyroscope bias [rad/s]
     x0 = np.concatenate((p0, v0, q0, ba0, bg0))
 
-    # Initial (a priori) error covariance matrix
-    P0 = np.eye(12) * 1e-3
-
-    # IMU noise characteristics
-    err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
-    err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
-
     # Initialize AINS
-    ains = sf.AidedINS(fs, x0, P0, err_acc, err_gyro)
+    ains = sf.AidedINS(fs, x0)
 
     # Estimate PVA states sequentially using AINS
     pos_est, vel_est, euler_est = [], [], []
@@ -189,15 +182,8 @@ the :func:`~smsfusion.AHRS` class:
     bg0 = np.zeros(3)  # gyroscope bias [rad/s]
     x0 = np.concatenate((p0, v0, q0, ba0, bg0))
 
-    # Initial (a priori) error covariance matrix
-    P0 = np.eye(12) * 1e-3
-
-    # IMU noise characteristics
-    err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
-    err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
-
     # Initialize AHRS
-    ahrs = sf.AHRS(fs, x0, P0, err_acc, err_gyro)
+    ahrs = sf.AHRS(fs, x0)
 
     # Estimate attitude sequentially using AHRS
     euler_est = []
@@ -246,15 +232,8 @@ estimate the roll and pitch degrees of freedom of a moving body using the
     bg0 = np.zeros(3)  # gyroscope bias [rad/s]
     x0 = np.concatenate((p0, v0, q0, ba0, bg0))
 
-    # Initial (a priori) error covariance matrix
-    P0 = np.eye(12) * 1e-3
-
-    # IMU noise characteristics
-    err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
-    err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
-
     # Initialize VRU
-    vru = sf.VRU(fs, x0, P0, err_acc, err_gyro)
+    vru = sf.VRU(fs, x0)
 
     # Estimate roll and pitch sequentially using VRU
     roll_pitch_est = []

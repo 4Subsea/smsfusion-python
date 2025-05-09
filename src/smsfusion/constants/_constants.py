@@ -21,3 +21,5 @@ ERR_GYRO_MOTION2 = {
     "B": 0.00003,  # rad/s
     "tau_cb": 50.0,  # s
 }
+
+DEFAULT_P0_VALUE = 1e-6
