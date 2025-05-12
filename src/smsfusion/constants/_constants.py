@@ -1,3 +1,5 @@
+import numpy as np
+
 ERR_ACC_MOTION1 = {
     "N": 0.004,  # (m/s^2)/sqrt(Hz)
     "B": 0.0007,  # m/s^2
@@ -21,3 +23,5 @@ ERR_GYRO_MOTION2 = {
     "B": 0.00003,  # rad/s
     "tau_cb": 50.0,  # s
 }
+
+P0 = np.eye(12) * 1e-6

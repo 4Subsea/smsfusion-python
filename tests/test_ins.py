@@ -39,6 +39,7 @@ from smsfusion.benchmark import (
     benchmark_full_pva_beat_202311A,
     benchmark_full_pva_chirp_202311A,
 )
+from smsfusion.constants import ERR_ACC_MOTION2, ERR_GYRO_MOTION2, P0
 from smsfusion.noise import IMUNoise, white_noise
 
 
@@ -756,11 +757,44 @@ class Test_AidedINS:
         assert ains._W.shape == (12, 12)
         assert ains._H.shape == (10, 15)
 
+    def test__init__without_p0_err(self):
+        # Test initialization without P0_prior and err_acc/err_gyro
+        fs = 10.24
+        x0 = np.zeros(16)
+        x0[6] = 1.0
+
+        ains = AidedINS(
+            fs,
+            x0,
+        )
+
+        assert ains._err_acc == ERR_ACC_MOTION2
+        assert ains._err_gyro == ERR_GYRO_MOTION2
+
+        np.testing.assert_allclose(ains._P_prior, P0)
+        assert ains._P.shape == (12, 12)
+        assert ains._F.shape == (12, 12)
+        assert ains._G.shape == (12, 9)
+        assert ains._W.shape == (9, 9)
+        assert ains._H.shape == (10, 12)
+
+    @pytest.mark.parametrize("ignore_bias_acc", [True, False])
+    def test__init__raises_P0_shape(self, ignore_bias_acc):
+        # Test initialization with invalid P0_prior
+        x0 = np.zeros(16)
+        x0[6] = 1.0
+        if ignore_bias_acc:
+            P0_prior = np.eye(15) * 1e-6
+        else:
+            P0_prior = P0
+        with pytest.raises(ValueError):
+            AidedINS(10.24, x0, P0_prior, ignore_bias_acc=ignore_bias_acc)
+
     def test__init__nav_frame(self):
         x0 = np.zeros(16)
         x0[6:10] = (1.0, 0.0, 0.0, 0.0)
 
-        P0_prior = np.eye(12)
+        P0_prior = np.eye(15)
 
         err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
         err_gyro = {
@@ -1774,6 +1808,19 @@ class Test_AidedINS:
 
 
 class Test_VRU:
+
+    def test__init__no_p0_err(self):
+        # Tests that default values for p0 and errors are set correctly
+        fs = 10.24
+        x0 = np.zeros(16)
+        x0[6] = 1.0
+
+        ains = VRU(fs, x0)
+
+        assert ains._err_acc == ERR_ACC_MOTION2
+        assert ains._err_gyro == ERR_GYRO_MOTION2
+        np.testing.assert_allclose(ains._P_prior, P0)
+
     def test_update_compare_to_ains(self):
         """Update using aiding variances in update method."""
         fs = 10.24
@@ -1906,6 +1953,18 @@ class Test_VRU:
 
 
 class Test_AHRS:
+    def test__init__no_p0_err(self):
+        # Tests that default values for p0 and errors are set correctly
+        fs = 10.24
+        x0 = np.zeros(16)
+        x0[6] = 1.0
+
+        ains = AHRS(fs, x0)
+
+        assert ains._err_acc == ERR_ACC_MOTION2
+        assert ains._err_gyro == ERR_GYRO_MOTION2
+        np.testing.assert_allclose(ains._P_prior, P0)
+
     def test_update_compare_to_ains(self):
         """Update using aiding variances in update method."""
         fs = 10.24
