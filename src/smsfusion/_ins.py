@@ -6,7 +6,7 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from smsfusion.constants import DEFAULT_P0_VALUE, ERR_ACC_MOTION2, ERR_GYRO_MOTION2
+from smsfusion.constants import ERR_ACC_MOTION2, ERR_GYRO_MOTION2, P0
 
 from ._transforms import (
     _angular_matrix_from_quaternion,
@@ -603,7 +603,7 @@ class AidedINS(INSMixin):
         * Attitude as unit quaternion (4 elements).
         * Accelerometer bias in x, y, z directions (3 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
-    P0_prior : array-like (shape (12, 12) or (15, 15)), default np.eye(12) * :const:`smsfusion.constants.DEFAULT_P0_VALUE`
+    P0_prior : array-like (shape (12, 12) or (15, 15)), default np.eye(12) * 1e-6 (:const:`smsfusion.constants.P0`)
         Initial (a priori) estimate of the error covariance matrix, **P**. If not given, a
         small diagonal matrix will be used. If the accelerometer bias is excluded from the
         error estimate (see ``ignore_bias_acc``), the covariance matrix should be of shape
@@ -665,7 +665,7 @@ class AidedINS(INSMixin):
         self,
         fs: float,
         x0_prior: ArrayLike,
-        P0_prior: ArrayLike = np.eye(12) * DEFAULT_P0_VALUE,
+        P0_prior: ArrayLike = P0,
         err_acc: dict[str, float] = ERR_ACC_MOTION2,
         err_gyro: dict[str, float] = ERR_GYRO_MOTION2,
         g: float = 9.80665,
@@ -1130,7 +1130,7 @@ class VRU(AidedINS):
         * Attitude as unit quaternion (4 elements).
         * Accelerometer bias in x, y, z directions (3 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
-    P0_prior : array-like, shape (12, 12), default np.eye(12) * :const:`smsfusion.constants.DEFAULT_P0_VALUE`
+    P0_prior : array-like, shape (12, 12), default np.eye(12) * 1e-6 (:const:`smsfusion.constants.P0`)
         Initial (a priori) estimate of the error covariance matrix, **P**.
     err_acc : dict of {str: float}, default :const:`smsfusion.constants.ERR_ACC_MOTION2`
         Dictionary containing accelerometer noise parameters with keys:
@@ -1163,7 +1163,7 @@ class VRU(AidedINS):
         self,
         fs: float,
         x0_prior: ArrayLike,
-        P0_prior: ArrayLike = np.eye(12) * DEFAULT_P0_VALUE,
+        P0_prior: ArrayLike = P0,
         err_acc: dict[str, float] = ERR_ACC_MOTION2,
         err_gyro: dict[str, float] = ERR_GYRO_MOTION2,
         g: float = 9.80665,
@@ -1262,7 +1262,7 @@ class AHRS(AidedINS):
         * Attitude as unit quaternion (4 elements).
         * Accelerometer bias in x, y, z directions (3 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
-    P0_prior : array-like, shape (12, 12), default np.eye(12) * :const:`smsfusion.constants.DEFAULT_P0_VALUE`
+    P0_prior : array-like, shape (12, 12), default np.eye(12) * 1e-6 (:const:`smsfusion.constants.P0`)
         Initial (a priori) estimate of the error covariance matrix, **P**.
     err_acc : dict of {str: float}, default :const:`smsfusion.constants.ERR_ACC_MOTION2`
         Dictionary containing accelerometer noise parameters with keys:
@@ -1295,7 +1295,7 @@ class AHRS(AidedINS):
         self,
         fs: float,
         x0_prior: ArrayLike,
-        P0_prior: ArrayLike = np.eye(12) * DEFAULT_P0_VALUE,
+        P0_prior: ArrayLike = P0,
         err_acc: dict[str, float] = ERR_ACC_MOTION2,
         err_gyro: dict[str, float] = ERR_GYRO_MOTION2,
         g: float = 9.80665,

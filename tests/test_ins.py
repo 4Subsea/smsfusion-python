@@ -39,7 +39,7 @@ from smsfusion.benchmark import (
     benchmark_full_pva_beat_202311A,
     benchmark_full_pva_chirp_202311A,
 )
-from smsfusion.constants import DEFAULT_P0_VALUE, ERR_ACC_MOTION2, ERR_GYRO_MOTION2
+from smsfusion.constants import ERR_ACC_MOTION2, ERR_GYRO_MOTION2, P0
 from smsfusion.noise import IMUNoise, white_noise
 
 
@@ -771,7 +771,7 @@ class Test_AidedINS:
         assert ains._err_acc == ERR_ACC_MOTION2
         assert ains._err_gyro == ERR_GYRO_MOTION2
 
-        np.testing.assert_allclose(ains._P_prior, np.eye(12) * DEFAULT_P0_VALUE)
+        np.testing.assert_allclose(ains._P_prior, P0)
         assert ains._P.shape == (12, 12)
         assert ains._F.shape == (12, 12)
         assert ains._G.shape == (12, 9)
@@ -784,9 +784,9 @@ class Test_AidedINS:
         x0 = np.zeros(16)
         x0[6] = 1.0
         if ignore_bias_acc:
-            P0_prior = np.eye(15) * DEFAULT_P0_VALUE
+            P0_prior = np.eye(15) * 1e-6
         else:
-            P0_prior = np.eye(12) * DEFAULT_P0_VALUE
+            P0_prior = P0
         with pytest.raises(ValueError):
             AidedINS(10.24, x0, P0_prior, ignore_bias_acc=ignore_bias_acc)
 
@@ -1819,7 +1819,7 @@ class Test_VRU:
 
         assert ains._err_acc == ERR_ACC_MOTION2
         assert ains._err_gyro == ERR_GYRO_MOTION2
-        np.testing.assert_allclose(ains._P_prior, np.eye(12) * DEFAULT_P0_VALUE)
+        np.testing.assert_allclose(ains._P_prior, P0)
 
     def test_update_compare_to_ains(self):
         """Update using aiding variances in update method."""
@@ -1963,7 +1963,7 @@ class Test_AHRS:
 
         assert ains._err_acc == ERR_ACC_MOTION2
         assert ains._err_gyro == ERR_GYRO_MOTION2
-        np.testing.assert_allclose(ains._P_prior, np.eye(12) * DEFAULT_P0_VALUE)
+        np.testing.assert_allclose(ains._P_prior, P0)
 
     def test_update_compare_to_ains(self):
         """Update using aiding variances in update method."""
