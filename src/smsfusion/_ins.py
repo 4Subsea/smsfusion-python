@@ -644,7 +644,7 @@ class AidedINS(INSMixin):
         information or minimal dynamic motion, making bias estimation unreliable. Note
         that this will reduce the error-state dimension from 15 to 12, and hence also the
         error covariance matrix, **P**, from dimension (15, 15) to (12, 12). When set to
-        false, the P0_prior argument must have shape (15, 15).
+        ``False``, the P0_prior argument must have shape (15, 15).
     """
 
     # Permutation matrix for reordering error-state bias terms, such that:
