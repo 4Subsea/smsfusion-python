@@ -198,7 +198,7 @@ def backward_sweep(
     ignore_bias_acc = dx.shape[1] == 15
 
     # Backward sweep
-    dP = np.zeros_like(P[0])
+    dP = P[-1, :, :] - P_prior[-1, :, :]
     for k in range(len(x) - 2, -1, -1):
 
         A = P[k] @ phi[k].T @ np.linalg.inv(P_prior[k + 1])
