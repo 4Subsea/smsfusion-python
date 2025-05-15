@@ -195,6 +195,12 @@ def backward_sweep(
         The smoothed state vector and covariance matrix.
     """
 
+    x = np.asarray_chkfinite(x).copy()
+    dx = np.asarray_chkfinite(dx).copy()
+    P = np.asarray_chkfinite(P).copy()
+    P_prior = np.asarray_chkfinite(P_prior).copy()
+    phi = np.asarray_chkfinite(phi).copy()
+
     ignore_bias_acc = dx.shape[1] == 15
 
     # Backward sweep
@@ -202,8 +208,8 @@ def backward_sweep(
 
         A = P[k] @ phi[k].T @ np.linalg.inv(P_prior[k + 1])
         ddx = A @ dx[k + 1]
-        dx[k] = dx[k] + ddx
-        P[k] = P[k] + A @ (P[k+1] - P_prior[k+1]) @ A.T
+        dx[k, :] += ddx
+        P[k, :, :] += A @ (P[k+1] - P_prior[k+1]) @ A.T
 
         dda = ddx[6:9]
         ddq = (1.0 / np.sqrt(4.0 + dda.T @ dda)) * np.r_[2.0, dda]
