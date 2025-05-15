@@ -1,7 +1,31 @@
+from warnings import warn
+
 import numpy as np
 from numpy.typing import NDArray
 
 from ._vectorops import _normalize, _quaternion_product
+
+
+class FixedIntervalSmoother:
+    def __init__(self, ains):
+        warn(
+            "FixedIntervalSmoother is experimental and may change or be removed in the future.",
+            UserWarning,
+        )
+        self._ains = ains
+        self._x, self._dx, self._P, self._P_prior, self._phi = [], [], [], [], []
+
+    def update(self, *args, **kwargs):
+        self._P_prior.append(self._ains.P_prior)
+        self._ains.update(*args, **kwargs)
+        self._x.append(self._ains.x)
+        self._dx.append(self._ains._dx_fwd)
+        self._P.append(self._ains.P)
+        self._phi.append(self._ains._phi_fwd)
+
+    def smooth(self):
+        x, P = backward_sweep(self._x, self._dx, self._P, self._P_prior, self._phi)
+        return x, P
 
 
 def backward_sweep(
