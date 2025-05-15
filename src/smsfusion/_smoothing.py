@@ -29,8 +29,20 @@ class FixedIntervalSmoother:
         self._phi.clear()
 
     def smooth(self):
-        x, P = backward_sweep(self._x, self._dx, self._P, self._P_prior, self._phi)
-        return x, P
+        x = np.asarray_chkfinite(self._x).copy()
+        dx = np.asarray_chkfinite(self._dx).copy()
+        P = np.asarray_chkfinite(self._P).copy()
+        P_prior = np.asarray_chkfinite(self._P_prior).copy()
+        phi = np.asarray_chkfinite(self._phi).copy()
+        self._x, self._P = backward_sweep(x, dx, P, P_prior, phi)
+
+    @property
+    def x(self):
+        return np.asarray_chkfinite(self._x).copy()
+    
+    @property
+    def P(self):
+        return np.asarray_chkfinite(self._P).copy()
 
 
 def backward_sweep(
@@ -61,12 +73,6 @@ def backward_sweep(
     tuple[NDArray, NDArray]
         The smoothed state vector and covariance matrix.
     """
-
-    x = np.asarray_chkfinite(x).copy()
-    dx = np.asarray_chkfinite(dx).copy()
-    P = np.asarray_chkfinite(P).copy()
-    P_prior = np.asarray_chkfinite(P_prior).copy()
-    phi = np.asarray_chkfinite(phi).copy()
 
     ignore_bias_acc = dx.shape[1] == 15
 
