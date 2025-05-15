@@ -15,8 +15,7 @@ class FixedIntervalSmoother:
     References
     ----------
     [1] R. G. Brown and P. Y. C. Hwang, "Random signals and applied Kalman
-        filtering with MATLAB exercises", 4th ed. New York: Wiley, pp. 208-212,
-        2012.
+        filtering with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
     """
 
     def __init__(self):
@@ -50,8 +49,7 @@ class FixedIntervalSmoother:
         References
         ----------
         [1] R. G. Brown and P. Y. C. Hwang, "Random signals and applied Kalman
-            filtering with MATLAB exercises", 4th ed. New York: Wiley, pp. 208-212,
-            2012.
+            filtering with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
         """
         self._x, self._P = self._backward_sweep(
             self._x, self._dx, self._P, self._P_prior, self._phi
