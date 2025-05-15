@@ -101,8 +101,6 @@ class FixedIntervalSmoother:
         P_prior = np.asarray_chkfinite(P_prior).copy()
         phi = np.asarray_chkfinite(phi).copy()
 
-        ignore_bias_acc = dx.shape[1] == 15
-
         # Backward sweep
         for k in range(len(x) - 2, -1, -1):
 
@@ -118,7 +116,7 @@ class FixedIntervalSmoother:
             x[k, 6:10] = _quaternion_product(x[k, 6:10], ddq)
             x[k, 6:10] = _normalize(x[k, 6:10])
             x[k, -3:] = x[k, -3:] + ddx[-3:]
-            if not ignore_bias_acc:
+            if dx.shape[1] == 15:
                 x[k, 10:13] = x[k, 10:13] + ddx[9:12]
 
         return x, P
