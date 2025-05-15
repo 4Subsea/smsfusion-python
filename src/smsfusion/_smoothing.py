@@ -201,7 +201,7 @@ def backward_sweep(
     dP = np.zeros_like(P[0])
     for k in range(len(x) - 2, -1, -1):
 
-        A = P[k] @ phi[k + 1].T @ np.linalg.inv(P_prior[k + 1])
+        A = P[k] @ phi[k].T @ np.linalg.inv(P_prior[k + 1])
         ddx = A @ dx[k + 1]
         dx[k] = dx[k] + ddx
         dP = A @ dP @ A.T
