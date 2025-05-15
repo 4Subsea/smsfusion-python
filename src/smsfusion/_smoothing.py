@@ -174,19 +174,19 @@ def backward_sweep(
     phi: NDArray,
 ) -> tuple[NDArray, NDArray]:
     """
-    Perform a backward sweep using the RTS algorithm for fixed-interval smoothing.
+    Perform a fixed-interval smoothing backward sweep using the RTS algorithm.
 
     Parameters
     ----------
-    x : NDArray
+    x : NDArray, shape (n_samples, 16)
         The state vector.
-    dx : NDArray
+    dx : NDArray, shape (n_samples, 15) or (n_samples, 12)
         The error state vector.
-    P : NDArray
+    P : NDArray, shape (n_samples, 15, 15) or (n_samples, 12, 12)
         The covariance matrix.
-    P_prior : NDArray
+    P_prior : NDArray, shape (n_samples, 15, 15) or (n_samples, 12, 12)
         The a priori covariance matrix.
-    phi : NDArray
+    phi : NDArray, shape (n_samples, 15, 15) or (n_samples, 12, 12)
         The state transition matrix.
 
     Returns
