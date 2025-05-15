@@ -708,6 +708,11 @@ class AidedINS(INSMixin):
             self._I = self._I[:dx_dim, :dx_dim]
             self._dx = self._dx[:dx_dim]
 
+        # Smoothing variables
+        self._P_prior_smth = np.empty_like(self._P_prior, dtype=np.float64)
+        self._phi_smth = np.empty_like(self._F, dtype=np.float64)
+        self._dx_smth = np.empty_like(self._dx, dtype=np.float64)
+
     @property
     def x_prior(self) -> NDArray[np.float64]:
         """
@@ -1005,8 +1010,6 @@ class AidedINS(INSMixin):
         P = self._P_prior
         I_ = self._I
 
-        self._P_prior_fwd = self._P_prior.copy()
-
         # Bias compensated IMU measurements
         f_ins = f_imu - bias_acc_ins
         w_ins = w_imu - bias_gyro_ins
@@ -1066,17 +1069,18 @@ class AidedINS(INSMixin):
             H_head = self._update_H_head(q_ins_nm)
             dx, P = self._update_dx_P(dx, P, dz_head, head_var_, H_head, I_)
 
-        self._dx_fwd = dx.copy()
-
-        if dx.any():
-            # Reset INS state
-            self._reset_ins(dx.ravel())
-
         # Discretize system
         phi = I_ + dt * F  # state transition matrix
         Q = dt * G @ W @ G.T  # process noise covariance matrix
 
-        self._phi_fwd = phi.copy()
+        # Update variables needed for smoothing
+        self._P_prior_smth[:] = self._P_prior.copy()
+        self._phi_smth[:] = phi.copy()
+        self._dx_smth[:] = dx.copy()
+
+        # Reset INS state
+        if dx.any():
+            self._reset_ins(dx.ravel())
 
         # Update current state
         self._x[:] = self._ins._x

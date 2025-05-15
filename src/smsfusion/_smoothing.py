@@ -7,21 +7,26 @@ from ._vectorops import _normalize, _quaternion_product
 
 
 class FixedIntervalSmoother:
-    def __init__(self, ains):
+    def __init__(self):
         warn(
             "FixedIntervalSmoother is experimental and may change or be removed in the future.",
             UserWarning,
         )
-        self._ains = ains
         self._x, self._dx, self._P, self._P_prior, self._phi = [], [], [], [], []
 
-    def update(self, *args, **kwargs):
-        self._P_prior.append(self._ains.P_prior)
-        self._ains.update(*args, **kwargs)
-        self._x.append(self._ains.x)
-        self._dx.append(self._ains._dx_fwd)
-        self._P.append(self._ains.P)
-        self._phi.append(self._ains._phi_fwd)
+    def append(self, ains):
+        self._x.append(ains.x)
+        self._P.append(ains.P)
+        self._dx.append(ains._dx_smth.copy())
+        self._P_prior.append(ains._P_prior_smth.copy())
+        self._phi.append(ains._phi_smth.copy())
+
+    def clear(self):
+        self._x.clear()
+        self._dx.clear()
+        self._P.clear()
+        self._P_prior.clear()
+        self._phi.clear()
 
     def smooth(self):
         x, P = backward_sweep(self._x, self._dx, self._P, self._P_prior, self._phi)
