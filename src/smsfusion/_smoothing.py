@@ -8,6 +8,17 @@ from ._vectorops import _normalize, _quaternion_product
 
 
 class FixedIntervalSmoother:
+    """
+    Fixed-interval smoothing for AidedINS based on the RTS algorithm (see [1] for
+    details).
+
+    References
+    ----------
+    [1] R. G. Brown and P. Y. C. Hwang, "Random signals and applied Kalman
+        filtering with MATLAB exercises", 4th ed. New York: Wiley, pp. 208-212,
+        2012.
+    """
+
     def __init__(self):
         warn(
             "FixedIntervalSmoother is experimental and may change or be removed in the future.",
@@ -32,6 +43,16 @@ class FixedIntervalSmoother:
         self._phi.clear()
 
     def smooth(self):
+        """
+        Smooths the state estimates and error covariances using a backward sweep
+        with the RTS algorithm (see [1] for details).
+
+        References
+        ----------
+        [1] R. G. Brown and P. Y. C. Hwang, "Random signals and applied Kalman
+            filtering with MATLAB exercises", 4th ed. New York: Wiley, pp. 208-212,
+            2012.
+        """
         self._x, self._P = self._backward_sweep(
             self._x, self._dx, self._P, self._P_prior, self._phi
         )
