@@ -198,14 +198,12 @@ def backward_sweep(
     ignore_bias_acc = dx.shape[1] == 15
 
     # Backward sweep
-    dP = P[-1, :, :] - P_prior[-1, :, :]
     for k in range(len(x) - 2, -1, -1):
 
         A = P[k] @ phi[k].T @ np.linalg.inv(P_prior[k + 1])
         ddx = A @ dx[k + 1]
         dx[k] = dx[k] + ddx
-        dP = A @ dP @ A.T
-        P[k] = P[k] + dP
+        P[k] = P[k] + A @ (P[k+1] - P_prior[k+1]) @ A.T
 
         dda = ddx[6:9]
         ddq = (1.0 / np.sqrt(4.0 + dda.T @ dda)) * np.r_[2.0, dda]
