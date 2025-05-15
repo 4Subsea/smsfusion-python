@@ -26,6 +26,9 @@ class FixedIntervalSmoother:
         self._x, self._dx, self._P, self._P_prior, self._phi = [], [], [], [], []
 
     def append(self, ains):
+        """
+        Append current AidedINS state and covariance estimates.
+        """
         if not isinstance(ains, AidedINS):
             raise TypeError(f"Expected AidedINS instance, got {type(ains).__name__}")
         self._x.append(ains.x)
@@ -35,6 +38,9 @@ class FixedIntervalSmoother:
         self._phi.append(ains._phi_smth.copy())
 
     def clear(self):
+        """
+        Clear the stored states and covariances.
+        """
         self._x.clear()
         self._dx.clear()
         self._P.clear()
@@ -43,8 +49,8 @@ class FixedIntervalSmoother:
 
     def smooth(self):
         """
-        Smooths the state estimates and error covariances using a backward sweep
-        with the RTS algorithm (see [1] for details).
+        Smooths the AINS state and error covariance estimates using a backward
+        sweep with the RTS algorithm (see [1] for details).
 
         References
         ----------
@@ -57,10 +63,16 @@ class FixedIntervalSmoother:
 
     @property
     def x(self):
+        """
+        State.
+        """
         return np.asarray_chkfinite(self._x).copy()
 
     @property
     def P(self):
+        """
+        Error covariance.
+        """
         return np.asarray_chkfinite(self._P).copy()
 
     @staticmethod
