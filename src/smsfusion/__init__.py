@@ -1,6 +1,6 @@
 from . import benchmark, calibrate, constants, noise
 from ._ins import AHRS, VRU, AidedINS, FixedNED, StrapdownINS, gravity
-from ._smoothing import backward_sweep, FixedIntervalSmoother
+from ._smoothing import FixedIntervalSmoother, backward_sweep
 
 __all__ = [
     "AHRS",
