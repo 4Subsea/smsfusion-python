@@ -281,9 +281,7 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _quaternion_from_euler(
-    euler: NDArray[np.float64]
-) -> NDArray[np.float64]:
+def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the unit quaternion (representing transformation from-body-to-origin)
     from Euler angles using the ZYX convention.
@@ -357,7 +355,7 @@ def quaternion_from_euler(euler: ArrayLike, degrees=False):
     -----
     The returned unit quaternion represents the transformation from the
     'body' frame to the 'navigation' frame.
-    
+
     However, the Euler angles describe how to transition from the 'navigation' frame
     ('NED' or 'ENU) to the 'body' frame through three consecutive intrinsic
     and passive rotations in the ZYX order:
@@ -377,7 +375,7 @@ def quaternion_from_euler(euler: ArrayLike, degrees=False):
     within the frame.
     """
 
-    euler_ = np.asarray_chkfinite(euler) # , dtype=np.float64)
+    euler_ = np.asarray_chkfinite(euler)  # , dtype=np.float64)
 
     if degrees:
         euler_ = (np.pi / 180.0) * euler_
