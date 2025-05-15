@@ -115,52 +115,106 @@ from ._vectorops import _normalize, _quaternion_product
 #         self._P = P
 
 
-class FixedIntervalSmoothing:
-    def __init__(self, ains):
-        self._ains = ains
-        self._n_samples = 0
-        self._x = []
-        self._dx = []
-        self._P = []
-        self._P_prior = []
-        self._phi = []
+# class FixedIntervalSmoothing:
+#     def __init__(self, ains):
+#         self._ains = ains
+#         self._n_samples = 0
+#         self._x = []
+#         self._dx = []
+#         self._P = []
+#         self._P_prior = []
+#         self._phi = []
 
-    def update(self, *args, **kwargs):
-        self._ains.update(*args, **kwargs)
-        self._n_samples += 1
-        self._x.append(self._ains.x)
-        self._dx.append(self._ains._dx_fwd)
-        self._P.append(self._ains.P)
-        self._P_prior.append(self._ains._P_prior_fwd)
-        self._phi.append(self._ains._phi_fwd)
+#     def update(self, *args, **kwargs):
+#         self._ains.update(*args, **kwargs)
+#         self._n_samples += 1
+#         self._x.append(self._ains.x)
+#         self._dx.append(self._ains._dx_fwd)
+#         self._P.append(self._ains.P)
+#         self._P_prior.append(self._ains._P_prior_fwd)
+#         self._phi.append(self._ains._phi_fwd)
 
-    def backward_sweep(self):
+#     def backward_sweep(self):
 
-        x = np.asarray_chkfinite(self._x)
-        dx = np.asarray_chkfinite(self._dx)
-        P = np.asarray_chkfinite(self._P)
-        P_prior = np.asarray_chkfinite(self._P_prior)
-        phi = np.asarray_chkfinite(self._phi)
+#         x = np.asarray_chkfinite(self._x)
+#         dx = np.asarray_chkfinite(self._dx)
+#         P = np.asarray_chkfinite(self._P)
+#         P_prior = np.asarray_chkfinite(self._P_prior)
+#         phi = np.asarray_chkfinite(self._phi)
 
-        # Backward sweep
-        dP = np.zeros_like(P[0])
-        for k in range(self._n_samples - 2, -1, -1):
+#         # Backward sweep
+#         dP = np.zeros_like(P[0])
+#         for k in range(self._n_samples - 2, -1, -1):
 
-            A = P[k] @ phi[k + 1].T @ np.linalg.inv(P_prior[k + 1])
-            ddx = A @ dx[k + 1]
-            dx[k] = dx[k] + ddx
-            dP = A @ dP @ A.T
-            P[k] = P[k] + dP
+#             A = P[k] @ phi[k + 1].T @ np.linalg.inv(P_prior[k + 1])
+#             ddx = A @ dx[k + 1]
+#             dx[k] = dx[k] + ddx
+#             dP = A @ dP @ A.T
+#             P[k] = P[k] + dP
 
-            dda = ddx[6:9]
-            ddq = (1.0 / np.sqrt(4.0 + dda.T @ dda)) * np.r_[2.0, dda]
-            x[k, :3] = x[k, :3] + ddx[:3]
-            x[k, 3:6] = x[k, 3:6] + ddx[3:6]
-            x[k, 6:10] = _quaternion_product(x[k, 6:10], ddq)
-            x[k, 6:10] = _normalize(x[k, 6:10])
-            x[k, -3:] = x[k, -3:] + ddx[-3:]
-            if not self._ains._ignore_bias_acc:
-                x[k, 10:13] = x[k, 10:13] + ddx[9:12]
+#             dda = ddx[6:9]
+#             ddq = (1.0 / np.sqrt(4.0 + dda.T @ dda)) * np.r_[2.0, dda]
+#             x[k, :3] = x[k, :3] + ddx[:3]
+#             x[k, 3:6] = x[k, 3:6] + ddx[3:6]
+#             x[k, 6:10] = _quaternion_product(x[k, 6:10], ddq)
+#             x[k, 6:10] = _normalize(x[k, 6:10])
+#             x[k, -3:] = x[k, -3:] + ddx[-3:]
+#             if not self._ains._ignore_bias_acc:
+#                 x[k, 10:13] = x[k, 10:13] + ddx[9:12]
 
-        self._x_smth = x
-        self._P_smth = P
+#         self._x_smth = x
+#         self._P_smth = P
+
+
+def backward_sweep(
+    x: NDArray,
+    dx: NDArray,
+    P: NDArray,
+    P_prior: NDArray,
+    phi: NDArray,
+) -> tuple[NDArray, NDArray]:
+    """
+    Perform a backward sweep using the RTS algorithm for fixed-interval smoothing.
+
+    Parameters
+    ----------
+    x : NDArray
+        The state vector.
+    dx : NDArray
+        The error state vector.
+    P : NDArray
+        The covariance matrix.
+    P_prior : NDArray
+        The a priori covariance matrix.
+    phi : NDArray
+        The state transition matrix.
+
+    Returns
+    -------
+    tuple[NDArray, NDArray]
+        The smoothed state vector and covariance matrix.
+    """
+
+    ignore_bias_acc = dx.shape[1] == 15
+
+    # Backward sweep
+    dP = np.zeros_like(P[0])
+    for k in range(len(x) - 2, -1, -1):
+
+        A = P[k] @ phi[k + 1].T @ np.linalg.inv(P_prior[k + 1])
+        ddx = A @ dx[k + 1]
+        dx[k] = dx[k] + ddx
+        dP = A @ dP @ A.T
+        P[k] = P[k] + dP
+
+        dda = ddx[6:9]
+        ddq = (1.0 / np.sqrt(4.0 + dda.T @ dda)) * np.r_[2.0, dda]
+        x[k, :3] = x[k, :3] + ddx[:3]
+        x[k, 3:6] = x[k, 3:6] + ddx[3:6]
+        x[k, 6:10] = _quaternion_product(x[k, 6:10], ddq)
+        x[k, 6:10] = _normalize(x[k, 6:10])
+        x[k, -3:] = x[k, -3:] + ddx[-3:]
+        if not ignore_bias_acc:
+            x[k, 10:13] = x[k, 10:13] + ddx[9:12]
+
+    return x, P
