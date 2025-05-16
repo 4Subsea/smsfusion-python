@@ -21,8 +21,8 @@ class FixedIntervalSmoother:
     to copy the current states and covariances into the smoother's internal buffer.
 
     Once all time steps have been appended, call `smooth()` to run fixed-interval
-    smoothing. The smoothed state and covariance estimates are then available through
-    the `x` and `P` attributes.
+    smoothing. The smoothed state and error covariance estimates are then available
+    through the `x` and `P` attributes.
 
     References
     ----------
@@ -73,8 +73,15 @@ class FixedIntervalSmoother:
 
     def smooth(self):
         """
-        Smooths the AINS state and error covariance estimates using a backward
-        sweep with the RTS algorithm (see [1] for details).
+        Perform fixed-interval smoothing of the AINS state and error covariance
+        estimates using a backward sweep with the Rauch-Tung-Striebel (RTS) algorithm
+        (see [1] for details).
+
+        This method processes the internal buffer of forward-pass estimates that were
+        collected using `append()` and refines them by incorporating future information.
+
+        The smoothed state and error covariance estimates can then be accessed
+        through the `x` and `P` attributes.
 
         References
         ----------
@@ -90,6 +97,9 @@ class FixedIntervalSmoother:
         """
         State estimates.
 
+        Note that the `smooth()` method must be called before these state estimates
+        are smoothed.
+
         Returns
         -------
         np.ndarray, shape (N, 15) or (N, 12)
@@ -101,6 +111,9 @@ class FixedIntervalSmoother:
     def P(self):
         """
         Error covariances.
+
+        Note that the `smooth()` method must be called before these error covariance
+        estimates are smoothed.
 
         Returns
         -------
