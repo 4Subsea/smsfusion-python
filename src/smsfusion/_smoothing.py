@@ -117,7 +117,7 @@ class FixedIntervalSmoother:
             State estimates for each of the N appended time steps.
         """
         if len(self._x) != len(self._x_buf):
-            raise RuntimeError(
+            raise ValueError(
                 "Smoothing has not been performed on the appended data. "
                 "Call `smooth()` before accessing `x`."
             )
@@ -136,7 +136,7 @@ class FixedIntervalSmoother:
             Error covariances for each of the N appended time steps.
         """
         if len(self._x) != len(self._x_buf):
-            raise RuntimeError(
+            raise ValueError(
                 "Smoothing has not been performed on the appended data. "
                 "Call `smooth()` before accessing `P`."
             )
