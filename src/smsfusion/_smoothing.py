@@ -61,7 +61,9 @@ class FixedIntervalSmoother:
 
     def clear(self):
         """
-        Clear the stored states and covariances.
+        Clear the internal buffer of stored AINS states and covariances.
+
+        Resets the smoother so it is ready for smoothing a new interval of data.
         """
         self._x.clear()
         self._dx.clear()
