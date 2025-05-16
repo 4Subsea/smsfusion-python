@@ -439,6 +439,14 @@ class IMUNoise:
 
         imu_noise = IMUNoise(err_acc, err_gyro)
 
+    Dictionaries with noise parameters for the SMS Motion 2 sensor are provided
+    in the :mod:`smsfusion.constants` module.
+
+    - :const:`smsfusion.constants.ERR_ACC_MOTION2`
+    - :const:`smsfusion.constants.ERR_GYRO_MOTION2`
+
+    The values represent accelerometer noise in m/s^2 and gyroscope noise in rad/s.
+
     See Also
     --------
     smsfusion.constants.ERR_ACC_MOTION1
