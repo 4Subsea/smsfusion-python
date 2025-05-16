@@ -337,14 +337,14 @@ def quaternion_from_euler(euler: ArrayLike, degrees=False):
     Parameters
     ----------
     euler : numpy.ndarray, shape (3,)
-        Vector of Euler angles in radians (ZYX convention). Contains the following
-        three Euler angles in order:
+        Vector of Euler angles (ZYX convention). Contains the following three Euler
+        angles in order:
 
             - Roll (alpha): Rotation about the x-axis.
             - Pitch (beta): Rotation about the y-axis.
             - Yaw (gamma): Rotation about the z-axis.
     degrees : bool, default False
-        Whether provided Euler angles are in degrees or radians.
+        Whether the provided Euler angles are in degrees or radians (default).
 
     Return
     ------
