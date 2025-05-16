@@ -27,7 +27,17 @@ class FixedIntervalSmoother:
 
     def append(self, ains):
         """
-        Append current AidedINS state and covariance estimates.
+        Copy the current states of the given AINS instance and store it in the
+        smoother's buffer for later smoothing.
+
+        Should be called once per time step; i.e., after every update of the AINS
+        instance.
+
+        Parameters
+        ----------
+        ains : AidedINS or AHRS or VRU
+            The AidedINS instance to extract the current states and covariance
+            matrices from. These are stored in the smoother's buffer for later smoothing.
         """
         if not isinstance(ains, AidedINS):
             raise TypeError(f"Expected AidedINS instance, got {type(ains).__name__}")
