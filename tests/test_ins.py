@@ -31,8 +31,8 @@ from smsfusion._ins import (
 )
 from smsfusion._transforms import (
     _angular_matrix_from_quaternion,
-    _quaternion_from_euler,
     _rot_matrix_from_quaternion,
+    quaternion_from_euler,
 )
 from smsfusion._vectorops import _normalize, _quaternion_product, _skew_symmetric
 from smsfusion.benchmark import (
@@ -1735,7 +1735,7 @@ class Test_AidedINS:
         x0 = np.zeros(16)
         x0[0:3] = pos_ref[0]
         x0[3:6] = vel_ref[0]
-        x0[6:10] = _quaternion_from_euler(np.radians(euler_ref[0].flatten()))
+        x0[6:10] = quaternion_from_euler(np.radians(euler_ref[0].flatten()))
         mekf = AidedINS(fs_imu, x0, P0_prior, err_acc, err_gyro, ignore_bias_acc=True)
 
         # Apply filter

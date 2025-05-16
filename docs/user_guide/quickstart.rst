@@ -118,13 +118,12 @@ velocity and attitude (PVA) of a moving body using the :func:`~smsfusion.AidedIN
 
     import numpy as np
     import smsfusion as sf
-    from smsfusion._transforms import _quaternion_from_euler
 
 
     # Initial (a priori) state
     p0 = pos[0]  # position [m]
     v0 = vel[0]  # velocity [m/s]
-    q0 = _quaternion_from_euler(euler[0])  # attitude as unit quaternion
+    q0 = sf.quaternion_from_euler(euler[0], degrees=False)  # attitude as unit quaternion
     ba0 = np.zeros(3)  # accelerometer bias [m/s^2]
     bg0 = np.zeros(3)  # gyroscope bias [rad/s]
     x0 = np.concatenate((p0, v0, q0, ba0, bg0))
@@ -171,13 +170,12 @@ the :func:`~smsfusion.AHRS` class:
 
     import numpy as np
     import smsfusion as sf
-    from smsfusion._transforms import _quaternion_from_euler
 
 
     # Initial (a priori) state
     p0 = np.zeros(3)  # position [m]
     v0 = np.zeros(3)  # velocity [m/s]
-    q0 = _quaternion_from_euler(euler[0])  # attitude as unit quaternion
+    q0 = sf.quaternion_from_euler(euler[0], degrees=False)  # attitude as unit quaternion
     ba0 = np.zeros(3)  # accelerometer bias [m/s^2]
     bg0 = np.zeros(3)  # gyroscope bias [rad/s]
     x0 = np.concatenate((p0, v0, q0, ba0, bg0))
@@ -221,13 +219,12 @@ estimate the roll and pitch degrees of freedom of a moving body using the
 
     import numpy as np
     import smsfusion as sf
-    from smsfusion._transforms import _quaternion_from_euler
 
 
     # Initial (a priori) state
     p0 = np.zeros(3)  # position [m]
     v0 = np.zeros(3)  # velocity [m/s]
-    q0 = _quaternion_from_euler(euler[0])  # attitude as unit quaternion
+    q0 = sf.quaternion_from_euler(euler[0], degrees=False)  # attitude as unit quaternion
     ba0 = np.zeros(3)  # accelerometer bias [m/s^2]
     bg0 = np.zeros(3)  # gyroscope bias [rad/s]
     x0 = np.concatenate((p0, v0, q0, ba0, bg0))

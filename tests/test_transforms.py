@@ -202,6 +202,63 @@ def test__rot_matrix_from_euler(euler):
 
 
 def test__quaternion_from_euler():
+    # As rads
+    euler = np.random.random(3) * np.pi  # passive, intrinsic rotations
+
+    q_out = _transforms._quaternion_from_euler(euler)
+
+    q_expect = Rotation.from_euler("ZYX", euler[::-1]).as_quat()
+    q_expect = np.r_[q_expect[3], q_expect[:3]]
+
+    np.testing.assert_array_almost_equal(q_out, q_expect)
+
+
+class Test_quaternion_from_euler:
+    def test_simple(self):
+        # As rads
+        euler = np.random.random(3) * np.pi  # passive, intrinsic rotations
+
+        q_out = _transforms.quaternion_from_euler(euler, degrees=False)
+
+        q_expect = Rotation.from_euler("ZYX", euler[::-1]).as_quat()
+        q_expect = np.r_[q_expect[3], q_expect[:3]]
+
+        np.testing.assert_array_almost_equal(q_out, q_expect)
+
+        # As degrees
+        euler = np.random.random(3) * 180.0  # passive, intrinsic rotations
+
+        q_out = _transforms.quaternion_from_euler(euler, degrees=True)
+
+        q_expect = Rotation.from_euler("ZYX", euler[::-1], degrees=True).as_quat()
+        q_expect = np.r_[q_expect[3], q_expect[:3]]
+
+        np.testing.assert_array_almost_equal(q_out, q_expect)
+
+    @pytest.mark.parametrize(
+        "euler", [np.array([0.0, 0.0, 0.0]), [0.0, 0.0, 0.0], (0.0, 0.0, 0.0)]
+    )
+    def test_arraylike(self, euler):
+        # As rads
+        # euler = [0.0, 1.0, 0.0]  # passive, intrinsic rotations
+
+        q_out = _transforms.quaternion_from_euler(euler, degrees=False)
+        q_expect = np.array([1.0, 0.0, 0.0, 0.0])
+
+        np.testing.assert_array_almost_equal(q_out, q_expect)
+
+    @pytest.mark.parametrize(
+        "euler",
+        [[0, 0, 0], np.array([0.0, 0.0, 0.0]), np.array([0, 0, 0]), (0, 0.0, 0)],
+    )
+    def test_dtype(self, euler):
+        q_out = _transforms.quaternion_from_euler(euler, degrees=False)
+        q_expect = np.array([1.0, 0.0, 0.0, 0.0])
+        np.testing.assert_array_almost_equal(q_out, q_expect)
+
+
+def test__quaternion_from_euler():
+    # As rads
     euler = np.random.random(3) * np.pi  # passive, intrinsic rotations
 
     q_out = _transforms._quaternion_from_euler(euler)
@@ -216,7 +273,7 @@ def test_euler2quaternion2euler_transform():
     euler_in = np.random.random(3) * np.pi / 2  # passive, intrinsic rotations
 
     euler_out = _transforms._euler_from_quaternion(
-        _transforms._quaternion_from_euler(euler_in)
+        _transforms.quaternion_from_euler(euler_in)
     )
 
     np.testing.assert_array_almost_equal(euler_out, euler_in)
@@ -226,7 +283,7 @@ def test_euler2quaternion2gamma_transform():
     euler_in = np.random.random(3) * np.pi / 2  # passive, intrinsic rotations
 
     gamma_out = _transforms._gamma_from_quaternion(
-        _transforms._quaternion_from_euler(euler_in)
+        _transforms.quaternion_from_euler(euler_in)
     )
 
     np.testing.assert_array_almost_equal(gamma_out, euler_in[2])

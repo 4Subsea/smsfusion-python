@@ -300,15 +300,16 @@ class INSMixin:
 
         Notes
         -----
-        The Euler angles describe how to transition from the 'NED' frame to the 'body'
-        frame through three consecutive intrinsic and passive rotations in the ZYX order:
+        The Euler angles describe how to transition from the 'navigation' frame
+        ('NED' or 'ENU) to the 'body' frame through three consecutive intrinsic
+        and passive rotations in the ZYX order:
 
         #. A rotation by an angle gamma (often called yaw) about the z-axis.
         #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
         #. A final rotation by an angle alpha (often called roll) about the x-axis.
 
         This sequence of rotations is used to describe the orientation of the 'body' frame
-        relative to the 'NED' frame in 3D space.
+        relative to the 'navigation' frame ('NED' or 'ENU) in 3D space.
 
         Intrinsic rotations mean that the rotations are with respect to the changing
         coordinate system; as one rotation is applied, the next is about the axis of
@@ -327,7 +328,7 @@ class INSMixin:
 
     def quaternion(self) -> NDArray[np.float64]:
         """
-        Get current attitude estimate as unit quaternion (from-body-to-NED).
+        Get current attitude estimate as unit quaternion (from-body-to-navigation-frame).
 
         Returns
         -------
@@ -393,7 +394,7 @@ class StrapdownINS(INSMixin):
     g : float, default 9.80665
         The gravitational acceleration. Default is 'standard gravity' of 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
-        Specifies the assumed inertial-like 'navigation frame'. Should be 'NED' (North-East-Down)
+        Specifies the assumed inertial-like 'navigation' frame. Should be 'NED' (North-East-Down)
         (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
         will be expressed relative to this frame.
 
@@ -627,7 +628,7 @@ class AidedINS(INSMixin):
     g : float, default 9.80665
         The gravitational acceleration. Default is 'standard gravity' of 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
-        Specifies the assumed inertial-like 'navigation frame'. Should be 'NED' (North-East-Down)
+        Specifies the assumed inertial-like 'navigation' frame. Should be 'NED' (North-East-Down)
         (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
         will be expressed relative to this frame. Furthermore, the aiding heading angle is
         also interpreted relative to this frame according to the right-hand rule.
@@ -978,8 +979,8 @@ class AidedINS(INSMixin):
         vel_var : array-like, shape (3,), optional
             Variance of velocity measurement noise in (m/s)^2. Required for ``vel``.
         head : float, optional
-            Heading measurement. I.e., the yaw angle of the body-frame relative to the
-            assumed navigation frame (NED or ENU) specified during initialization.
+            Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
+            assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
             If ``None``, compass aiding is not used. See ``head_degrees`` for units.
         head_var : float, optional
             Variance of heading measurement noise. Units must be compatible with ``head``.
@@ -1151,7 +1152,7 @@ class VRU(AidedINS):
     g : float, default 9.80665
         The gravitational acceleration. Default is 'standard gravity' of 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
-        Specifies the assumed inertial-like 'navigation frame'. Should be 'NED' (North-East-Down)
+        Specifies the assumed inertial-like 'navigation' frame. Should be 'NED' (North-East-Down)
         (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
         will be expressed relative to this frame. Furthermore, the aiding heading angle is
         also interpreted relative to this frame according to the right-hand rule.
@@ -1283,7 +1284,7 @@ class AHRS(AidedINS):
     g : float, default 9.80665
         The gravitational acceleration. Default is 'standard gravity' of 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
-        Specifies the assumed inertial-like 'navigation frame'. Should be 'NED' (North-East-Down)
+        Specifies the assumed inertial-like 'navigation' frame. Should be 'NED' (North-East-Down)
         (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
         will be expressed relative to this frame. Furthermore, the aiding heading angle is
         also interpreted relative to this frame according to the right-hand rule.
@@ -1343,8 +1344,8 @@ class AHRS(AidedINS):
         degrees : bool, default False
             Specifies whether the unit of ``w_imu`` are in degrees or radians.
         head : float, optional
-            Heading measurement. I.e., the yaw angle of the body-frame relative to the
-            assumed navigation frame (NED or ENU) specified during initialization.
+            Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
+            assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
             If ``None``, compass aiding is not used. See ``head_degrees`` for units.
         head_var : float, optional
             Variance of heading measurement noise. Units must be compatible with ``head``.
