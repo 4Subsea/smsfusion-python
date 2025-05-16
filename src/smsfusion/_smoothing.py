@@ -116,6 +116,11 @@ class FixedIntervalSmoother:
         np.ndarray, shape (N, 15) or (N, 12)
             State estimates for each of the N appended time steps.
         """
+        if len(self._x) != len(self._x_buf):
+            raise RuntimeError(
+                "Smoothing has not been performed on the appended data. "
+                "Call `smooth()` before accessing `x`."
+            )
         return np.asarray_chkfinite(self._x).copy()
 
     @property
@@ -130,6 +135,11 @@ class FixedIntervalSmoother:
         np.ndarray, shape (N, 15, 15) or (N, 12, 12)
             Error covariances for each of the N appended time steps.
         """
+        if len(self._x) != len(self._x_buf):
+            raise RuntimeError(
+                "Smoothing has not been performed on the appended data. "
+                "Call `smooth()` before accessing `P`."
+            )
         return np.asarray_chkfinite(self._P).copy()
 
     @staticmethod
