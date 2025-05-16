@@ -10,7 +10,7 @@ from ._vectorops import _normalize, _quaternion_product
 class FixedIntervalSmoother:
     """
 
-    Fixed-interval smoother for AidedINS using the RTS algorithm [1].
+    Fixed-interval smoother for AidedINS based on the RTS algorithm [1].
 
     This class stores a time-ordered buffer of state and error covariance estimates
     from an AidedINS instance. After completing the normal forward filtering sweep
@@ -22,7 +22,8 @@ class FixedIntervalSmoother:
 
     Once all time steps have been appended, call `smooth()` to run fixed-interval
     smoothing. The smoothed state and error covariance estimates are then available
-    through the `x` and `P` attributes.
+    through the `x` and `P` attributes. Reset the smoother's buffer using
+    `clear()` before appending a new interval of data.
 
     References
     ----------
@@ -35,7 +36,12 @@ class FixedIntervalSmoother:
             "FixedIntervalSmoother is experimental and may change or be removed in the future.",
             UserWarning,
         )
-        self._x, self._dx, self._P, self._P_prior, self._phi = [], [], [], [], []
+        self._x_buf = []
+        self._P_buf = []
+        self._dx_buf = []
+        self._P_prior_buf = []
+        self._phi_buf = []
+        self._x, self._P = [], []
 
     def append(self, ains):
         """
@@ -53,11 +59,11 @@ class FixedIntervalSmoother:
         """
         if not isinstance(ains, AidedINS):
             raise TypeError(f"Expected AidedINS instance, got {type(ains).__name__}")
-        self._x.append(ains.x)
-        self._P.append(ains.P)
-        self._dx.append(ains._dx_smth.copy())
-        self._P_prior.append(ains._P_prior_smth.copy())
-        self._phi.append(ains._phi_smth.copy())
+        self._x_buf.append(ains.x)
+        self._P_buf.append(ains.P)
+        self._dx_buf.append(ains._dx_smth.copy())
+        self._P_prior_buf.append(ains._P_prior_smth.copy())
+        self._phi_buf.append(ains._phi_smth.copy())
 
     def clear(self):
         """
@@ -65,11 +71,13 @@ class FixedIntervalSmoother:
 
         Resets the smoother so it is ready for smoothing a new interval of data.
         """
+        self._x_buf.clear()
+        self._dx_buf.clear()
+        self._P_buf.clear()
+        self._P_prior_buf.clear()
+        self._phi_buf.clear()
         self._x.clear()
-        self._dx.clear()
         self._P.clear()
-        self._P_prior.clear()
-        self._phi.clear()
 
     def smooth(self):
         """
@@ -93,16 +101,15 @@ class FixedIntervalSmoother:
             filtering with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
         """
         self._x, self._P = self._backward_sweep(
-            self._x, self._dx, self._P, self._P_prior, self._phi
+            self._x_buf, self._dx_buf, self._P_buf, self._P_prior_buf, self._phi_buf
         )
 
     @property
     def x(self):
         """
-        State estimates.
+        Smoothed state estimates.
 
-        Note that the `smooth()` method must be called before these state estimates
-        are smoothed.
+        Note that `smooth()` must be called before these state estimates are updated.
 
         Returns
         -------
@@ -114,10 +121,9 @@ class FixedIntervalSmoother:
     @property
     def P(self):
         """
-        Error covariances.
+        Smoothed error covariances.
 
-        Note that the `smooth()` method must be called before these error covariance
-        estimates are smoothed.
+        Note that `smooth()` must be called before these error covariances are updated.
 
         Returns
         -------
