@@ -39,10 +39,10 @@ class FixedIntervalSmoother:
 
     def append(self, ains):
         """
-        Copy the current states of the given AINS instance and store it in the
+        Copy the current states of the given AidedINS instance and store it in the
         smoother's buffer for later smoothing.
 
-        Should be called once per time step; i.e., after every update of the AINS
+        Should be called once per time step; i.e., after every update of the AidedINS
         instance.
 
         Parameters
