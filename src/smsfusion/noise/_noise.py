@@ -522,8 +522,7 @@ class IMUNoise:
         Notes
         -----
         The generated noise will have units corresponding to the noise
-        parameters given during initialization; the default noise parameters
-        yields accelerometer noise in m/s^2, and gyroscope noise in deg/s.
+        parameters given during initialization.
         """
         seeds = _gen_seeds(self._seed, 6)
         x = np.column_stack(
