@@ -83,6 +83,10 @@ class FixedIntervalSmoother:
         The smoothed state and error covariance estimates can then be accessed
         through the `x` and `P` attributes.
 
+        This method should be called only once for each interval of data. Clear
+        the smoother's buffer using `clear()` if you want to smooth a new interval
+        of data.
+
         References
         ----------
         [1] R. G. Brown and P. Y. C. Hwang, "Random signals and applied Kalman
