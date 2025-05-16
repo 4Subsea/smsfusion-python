@@ -9,8 +9,20 @@ from ._vectorops import _normalize, _quaternion_product
 
 class FixedIntervalSmoother:
     """
-    Fixed-interval smoothing for AidedINS based on the RTS algorithm (see [1] for
-    details).
+
+    Fixed-interval smoother for AidedINS using the RTS algorithm [1].
+
+    This class stores a time-ordered buffer of state and covariance estimates
+    from an AidedINS instance. After completing the forward filtering sweep with
+    the AidedINS, the smoother can be used to perform a backward fixed-interval
+    sweep using the Rauch-Tung-Striebel (RTS) algorithm [1] to improve the estimates.
+
+    The user is expected to call `append()` at each time step, after `AidedINS.update()`,
+    to copy the current states and covariances into the smoother's internal buffer.
+
+    After all time steps have been appended, call `smooth()` to run fixed-interval
+    smoothing. The resulting smoothed state and covariance estimates are accessible
+    through the `x` and `P` attributes.
 
     References
     ----------
