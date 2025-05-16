@@ -12,7 +12,7 @@ class FixedIntervalSmoother:
 
     Fixed-interval smoother for AidedINS using the RTS algorithm [1].
 
-    This class stores a time-ordered buffer of state and covariance estimates
+    This class stores a time-ordered buffer of state and error covariance estimates
     from an AidedINS instance. After completing the normal forward filtering sweep
     with the AidedINS, the smoother can be used to perform a backward sweep with
     the Rauch-Tung-Striebel (RTS) algorithm [1] to refine the estimates.
@@ -39,8 +39,8 @@ class FixedIntervalSmoother:
 
     def append(self, ains):
         """
-        Copy the current states of the given AidedINS instance and store it in the
-        smoother's buffer for later smoothing.
+        Copy the current states and error covariances of the given AidedINS instance,
+        and store them in the smoother's buffer for later smoothing.
 
         Should be called once per time step; i.e., after every update of the AidedINS
         instance.
@@ -61,7 +61,7 @@ class FixedIntervalSmoother:
 
     def clear(self):
         """
-        Clear the internal buffer of stored AINS states and covariances.
+        Clear the internal buffer of stored AINS states and error covariances.
 
         Resets the smoother so it is ready for smoothing a new interval of data.
         """
@@ -88,14 +88,24 @@ class FixedIntervalSmoother:
     @property
     def x(self):
         """
-        State.
+        State estimates.
+
+        Returns
+        -------
+        np.ndarray, shape (N, 15) or (N, 12)
+            State estimates for each of the N appended time steps.
         """
         return np.asarray_chkfinite(self._x).copy()
 
     @property
     def P(self):
         """
-        Error covariance.
+        Error covariances.
+
+        Returns
+        -------
+        np.ndarray, shape (N, 15, 15) or (N, 12, 12)
+            Error covariances for each of the N appended time steps.
         """
         return np.asarray_chkfinite(self._P).copy()
 
