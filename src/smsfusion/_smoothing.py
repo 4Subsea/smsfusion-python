@@ -64,7 +64,7 @@ class FixedIntervalSmoother:
         self._x_buf.append(self._ains.x)
         self._P_buf.append(self._ains.P)
         self._dx_buf.append(self._ains._dx_smth.copy())
-        self._phi_buf.append(self._ains._phi_smth.copy())
+        self._phi_buf.append(self._ains._phi.copy())
         self._is_smoothed = False
         return self
 

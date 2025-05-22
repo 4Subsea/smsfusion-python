@@ -709,8 +709,7 @@ class AidedINS(INSMixin):
             self._dx = self._dx[:dx_dim]
 
         # Smoothing variables
-        self._P_prior_smth = np.empty_like(self._P_prior, dtype=np.float64)
-        self._phi_smth = np.empty_like(self._F, dtype=np.float64)
+        self._phi = np.empty_like(self._F, dtype=np.float64)
         self._dx_smth = np.empty_like(self._dx, dtype=np.float64)
 
     @property
@@ -993,8 +992,6 @@ class AidedINS(INSMixin):
         if degrees:
             w_imu = (np.pi / 180.0) * w_imu
 
-        self._P_prior_smth[:] = self._P_prior.copy()  # needed for smoothing
-
         # Current INS state estimates
         pos_ins = self._ins._pos
         vel_ins = self._ins._vel
@@ -1081,7 +1078,7 @@ class AidedINS(INSMixin):
         phi = I_ + dt * F  # state transition matrix
         Q = dt * G @ W @ G.T  # process noise covariance matrix
 
-        self._phi_smth[:] = phi  # needed for smoothing
+        self._phi[:] = phi  # needed for smoothing
 
         # Update current state
         self._x[:] = self._ins._x
