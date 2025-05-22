@@ -13,10 +13,11 @@ class FixedIntervalSmoother:
     """
     Fixed-interval smoothing layer for AidedINS.
 
-    This class wraps an instance of AidedINS, and stores a time-ordered buffer of
-    state and error covariance estimates as it is updated with measurements. A
-    backward sweep over the buffered data using the RTS algorithm [1] is performed
-    to refine the filter estimates before returning them.
+    This class wraps an instance of AidedINS (or a subclass like AHRS or VRU),
+    and maintains a time-ordered buffer of state and error covariance estimates
+    as measurements are processed via the ``update()`` method. A backward sweep
+    over the buffered data using the Rauch-Tung-Striebel (RTS) algorithm [1] is
+    performed to refine the filter estimates.
 
     Parameters
     ----------
