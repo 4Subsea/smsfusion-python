@@ -13,20 +13,19 @@ class FixedIntervalSmoother:
     Fixed-interval smoothing layer for AidedINS.
 
     This class wraps an instance of AidedINS, and stores a time-ordered buffer of
-    state and error covariance estimates for each updated time step. A backward sweep
-    using the RTS algorithm [1] is performed to refine the Kalman filter estimates
-    before returning them to the user.
+    state and error covariance estimates as the AidedINS is updated with measurements.
+    A backward sweep over the buffered data using the RTS algorithm [1] is performed
+    to refine the filter estimates before returning them.
 
     Parameters
     ----------
     ains : AidedINS or AHRS or VRU
-        The AidedINS (AINS) instance.
+        The underlying AidedINS instance used for forward filtering.
     include_cov : bool, default True
-        Whether to include the error covariance matrix, P, in the smoothing process.
-        Excluding the covariance matrix will have no impact on the smoothed state
-        estimates, and it will speed up the computations. Thus, if smoothed covariance
-        estimates are not needed, this parameter can be set to ``False`` for improved
-        performance.
+        Whether to include the error covariance matrix, `P`, in the smoothing process.
+        Disabling covariance smoothing has no effect on the smoothed state estimates.
+        Thus, if smoothed covariance estimates are not needed, this parameter can
+        be set to ``False`` to reduce computation time. 
 
     References
     ----------
