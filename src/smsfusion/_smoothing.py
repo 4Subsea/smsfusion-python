@@ -128,6 +128,66 @@ class FixedIntervalSmoother:
                 "Set ``include_cov=True`` during initialization to include it."
             )
         return np.asarray_chkfinite(self._P).copy()
+    
+    def position(self):
+        """
+        Smoothed position estimates.
+
+        Returns
+        -------
+        np.ndarray, shape (N, 3)
+            Position estimates for each of the N time steps where the smoother has
+            been updated with measurements.
+        """
+        return self.x[:, :3]
+    
+    def velocity(self):
+        """
+        Smoothed velocity estimates.
+
+        Returns
+        -------
+        np.ndarray, shape (N, 3)
+            Velocity estimates for each of the N time steps where the smoother has
+            been updated with measurements.
+        """
+        return self.x[:, 3:6]
+
+    def quaternion(self):
+        """
+        Smoothed unit quaternion estimates.
+
+        Returns
+        -------
+        np.ndarray, shape (N, 4)
+            Unit quaternion estimates for each of the N time steps where the smoother has
+            been updated with measurements.
+        """
+        return self.x[:, 6:10]
+    
+    def bias_acc(self):
+        """
+        Smoothed accelerometer bias estimates.
+
+        Returns
+        -------
+        np.ndarray, shape (N, 3)
+            Accelerometer bias estimates for each of the N time steps where the smoother has
+            been updated with measurements.
+        """
+        return self.x[:, 10:13]
+    
+    def bias_gyro(self):
+        """
+        Smoothed gyroscope bias estimates.
+
+        Returns
+        -------
+        np.ndarray, shape (N, 3)
+            Gyroscope bias estimates for each of the N time steps where the smoother has
+            been updated with measurements.
+        """
+        return self.x[:, 13:16]
 
     @staticmethod
     def _backward_sweep(
