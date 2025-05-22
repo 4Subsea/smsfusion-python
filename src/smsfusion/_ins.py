@@ -679,10 +679,10 @@ class AidedINS(INSMixin):
         self._ins = StrapdownINS(self._fs, x0_prior, g=g, nav_frame=nav_frame)
         self._vg_ref_n = _normalize(self._ins._g_n)  # gravity reference vector
 
-        # Total state
+        # Total state estimate
         self._x = self._ins.x
 
-        # Error state
+        # Error state estimate (after reset)
         self._dx = np.zeros(15)  # always zero, but used in sequential update
 
         # Initialize Kalman filter
@@ -708,9 +708,11 @@ class AidedINS(INSMixin):
             self._I = self._I[:dx_dim, :dx_dim]
             self._dx = self._dx[:dx_dim]
 
-        # Smoothing variables
-        self._phi = np.empty_like(self._F, dtype=np.float64)
-        self._dx_smth = np.empty_like(self._dx, dtype=np.float64)
+        # Error-state estimate (before reset)
+        self._dx_est = np.empty_like(self._dx)  # needed for smoothing only
+
+        # State transition matrix
+        self._phi = np.empty_like(self._F)  # needed for smoothing only
 
     @property
     def x_prior(self) -> NDArray[np.float64]:
@@ -1068,17 +1070,15 @@ class AidedINS(INSMixin):
             H_head = self._update_H_head(q_ins_nm)
             dx, P = self._update_dx_P(dx, P, dz_head, head_var_, H_head, I_)
 
-        self._dx_smth[:] = dx.copy()  # needed for smoothing
+        self._dx_est[:] = dx.ravel().copy()
 
         # Reset INS state
         if dx.any():
             self._reset_ins(dx.ravel())
 
         # Discretize system
-        phi = I_ + dt * F  # state transition matrix
+        self._phi[:] = I_ + dt * F  # state transition matrix
         Q = dt * G @ W @ G.T  # process noise covariance matrix
-
-        self._phi[:] = phi  # needed for smoothing
 
         # Update current state
         self._x[:] = self._ins._x
@@ -1086,7 +1086,7 @@ class AidedINS(INSMixin):
 
         # Project ahead
         self._ins.update(f_imu, w_imu, degrees=False)
-        self._P_prior[:] = phi @ P @ phi.T + Q
+        self._P_prior[:] = self._phi @ P @ self._phi.T + Q
 
         return self
 
