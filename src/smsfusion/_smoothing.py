@@ -211,7 +211,7 @@ class FixedIntervalSmoother:
         include_cov: bool,
     ) -> tuple[NDArray, NDArray]:
         """
-        Perform a fixed-interval smoothing backward sweep using the RTS algorithm.
+        Perform a fixed-interval smoothing backward sweep using the RTS algorithm [1].
 
         Parameters
         ----------
@@ -230,15 +230,20 @@ class FixedIntervalSmoother:
 
         Returns
         -------
-        tuple[NDArray, NDArray]
-            The smoothed state vector and covariance matrix.
+        x_smth : NDArray, shape (n_samples, 15) or (n_samples, 12)
+            The smoothed state vector.
+        P_smth : NDArray, shape (n_samples, 15, 15) or (n_samples, 12, 12)
+            The smoothed covariance matrix if include_cov is True, otherwise None.
+
+        References
+        ----------
+        [1] R. G. Brown and P. Y. C. Hwang, "Random signals and applied Kalman
+            filtering with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
         """
 
         x = np.asarray_chkfinite(x).copy()
         dx = np.asarray_chkfinite(dx).copy()
         P = np.asarray_chkfinite(P).copy()
-        # P_prior = np.asarray_chkfinite(P_prior).copy()
-        # phi = np.asarray_chkfinite(phi).copy()
 
         # Backward sweep
         for k in range(len(x) - 2, -1, -1):
