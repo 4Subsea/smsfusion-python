@@ -70,8 +70,8 @@ class FixedIntervalSmoother:
 
     def clear(self):
         """
-        Clear the internal buffer and reset the smoother so it is ready to process
-        a new interval of data.
+        Clear the internal buffer of state estimates. This resets the smoother,
+        and prepares for a new interval of measurements.
         """
         self._x_buf.clear()
         self._dx_buf.clear()
