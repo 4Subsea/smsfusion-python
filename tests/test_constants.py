@@ -4,7 +4,6 @@ from pytest import approx
 from smsfusion import constants
 
 
-
 def test_ERR_ACC_MOTION2():
     err_expect = {
         "N": 0.0007,
