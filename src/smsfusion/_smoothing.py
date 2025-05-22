@@ -194,6 +194,11 @@ class FixedIntervalSmoother:
         np.ndarray, shape (N, 15, 15) or (N, 12, 12)
             Error covariances for each of the N appended time steps.
         """
+        if not self._include_cov:
+            raise ValueError(
+                "Covariance matrix is not included in the smoothing process. "
+                "Set include_cov=True when initializing the FixedIntervalSmoother."
+            )
         return np.asarray_chkfinite(self._P).copy()
 
     @staticmethod
@@ -220,6 +225,8 @@ class FixedIntervalSmoother:
             The a priori covariance matrix.
         phi : NDArray, shape (n_samples, 15, 15) or (n_samples, 12, 12)
             The state transition matrix.
+        include_cov : bool
+            Whether to include the error covariance matrix in the smoothing process.
 
         Returns
         -------
@@ -252,6 +259,6 @@ class FixedIntervalSmoother:
                 x[k, 10:13] = x[k, 10:13] + ddx[9:12]
 
         if not include_cov:
-            P = np.empty_like(P)
+            P = None
 
         return x, P
