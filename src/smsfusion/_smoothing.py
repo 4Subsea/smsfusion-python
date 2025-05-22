@@ -1,3 +1,4 @@
+from typing import Self
 from warnings import warn
 
 import numpy as np
@@ -47,11 +48,7 @@ class FixedIntervalSmoother:
         self._phi_buf = []
         self._is_smoothed = False
 
-    def update(
-        self, *args, **kwargs
-    ) -> (
-        "FixedIntervalSmoother"
-    ):  # TODO: Replace with ``typing.Self`` when Python > 3.11
+    def update(self, *args, **kwargs) -> Self:
         """
         Update the AINS with measurements, and append the current AINS state to
         the smoother's internal buffer.
