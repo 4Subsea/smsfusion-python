@@ -13,15 +13,15 @@ class FixedIntervalSmoother:
     Fixed-interval smoothing layer for AidedINS.
 
     This class wraps an instance of AidedINS, and stores a time-ordered buffer of
-    state and error covariance estimates as the AidedINS is updated with measurements.
-    A backward sweep over the buffered data using the RTS algorithm [1] is performed
+    state and error covariance estimates as it is updated with measurements. A
+    backward sweep over the buffered data using the RTS algorithm [1] is performed
     to refine the filter estimates before returning them.
 
     Parameters
     ----------
     ains : AidedINS or AHRS or VRU
         The underlying AidedINS instance used for forward filtering.
-    include_cov : bool, default True
+    cov_smoothing : bool, default True
         Whether to include the error covariance matrix, `P`, in the smoothing process.
         Disabling covariance smoothing has no effect on the smoothed state estimates.
         Thus, if smoothed covariance estimates are not needed, this parameter can
@@ -33,13 +33,13 @@ class FixedIntervalSmoother:
         filtering with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
     """
 
-    def __init__(self, ains: AidedINS | AHRS | VRU, include_cov: bool = True) -> None:
+    def __init__(self, ains: AidedINS | AHRS | VRU, cov_smoothing: bool = True) -> None:
         warn(
             "FixedIntervalSmoother is experimental and may change or be removed in the future.",
             UserWarning,
         )
         self._ains = ains
-        self._include_cov = include_cov
+        self._cov_smoothing = cov_smoothing
         self._x_buf = []  # state estimates (no smoothing)
         self._P_buf = []  # error covariance estimates (no smoothing)
         self._dx_buf = []  # error-state estimates (no smoothing)
@@ -91,7 +91,7 @@ class FixedIntervalSmoother:
                     self._P_buf,
                     self._P_prior_buf,
                     self._phi_buf,
-                    include_cov=self._include_cov,
+                    cov_smoothing=self._cov_smoothing,
                 )
             return func(self, *args, **kwargs)
 
@@ -124,11 +124,6 @@ class FixedIntervalSmoother:
             Error covariance matrix estimates for each of the N time steps where
             the smoother has been updated with measurements.
         """
-        if not self._include_cov:
-            raise ValueError(
-                "Error covariance matrix is excluded from the smoothing process. "
-                "Set ``include_cov=True`` during initialization to include it."
-            )
         return np.asarray_chkfinite(self._P).copy()
 
     def position(self) -> NDArray:
@@ -201,7 +196,7 @@ class FixedIntervalSmoother:
         P: NDArray,
         P_prior: NDArray,
         phi: NDArray,
-        include_cov: bool,
+        cov_smoothing: bool,
     ) -> tuple[NDArray, NDArray]:
         """
         Perform a fixed-interval smoothing backward sweep using the RTS algorithm [1].
@@ -218,7 +213,7 @@ class FixedIntervalSmoother:
             The a priori covariance matrix.
         phi : NDArray, shape (n_samples, 15, 15) or (n_samples, 12, 12)
             The state transition matrix.
-        include_cov : bool
+        cov_smoothing : bool
             Whether to include the error covariance matrix in the smoothing process.
 
         Returns
@@ -243,7 +238,7 @@ class FixedIntervalSmoother:
             A = P[k] @ phi[k].T @ np.linalg.inv(P_prior[k + 1])
             ddx = A @ dx[k + 1]
             dx[k, :] += ddx
-            if include_cov:
+            if cov_smoothing:
                 P[k, :, :] += A @ (P[k + 1] - P_prior[k + 1]) @ A.T
 
             dda = ddx[6:9]
