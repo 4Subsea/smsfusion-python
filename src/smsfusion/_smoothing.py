@@ -9,31 +9,22 @@ from ._vectorops import _normalize, _quaternion_product
 
 class FixedIntervalSmoother:
     """
+    Fixed-interval smoothing layer for AidedINS.
 
-    Fixed-interval smoother for AidedINS based on the RTS algorithm [1].
-
-    This class stores a time-ordered buffer of state and error covariance estimates
-    from an AidedINS instance. After completing the normal forward filtering sweep
-    with the AidedINS, the smoother can be used to perform a backward sweep with
-    the Rauch-Tung-Striebel (RTS) algorithm [1] to refine the estimates.
-
-    The user is expected to call `append()` at each time step, after `AidedINS.update()`,
-    to copy the current states and covariances into the smoother's internal buffer.
-
-    Once all time steps have been appended, call `smooth()` to run fixed-interval
-    smoothing. The smoothed state and error covariance estimates are then available
-    through the `x` and `P` attributes. Reset the smoother's buffer using
-    `clear()` before appending a new interval of data.
+    This class wraps an instance of AidedINS, and stores a time-ordered buffer of
+    state and error covariance estimates for each updated time step. A backward sweep
+    using the RTS algorithm [1] is performed to refine the Kalman filter estimates
+    before returning them to the user.
 
     Parameters
     ----------
     ains : AidedINS or AHRS or VRU
-        The AINS instance to use for smoothing.
+        The AidedINS (AINS) instance.
     include_cov : bool, default True
         Whether to include the error covariance matrix, P, in the smoothing process.
         Excluding the covariance matrix will have no impact on the smoothed state
         estimates, and it will speed up the computations. Thus, if smoothed covariance
-        estimates are not needed, this parameter may be set to False for improved
+        estimates are not needed, this parameter can be set to ``False`` for improved
         performance.
 
     References
@@ -58,14 +49,15 @@ class FixedIntervalSmoother:
 
     def update(self, *args, **kwargs):
         """
-        Update AINS state estimates with IMU and aiding sensor measurements.
+        Update the AINS with measurements, and append the current AINS state to
+        the smoother's internal buffer.
 
         Parameters
         ----------
         *args : tuple
-            Positional arguments to be passed to the AINS update method.
+            Positional arguments to be passed on to ``ains.update()``.
         **kwargs : dict
-            Keyword arguments to be passed to the AINS update method.
+            Keyword arguments to be passed on to ``ains.update()``.
         """
         self._P_prior_buf.append(self._ains.P_prior)
         self._ains.update(*args, **kwargs)
@@ -76,33 +68,10 @@ class FixedIntervalSmoother:
         self._is_smoothed = False
         return self
 
-    # def append(self, ains):
-    #     """
-    #     Copy the current states and error covariances of the given AidedINS instance,
-    #     and store them in the smoother's buffer for later smoothing.
-
-    #     Should be called once per time step; i.e., after every update of the AidedINS
-    #     instance.
-
-    #     Parameters
-    #     ----------
-    #     ains : AidedINS or AHRS or VRU
-    #         The AidedINS instance to extract the current states and covariance
-    #         matrices from. These are stored in the smoother's buffer for later smoothing.
-    #     """
-    #     if not isinstance(ains, AidedINS):
-    #         raise TypeError(f"Expected AidedINS instance, got {type(ains).__name__}")
-    #     self._x_buf.append(ains.x)
-    #     self._P_buf.append(ains.P)
-    #     self._dx_buf.append(ains._dx_smth.copy())
-    #     self._P_prior_buf.append(ains._P_prior_smth.copy())
-    #     self._phi_buf.append(ains._phi_smth.copy())
-
     def clear(self):
         """
-        Clear the internal buffer of stored AINS states and error covariances.
-
-        Resets the smoother so it is ready for smoothing a new interval of data.
+        Clear the internal buffer and reset the smoother so it is ready to process
+        a new interval of data.
         """
         self._x_buf.clear()
         self._dx_buf.clear()
@@ -110,43 +79,6 @@ class FixedIntervalSmoother:
         self._P_prior_buf.clear()
         self._phi_buf.clear()
         self._is_smoothed = False
-
-    # def smooth(self):
-    #     """
-    #     Perform fixed-interval smoothing of the AINS state and error covariance
-    #     estimates using a backward sweep with the Rauch-Tung-Striebel (RTS) algorithm
-    #     (see [1] for details).
-
-    #     This method processes the internal buffer of forward-pass estimates that were
-    #     collected using `append()` and refines them by incorporating future information.
-
-    #     The smoothed state and error covariance estimates can then be accessed
-    #     through the `x` and `P` attributes.
-
-    #     This method should be called only once for each interval of data. Clear
-    #     the smoother's buffer using `clear()` if you want to smooth a new interval
-    #     of data.
-
-    #     References
-    #     ----------
-    #     [1] R. G. Brown and P. Y. C. Hwang, "Random signals and applied Kalman
-    #         filtering with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
-    #     """
-    #     self._x, self._P = self._backward_sweep(
-    #         self._x_buf, self._dx_buf, self._P_buf, self._P_prior_buf, self._phi_buf
-    #     )
-
-    # def _smooth(self):
-    #     if not self._is_smoothed:
-    #         self._x, self._P = self._backward_sweep(
-    #             self._x_buf,
-    #             self._dx_buf,
-    #             self._P_buf,
-    #             self._P_prior_buf,
-    #             self._phi_buf,
-    #             include_cov=self._include_cov,
-    #         )
-    #         self._is_smoothed = True
 
     def _smooth(func):
         def wrapper(self, *args, **kwargs):
@@ -167,7 +99,7 @@ class FixedIntervalSmoother:
     @_smooth
     def x(self):
         """
-        Smoothed state estimates.
+        Smoothed AINS state estimates.
 
         Returns
         -------
@@ -182,7 +114,7 @@ class FixedIntervalSmoother:
     @_smooth
     def P(self):
         """
-        Smoothed error covariance matrices.
+        Smoothed AINS error covariance matrices.
 
         Returns
         -------
