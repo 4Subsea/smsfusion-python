@@ -25,23 +25,39 @@ class FixedIntervalSmoother:
     through the `x` and `P` attributes. Reset the smoother's buffer using
     `clear()` before appending a new interval of data.
 
+    Parameters
+    ----------
+    ains : AidedINS or AHRS or VRU
+        The AINS instance to use for smoothing.
+    cov_smoothing : bool, default True
+        Whether to include the error covariance matrix, P, in the smoothing process.
+        Excluding the covariance matrix will have no impact on the smoothed state
+        estimates, and it will speed up the computations. Thus, if smoothed covariance
+        estimates are not needed, this parameter may be set to False for improved
+        performance.
+
     References
     ----------
     [1] R. G. Brown and P. Y. C. Hwang, "Random signals and applied Kalman
         filtering with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
     """
 
-    def __init__(self):
+    def __init__(self, ains, cov_smoothing: bool = True):
         warn(
             "FixedIntervalSmoother is experimental and may change or be removed in the future.",
             UserWarning,
         )
+        self._ains = ains
+        self._cov_smoothing = cov_smoothing
         self._x_buf = []
         self._P_buf = []
         self._dx_buf = []
         self._P_prior_buf = []
         self._phi_buf = []
         self._x, self._P = [], []
+
+    def update(self):
+        pass
 
     def append(self, ains):
         """
