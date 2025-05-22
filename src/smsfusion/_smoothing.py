@@ -6,6 +6,7 @@ from numpy.typing import NDArray
 
 from ._ins import AHRS, VRU, AidedINS
 from ._vectorops import _normalize, _quaternion_product
+from ._transforms import _euler_from_quaternion
 
 
 class FixedIntervalSmoother:
@@ -191,6 +192,26 @@ class FixedIntervalSmoother:
         if degrees:
             bg = (180.0 / np.pi) * bg
         return bg
+    
+    def euler(self, degrees: bool = False) -> NDArray:
+        """
+        Smoothed Euler angles estimates.
+
+        Returns
+        -------
+        np.ndarray, shape (N, 3)
+            Euler angles estimates for each of the N time steps where the smoother has
+            been updated with measurements.
+        """
+        q = self.quaternion()
+        theta = np.empty((q.shape[0], 3))
+        for i, q_i in enumerate(q):
+            theta[i, :] = _euler_from_quaternion(q_i)
+
+        if degrees:
+            theta = (180.0 / np.pi) * theta
+
+        return theta
 
     @staticmethod
     def _backward_sweep(
