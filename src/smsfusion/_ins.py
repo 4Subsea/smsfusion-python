@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Self
 
 import numpy as np
 from numba import njit
@@ -451,7 +451,7 @@ class StrapdownINS(INSMixin):
         f_imu: ArrayLike,
         w_imu: ArrayLike,
         degrees: bool = False,
-    ) -> "StrapdownINS":  # TODO: Replace with ``typing.Self`` when Python > 3.11:
+    ) -> Self:
         """
         Update the INS states by integrating the *strapdown navigation equations*.
 
@@ -950,7 +950,7 @@ class AidedINS(INSMixin):
         head_degrees: bool = True,
         g_ref: bool = False,
         g_var: ArrayLike | None = None,
-    ) -> "AidedINS":  # TODO: Replace with ``typing.Self`` when Python > 3.11
+    ) -> Self:
         """
         Update/correct the AINS' state estimate with aiding measurements, and project
         ahead using IMU measurements.
@@ -1190,7 +1190,7 @@ class VRU(AidedINS):
         degrees: bool = False,
         pos_var: ArrayLike = np.array([1e6, 1e6, 1e6]),
         vel_var: ArrayLike = np.array([1e2, 1e2, 1e2]),
-    ) -> "VRU":  # TODO: Replace with ``typing.Self`` when Python > 3.11
+    ) -> Self
         """
         Update/correct the VRU's state estimate with pseudo aiding measurements
         (i.e., zero velocity and zero position with corresponding variances), and
@@ -1325,7 +1325,7 @@ class AHRS(AidedINS):
         head_degrees: bool = True,
         pos_var: ArrayLike = np.array([1e6, 1e6, 1e6]),
         vel_var: ArrayLike = np.array([1e2, 1e2, 1e2]),
-    ) -> "AHRS":  # TODO: Replace with ``typing.Self`` when Python > 3.11
+    ) -> Self
         """
         Update/correct the AHRS' state estimate with pseudo aiding measurements
         (i.e., zero velocity and zero position with corresponding variances), and
