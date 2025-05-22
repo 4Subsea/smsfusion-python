@@ -109,8 +109,6 @@ class FixedIntervalSmoother:
         self._P_buf.clear()
         self._P_prior_buf.clear()
         self._phi_buf.clear()
-        # self._x.clear()
-        # self._P.clear()
         self._is_smoothed = False
 
     # def smooth(self):
@@ -171,12 +169,11 @@ class FixedIntervalSmoother:
         """
         Smoothed state estimates.
 
-        Note that `smooth()` must be called before these state estimates are updated.
-
         Returns
         -------
         np.ndarray, shape (N, 15) or (N, 12)
-            State estimates for each of the N appended time steps.
+            State estimates for each of the N time steps where the AINS/smoother
+            is updated.
         """
 
         return np.asarray_chkfinite(self._x).copy()
@@ -185,19 +182,18 @@ class FixedIntervalSmoother:
     @_smooth
     def P(self):
         """
-        Smoothed error covariances.
-
-        Note that `smooth()` must be called before these error covariances are updated.
+        Smoothed error covariance matrices.
 
         Returns
         -------
         np.ndarray, shape (N, 15, 15) or (N, 12, 12)
-            Error covariances for each of the N appended time steps.
+            Error covariance matrix estimates for each of the N time steps where
+            the AINS/smoother is updated.
         """
         if not self._include_cov:
             raise ValueError(
-                "Covariance matrix is not included in the smoothing process. "
-                "Set include_cov=True when initializing the FixedIntervalSmoother."
+                "Error covariance matrix is excluded from the smoothing process. "
+                "Set ``include_cov=True`` during initialization to include it."
             )
         return np.asarray_chkfinite(self._P).copy()
 
