@@ -25,9 +25,8 @@ class FixedIntervalSmoother:
         The underlying AidedINS instance used for forward filtering.
     cov_smoothing : bool, default True
         Whether to include the error covariance matrix, `P`, in the smoothing process.
-        Disabling covariance smoothing has no effect on the smoothed state estimates.
-        Thus, if smoothed covariance estimates are not needed, this parameter can
-        be set to ``False`` to reduce computation time. 
+        Disabling the covariance smoothing has no effect on the smoothed state estimates,
+        and can reduce computation time if smoothed covariances are not required.
 
     References
     ----------
