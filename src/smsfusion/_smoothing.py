@@ -41,12 +41,13 @@ class FixedIntervalSmoother:
         )
         self._ains = ains
         self._include_cov = include_cov
-        self._x_buf = []
-        self._P_buf = []
-        self._dx_buf = []
-        self._P_prior_buf = []
-        self._phi_buf = []
-        self._is_smoothed = False
+        self._x_buf = []  # state estimates (no smoothing)
+        self._P_buf = []  # error covariance estimates (no smoothing)
+        self._dx_buf = []  # error-state estimates (no smoothing)
+        self._P_prior_buf = []  # a priori error covariance estimates (no smoothing)
+        self._phi_buf = []  # state transition matrix
+        self._x = self._ains.x[np.newaxis, :]  # smoothed state estimates
+        self._P = self._ains.P[np.newaxis, :]  # smoothed error covariance estimates
 
     def update(self, *args, **kwargs) -> Self:
         """
@@ -66,7 +67,6 @@ class FixedIntervalSmoother:
         self._P_buf.append(self._ains.P)
         self._dx_buf.append(self._ains._dx_est.copy())
         self._phi_buf.append(self._ains._phi.copy())
-        self._is_smoothed = False
         return self
 
     def clear(self) -> None:
@@ -79,11 +79,13 @@ class FixedIntervalSmoother:
         self._P_buf.clear()
         self._P_prior_buf.clear()
         self._phi_buf.clear()
-        self._is_smoothed = False
 
     def _smooth(func):
         def wrapper(self, *args, **kwargs):
-            if not self._is_smoothed:
+            if len(self._x_buf) <= 1:
+                self._x = self._ains.x[np.newaxis, :]
+                self._P = self._ains.P[np.newaxis, :]
+            elif len(self._x_buf) != len(self._x):
                 self._x, self._P = self._backward_sweep(
                     self._x_buf,
                     self._dx_buf,
@@ -92,7 +94,6 @@ class FixedIntervalSmoother:
                     self._phi_buf,
                     include_cov=self._include_cov,
                 )
-                self._is_smoothed = True
             return func(self, *args, **kwargs)
 
         return wrapper
@@ -255,8 +256,5 @@ class FixedIntervalSmoother:
             x[k, -3:] = x[k, -3:] + ddx[-3:]
             if dx.shape[1] == 15:
                 x[k, 10:13] = x[k, 10:13] + ddx[9:12]
-
-        if not include_cov:
-            P = None
 
         return x, P
