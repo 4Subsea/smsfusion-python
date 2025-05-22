@@ -1,5 +1,3 @@
-### This PR is related to user story DLAB-
-
 ## Description
 Provide a short description about the work that has been done.
 
