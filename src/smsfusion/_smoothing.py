@@ -3,7 +3,7 @@ from warnings import warn
 import numpy as np
 from numpy.typing import NDArray
 
-from ._ins import AidedINS
+from ._ins import AHRS, VRU, AidedINS
 from ._vectorops import _normalize, _quaternion_product
 
 
@@ -33,7 +33,7 @@ class FixedIntervalSmoother:
         filtering with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
     """
 
-    def __init__(self, ains, include_cov: bool = True):
+    def __init__(self, ains: AidedINS | AHRS | VRU, include_cov: bool = True) -> None:
         warn(
             "FixedIntervalSmoother is experimental and may change or be removed in the future.",
             UserWarning,
@@ -47,7 +47,11 @@ class FixedIntervalSmoother:
         self._phi_buf = []
         self._is_smoothed = False
 
-    def update(self, *args, **kwargs):
+    def update(
+        self, *args, **kwargs
+    ) -> (
+        "FixedIntervalSmoother"
+    ):  # TODO: Replace with ``typing.Self`` when Python > 3.11
         """
         Update the AINS with measurements, and append the current AINS state to
         the smoother's internal buffer.
@@ -68,7 +72,7 @@ class FixedIntervalSmoother:
         self._is_smoothed = False
         return self
 
-    def clear(self):
+    def clear(self) -> None:
         """
         Clear the internal buffer of state estimates. This resets the smoother,
         and prepares for a new interval of measurements.
@@ -93,11 +97,12 @@ class FixedIntervalSmoother:
                 )
                 self._is_smoothed = True
             return func(self, *args, **kwargs)
+
         return wrapper
 
     @property
     @_smooth
-    def x(self):
+    def x(self) -> NDArray:
         """
         Smoothed state vector estimates.
 
@@ -112,7 +117,7 @@ class FixedIntervalSmoother:
 
     @property
     @_smooth
-    def P(self):
+    def P(self) -> NDArray:
         """
         Smoothed error covariance matrix estimates.
 
@@ -128,8 +133,8 @@ class FixedIntervalSmoother:
                 "Set ``include_cov=True`` during initialization to include it."
             )
         return np.asarray_chkfinite(self._P).copy()
-    
-    def position(self):
+
+    def position(self) -> NDArray:
         """
         Smoothed position estimates.
 
@@ -140,8 +145,8 @@ class FixedIntervalSmoother:
             been updated with measurements.
         """
         return self.x[:, :3]
-    
-    def velocity(self):
+
+    def velocity(self) -> NDArray:
         """
         Smoothed velocity estimates.
 
@@ -153,7 +158,7 @@ class FixedIntervalSmoother:
         """
         return self.x[:, 3:6]
 
-    def quaternion(self):
+    def quaternion(self) -> NDArray:
         """
         Smoothed unit quaternion estimates.
 
@@ -164,8 +169,8 @@ class FixedIntervalSmoother:
             been updated with measurements.
         """
         return self.x[:, 6:10]
-    
-    def bias_acc(self):
+
+    def bias_acc(self) -> NDArray:
         """
         Smoothed accelerometer bias estimates.
 
@@ -176,8 +181,8 @@ class FixedIntervalSmoother:
             been updated with measurements.
         """
         return self.x[:, 10:13]
-    
-    def bias_gyro(self, degrees: bool = False):
+
+    def bias_gyro(self, degrees: bool = False) -> NDArray:
         """
         Smoothed gyroscope bias estimates.
 
