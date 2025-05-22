@@ -1190,7 +1190,7 @@ class VRU(AidedINS):
         degrees: bool = False,
         pos_var: ArrayLike = np.array([1e6, 1e6, 1e6]),
         vel_var: ArrayLike = np.array([1e2, 1e2, 1e2]),
-    ) -> Self
+    ) -> Self:
         """
         Update/correct the VRU's state estimate with pseudo aiding measurements
         (i.e., zero velocity and zero position with corresponding variances), and
@@ -1325,7 +1325,7 @@ class AHRS(AidedINS):
         head_degrees: bool = True,
         pos_var: ArrayLike = np.array([1e6, 1e6, 1e6]),
         vel_var: ArrayLike = np.array([1e2, 1e2, 1e2]),
-    ) -> Self
+    ) -> Self:
         """
         Update/correct the AHRS' state estimate with pseudo aiding measurements
         (i.e., zero velocity and zero position with corresponding variances), and
