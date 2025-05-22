@@ -29,7 +29,7 @@ class FixedIntervalSmoother:
     ----------
     ains : AidedINS or AHRS or VRU
         The AINS instance to use for smoothing.
-    cov_smoothing : bool, default True
+    include_cov : bool, default True
         Whether to include the error covariance matrix, P, in the smoothing process.
         Excluding the covariance matrix will have no impact on the smoothed state
         estimates, and it will speed up the computations. Thus, if smoothed covariance
@@ -42,44 +42,61 @@ class FixedIntervalSmoother:
         filtering with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
     """
 
-    def __init__(self, ains, cov_smoothing: bool = True):
+    def __init__(self, ains, include_cov: bool = True):
         warn(
             "FixedIntervalSmoother is experimental and may change or be removed in the future.",
             UserWarning,
         )
         self._ains = ains
-        self._cov_smoothing = cov_smoothing
+        self._include_cov = include_cov
         self._x_buf = []
         self._P_buf = []
         self._dx_buf = []
         self._P_prior_buf = []
         self._phi_buf = []
-        self._x, self._P = [], []
+        self._is_smoothed = False
 
-    def update(self):
-        pass
-
-    def append(self, ains):
+    def update(self, *args, **kwargs):
         """
-        Copy the current states and error covariances of the given AidedINS instance,
-        and store them in the smoother's buffer for later smoothing.
-
-        Should be called once per time step; i.e., after every update of the AidedINS
-        instance.
+        Update AINS state estimates with IMU and aiding sensor measurements.
 
         Parameters
         ----------
-        ains : AidedINS or AHRS or VRU
-            The AidedINS instance to extract the current states and covariance
-            matrices from. These are stored in the smoother's buffer for later smoothing.
+        *args : tuple
+            Positional arguments to be passed to the AINS update method.
+        **kwargs : dict
+            Keyword arguments to be passed to the AINS update method.
         """
-        if not isinstance(ains, AidedINS):
-            raise TypeError(f"Expected AidedINS instance, got {type(ains).__name__}")
-        self._x_buf.append(ains.x)
-        self._P_buf.append(ains.P)
-        self._dx_buf.append(ains._dx_smth.copy())
-        self._P_prior_buf.append(ains._P_prior_smth.copy())
-        self._phi_buf.append(ains._phi_smth.copy())
+        self._P_prior_buf.append(self._ains.P_prior)
+        self._ains.update(*args, **kwargs)
+        self._x_buf.append(self._ains.x)
+        self._P_buf.append(self._ains.P)
+        self._dx_buf.append(self._ains._dx_smth.copy())
+        self._phi_buf.append(self._ains._phi_smth.copy())
+        self._is_smoothed = False
+        return self
+
+    # def append(self, ains):
+    #     """
+    #     Copy the current states and error covariances of the given AidedINS instance,
+    #     and store them in the smoother's buffer for later smoothing.
+
+    #     Should be called once per time step; i.e., after every update of the AidedINS
+    #     instance.
+
+    #     Parameters
+    #     ----------
+    #     ains : AidedINS or AHRS or VRU
+    #         The AidedINS instance to extract the current states and covariance
+    #         matrices from. These are stored in the smoother's buffer for later smoothing.
+    #     """
+    #     if not isinstance(ains, AidedINS):
+    #         raise TypeError(f"Expected AidedINS instance, got {type(ains).__name__}")
+    #     self._x_buf.append(ains.x)
+    #     self._P_buf.append(ains.P)
+    #     self._dx_buf.append(ains._dx_smth.copy())
+    #     self._P_prior_buf.append(ains._P_prior_smth.copy())
+    #     self._phi_buf.append(ains._phi_smth.copy())
 
     def clear(self):
         """
@@ -92,35 +109,64 @@ class FixedIntervalSmoother:
         self._P_buf.clear()
         self._P_prior_buf.clear()
         self._phi_buf.clear()
-        self._x.clear()
-        self._P.clear()
+        # self._x.clear()
+        # self._P.clear()
+        self._is_smoothed = False
 
-    def smooth(self):
-        """
-        Perform fixed-interval smoothing of the AINS state and error covariance
-        estimates using a backward sweep with the Rauch-Tung-Striebel (RTS) algorithm
-        (see [1] for details).
+    # def smooth(self):
+    #     """
+    #     Perform fixed-interval smoothing of the AINS state and error covariance
+    #     estimates using a backward sweep with the Rauch-Tung-Striebel (RTS) algorithm
+    #     (see [1] for details).
 
-        This method processes the internal buffer of forward-pass estimates that were
-        collected using `append()` and refines them by incorporating future information.
+    #     This method processes the internal buffer of forward-pass estimates that were
+    #     collected using `append()` and refines them by incorporating future information.
 
-        The smoothed state and error covariance estimates can then be accessed
-        through the `x` and `P` attributes.
+    #     The smoothed state and error covariance estimates can then be accessed
+    #     through the `x` and `P` attributes.
 
-        This method should be called only once for each interval of data. Clear
-        the smoother's buffer using `clear()` if you want to smooth a new interval
-        of data.
+    #     This method should be called only once for each interval of data. Clear
+    #     the smoother's buffer using `clear()` if you want to smooth a new interval
+    #     of data.
 
-        References
-        ----------
-        [1] R. G. Brown and P. Y. C. Hwang, "Random signals and applied Kalman
-            filtering with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
-        """
-        self._x, self._P = self._backward_sweep(
-            self._x_buf, self._dx_buf, self._P_buf, self._P_prior_buf, self._phi_buf
-        )
+    #     References
+    #     ----------
+    #     [1] R. G. Brown and P. Y. C. Hwang, "Random signals and applied Kalman
+    #         filtering with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
+    #     """
+    #     self._x, self._P = self._backward_sweep(
+    #         self._x_buf, self._dx_buf, self._P_buf, self._P_prior_buf, self._phi_buf
+    #     )
+
+    # def _smooth(self):
+    #     if not self._is_smoothed:
+    #         self._x, self._P = self._backward_sweep(
+    #             self._x_buf,
+    #             self._dx_buf,
+    #             self._P_buf,
+    #             self._P_prior_buf,
+    #             self._phi_buf,
+    #             include_cov=self._include_cov,
+    #         )
+    #         self._is_smoothed = True
+
+    def _smooth(func):
+        def wrapper(self, *args, **kwargs):
+            if not self._is_smoothed:
+                self._x, self._P = self._backward_sweep(
+                    self._x_buf,
+                    self._dx_buf,
+                    self._P_buf,
+                    self._P_prior_buf,
+                    self._phi_buf,
+                    include_cov=self._include_cov,
+                )
+                self._is_smoothed = True
+            return func(self, *args, **kwargs)
+        return wrapper
 
     @property
+    @_smooth
     def x(self):
         """
         Smoothed state estimates.
@@ -132,14 +178,11 @@ class FixedIntervalSmoother:
         np.ndarray, shape (N, 15) or (N, 12)
             State estimates for each of the N appended time steps.
         """
-        if len(self._x) != len(self._x_buf):
-            raise ValueError(
-                "Smoothing has not been performed on the appended data. "
-                "Call `smooth()` before accessing `x`."
-            )
+
         return np.asarray_chkfinite(self._x).copy()
 
     @property
+    @_smooth
     def P(self):
         """
         Smoothed error covariances.
@@ -151,11 +194,6 @@ class FixedIntervalSmoother:
         np.ndarray, shape (N, 15, 15) or (N, 12, 12)
             Error covariances for each of the N appended time steps.
         """
-        if len(self._x) != len(self._x_buf):
-            raise ValueError(
-                "Smoothing has not been performed on the appended data. "
-                "Call `smooth()` before accessing `P`."
-            )
         return np.asarray_chkfinite(self._P).copy()
 
     @staticmethod
@@ -165,6 +203,7 @@ class FixedIntervalSmoother:
         P: NDArray,
         P_prior: NDArray,
         phi: NDArray,
+        include_cov: bool,
     ) -> tuple[NDArray, NDArray]:
         """
         Perform a fixed-interval smoothing backward sweep using the RTS algorithm.
@@ -196,11 +235,11 @@ class FixedIntervalSmoother:
 
         # Backward sweep
         for k in range(len(x) - 2, -1, -1):
-
             A = P[k] @ phi[k].T @ np.linalg.inv(P_prior[k + 1])
             ddx = A @ dx[k + 1]
             dx[k, :] += ddx
-            P[k, :, :] += A @ (P[k + 1] - P_prior[k + 1]) @ A.T
+            if include_cov:
+                P[k, :, :] += A @ (P[k + 1] - P_prior[k + 1]) @ A.T
 
             dda = ddx[6:9]
             ddq = (1.0 / np.sqrt(4.0 + dda.T @ dda)) * np.r_[2.0, dda]
@@ -211,5 +250,8 @@ class FixedIntervalSmoother:
             x[k, -3:] = x[k, -3:] + ddx[-3:]
             if dx.shape[1] == 15:
                 x[k, 10:13] = x[k, 10:13] + ddx[9:12]
+
+        if not include_cov:
+            P = np.empty_like(P)
 
         return x, P
