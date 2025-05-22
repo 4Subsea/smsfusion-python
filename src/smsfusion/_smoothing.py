@@ -237,8 +237,8 @@ class FixedIntervalSmoother:
         x = np.asarray_chkfinite(x).copy()
         dx = np.asarray_chkfinite(dx).copy()
         P = np.asarray_chkfinite(P).copy()
-        P_prior = np.asarray_chkfinite(P_prior).copy()
-        phi = np.asarray_chkfinite(phi).copy()
+        # P_prior = np.asarray_chkfinite(P_prior).copy()
+        # phi = np.asarray_chkfinite(phi).copy()
 
         # Backward sweep
         for k in range(len(x) - 2, -1, -1):
