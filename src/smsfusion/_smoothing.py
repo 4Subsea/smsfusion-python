@@ -116,7 +116,10 @@ class FixedIntervalSmoother:
     @_smooth
     def P(self) -> NDArray:
         """
-        Smoothed error covariance matrix estimates.
+        Error covariance matrix estimates.
+
+        If ``cov_smoothing=True``, smoothed error covariance estimates are returned.
+        Otherwise, the forward filter covariance estimates are returned.
 
         Returns
         -------
