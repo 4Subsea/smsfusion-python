@@ -177,7 +177,7 @@ class FixedIntervalSmoother:
         """
         return self.x[:, 10:13]
     
-    def bias_gyro(self):
+    def bias_gyro(self, degrees: bool = False):
         """
         Smoothed gyroscope bias estimates.
 
@@ -187,7 +187,10 @@ class FixedIntervalSmoother:
             Gyroscope bias estimates for each of the N time steps where the smoother has
             been updated with measurements.
         """
-        return self.x[:, 13:16]
+        bg = self.x[:, 13:16]
+        if degrees:
+            bg = (180.0 / np.pi) * bg
+        return bg
 
     @staticmethod
     def _backward_sweep(
