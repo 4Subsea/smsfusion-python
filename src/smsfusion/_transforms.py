@@ -2,7 +2,7 @@ from warnings import warn
 
 import numpy as np
 from numba import njit
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike, NDArray
 
 from smsfusion._vectorops import _normalize
 
@@ -291,9 +291,12 @@ def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     euler : numpy.ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
+
             - Roll (alpha): Rotation about the x-axis.
             - Pitch (beta): Rotation about the y-axis.
             - Yaw (gamma): Rotation about the z-axis.
+    degrees : bool, default False
+        Whether provided Euler angles are in degrees or radians.
 
     Return
     ------
@@ -323,3 +326,57 @@ def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     q_z = sin_gamma2 * cos_beta2 * cos_alpha2 - cos_gamma2 * sin_beta2 * sin_alpha2
 
     return _normalize(np.array([q_w, q_x, q_y, q_z]))  # type: ignore[no-any-return]  # see _normalize
+
+
+def quaternion_from_euler(euler: ArrayLike, degrees=False):
+    """
+    Compute the unit quaternion (representing transformation
+    from-body-to-navigation-frame) from Euler angles using the ZYX convention,
+    see Notes.
+
+    Parameters
+    ----------
+    euler : numpy.ndarray, shape (3,)
+        Vector of Euler angles (ZYX convention). Contains the following three Euler
+        angles in order:
+
+            - Roll (alpha): Rotation about the x-axis.
+            - Pitch (beta): Rotation about the y-axis.
+            - Yaw (gamma): Rotation about the z-axis.
+    degrees : bool, default False
+        Whether the provided Euler angles are in degrees or radians (default).
+
+    Return
+    ------
+    numpy.ndarray, shape (4,)
+        Unit quaternion.
+
+    Notes
+    -----
+    The returned unit quaternion represents the transformation from the
+    'body' frame to the 'navigation' frame.
+
+    However, the Euler angles describe how to transition from the 'navigation' frame
+    ('NED' or 'ENU) to the 'body' frame through three consecutive intrinsic
+    and passive rotations in the ZYX order:
+
+    #. A rotation by an angle gamma (often called yaw) about the z-axis.
+    #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+    #. A final rotation by an angle alpha (often called roll) about the x-axis.
+
+    This sequence of rotations is used to describe the orientation of the 'body' frame
+    relative to the 'navigation' frame ('NED' or 'ENU) in 3D space.
+
+    Intrinsic rotations mean that the rotations are with respect to the changing
+    coordinate system; as one rotation is applied, the next is about the axis of
+    the newly rotated system.
+
+    Passive rotations mean that the frame itself is rotating, not the object
+    within the frame.
+    """
+
+    euler_ = np.asarray_chkfinite(euler)  # , dtype=np.float64)
+
+    if degrees:
+        euler_ = (np.pi / 180.0) * euler_
+    return _quaternion_from_euler(euler_)
