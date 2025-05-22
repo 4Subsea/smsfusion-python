@@ -99,13 +99,13 @@ class FixedIntervalSmoother:
     @_smooth
     def x(self):
         """
-        Smoothed AINS state estimates.
+        Smoothed state vector estimates.
 
         Returns
         -------
         np.ndarray, shape (N, 15) or (N, 12)
-            State estimates for each of the N time steps where the AINS/smoother
-            is updated.
+            State estimates for each of the N time steps where the smoother has
+            been updated with measurements.
         """
 
         return np.asarray_chkfinite(self._x).copy()
@@ -114,13 +114,13 @@ class FixedIntervalSmoother:
     @_smooth
     def P(self):
         """
-        Smoothed AINS error covariance matrices.
+        Smoothed error covariance matrix estimates.
 
         Returns
         -------
         np.ndarray, shape (N, 15, 15) or (N, 12, 12)
             Error covariance matrix estimates for each of the N time steps where
-            the AINS/smoother is updated.
+            the smoother has been updated with measurements.
         """
         if not self._include_cov:
             raise ValueError(
