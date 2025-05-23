@@ -46,8 +46,8 @@ class FixedIntervalSmoother:
         self._dx_buf = []  # error-state estimates (no smoothing)
         self._P_prior_buf = []  # a priori error covariance estimates (no smoothing)
         self._phi_buf = []  # state transition matrix
-        self._x = self._ains.x[np.newaxis, :]  # smoothed state estimates
-        self._P = self._ains.P[np.newaxis, :]  # smoothed error covariance estimates
+        self._x = np.array([])
+        self._P = np.array([])
 
     def update(self, *args, **kwargs) -> Self:
         """
@@ -82,8 +82,8 @@ class FixedIntervalSmoother:
 
     def _smooth(self):
         if len(self._x_buf) <= 1:
-            self._x = self._ains.x[np.newaxis, :]
-            self._P = self._ains.P[np.newaxis, :]
+            self._x = np.asarray_chkfinite(self._x_buf)
+            self._P = np.asarray_chkfinite(self._P_buf)
         elif len(self._x_buf) != len(self._x):
             self._x, self._P = self._backward_sweep(
                 self._x_buf,
@@ -135,6 +135,8 @@ class FixedIntervalSmoother:
             Position estimates for each of the N time steps where the smoother has
             been updated with measurements.
         """
+        if len(self.x) == 0:
+            return np.array([])
         return self.x[:, :3]
 
     def velocity(self) -> NDArray:
@@ -147,6 +149,8 @@ class FixedIntervalSmoother:
             Velocity estimates for each of the N time steps where the smoother has
             been updated with measurements.
         """
+        if len(self._x) == 0:
+            return np.array([])
         return self.x[:, 3:6]
 
     def quaternion(self) -> NDArray:
@@ -159,6 +163,8 @@ class FixedIntervalSmoother:
             Unit quaternion estimates for each of the N time steps where the smoother has
             been updated with measurements.
         """
+        if len(self._x) == 0:
+            return np.array([])
         return self.x[:, 6:10]
 
     def bias_acc(self) -> NDArray:
@@ -171,6 +177,8 @@ class FixedIntervalSmoother:
             Accelerometer bias estimates for each of the N time steps where the smoother has
             been updated with measurements.
         """
+        if len(self._x) == 0:
+            return np.array([])
         return self.x[:, 10:13]
 
     def bias_gyro(self, degrees: bool = False) -> NDArray:
@@ -183,6 +191,8 @@ class FixedIntervalSmoother:
             Gyroscope bias estimates for each of the N time steps where the smoother has
             been updated with measurements.
         """
+        if len(self._x) == 0:
+            return np.array([])
         bg = self.x[:, 13:16]
         if degrees:
             bg = (180.0 / np.pi) * bg
@@ -198,6 +208,8 @@ class FixedIntervalSmoother:
             Euler angles estimates for each of the N time steps where the smoother has
             been updated with measurements.
         """
+        if len(self._x) == 0:
+            return np.array([])
         q = self.quaternion()
         theta = np.empty((q.shape[0], 3))
         for i, q_i in enumerate(q):
