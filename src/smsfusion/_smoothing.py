@@ -80,26 +80,21 @@ class FixedIntervalSmoother:
         self._P_prior_buf.clear()
         self._phi_buf.clear()
 
-    def _smooth(func):
-        def wrapper(self, *args, **kwargs):
-            if len(self._x_buf) <= 1:
-                self._x = self._ains.x[np.newaxis, :]
-                self._P = self._ains.P[np.newaxis, :]
-            elif len(self._x_buf) != len(self._x):
-                self._x, self._P = self._backward_sweep(
-                    self._x_buf,
-                    self._dx_buf,
-                    self._P_buf,
-                    self._P_prior_buf,
-                    self._phi_buf,
-                    cov_smoothing=self._cov_smoothing,
-                )
-            return func(self, *args, **kwargs)
-
-        return wrapper
+    def _smooth(self):
+        if len(self._x_buf) <= 1:
+            self._x = self._ains.x[np.newaxis, :]
+            self._P = self._ains.P[np.newaxis, :]
+        elif len(self._x_buf) != len(self._x):
+            self._x, self._P = self._backward_sweep(
+                self._x_buf,
+                self._dx_buf,
+                self._P_buf,
+                self._P_prior_buf,
+                self._phi_buf,
+                cov_smoothing=self._cov_smoothing,
+            )
 
     @property
-    @_smooth
     def x(self) -> NDArray:
         """
         Smoothed state vector estimates.
@@ -110,11 +105,10 @@ class FixedIntervalSmoother:
             State estimates for each of the N time steps where the smoother has
             been updated with measurements.
         """
-
+        self._smooth()
         return np.asarray_chkfinite(self._x).copy()
 
     @property
-    @_smooth
     def P(self) -> NDArray:
         """
         Error covariance matrix estimates.
@@ -128,6 +122,7 @@ class FixedIntervalSmoother:
             Error covariance matrix estimates for each of the N time steps where
             the smoother has been updated with measurements.
         """
+        self._smooth()
         return np.asarray_chkfinite(self._P).copy()
 
     def position(self) -> NDArray:
