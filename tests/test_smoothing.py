@@ -1,7 +1,7 @@
-import pytest
-
 import numpy as np
+import pytest
 from scipy.signal import resample_poly
+
 import smsfusion as sf
 from smsfusion import FixedIntervalSmoother
 from smsfusion.benchmark import (

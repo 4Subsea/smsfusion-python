@@ -5,8 +5,8 @@ import numpy as np
 from numpy.typing import NDArray
 
 from ._ins import AHRS, VRU, AidedINS
-from ._vectorops import _normalize, _quaternion_product
 from ._transforms import _euler_from_quaternion
+from ._vectorops import _normalize, _quaternion_product
 
 
 class FixedIntervalSmoother:
