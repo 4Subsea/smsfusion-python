@@ -262,3 +262,61 @@ class Test_FixedIntervalSmoother:
 
         smoother.P.shape == (len(acc_imu), 12, 12)
         np.testing.assert_array_less(err_smth[warmup:], err_ains[warmup:] + 1e-12)
+
+    def test_cov_smoothing(self):
+        # Reference signal
+        fs = 10.24  # sampling rate in Hz
+        _, pos, vel, euler, acc, gyro = benchmark_full_pva_beat_202311A(fs)
+        euler = np.degrees(euler)
+        gyro = np.degrees(gyro)
+
+        # IMU measurements
+        err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
+        err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
+        imu_noise = sf.noise.IMUNoise(err_acc, err_gyro)(fs, len(acc))
+        acc_imu = acc + imu_noise[:, :3]
+        gyro_imu = gyro + np.degrees(imu_noise[:, 3:])
+
+        # AINS
+        p0 = pos[0]  # position [m]
+        v0 = vel[0]  # velocity [m/s]
+        q0 = sf.quaternion_from_euler(euler[0], degrees=True)  # unit quaternion
+        ba0 = np.zeros(3)  # accelerometer bias [m/s^2]
+        bg0 = np.zeros(3)  # gyroscope bias [rad/s]
+        x0 = np.concatenate((p0, v0, q0, ba0, bg0))
+        P0 = np.eye(12) * 1e-3
+        err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
+        err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
+
+        ains_a = sf.VRU(fs, x0, P0, err_acc, err_gyro)
+        smoother_a = sf.FixedIntervalSmoother(ains_a, cov_smoothing=True)
+        ains_b = sf.VRU(fs, x0, P0, err_acc, err_gyro)
+        smoother_b = sf.FixedIntervalSmoother(ains_b, cov_smoothing=False)
+
+        err_ains = []
+        for f_i, w_i in zip(acc_imu, gyro_imu):
+            smoother_a.update(
+                f_i,
+                w_i,
+                degrees=True,
+            )
+            smoother_b.update(
+                f_i,
+                w_i,
+                degrees=True,
+            )
+
+            err_ains.append(smoother_a.ains.P.diagonal())
+
+        # Forward filter state estimates
+        err_ains = np.array(err_ains)
+
+        # Smoothed state estimates
+        err_smth_a = np.array([P_i.diagonal() for P_i in smoother_a.P])
+        err_smth_b = np.array([P_i.diagonal() for P_i in smoother_b.P])
+
+        smoother_a.P.shape == (len(acc_imu), 12, 12)
+        smoother_b.P.shape == (len(acc_imu), 12, 12)
+        np.testing.assert_array_less(err_smth_a, err_ains + 1e-12)
+        np.testing.assert_array_less(err_smth_a, err_smth_b + 1e-12)
+        np.testing.assert_allclose(err_smth_b, err_ains)
