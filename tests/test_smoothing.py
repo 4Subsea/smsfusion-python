@@ -30,110 +30,278 @@ class Test_FixedIntervalSmoother:
         assert smoother.bias_acc().size == 0
         assert smoother.bias_gyro().size == 0
 
-    def test_benchmark(self):
-        fs_imu = 10.0
-        fs_aiding = 1.0
-        fs_ratio = np.ceil(fs_imu / fs_aiding)
-        warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
-        compass_noise_std = 0.5
-        gps_noise_std = 0.1
-        vel_noise_std = 0.1
+    # def test_benchmark_ains(self):
+    #     fs_imu = 10.0
+    #     fs_aiding = 1.0
+    #     fs_ratio = np.ceil(fs_imu / fs_aiding)
+    #     warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
+    #     compass_noise_std = 0.5
+    #     gps_noise_std = 0.1
+    #     vel_noise_std = 0.1
 
-        # Reference signals (without noise)
-        t, pos_ref, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_full_pva_beat_202311A(fs_imu)
-        euler_ref = np.degrees(euler_ref)
-        gyro_ref = np.degrees(gyro_ref)
+    #     # Reference signals (without noise)
+    #     t, pos_ref, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_full_pva_beat_202311A(fs_imu)
+    #     euler_ref = np.degrees(euler_ref)
+    #     gyro_ref = np.degrees(gyro_ref)
 
-        rng = np.random.default_rng(seed=1)
+    #     rng = np.random.default_rng(seed=1)
 
-        # IMU measurements (with noise)
-        err_acc = sf.constants.ERR_ACC_MOTION2
-        err_gyro = sf.constants.ERR_GYRO_MOTION2
-        noise_model = sf.noise.IMUNoise(err_acc, err_gyro, seed=0)
-        imu_noise = noise_model(fs_imu, len(t))
-        acc_meas = acc_ref + imu_noise[:, :3]
-        gyro_meas = gyro_ref + np.degrees(imu_noise[:, 3:])
+    #     # IMU measurements (with noise)
+    #     err_acc = sf.constants.ERR_ACC_MOTION2
+    #     err_gyro = sf.constants.ERR_GYRO_MOTION2
+    #     noise_model = sf.noise.IMUNoise(err_acc, err_gyro, seed=0)
+    #     imu_noise = noise_model(fs_imu, len(t))
+    #     acc_meas = acc_ref + imu_noise[:, :3]
+    #     gyro_meas = gyro_ref + np.degrees(imu_noise[:, 3:])
 
-        # Compass / heading (aiding) measurements
-        head_noise = compass_noise_std * rng.standard_normal(len(t))
-        head_meas = euler_ref[:, 2] + head_noise
+    #     # Compass / heading (aiding) measurements
+    #     head_noise = compass_noise_std * rng.standard_normal(len(t))
+    #     head_meas = euler_ref[:, 2] + head_noise
 
-        # GPS / position (aiding) measurements
-        pos_noise = gps_noise_std * rng.standard_normal((len(t), 3))
-        pos_meas = pos_ref + pos_noise
+    #     # GPS / position (aiding) measurements
+    #     pos_noise = gps_noise_std * rng.standard_normal((len(t), 3))
+    #     pos_meas = pos_ref + pos_noise
 
-        # Velocity (aiding) measurements
-        vel_noise = vel_noise_std * rng.standard_normal((len(t), 3))
-        vel_meas = vel_ref + vel_noise
+    #     # Velocity (aiding) measurements
+    #     vel_noise = vel_noise_std * rng.standard_normal((len(t), 3))
+    #     vel_meas = vel_ref + vel_noise
 
-        # MEKF
-        p0 = pos_ref[0]  # position [m]
-        v0 = vel_ref[0]  # velocity [m/s]
-        q0 = sf.quaternion_from_euler(euler_ref[0])  # attitude as unit quaternion
+    #     # MEKF
+    #     p0 = pos_ref[0]  # position [m]
+    #     v0 = vel_ref[0]  # velocity [m/s]
+    #     q0 = sf.quaternion_from_euler(euler_ref[0], degrees=True)  # attitude as unit quaternion
+    #     ba0 = np.zeros(3)  # accelerometer bias [m/s^2]
+    #     bg0 = np.zeros(3)  # gyroscope bias [rad/s]
+    #     x0 = np.concatenate((p0, v0, q0, ba0, bg0))
+    #     P0 = sf.constants.P0
+    #     ains = sf.AidedINS(fs_imu, x0, P0, err_acc, err_gyro)
+
+    #     smoother = FixedIntervalSmoother(ains, cov_smoothing=True)
+
+    #     pos_ains, vel_ains, euler_ains, bias_acc_ains, bias_gyro_ains = [], [], [], [], []
+    #     for i, (acc_i, gyro_i, pos_i, vel_i, head_i) in enumerate(
+    #         zip(acc_meas, gyro_meas, pos_meas, vel_meas, head_meas)
+    #     ):
+    #         if not (i % fs_ratio):  # with aiding
+    #             smoother.update(
+    #                 acc_i,
+    #                 gyro_i,
+    #                 degrees=True,
+    #                 pos=pos_i,
+    #                 pos_var=gps_noise_std**2 * np.ones(3),
+    #                 vel=vel_i,
+    #                 vel_var=vel_noise_std**2 * np.ones(3),
+    #                 head=head_i,
+    #                 head_var=compass_noise_std**2,
+    #                 head_degrees=True,
+    #                 g_ref=True,
+    #                 g_var=0.1**2 * np.ones(3),
+    #             )
+    #         else:  # without aiding
+    #             smoother.update(acc_i, gyro_i, degrees=True)
+
+    #         pos_ains.append(smoother.ains.position())
+    #         vel_ains.append(smoother.ains.velocity())
+    #         euler_ains.append(smoother.ains.euler(degrees=True))
+    #         bias_acc_ains.append(smoother.ains.bias_acc())
+    #         bias_gyro_ains.append(smoother.ains.bias_gyro(degrees=True))
+
+    #     pos_ains = np.array(pos_ains)
+    #     vel_ains = np.array(vel_ains)
+    #     euler_ains = np.array(euler_ains)
+    #     bias_acc_ains = np.array(bias_acc_ains)
+    #     bias_gyro_ains = np.array(bias_gyro_ains)
+
+    #     pos_smth = smoother.position()
+    #     vel_smth = smoother.velocity()
+    #     euler_smth = smoother.euler(degrees=True)
+    #     bias_acc_smth = smoother.bias_acc()
+    #     bias_gyro_smth = smoother.bias_gyro(degrees=True)
+
+    #     pos_smth = np.array(pos_smth)
+    #     vel_smth = np.array(vel_smth)
+    #     euler_smth = np.array(euler_smth)
+    #     bias_acc_smth = np.array(bias_acc_smth)
+    #     bias_gyro_smth = np.array(bias_gyro_smth)
+
+    #     # Half-sample shift (compensates for the delay introduced by Euler integration)
+    #     pos_ains = resample_poly(pos_ains, 2, 1)[1:-1:2]
+    #     pos_smth = resample_poly(pos_smth, 2, 1)[1:-1:2]
+    #     pos_ref = pos_ref[:-1, :]
+    #     vel_ains = resample_poly(vel_ains, 2, 1)[1:-1:2]
+    #     vel_smth = resample_poly(vel_smth, 2, 1)[1:-1:2]
+    #     vel_ref = vel_ref[:-1, :]
+    #     euler_ains = resample_poly(euler_ains, 2, 1)[1:-1:2]
+    #     euler_smth = resample_poly(euler_smth, 2, 1)[1:-1:2]
+    #     euler_ref = euler_ref[:-1, :]
+
+    #     pos_err_smth = np.std((pos_smth - pos_ref)[warmup:], axis=0)
+    #     pos_err_ains = np.std((pos_ains - pos_ref)[warmup:], axis=0)
+    #     np.testing.assert_array_less(pos_err_smth, pos_err_ains)
+
+    #     vel_err_smth = np.std((vel_smth - vel_ref)[warmup:], axis=0)
+    #     vel_err_ains = np.std((vel_ains - vel_ref)[warmup:], axis=0)
+    #     np.testing.assert_array_less(vel_err_smth, vel_err_ains)
+
+    #     euler_err_smth = np.std((euler_smth - euler_ref)[warmup:], axis=0)
+    #     euler_err_ains = np.std((euler_ains - euler_ref)[warmup:], axis=0)
+    #     np.testing.assert_array_less(euler_err_smth, euler_err_ains)
+
+    # def test_benchmark_ahrs(self):
+    #     fs_imu = 10.0
+    #     fs_aiding = 1.0
+    #     fs_ratio = np.ceil(fs_imu / fs_aiding)
+    #     warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
+    #     compass_noise_std = 0.5
+    #     gps_noise_std = 0.1
+    #     vel_noise_std = 0.1
+
+    #     # Reference signals (without noise)
+    #     t, pos_ref, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_full_pva_beat_202311A(fs_imu)
+    #     euler_ref = np.degrees(euler_ref)
+    #     gyro_ref = np.degrees(gyro_ref)
+
+    #     rng = np.random.default_rng(seed=1)
+
+    #     # IMU measurements (with noise)
+    #     err_acc = sf.constants.ERR_ACC_MOTION2
+    #     err_gyro = sf.constants.ERR_GYRO_MOTION2
+    #     noise_model = sf.noise.IMUNoise(err_acc, err_gyro, seed=0)
+    #     imu_noise = noise_model(fs_imu, len(t))
+    #     acc_meas = acc_ref + imu_noise[:, :3]
+    #     gyro_meas = gyro_ref + np.degrees(imu_noise[:, 3:])
+
+    #     # Compass / heading (aiding) measurements
+    #     head_noise = compass_noise_std * rng.standard_normal(len(t))
+    #     head_meas = euler_ref[:, 2] + head_noise
+
+    #     # GPS / position (aiding) measurements
+    #     pos_noise = gps_noise_std * rng.standard_normal((len(t), 3))
+    #     pos_meas = pos_ref + pos_noise
+
+    #     # Velocity (aiding) measurements
+    #     vel_noise = vel_noise_std * rng.standard_normal((len(t), 3))
+    #     vel_meas = vel_ref + vel_noise
+
+    #     # MEKF
+    #     p0 = pos_ref[0]  # position [m]
+    #     v0 = vel_ref[0]  # velocity [m/s]
+    #     q0 = sf.quaternion_from_euler(euler_ref[0], degrees=True)  # attitude as unit quaternion
+    #     ba0 = np.zeros(3)  # accelerometer bias [m/s^2]
+    #     bg0 = np.zeros(3)  # gyroscope bias [rad/s]
+    #     x0 = np.concatenate((p0, v0, q0, ba0, bg0))
+    #     P0 = sf.constants.P0
+    #     ains = sf.AHRS(fs_imu, x0, P0, err_acc, err_gyro)  # AHRS
+
+    #     smoother = FixedIntervalSmoother(ains, cov_smoothing=True)
+
+    #     pos_ains, vel_ains, euler_ains, bias_acc_ains, bias_gyro_ains = [], [], [], [], []
+    #     for i, (acc_i, gyro_i, pos_i, vel_i, head_i) in enumerate(
+    #         zip(acc_meas, gyro_meas, pos_meas, vel_meas, head_meas)
+    #     ):
+    #         if not (i % fs_ratio):  # with aiding
+    #             smoother.update(
+    #                 acc_i,
+    #                 gyro_i,
+    #                 degrees=True,
+    #                 head=head_i,
+    #                 head_var=compass_noise_std**2,
+    #                 head_degrees=True,
+    #             )
+    #         else:  # without aiding
+    #             smoother.update(acc_i, gyro_i, degrees=True)
+
+    #         euler_ains.append(smoother.ains.euler(degrees=True))
+
+    #     euler_ains = np.array(euler_ains)
+
+    #     euler_smth = smoother.euler(degrees=True)
+
+    #     euler_smth = np.array(euler_smth)
+
+    #     # Half-sample shift (compensates for the delay introduced by Euler integration)
+    #     euler_ains = resample_poly(euler_ains, 2, 1)[1:-1:2]
+    #     euler_smth = resample_poly(euler_smth, 2, 1)[1:-1:2]
+    #     euler_ref = euler_ref[:-1, :]
+
+    #     euler_err_smth = np.std((euler_smth - euler_ref)[warmup:], axis=0)
+    #     euler_err_ains = np.std((euler_ains - euler_ref)[warmup:], axis=0)
+    #     np.testing.assert_array_less(euler_err_smth, euler_err_ains)
+
+    def test_benchmark_ains(self):
+        # Reference signal
+        fs = 10.24  # sampling rate in Hz
+        _, pos, vel, euler, acc, gyro = benchmark_full_pva_beat_202311A(fs)
+        head = euler[:, 2]
+
+        # IMU measurements
+        err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
+        err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
+        imu_noise = sf.noise.IMUNoise(err_acc, err_gyro)(fs, len(acc))
+        acc_imu = acc + imu_noise[:, :3]
+        gyro_imu = gyro + imu_noise[:, 3:]
+
+        # Aiding measurements
+        pos_noise_std = 0.1  # m
+        head_noise_std = 0.01  # rad
+        rng = np.random.default_rng(0)
+        pos_aid = pos + pos_noise_std * rng.standard_normal(pos.shape)
+        head_aid = head + head_noise_std * rng.standard_normal(head.shape)
+
+        # AINS
+        p0 = pos[0]  # position [m]
+        v0 = vel[0]  # velocity [m/s]
+        q0 = sf.quaternion_from_euler(euler[0], degrees=False)  # unit quaternion
         ba0 = np.zeros(3)  # accelerometer bias [m/s^2]
         bg0 = np.zeros(3)  # gyroscope bias [rad/s]
         x0 = np.concatenate((p0, v0, q0, ba0, bg0))
-        P0 = sf.constants.P0
-        ains = sf.AidedINS(fs_imu, x0, P0, err_acc, err_gyro)
+        P0 = np.eye(12) * 1e-3
+        err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
+        err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
+        ains = sf.AidedINS(fs, x0, P0, err_acc, err_gyro)
 
-        smoother = FixedIntervalSmoother(ains, cov_smoothing=True)
+        smoother = sf.FixedIntervalSmoother(ains, cov_smoothing=True)
 
-        pos_ains, vel_ains, euler_ains, bias_acc_ains, bias_gyro_ains = [], [], [], [], []
-        for i, (acc_i, gyro_i, pos_i, vel_i, head_i) in enumerate(
-            zip(acc_meas, gyro_meas, pos_meas, vel_meas, head_meas)
-        ):
-            if not (i % fs_ratio):  # with aiding
-                smoother.update(
-                    acc_i,
-                    gyro_i,
-                    degrees=True,
-                    pos=pos_i,
-                    pos_var=gps_noise_std**2 * np.ones(3),
-                    vel=vel_i,
-                    vel_var=vel_noise_std**2 * np.ones(3),
-                    head=head_i,
-                    head_var=compass_noise_std**2,
-                    head_degrees=True,
-                    g_ref=True,
-                    g_var=0.1**2 * np.ones(3),
-                )
-            else:  # without aiding
-                smoother.update(acc_i, gyro_i, degrees=True)
+        pos_ains, vel_ains, euler_ains = [], [], []
+        for f_i, w_i, p_i, h_i in zip(acc_imu, gyro_imu, pos_aid, head_aid):
+            smoother.update(
+                f_i,
+                w_i,
+                degrees=False,
+                pos=p_i,
+                pos_var=pos_noise_std**2 * np.ones(3),
+                head=h_i,
+                head_var=head_noise_std**2,
+                head_degrees=False,
+            )
 
             pos_ains.append(smoother.ains.position())
             vel_ains.append(smoother.ains.velocity())
-            euler_ains.append(smoother.ains.euler(degrees=True))
-            bias_acc_ains.append(smoother.ains.bias_acc())
-            bias_gyro_ains.append(smoother.ains.bias_gyro(degrees=True))
+            euler_ains.append(smoother.ains.euler(degrees=False))
 
+        # Forward filter state estimates
         pos_ains = np.array(pos_ains)
         vel_ains = np.array(vel_ains)
         euler_ains = np.array(euler_ains)
-        bias_acc_ains = np.array(bias_acc_ains)
-        bias_gyro_ains = np.array(bias_gyro_ains)
 
+        # Smoothed state estimates
         pos_smth = smoother.position()
         vel_smth = smoother.velocity()
-        euler_smth = smoother.euler(degrees=True)
-        bias_acc_smth = smoother.bias_acc()
-        bias_gyro_smth = smoother.bias_gyro(degrees=True)
+        euler_smth = smoother.euler(degrees=False)
 
-        pos_smth = np.array(pos_smth)
-        vel_smth = np.array(vel_smth)
-        euler_smth = np.array(euler_smth)
-        bias_acc_smth = np.array(bias_acc_smth)
-        bias_gyro_smth = np.array(bias_gyro_smth)
-
-        # Half-sample shift (compensates for the delay introduced by Euler integration)
+        # Half-sample shift
+        # # (compensates for the delay introduced by Euler integration)
         pos_ains = resample_poly(pos_ains, 2, 1)[1:-1:2]
         pos_smth = resample_poly(pos_smth, 2, 1)[1:-1:2]
-        pos_ref = pos_ref[:-1, :]
+        pos_ref = pos[:-1, :]
         vel_ains = resample_poly(vel_ains, 2, 1)[1:-1:2]
         vel_smth = resample_poly(vel_smth, 2, 1)[1:-1:2]
-        vel_ref = vel_ref[:-1, :]
+        vel_ref = vel[:-1, :]
         euler_ains = resample_poly(euler_ains, 2, 1)[1:-1:2]
         euler_smth = resample_poly(euler_smth, 2, 1)[1:-1:2]
-        euler_ref = euler_ref[:-1, :]
+        euler_ref = euler[:-1, :]
+
+        warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
 
         pos_err_smth = np.std((pos_smth - pos_ref)[warmup:], axis=0)
         pos_err_ains = np.std((pos_ains - pos_ref)[warmup:], axis=0)
