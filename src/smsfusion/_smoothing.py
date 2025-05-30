@@ -94,9 +94,13 @@ class FixedIntervalSmoother:
         self._phi_buf.clear()
 
     def _smooth(self):
-        if len(self._x_buf) <= 1:
-            self._x = np.asarray_chkfinite(self._x_buf)
-            self._P = np.asarray_chkfinite(self._P_buf)
+        if len(self._x_buf) == 0:
+            self._x = np.empty((0, 16), dtype="float64")
+            self._P = np.empty((0, *self._ains.P.shape), dtype="float64")
+            return
+        elif len(self._x_buf) == 1:
+            self._x = np.asarray_chkfinite(self._x_buf).copy()
+            self._P = np.asarray_chkfinite(self._P_buf).copy()
         elif len(self._x_buf) != len(self._x):
             self._x, self._P = self._backward_sweep(
                 self._x_buf,
@@ -150,7 +154,7 @@ class FixedIntervalSmoother:
         """
         x = self.x
         if x.size == 0:
-            return np.empty((0, 3))
+            return np.empty((0, 3), dtype="float64")
         return self.x[:, :3]
 
     def velocity(self) -> NDArray:
@@ -165,7 +169,7 @@ class FixedIntervalSmoother:
         """
         x = self.x
         if x.size == 0:
-            return np.empty((0, 3))
+            return np.empty((0, 3), dtype="float64")
         return self.x[:, 3:6]
 
     def quaternion(self) -> NDArray:
@@ -180,7 +184,7 @@ class FixedIntervalSmoother:
         """
         x = self.x
         if x.size == 0:
-            return np.empty((0, 4))
+            return np.empty((0, 4), dtype="float64")
         return self.x[:, 6:10]
 
     def bias_acc(self) -> NDArray:
@@ -195,7 +199,7 @@ class FixedIntervalSmoother:
         """
         x = self.x
         if x.size == 0:
-            return np.empty((0, 3))
+            return np.empty((0, 3), dtype="float64")
         return x[:, 10:13]
 
     def bias_gyro(self, degrees: bool = False) -> NDArray:
@@ -210,7 +214,7 @@ class FixedIntervalSmoother:
         """
         x = self.x
         if x.size == 0:
-            return np.empty((0, 3))
+            return np.empty((0, 3), dtype="float64")
         
         bg = self.x[:, 13:16]
         return np.degrees(bg) if degrees else bg
@@ -227,7 +231,7 @@ class FixedIntervalSmoother:
         """
         q = self.quaternion()
         if q.size == 0:
-            return np.empty((0, 3))
+            return np.empty((0, 3), dtype="float64")
 
         theta = np.array([_euler_from_quaternion(q_i) for q_i in q])
         return np.degrees(theta) if degrees else theta
