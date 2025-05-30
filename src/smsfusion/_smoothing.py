@@ -50,6 +50,18 @@ class FixedIntervalSmoother:
         self._ains = ains
         self._cov_smoothing = cov_smoothing
 
+    @property
+    def ains(self) -> AidedINS | AHRS | VRU:
+        """
+        The underlying AidedINS instance used for forward filtering.
+
+        Returns
+        -------
+        AidedINS or AHRS or VRU
+            The AidedINS instance.
+        """
+        return self._ains
+
     def update(self, *args, **kwargs) -> Self:
         """
         Update the AINS with measurements, and append the current AINS state to
