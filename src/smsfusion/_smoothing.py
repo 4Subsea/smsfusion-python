@@ -34,14 +34,6 @@ class FixedIntervalSmoother:
         filtering with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
     """
 
-    _x_buf = []  # state estimates (no smoothing)
-    _P_buf = []  # error covariance estimates (no smoothing)
-    _dx_buf = []  # error-state estimates (no smoothing)
-    _P_prior_buf = []  # a priori error covariance estimates (no smoothing)
-    _phi_buf = []  # state transition matrix
-    _x = np.array([])  # smoothed state estimates
-    _P = np.array([])  # smoothed erro covariance estimate
-
     def __init__(self, ains: AidedINS | AHRS | VRU, cov_smoothing: bool = True) -> None:
         warn(
             "FixedIntervalSmoother is experimental and may change or be removed in the future.",
@@ -49,6 +41,14 @@ class FixedIntervalSmoother:
         )
         self._ains = ains
         self._cov_smoothing = cov_smoothing
+
+        self._x_buf = []  # state estimates (no smoothing)
+        self._P_buf = []  # error covariance estimates (no smoothing)
+        self._dx_buf = []  # error-state estimates (no smoothing)
+        self._P_prior_buf = []  # a priori error covariance estimates (no smoothing)
+        self._phi_buf = []  # state transition matrix
+        self._x = np.array([])  # smoothed state estimates
+        self._P = np.array([])  # smoothed erro covariance estimate
 
     @property
     def ains(self) -> AidedINS | AHRS | VRU:
