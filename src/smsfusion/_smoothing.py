@@ -208,13 +208,11 @@ class FixedIntervalSmoother:
             Gyroscope bias estimates for each of the N time steps where the smoother has
             been updated with measurements.
         """
-        x = self.x
-        if x.size == 0:
-            return np.array([])
+        if self.x.size == 0:
+            return np.empty((0, 3))
+        
         bg = self.x[:, 13:16]
-        if degrees:
-            bg = (180.0 / np.pi) * bg
-        return bg
+        return np.degrees(bg) if degrees else bg
 
     def euler(self, degrees: bool = False) -> NDArray:
         """
