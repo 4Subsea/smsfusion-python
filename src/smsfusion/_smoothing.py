@@ -229,10 +229,7 @@ class FixedIntervalSmoother:
         x = self.x
         if x.size == 0:
             return np.array([])
-        q = self.quaternion()
-        theta = np.empty((q.shape[0], 3))
-        for i, q_i in enumerate(q):
-            theta[i, :] = _euler_from_quaternion(q_i)
+        theta = np.array([_euler_from_quaternion(q) for q in self.quaternion()])
 
         if degrees:
             theta = (180.0 / np.pi) * theta
