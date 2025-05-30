@@ -150,7 +150,7 @@ class FixedIntervalSmoother:
         """
         x = self.x
         if x.size == 0:
-            return np.array([])
+            return np.empty((0, 3))
         return self.x[:, :3]
 
     def velocity(self) -> NDArray:
@@ -165,7 +165,7 @@ class FixedIntervalSmoother:
         """
         x = self.x
         if x.size == 0:
-            return np.array([])
+            return np.empty((0, 3))
         return self.x[:, 3:6]
 
     def quaternion(self) -> NDArray:
@@ -180,7 +180,7 @@ class FixedIntervalSmoother:
         """
         x = self.x
         if x.size == 0:
-            return np.array([])
+            return np.empty((0, 4))
         return self.x[:, 6:10]
 
     def bias_acc(self) -> NDArray:
@@ -195,8 +195,8 @@ class FixedIntervalSmoother:
         """
         x = self.x
         if x.size == 0:
-            return np.array([])
-        return self.x[:, 10:13]
+            return np.empty((0, 3))
+        return x[:, 10:13]
 
     def bias_gyro(self, degrees: bool = False) -> NDArray:
         """
@@ -208,7 +208,8 @@ class FixedIntervalSmoother:
             Gyroscope bias estimates for each of the N time steps where the smoother has
             been updated with measurements.
         """
-        if self.x.size == 0:
+        x = self.x
+        if x.size == 0:
             return np.empty((0, 3))
         
         bg = self.x[:, 13:16]
@@ -224,12 +225,12 @@ class FixedIntervalSmoother:
             Euler angles estimates for each of the N time steps where the smoother has
             been updated with measurements.
         """
-        theta = np.array([_euler_from_quaternion(q) for q in self.quaternion()])
+        q = self.quaternion()
+        if q.size == 0:
+            return np.empty((0, 3))
 
-        if degrees:
-            theta = (180.0 / np.pi) * theta
-
-        return theta
+        theta = np.array([_euler_from_quaternion(q_i) for q_i in q])
+        return np.degrees(theta) if degrees else theta
 
     @staticmethod
     def _backward_sweep(
