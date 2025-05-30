@@ -137,4 +137,12 @@ class Test_FixedIntervalSmoother:
 
         pos_err_smth = np.std((pos_smth - pos_ref)[warmup:], axis=0)
         pos_err_ains = np.std((pos_ains - pos_ref)[warmup:], axis=0)
-        assert pos_err_smth[0] < pos_err_ains[0]
+        np.testing.assert_array_less(pos_err_smth, pos_err_ains)
+
+        vel_err_smth = np.std((vel_smth - vel_ref)[warmup:], axis=0)
+        vel_err_ains = np.std((vel_ains - vel_ref)[warmup:], axis=0)
+        np.testing.assert_array_less(vel_err_smth, vel_err_ains)
+
+        euler_err_smth = np.std((euler_smth - euler_ref)[warmup:], axis=0)
+        euler_err_ains = np.std((euler_ains - euler_ref)[warmup:], axis=0)
+        np.testing.assert_array_less(euler_err_smth, euler_err_ains)
