@@ -3,6 +3,10 @@ import pytest
 import numpy as np
 import smsfusion as sf
 from smsfusion import FixedIntervalSmoother
+from smsfusion.benchmark import (
+    benchmark_full_pva_beat_202311A,
+    benchmark_full_pva_chirp_202311A,
+)
 
 
 class Test_FixedIntervalSmoother:
@@ -12,7 +16,7 @@ class Test_FixedIntervalSmoother:
         x0[6:10] = np.array([1.0, 0.0, 0.0, 0.0])
         ains = sf.AidedINS(10.24, x0)
         return ains
-    
+
     def test__init__(self, ains):
         smoother = FixedIntervalSmoother(ains)
         assert smoother._ains is ains
@@ -24,3 +28,76 @@ class Test_FixedIntervalSmoother:
         assert smoother.quaternion().size == 0
         assert smoother.bias_acc().size == 0
         assert smoother.bias_gyro().size == 0
+
+    @pytest.mark.parametrize(
+        "benchmark_gen",
+        [benchmark_full_pva_beat_202311A, benchmark_full_pva_chirp_202311A],
+    )
+    def test_benchmark(self, benchmark_gen):
+        fs_imu = 10.0
+        fs_aiding = 1.0
+        fs_ratio = np.ceil(fs_imu / fs_aiding)
+        warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
+        compass_noise_std = 0.5
+        gps_noise_std = 0.1
+        vel_noise_std = 0.1
+
+        # Reference signals (without noise)
+        t, pos_ref, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
+        euler_ref = np.degrees(euler_ref)
+        gyro_ref = np.degrees(gyro_ref)
+
+        rng = np.random.default_rng(seed=1)
+
+        # IMU measurements (with noise)
+        err_acc = sf.constants.ERR_ACC_MOTION2
+        err_gyro = sf.constants.ERR_GYRO_MOTION2
+        noise_model = sf.noise.IMUNoise(err_acc, err_gyro, seed=0)
+        imu_noise = noise_model(fs_imu, len(t))
+        acc_meas = acc_ref + imu_noise[:, :3]
+        gyro_meas = gyro_ref + imu_noise[:, 3:]
+
+        # Compass / heading (aiding) measurements
+        head_noise = compass_noise_std * rng.standard_normal(len(t))
+        head_meas = euler_ref[:, 2] + head_noise
+
+        # GPS / position (aiding) measurements
+        pos_noise = gps_noise_std * rng.standard_normal((len(t), 3))
+        pos_meas = pos_ref + pos_noise
+
+        # Velocity (aiding) measurements
+        vel_noise = vel_noise_std * rng.standard_normal((len(t), 3))
+        vel_meas = vel_ref + vel_noise
+
+        # MEKF
+        p0 = pos_ref[0]  # position [m]
+        v0 = vel_ref[0]  # velocity [m/s]
+        q0 = sf.quaternion_from_euler(euler_ref[0])  # attitude as unit quaternion
+        ba0 = np.zeros(3)  # accelerometer bias [m/s^2]
+        bg0 = np.zeros(3)  # gyroscope bias [rad/s]
+        x0 = np.concatenate((p0, v0, q0, ba0, bg0))
+        P0 = sf.constants.P0
+        ains = sf.AidedINS(fs_imu, x0, P0, err_acc, err_gyro)
+
+        smoother = FixedIntervalSmoother(ains, cov_smoothing=True)
+
+        for i, (acc_i, gyro_i, pos_i, vel_i, head_i) in enumerate(
+            zip(acc_meas, gyro_meas, pos_meas, vel_meas, head_meas)
+        ):
+            if not (i % fs_ratio):  # with aiding
+                smoother.update(
+                    acc_i,
+                    gyro_i,
+                    degrees=True,
+                    pos=pos_i,
+                    pos_var=gps_noise_std**2 * np.ones(3),
+                    vel=vel_i,
+                    vel_var=vel_noise_std**2 * np.ones(3),
+                    head=head_i,
+                    head_var=compass_noise_std**2,
+                    head_degrees=True,
+                    g_ref=True,
+                    g_var=0.1**2 * np.ones(3),
+                )
+            else:  # without aiding
+                smoother.update(acc_i, gyro_i, degrees=True)

@@ -42,7 +42,6 @@ class FixedIntervalSmoother:
     _x = np.array([])  # smoothed state estimates
     _P = np.array([])  # smoothed erro covariance estimate
 
-
     def __init__(self, ains: AidedINS | AHRS | VRU, cov_smoothing: bool = True) -> None:
         warn(
             "FixedIntervalSmoother is experimental and may change or be removed in the future.",
@@ -199,7 +198,7 @@ class FixedIntervalSmoother:
         if degrees:
             bg = (180.0 / np.pi) * bg
         return bg
-    
+
     def euler(self, degrees: bool = False) -> NDArray:
         """
         Smoothed Euler angles estimates.
