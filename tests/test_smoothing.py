@@ -18,6 +18,10 @@ class Test_FixedIntervalSmoother:
         ains = sf.AidedINS(10.24, x0)
         return ains
 
+    @pytest.fixture
+    def smoother(self, ains):
+        return FixedIntervalSmoother(ains)
+
     def test__init__(self, ains):
         smoother = FixedIntervalSmoother(ains)
         assert smoother._ains is ains
@@ -33,6 +37,22 @@ class Test_FixedIntervalSmoother:
     def test_ains(self, ains):
         smoother = FixedIntervalSmoother(ains)
         assert smoother.ains is ains
+
+    def test_clear(self, smoother):
+        smoother.update(
+            np.zeros(3),
+            np.zeros(3),
+            degrees=True,
+        )
+        assert smoother.x.size > 0
+        smoother.clear()
+        assert smoother.x.size == 0
+        assert smoother.P.size == 0
+        assert smoother.position().size == 0
+        assert smoother.velocity().size == 0
+        assert smoother.quaternion().size == 0
+        assert smoother.bias_acc().size == 0
+        assert smoother.bias_gyro().size == 0
 
     def test_benchmark_ains(self):
         # Reference signal
