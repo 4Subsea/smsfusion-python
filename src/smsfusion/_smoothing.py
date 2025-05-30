@@ -99,8 +99,8 @@ class FixedIntervalSmoother:
             self._P = np.empty((0, *self._ains.P.shape), dtype="float64")
             return
         elif len(self._x_buf) == 1:
-            self._x = np.asarray_chkfinite(self._x_buf).copy()
-            self._P = np.asarray_chkfinite(self._P_buf).copy()
+            self._x = np.asarray_chkfinite(self._x_buf)
+            self._P = np.asarray_chkfinite(self._P_buf)
         elif len(self._x_buf) != len(self._x):
             self._x, self._P = self._backward_sweep(
                 self._x_buf,
@@ -123,7 +123,7 @@ class FixedIntervalSmoother:
             been updated with measurements.
         """
         self._smooth()
-        return np.asarray_chkfinite(self._x).copy()
+        return self._x.copy()
 
     @property
     def P(self) -> NDArray:
@@ -140,7 +140,7 @@ class FixedIntervalSmoother:
             the smoother has been updated with measurements.
         """
         self._smooth()
-        return np.asarray_chkfinite(self._P).copy()
+        return self._P.copy()
 
     def position(self) -> NDArray:
         """
