@@ -232,6 +232,7 @@ class Test_FixedIntervalSmoother:
         # Reference signal
         fs = 10.24  # sampling rate in Hz
         _, pos, vel, euler, acc, gyro = benchmark_full_pva_beat_202311A(fs)
+        euler = np.degrees(euler)
         head = euler[:, 2]
 
         # IMU measurements
@@ -239,11 +240,11 @@ class Test_FixedIntervalSmoother:
         err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
         imu_noise = sf.noise.IMUNoise(err_acc, err_gyro)(fs, len(acc))
         acc_imu = acc + imu_noise[:, :3]
-        gyro_imu = gyro + imu_noise[:, 3:]
+        gyro_imu = gyro + np.degrees(imu_noise[:, 3:])
 
         # Aiding measurements
         pos_noise_std = 0.1  # m
-        head_noise_std = 0.01  # rad
+        head_noise_std = 1.0  # deg
         rng = np.random.default_rng(0)
         pos_aid = pos + pos_noise_std * rng.standard_normal(pos.shape)
         head_aid = head + head_noise_std * rng.standard_normal(head.shape)
@@ -251,7 +252,7 @@ class Test_FixedIntervalSmoother:
         # AINS
         p0 = pos[0]  # position [m]
         v0 = vel[0]  # velocity [m/s]
-        q0 = sf.quaternion_from_euler(euler[0], degrees=False)  # unit quaternion
+        q0 = sf.quaternion_from_euler(euler[0], degrees=True)  # unit quaternion
         ba0 = np.zeros(3)  # accelerometer bias [m/s^2]
         bg0 = np.zeros(3)  # gyroscope bias [rad/s]
         x0 = np.concatenate((p0, v0, q0, ba0, bg0))
@@ -277,7 +278,7 @@ class Test_FixedIntervalSmoother:
 
             pos_ains.append(smoother.ains.position())
             vel_ains.append(smoother.ains.velocity())
-            euler_ains.append(smoother.ains.euler(degrees=False))
+            euler_ains.append(smoother.ains.euler(degrees=True))
 
         # Forward filter state estimates
         pos_ains = np.array(pos_ains)
@@ -287,7 +288,7 @@ class Test_FixedIntervalSmoother:
         # Smoothed state estimates
         pos_smth = smoother.position()
         vel_smth = smoother.velocity()
-        euler_smth = smoother.euler(degrees=False)
+        euler_smth = smoother.euler(degrees=True)
 
         # Half-sample shift
         # # (compensates for the delay introduced by Euler integration)
@@ -319,6 +320,7 @@ class Test_FixedIntervalSmoother:
         # Reference signal
         fs = 10.24  # sampling rate in Hz
         _, pos, vel, euler, acc, gyro = benchmark_full_pva_beat_202311A(fs)
+        euler = np.degrees(euler)
         head = euler[:, 2]
 
         # IMU measurements
@@ -326,11 +328,11 @@ class Test_FixedIntervalSmoother:
         err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
         imu_noise = sf.noise.IMUNoise(err_acc, err_gyro)(fs, len(acc))
         acc_imu = acc + imu_noise[:, :3]
-        gyro_imu = gyro + imu_noise[:, 3:]
+        gyro_imu = gyro + np.degrees(imu_noise[:, 3:])
 
         # Aiding measurements
         pos_noise_std = 0.1  # m
-        head_noise_std = 0.01  # rad
+        head_noise_std = 1.0  # deg
         rng = np.random.default_rng(0)
         pos_aid = pos + pos_noise_std * rng.standard_normal(pos.shape)
         head_aid = head + head_noise_std * rng.standard_normal(head.shape)
@@ -338,7 +340,7 @@ class Test_FixedIntervalSmoother:
         # AINS
         p0 = pos[0]  # position [m]
         v0 = vel[0]  # velocity [m/s]
-        q0 = sf.quaternion_from_euler(euler[0], degrees=False)  # unit quaternion
+        q0 = sf.quaternion_from_euler(euler[0], degrees=True)  # unit quaternion
         ba0 = np.zeros(3)  # accelerometer bias [m/s^2]
         bg0 = np.zeros(3)  # gyroscope bias [rad/s]
         x0 = np.concatenate((p0, v0, q0, ba0, bg0))
@@ -360,7 +362,7 @@ class Test_FixedIntervalSmoother:
                 head_degrees=False,
             )
 
-            euler_ains.append(smoother.ains.euler(degrees=False))
+            euler_ains.append(smoother.ains.euler(degrees=True))
 
         # Forward filter state estimates
         euler_ains = np.array(euler_ains)
