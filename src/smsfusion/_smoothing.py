@@ -246,7 +246,7 @@ class FixedIntervalSmoother:
         cov_smoothing: bool,
     ) -> tuple[NDArray, NDArray]:
         """
-        Perform a backward sweep using the RTS algorithm [1].
+        Perform a backward sweep with the RTS algorithm [1].
 
         Parameters
         ----------
