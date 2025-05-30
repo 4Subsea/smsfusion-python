@@ -15,7 +15,7 @@ class Test_FixedIntervalSmoother:
     def ains(self):
         x0 = np.zeros(16)
         x0[6:10] = np.array([1.0, 0.0, 0.0, 0.0])
-        ains = sf.AidedINS(10.24, x0)
+        ains = sf.AidedINS(10.24, x0, g=sf.gravity())
         return ains
 
     @pytest.fixture
@@ -37,6 +37,42 @@ class Test_FixedIntervalSmoother:
     def test_ains(self, ains):
         smoother = FixedIntervalSmoother(ains)
         assert smoother.ains is ains
+
+    def test_update(self, smoother):
+        g = sf.gravity()
+
+        smoother.update(
+            np.array([0.0, 0.0, -g]),
+            np.zeros(3),
+            degrees=True,
+        )
+        assert smoother.x.shape == (1, 16)
+
+        smoother.update(
+            np.array([0.0, 0.0, -g]),
+            np.zeros(3),
+            degrees=True,
+            pos=np.zeros(3),
+            pos_var=np.ones(3),
+            vel=np.zeros(3),
+            vel_var=np.ones(3),
+            head=0.0,
+            head_var=1.0,
+            head_degrees=True,
+            g_ref=True,
+            g_var=np.ones(3),
+        )
+        assert smoother.x.shape == (2, 16)
+
+        smoother.update(
+            np.array([0.0, 0.0, -g]),
+            np.zeros(3),
+            degrees=True,
+            head=0.0,
+            head_var=1.0,
+            head_degrees=True,
+        )
+        assert smoother.x.shape == (3, 16)
 
     def test_clear(self, smoother):
         smoother.update(
