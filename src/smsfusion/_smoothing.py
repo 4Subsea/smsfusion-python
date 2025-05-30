@@ -226,9 +226,6 @@ class FixedIntervalSmoother:
             Euler angles estimates for each of the N time steps where the smoother has
             been updated with measurements.
         """
-        x = self.x
-        if x.size == 0:
-            return np.array([])
         theta = np.array([_euler_from_quaternion(q) for q in self.quaternion()])
 
         if degrees:
