@@ -30,6 +30,10 @@ class Test_FixedIntervalSmoother:
         assert smoother.bias_acc().size == 0
         assert smoother.bias_gyro().size == 0
 
+    def test_ains(self, ains):
+        smoother = FixedIntervalSmoother(ains)
+        assert smoother.ains is ains
+
     def test_benchmark_ains(self):
         # Reference signal
         fs = 10.24  # sampling rate in Hz
