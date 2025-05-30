@@ -331,10 +331,8 @@ class Test_FixedIntervalSmoother:
         gyro_imu = gyro + np.degrees(imu_noise[:, 3:])
 
         # Aiding measurements
-        pos_noise_std = 0.1  # m
         head_noise_std = 1.0  # deg
         rng = np.random.default_rng(0)
-        pos_aid = pos + pos_noise_std * rng.standard_normal(pos.shape)
         head_aid = head + head_noise_std * rng.standard_normal(head.shape)
 
         # AINS
@@ -352,7 +350,7 @@ class Test_FixedIntervalSmoother:
         smoother = sf.FixedIntervalSmoother(ains, cov_smoothing=True)
 
         euler_ains = []
-        for f_i, w_i, p_i, h_i in zip(acc_imu, gyro_imu, pos_aid, head_aid):
+        for f_i, w_i, h_i in zip(acc_imu, gyro_imu, head_aid):
             smoother.update(
                 f_i,
                 w_i,
