@@ -17,3 +17,10 @@ class Test_FixedIntervalSmoother:
         smoother = FixedIntervalSmoother(ains)
         assert smoother._ains is ains
         assert smoother._cov_smoothing is True
+        assert smoother.x.size == 0
+        assert smoother.P.size == 0
+        assert smoother.position().size == 0
+        assert smoother.velocity().size == 0
+        assert smoother.quaternion().size == 0
+        assert smoother.bias_acc().size == 0
+        assert smoother.bias_gyro().size == 0
