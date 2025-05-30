@@ -153,7 +153,7 @@ class Test_FixedIntervalSmoother:
 
         smoother = sf.FixedIntervalSmoother(ains, cov_smoothing=True)
 
-        euler_ains = []
+        euler_ains, err_ains = [], []
         for f_i, w_i, h_i in zip(acc_imu, gyro_imu, head_aid):
             smoother.update(
                 f_i,
@@ -165,12 +165,15 @@ class Test_FixedIntervalSmoother:
             )
 
             euler_ains.append(smoother.ains.euler(degrees=True))
+            err_ains.append(smoother.ains.P.diagonal())
 
         # Forward filter state estimates
         euler_ains = np.array(euler_ains)
+        err_ains = np.array(err_ains)
 
         # Smoothed state estimates
         euler_smth = smoother.euler(degrees=True)
+        err_smth = np.array([P_i.diagonal() for P_i in smoother.P])
 
         # Half-sample shift
         # # (compensates for the delay introduced by Euler integration)
@@ -184,13 +187,15 @@ class Test_FixedIntervalSmoother:
         euler_err_ains = np.std((euler_ains - euler)[warmup:], axis=0)
         np.testing.assert_array_less(euler_err_smth, euler_err_ains)
 
+        smoother.P.shape == (len(acc_imu), 12, 12)
+        np.testing.assert_array_less(err_smth[warmup:], err_ains[warmup:] + 1e-12)
+
     def test_benchmark_vru(self):
         # Reference signal
         fs = 10.24  # sampling rate in Hz
         _, pos, vel, euler, acc, gyro = benchmark_full_pva_beat_202311A(fs)
         euler = np.degrees(euler)
         gyro = np.degrees(gyro)
-        head = euler[:, 2]
 
         # IMU measurements
         err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
