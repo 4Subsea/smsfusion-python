@@ -94,14 +94,14 @@ class FixedIntervalSmoother:
         self._phi_buf.clear()
 
     def _smooth(self):
-        if len(self._x_buf) == 0:
+        n_samples = len(self._x_buf)
+        if n_samples == 0:
             self._x = np.empty((0, 16), dtype="float64")
             self._P = np.empty((0, *self._ains.P.shape), dtype="float64")
-            return
-        elif len(self._x_buf) == 1:
+        elif n_samples == 1:
             self._x = np.asarray_chkfinite(self._x_buf)
             self._P = np.asarray_chkfinite(self._P_buf)
-        elif len(self._x_buf) != len(self._x):
+        elif n_samples != len(self._x):
             self._x, self._P = self._backward_sweep(
                 self._x_buf,
                 self._dx_buf,
