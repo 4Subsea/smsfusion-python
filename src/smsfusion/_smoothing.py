@@ -162,7 +162,7 @@ class FixedIntervalSmoother:
             Velocity estimates for each of the N time steps where the smoother has
             been updated with measurements.
         """
-        if len(self._x) == 0:
+        if len(self._x_buf) == 0:
             return np.array([])
         return self.x[:, 3:6]
 
@@ -176,7 +176,7 @@ class FixedIntervalSmoother:
             Unit quaternion estimates for each of the N time steps where the smoother has
             been updated with measurements.
         """
-        if len(self._x) == 0:
+        if len(self._x_buf) == 0:
             return np.array([])
         return self.x[:, 6:10]
 
@@ -190,7 +190,7 @@ class FixedIntervalSmoother:
             Accelerometer bias estimates for each of the N time steps where the smoother has
             been updated with measurements.
         """
-        if len(self._x) == 0:
+        if len(self._x_buf) == 0:
             return np.array([])
         return self.x[:, 10:13]
 
@@ -204,7 +204,7 @@ class FixedIntervalSmoother:
             Gyroscope bias estimates for each of the N time steps where the smoother has
             been updated with measurements.
         """
-        if len(self._x) == 0:
+        if len(self._x_buf) == 0:
             return np.array([])
         bg = self.x[:, 13:16]
         if degrees:
@@ -221,7 +221,7 @@ class FixedIntervalSmoother:
             Euler angles estimates for each of the N time steps where the smoother has
             been updated with measurements.
         """
-        if len(self._x) == 0:
+        if len(self._x_buf) == 0:
             return np.array([])
         q = self.quaternion()
         theta = np.empty((q.shape[0], 3))
