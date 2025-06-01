@@ -11,7 +11,7 @@ from ._vectorops import _normalize, _quaternion_product
 
 class FixedIntervalSmoother:
     """
-    Fixed-interval smoothing layer for AidedINS.
+    Fixed-interval smoothing for AidedINS.
 
     This class wraps an instance of AidedINS (or a subclass like AHRS or VRU),
     and maintains a time-ordered buffer of state and error covariance estimates
