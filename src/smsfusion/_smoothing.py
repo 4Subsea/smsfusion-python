@@ -42,13 +42,13 @@ class FixedIntervalSmoother:
         self._ains = ains
         self._cov_smoothing = cov_smoothing
 
-        self._x_buf = []  # state estimates (no smoothing)
-        self._P_buf = []  # error covariance estimates (no smoothing)
-        self._dx_buf = []  # error-state estimates (no smoothing)
-        self._P_prior_buf = []  # a priori error covariance estimates (no smoothing)
+        self._x_buf = []  # state estimates (w/o smoothing)
+        self._P_buf = []  # error covariance estimates (w/o smoothing)
+        self._dx_buf = []  # error-state estimates (w/o smoothing)
+        self._P_prior_buf = []  # a priori error covariance estimates (w/o smoothing)
         self._phi_buf = []  # state transition matrix
         self._x = np.array([])  # smoothed state estimates
-        self._P = np.array([])  # smoothed erro covariance estimate
+        self._P = np.array([])  # smoothed error covariance estimate
 
     @property
     def ains(self) -> AidedINS | AHRS | VRU:
