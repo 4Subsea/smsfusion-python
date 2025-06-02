@@ -215,7 +215,7 @@ class FixedIntervalSmoother:
         x = self.x
         if x.size == 0:
             return np.empty((0, 3), dtype="float64")
-        
+
         bg = self.x[:, 13:16]
         return np.degrees(bg) if degrees else bg
 
