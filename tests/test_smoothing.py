@@ -4,10 +4,7 @@ from scipy.signal import resample_poly
 
 import smsfusion as sf
 from smsfusion import FixedIntervalSmoother
-from smsfusion.benchmark import (
-    benchmark_full_pva_beat_202311A,
-    benchmark_full_pva_chirp_202311A,
-)
+from smsfusion.benchmark import benchmark_full_pva_beat_202311A
 
 
 class Test_FixedIntervalSmoother:
