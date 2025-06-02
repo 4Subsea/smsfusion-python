@@ -48,8 +48,6 @@ class FixedIntervalSmoother:
         self._dx_buf = []  # error-state estimates (w/o smoothing)
         self._P_prior_buf = []  # a priori error covariance estimates (w/o smoothing)
         self._phi_buf = []  # state transition matrix
-        self._x = np.array([])  # smoothed state estimates
-        self._P = np.array([])  # smoothed error covariance estimate
 
         # Smoothed state and covariance estimates
         self._x = np.empty((0, 16), dtype="float64")
