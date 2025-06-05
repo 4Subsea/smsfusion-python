@@ -102,10 +102,10 @@ class FixedIntervalSmoother:
             self._x = np.empty((0, 16), dtype="float64")
             self._P = np.empty((0, *self._ains.P.shape), dtype="float64")
         elif n_samples == 1:
-            self._x = np.asarray_chkfinite(self._x_buf)
-            self._P = np.asarray_chkfinite(self._P_buf)
+            self._x = np.asarray(self._x_buf)
+            self._P = np.asarray(self._P_buf)
         elif n_samples != len(self._x):
-            self._x, self._P = self._backward_sweep(
+            x, P = _rts_backward_sweep(
                 self._x_buf,
                 self._dx_buf,
                 self._P_buf,
@@ -113,6 +113,8 @@ class FixedIntervalSmoother:
                 self._phi_buf,
                 cov_smoothing=self._cov_smoothing,
             )
+            self._x = np.asarray(x)
+            self._P = np.asarray(P)
 
     @property
     def x(self) -> NDArray:
@@ -239,68 +241,68 @@ class FixedIntervalSmoother:
         theta = np.array([_euler_from_quaternion(q_i) for q_i in q])
         return np.degrees(theta) if degrees else theta
 
-    @staticmethod
-    def _backward_sweep(
-        x: NDArray,
-        dx: NDArray,
-        P: NDArray,
-        P_prior: NDArray,
-        phi: NDArray,
-        cov_smoothing: bool,
-    ) -> tuple[NDArray, NDArray]:
-        """
-        Perform a backward sweep with the RTS algorithm [1].
 
-        Parameters
-        ----------
-        x : NDArray, shape (n_samples, 16)
-            The state vector.
-        dx : NDArray, shape (n_samples, 15) or (n_samples, 12)
-            The error state vector.
-        P : NDArray, shape (n_samples, 15, 15) or (n_samples, 12, 12)
-            The covariance matrix.
-        P_prior : NDArray, shape (n_samples, 15, 15) or (n_samples, 12, 12)
-            The a priori covariance matrix.
-        phi : NDArray, shape (n_samples, 15, 15) or (n_samples, 12, 12)
-            The state transition matrix.
-        cov_smoothing : bool
-            Whether to include the error covariance matrix in the smoothing process.
+def _rts_backward_sweep(
+    x: list[NDArray],
+    dx: list[NDArray],
+    P: list[NDArray],
+    P_prior: list[NDArray],
+    phi: list[NDArray],
+    cov_smoothing: bool,
+) -> tuple[list[NDArray], list[NDArray]]:
+    """
+    Perform a backward sweep with the RTS algorithm [1].
 
-        Returns
-        -------
-        x_smth : NDArray, shape (n_samples, 15) or (n_samples, 12)
-            The smoothed state vector.
-        P_smth : NDArray, shape (n_samples, 15, 15) or (n_samples, 12, 12)
-            The smoothed covariance matrix if include_cov is True, otherwise None.
+    Parameters
+    ----------
+    x : NDArray, shape (n_samples, 16)
+        The state vector.
+    dx : NDArray, shape (n_samples, 15) or (n_samples, 12)
+        The error state vector.
+    P : NDArray, shape (n_samples, 15, 15) or (n_samples, 12, 12)
+        The covariance matrix.
+    P_prior : NDArray, shape (n_samples, 15, 15) or (n_samples, 12, 12)
+        The a priori covariance matrix.
+    phi : NDArray, shape (n_samples, 15, 15) or (n_samples, 12, 12)
+        The state transition matrix.
+    cov_smoothing : bool
+        Whether to include the error covariance matrix in the smoothing process.
 
-        References
-        ----------
-        [1] R. G. Brown and P. Y. C. Hwang, "Random signals and applied Kalman
-            filtering with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
-        """
+    Returns
+    -------
+    x_smth : NDArray, shape (n_samples, 15) or (n_samples, 12)
+        The smoothed state vector.
+    P_smth : NDArray, shape (n_samples, 15, 15) or (n_samples, 12, 12)
+        The smoothed covariance matrix if include_cov is True, otherwise None.
 
-        x = np.asarray_chkfinite(x).copy()
-        dx = np.asarray_chkfinite(dx).copy()
-        P = np.asarray_chkfinite(P).copy()
+    References
+    ----------
+    [1] R. G. Brown and P. Y. C. Hwang, "Random signals and applied Kalman
+        filtering with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
+    """
 
-        # Backward sweep
-        for k in range(len(x) - 2, -1, -1):
-            # Smoothed error-state estimate and corresponding covariance
-            A = P[k] @ phi[k].T @ np.linalg.inv(P_prior[k + 1])
-            ddx = A @ dx[k + 1]
-            dx[k, :] += ddx
-            if cov_smoothing:
-                P[k, :, :] += A @ (P[k + 1] - P_prior[k + 1]) @ A.T
+    x = x.copy()  # np.asarray_chkfinite(x).copy()
+    dx = dx.copy()  # np.asarray_chkfinite(dx).copy()
+    P = P.copy()  # np.asarray_chkfinite(P).copy()
 
-            # Reset
-            dda = ddx[6:9]
-            ddq = (1.0 / np.sqrt(4.0 + dda.T @ dda)) * np.r_[2.0, dda]
-            x[k, :3] = x[k, :3] + ddx[:3]
-            x[k, 3:6] = x[k, 3:6] + ddx[3:6]
-            x[k, 6:10] = _quaternion_product(x[k, 6:10], ddq)
-            x[k, 6:10] = _normalize(x[k, 6:10])
-            x[k, -3:] = x[k, -3:] + ddx[-3:]
-            if dx.shape[1] == 15:
-                x[k, 10:13] = x[k, 10:13] + ddx[9:12]
+    # Backward sweep
+    for k in range(len(x) - 2, -1, -1):
+        # Smoothed error-state estimate and corresponding covariance
+        A = P[k] @ phi[k].T @ np.linalg.inv(P_prior[k + 1])
+        ddx = A @ dx[k + 1]
+        dx[k] += ddx
+        if cov_smoothing:
+            P[k] += A @ (P[k + 1] - P_prior[k + 1]) @ A.T
 
-        return x, P
+        # Reset
+        dda = ddx[6:9]
+        ddq = (1.0 / np.sqrt(4.0 + dda.T @ dda)) * np.r_[2.0, dda]
+        x[k][:3] = x[k][:3] + ddx[:3]
+        x[k][3:6] = x[k][3:6] + ddx[3:6]
+        x[k][6:10] = _quaternion_product(x[k][6:10], ddq)
+        x[k][6:10] = _normalize(x[k][6:10])
+        x[k][-3:] = x[k][-3:] + ddx[-3:]
+        if dx[k].size == 15:
+            x[k][10:13] = x[k][10:13] + ddx[9:12]
+
+    return x, P
