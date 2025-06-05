@@ -395,7 +395,7 @@ def benchmark_pure_attitude_beat_202311A(
     Passive rotations mean that the frame itself is rotating, not the object
     within the frame.
     """
-    duration = 1200.0  # 20 minutes
+    duration = 1800.0  # 30 minutes
     amplitude = np.radians(np.array([0.0, 0.0, 0.0, 5.0, 5.0, 5.0]))
     mean = np.radians(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
     phase = np.radians(np.array([0.0, 0.0, 0.0, 0.0, 45.0, 90.0]))
@@ -463,7 +463,7 @@ def benchmark_pure_attitude_chirp_202311A(
     Passive rotations mean that the frame itself is rotating, not the object
     within the frame.
     """
-    duration = 1200.0  # 20 minutes
+    duration = 1800.0  # 30 minutes
     amplitude = np.radians(np.array([0.0, 0.0, 0.0, 5.0, 5.0, 5.0]))
     mean = np.radians(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
     phase = np.radians(np.array([0.0, 0.0, 0.0, 0.0, 45.0, 90.0]))
