@@ -469,7 +469,7 @@ class IMUNoise:
     ) -> None:
         self._err_acc = err_acc
         self._err_gyro = err_gyro
-        self._seed = seed
+        self._rng = np.random.default_rng(seed)
 
         if not self._REQUIRED_KEYS.issubset(self._err_acc.keys()):
             raise ValueError("Missing required keys in accelerometer noise parameters.")
@@ -532,7 +532,7 @@ class IMUNoise:
         The generated noise will have units corresponding to the noise
         parameters given during initialization.
         """
-        seeds = _gen_seeds(self._seed, 6)
+        seeds = self._rng.integers(1 << 32, size=6, dtype=np.uint64)
         x = np.column_stack(
             [NoiseModel(**self._err_list[i], seed=seeds[i])(fs, n) for i in range(6)]
         )

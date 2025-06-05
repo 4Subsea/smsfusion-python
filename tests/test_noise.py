@@ -249,7 +249,7 @@ class Test_IMUNoise:
 
         assert noise._err_acc == err_acc_full
         assert noise._err_gyro == err_gyro_full
-        assert noise._seed == 123
+        assert isinstance(noise._rng, np.random.Generator)
 
         err_list_expect = [
             {
@@ -310,7 +310,7 @@ class Test_IMUNoise:
 
         assert noise._err_acc == err_acc_scalar
         assert noise._err_gyro == err_gyro_scalar
-        assert noise._seed is None
+        assert isinstance(noise._rng, np.random.Generator)
         assert noise._err_list == err_list_expect
 
     def test__init__default(self):
@@ -339,7 +339,7 @@ class Test_IMUNoise:
 
         assert noise._err_acc == err_acc_expect
         assert noise._err_gyro == err_gyro_expect
-        assert noise._seed is None
+        assert isinstance(noise._rng, np.random.Generator)
         assert noise._err_list == err_list_expect
 
     def test__init__raises_keys(self, err_acc_scalar, err_gyro_scalar):
