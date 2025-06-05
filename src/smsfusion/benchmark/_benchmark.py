@@ -6,7 +6,8 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from smsfusion._ins import gravity
-from smsfusion._transforms import _inv_angular_matrix_from_euler, _rot_matrix_from_euler
+from smsfusion._transforms import (_inv_angular_matrix_from_euler,
+                                   _rot_matrix_from_euler)
 
 
 class _Signal(abc.ABC):

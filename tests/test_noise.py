@@ -6,14 +6,8 @@ import pandas as pd
 import pytest
 
 import smsfusion as sf
-from smsfusion.noise import (
-    IMUNoise,
-    NoiseModel,
-    allan_var,
-    gauss_markov,
-    random_walk,
-    white_noise,
-)
+from smsfusion.noise import (IMUNoise, NoiseModel, allan_var, gauss_markov,
+                             random_walk, white_noise)
 from smsfusion.noise._noise import _gen_seeds, _standard_normal
 
 TEST_PATH = Path(__file__).parent

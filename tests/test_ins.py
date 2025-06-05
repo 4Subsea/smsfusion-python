@@ -17,28 +17,16 @@ from pytest import approx
 from scipy.signal import resample_poly
 from scipy.spatial.transform import Rotation
 
-from smsfusion._ins import (
-    AHRS,
-    VRU,
-    AidedINS,
-    FixedNED,
-    INSMixin,
-    StrapdownINS,
-    _dhda_head,
-    _h_head,
-    _signed_smallest_angle,
-    gravity,
-)
-from smsfusion._transforms import (
-    _angular_matrix_from_quaternion,
-    _rot_matrix_from_quaternion,
-    quaternion_from_euler,
-)
-from smsfusion._vectorops import _normalize, _quaternion_product, _skew_symmetric
-from smsfusion.benchmark import (
-    benchmark_full_pva_beat_202311A,
-    benchmark_full_pva_chirp_202311A,
-)
+from smsfusion._ins import (AHRS, VRU, AidedINS, FixedNED, INSMixin,
+                            StrapdownINS, _dhda_head, _h_head,
+                            _signed_smallest_angle, gravity)
+from smsfusion._transforms import (_angular_matrix_from_quaternion,
+                                   _rot_matrix_from_quaternion,
+                                   quaternion_from_euler)
+from smsfusion._vectorops import (_normalize, _quaternion_product,
+                                  _skew_symmetric)
+from smsfusion.benchmark import (benchmark_full_pva_beat_202311A,
+                                 benchmark_full_pva_chirp_202311A)
 from smsfusion.constants import ERR_ACC_MOTION2, ERR_GYRO_MOTION2, P0
 from smsfusion.noise import IMUNoise, white_noise
 

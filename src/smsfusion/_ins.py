@@ -8,11 +8,8 @@ from numpy.typing import ArrayLike, NDArray
 
 from smsfusion.constants import ERR_ACC_MOTION2, ERR_GYRO_MOTION2, P0
 
-from ._transforms import (
-    _angular_matrix_from_quaternion,
-    _euler_from_quaternion,
-    _rot_matrix_from_quaternion,
-)
+from ._transforms import (_angular_matrix_from_quaternion,
+                          _euler_from_quaternion, _rot_matrix_from_quaternion)
 from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
 
