@@ -285,12 +285,14 @@ class FixedIntervalSmoother:
 
         # Backward sweep
         for k in range(len(x) - 2, -1, -1):
+            # Smoothed error-state estimate and corresponding covariance
             A = P[k] @ phi[k].T @ np.linalg.inv(P_prior[k + 1])
             ddx = A @ dx[k + 1]
             dx[k, :] += ddx
             if cov_smoothing:
                 P[k, :, :] += A @ (P[k + 1] - P_prior[k + 1]) @ A.T
 
+            # Reset
             dda = ddx[6:9]
             ddq = (1.0 / np.sqrt(4.0 + dda.T @ dda)) * np.r_[2.0, dda]
             x[k, :3] = x[k, :3] + ddx[:3]
