@@ -351,7 +351,7 @@ def benchmark_pure_attitude_beat_202311A(
     Generate a benchmark with pure attitude for performance testing of INS/AHRS/VRU
     sensor fusion algorithms.
 
-    The benchmark scenario is 20 minutes long. It generates Euler angles
+    The benchmark scenario is 30 minutes long. It generates Euler angles
     (roll, pitch, and yaw), and the corresponding accelerometer and
     gyroscope signals. Note that the generated motion is pure rotations.
 
@@ -418,7 +418,7 @@ def benchmark_pure_attitude_chirp_202311A(
     Generate a benchmark with pure attitude for performance testing of INS/AHRS/VRU
     sensor fusion algorithms.
 
-    The benchmark scenario is 20 minutes long. It generates Euler angles
+    The benchmark scenario is 30 minutes long. It generates Euler angles
     (roll, pitch, and yaw), and the corresponding accelerometer and
     gyroscope signals. Note that the generated motion is pure rotations.
 
