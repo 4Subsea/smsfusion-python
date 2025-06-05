@@ -2,6 +2,7 @@ from typing import Self
 from warnings import warn
 
 import numpy as np
+from numba import njit
 from numpy.typing import NDArray
 
 from ._ins import AHRS, VRU, AidedINS
@@ -242,6 +243,7 @@ class FixedIntervalSmoother:
         return np.degrees(theta) if degrees else theta
 
 
+@njit  # type: ignore[misc]
 def _rts_backward_sweep(
     x: list[NDArray],
     dx: list[NDArray],
@@ -281,9 +283,11 @@ def _rts_backward_sweep(
         filtering with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
     """
 
-    x = x.copy()  # np.asarray_chkfinite(x).copy()
-    dx = dx.copy()  # np.asarray_chkfinite(dx).copy()
-    P = P.copy()  # np.asarray_chkfinite(P).copy()
+    x = x.copy()
+    dx = dx.copy()
+    P = P.copy()
+
+    q_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
     # Backward sweep
     for k in range(len(x) - 2, -1, -1):
@@ -296,7 +300,8 @@ def _rts_backward_sweep(
 
         # Reset
         dda = ddx[6:9]
-        ddq = (1.0 / np.sqrt(4.0 + dda.T @ dda)) * np.r_[2.0, dda]
+        q_prealloc[1:] = dda
+        ddq = (1.0 / np.sqrt(4.0 + dda.T @ dda)) * q_prealloc
         x[k][:3] = x[k][:3] + ddx[:3]
         x[k][3:6] = x[k][3:6] + ddx[3:6]
         x[k][6:10] = _quaternion_product(x[k][6:10], ddq)
