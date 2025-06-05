@@ -82,7 +82,7 @@ class FixedIntervalSmoother:
         self._ains.update(*args, **kwargs)
         self._x_buf.append(self._ains.x)
         self._P_buf.append(self._ains.P)
-        self._dx_buf.append(self._ains._dx_est.copy())
+        self._dx_buf.append(self._ains._dx.copy())
         self._phi_buf.append(self._ains._phi.copy())
         return self
 

@@ -690,7 +690,7 @@ class AidedINS(INSMixin):
         self._x = self._ins.x
 
         # Error state estimate (after reset)
-        self._dx = np.zeros(15)  # always zero, but used in sequential update
+        self._dx_prealloc = np.zeros(15)  # always zero, but used in sequential update
 
         # Initialize Kalman filter
         self._P_prior = np.asarray_chkfinite(P0_prior).copy(order="C")
@@ -723,10 +723,10 @@ class AidedINS(INSMixin):
             self._H = (self._H @ self._T_dx)[:, :dx_dim]
             self._W = (self._T_wn @ self._W @ self._T_wn.T)[:wn_dim, :wn_dim]
             self._I = self._I[:dx_dim, :dx_dim]
-            self._dx = self._dx[:dx_dim]
+            self._dx_prealloc = self._dx_prealloc[:dx_dim]
 
         # Error-state estimate (before reset)
-        self._dx_est = np.empty_like(self._dx)  # needed for smoothing only
+        self._dx = np.empty_like(self._dx_prealloc)  # needed for smoothing only
 
         # State transition matrix
         self._phi = np.empty_like(self._F)  # needed for smoothing only
@@ -921,7 +921,7 @@ class AidedINS(INSMixin):
         self._ins._x[-3:] = self._ins._x[-3:] + dx[-3:]
         if not self._ignore_bias_acc:
             self._ins._x[10:13] = self._ins._x[10:13] + dx[9:12]
-        self._dx[:] = np.zeros(dx.size)
+        self._dx_prealloc[:] = np.zeros(dx.size)
 
     @staticmethod
     @njit  # type: ignore[misc]
@@ -1020,7 +1020,7 @@ class AidedINS(INSMixin):
         R_ins_nm = _rot_matrix_from_quaternion(q_ins_nm)  # body-to-inertial rot matrix
 
         # Aliases
-        dx = self._dx  # zeros
+        dx = self._dx_prealloc  # zeros
         dt = self._dt
         F = self._F
         G = self._G
@@ -1087,7 +1087,7 @@ class AidedINS(INSMixin):
             H_head = self._update_H_head(q_ins_nm)
             dx, P = self._update_dx_P(dx, P, dz_head, head_var_, H_head, I_)
 
-        self._dx_est[:] = dx.ravel().copy()
+        self._dx[:] = dx.ravel().copy()
 
         # Reset INS state
         if dx.any():
