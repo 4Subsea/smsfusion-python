@@ -247,10 +247,11 @@ estimate the roll and pitch degrees of freedom of a moving body using the
 
 Smoothing
 ---------
-Smoothing is a post-processing technique used to improve the accuracy of Kalman
-filter state estimates by incorporating both past and future measurements. In contrast,
-standard Kalman filter algorithms produce estimates based only on past and current
-measurements, leading to suboptimal accuracy when future data is available.
+Smoothing refers to post-processing techniques that enhance the accuracy of a Kalman
+filter's state and covariance estimates by incorporating both past and future measurements.
+In contrast, standard forward filtering (as implemented in :class:`~smsfusion.AidedINS`)
+relies only on past and current measurements, leading to suboptimal estimates when
+future data is available.
 
 Fixed-interval smoothing
 ........................
