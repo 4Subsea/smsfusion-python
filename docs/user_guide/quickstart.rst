@@ -255,16 +255,18 @@ future data is available.
 
 Fixed-interval smoothing
 ........................
-The :class:`~smsfusion.FixedIntervalSmoother` implements fixed-interval smoothing
+The :class:`~smsfusion.FixedIntervalSmoother` class implements fixed-interval smoothing
 for an :class:`~smsfusion.AidedINS` instance or one of its subclasses (:class:`~smsfusion.AHRS`
 or :class:`~smsfusion.VRU`). After a complete forward pass using the AINS algorithm,
-the smoother applies a backward pass using the Rauch-Tung-Striebel (RTS) algorithm [1]
-to refine the state (and covariance) estimates.
+a backward sweep with a smoothing algorithm is performed to refine the state
+and covariance estimates. Fixed-interval smoothing is particularly useful
+when the entire measurement sequence is available, as it allows for optimal state
+estimation by considering all measurements in the sequence.
 
 The following example demonstrates how to refine a :class:`~smsfusion.VRU`'s roll
 and pitch estimates using :class:`~smsfusion.FixedIntervalSmoother`. The same
 workflow applies if the underlying AINS instance is an :class:`~smsfusion.AidedINS`
-or an :class:`~smsfusion.AHRS` instead. Note that the ``update()`` method may take
+or an :class:`~smsfusion.AHRS` instead. However, note that the ``update()`` method may take
 additional aiding parameters depending on the type of AINS instance used.
 
 .. code-block:: python
@@ -282,9 +284,3 @@ additional aiding parameters depending on the type of AINS instance used.
         )
 
     roll_pitch_est = vru_smoother.euler(degrees=False)[:2]
-
-
-References
-----------
-[1] R. G. Brown and P. Y. C. Hwang, "Random signals and applied Kalman filtering
-    with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
