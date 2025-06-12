@@ -243,3 +243,30 @@ estimate the roll and pitch degrees of freedom of a moving body using the
         roll_pitch_est.append(vru.euler(degrees=False)[:2])
 
     roll_pitch_est = np.array(roll_pitch_est)
+
+
+Smoothing
+---------
+Smoothing is a post-processing technique used to improve the accuracy of Kalman
+filter state estimates by incorporating both past and future measurements. In contrast,
+standard Kalman filter algorithms produce estimates based only on past and current
+measurements, leading to suboptimal accuracy when future data is available.
+
+The :class:`~smsfusion.FixedIntervalSmoother` implements fixed-interval smoothing
+for an :class:`~smsfusion.AidedINS` instance or one of its subclasses (:class:`~smsfusion.AHRS`
+or :class:`~smsfusion.VRU`). After a complete forward pass using the AINS algorithm,
+the smoother applies a backward pass using the Rauch-Tung-Striebel (RTS) algorithm [1]
+to refine the state (and covariance) estimates.
+
+
+
+Smoothing is a post-processing technique used to enhance the accuracy of Kalman
+filter state estimates by incorporating both past and future measurements to produce
+more accurate estimates. This is in contrast to the standard Kalman filter algorithm,
+which only uses past and current measurements to produce estimates at each time step.
+
+The :class:`~smsfusion.FixedIntervalSmoother` provides a fixed-interval smoothing
+layer for the :class:`~smsfusion.AidedINS` class and its subclasses (:class:`~smsfusion.AHRS`
+and :class:`~smsfusion.VRU`). After the initial forward pass with the AINS algorithm,
+the smoother performs a backward sweep with the Rauch-Tung-Striebel (RTS) algorithm [1]
+to refine the filter estimates.
