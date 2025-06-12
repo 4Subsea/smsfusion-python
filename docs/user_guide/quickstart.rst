@@ -278,7 +278,7 @@ is available:
             degrees=False
         )
 
-    roll_pitch_est = vru_smoother.smooth()[:2]
+    roll_pitch_est = vru_smoother.euler(degrees=False)[:2]
 
 
 References
