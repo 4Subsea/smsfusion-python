@@ -270,6 +270,7 @@ additional aiding parameters depending on the type of AINS instance used.
 
     import smsfusion as sf
 
+
     vru_smoother = sf.FixedIntervalSmoother(vru)
 
     for f_i, w_i in zip(acc_imu, gyro_imu):
