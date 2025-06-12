@@ -243,3 +243,44 @@ estimate the roll and pitch degrees of freedom of a moving body using the
         roll_pitch_est.append(vru.euler(degrees=False)[:2])
 
     roll_pitch_est = np.array(roll_pitch_est)
+
+
+Smoothing
+---------
+Smoothing refers to post-processing techniques that enhance the accuracy of a Kalman
+filter's state and covariance estimates by incorporating both past and future measurements.
+In contrast, standard forward filtering (as implemented in :class:`~smsfusion.AidedINS`)
+relies only on past and current measurements, leading to suboptimal estimates when
+future data is available.
+
+Fixed-interval smoothing
+........................
+The :class:`~smsfusion.FixedIntervalSmoother` class implements fixed-interval smoothing
+for an :class:`~smsfusion.AidedINS` instance or one of its subclasses (:class:`~smsfusion.AHRS`
+or :class:`~smsfusion.VRU`). After a complete forward pass using the AINS algorithm,
+a backward sweep with a smoothing algorithm is performed to refine the state
+and covariance estimates. Fixed-interval smoothing is particularly useful
+when the entire measurement sequence is available, as it allows for optimal state
+estimation by considering all measurements in the sequence.
+
+The following example demonstrates how to refine a :class:`~smsfusion.VRU`'s roll
+and pitch estimates using :class:`~smsfusion.FixedIntervalSmoother`. The same
+workflow applies if the underlying AINS instance is an :class:`~smsfusion.AidedINS`
+or an :class:`~smsfusion.AHRS` instead. However, note that the ``update()`` method may take
+additional aiding parameters depending on the type of AINS instance used.
+
+.. code-block:: python
+
+    import smsfusion as sf
+
+
+    vru_smoother = sf.FixedIntervalSmoother(vru)
+
+    for f_i, w_i in zip(acc_imu, gyro_imu):
+        vru_smoother.update(
+            f_i,
+            w_i,
+            degrees=False
+        )
+
+    roll_pitch_est = vru_smoother.euler(degrees=False)[:, :2]
