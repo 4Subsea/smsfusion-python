@@ -256,29 +256,26 @@ The :class:`~smsfusion.FixedIntervalSmoother` implements fixed-interval smoothin
 for an :class:`~smsfusion.AidedINS` instance or one of its subclasses (:class:`~smsfusion.AHRS`
 or :class:`~smsfusion.VRU`). After a complete forward pass using the AINS algorithm,
 the smoother applies a backward pass using the Rauch-Tung-Striebel (RTS) algorithm [1]
-to refine the state (and covariance) estimates:
+to refine the state (and covariance) estimates.
+
+The following example demonstrates how to use the :class:`~smsfusion.FixedIntervalSmoother`
+to refine a VRU's roll and pitch estimates when future measurements are available:
+
 
 .. code-block:: python
 
     import smsfusion as sf
 
-    smoother = sf.FixedIntervalSmoother(ains)
+    vru_smoother = sf.FixedIntervalSmoother(vru)
 
-    for f_i, w_i, p_i, h_i in zip(acc_imu, gyro_imu, pos_aid, head_aid):
-        smoother.update(
+    for f_i, w_i in zip(acc_imu, gyro_imu):
+        vru_smoother.update(
             f_i,
             w_i,
-            degrees=False,
-            pos=p_i,
-            pos_var=pos_noise_std**2 * np.ones(3),
-            head=h_i,
-            head_var=head_noise_std**2,
-            head_degrees=False,
+            degrees=False
         )
 
-    pos_est = smoother.position()
-    vel_est = smoother.velocity()
-    euler_est = smoother.euler(degrees=False)
+    roll_pitch_est = vru_smoother.smooth()[:2]  # smoothed roll and pitch estimates
 
 
 References
