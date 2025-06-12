@@ -252,14 +252,17 @@ filter state estimates by incorporating both past and future measurements. In co
 standard Kalman filter algorithms produce estimates based only on past and current
 measurements, leading to suboptimal accuracy when future data is available.
 
+Fixed-interval smoothing
+........................
 The :class:`~smsfusion.FixedIntervalSmoother` implements fixed-interval smoothing
 for an :class:`~smsfusion.AidedINS` instance or one of its subclasses (:class:`~smsfusion.AHRS`
 or :class:`~smsfusion.VRU`). After a complete forward pass using the AINS algorithm,
 the smoother applies a backward pass using the Rauch-Tung-Striebel (RTS) algorithm [1]
 to refine the state (and covariance) estimates.
 
-The following example demonstrates how to use the :class:`~smsfusion.FixedIntervalSmoother`
-to refine a VRU's roll and pitch estimates when future measurements are available:
+The following example demonstrates how to refine a VRU's roll and pitch estimates
+using :class:`~smsfusion.FixedIntervalSmoother` when a fixed interval of measurements
+is available:
 
 
 .. code-block:: python
@@ -275,7 +278,7 @@ to refine a VRU's roll and pitch estimates when future measurements are availabl
             degrees=False
         )
 
-    roll_pitch_est = vru_smoother.smooth()[:2]  # smoothed roll and pitch estimates
+    roll_pitch_est = vru_smoother.smooth()[:2]
 
 
 References
