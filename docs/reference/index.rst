@@ -12,6 +12,7 @@ API reference
 
    AHRS
    AidedINS
+   FixedIntervalSmoother
    StrapdownINS
    VRU
    gravity
