@@ -260,10 +260,11 @@ or :class:`~smsfusion.VRU`). After a complete forward pass using the AINS algori
 the smoother applies a backward pass using the Rauch-Tung-Striebel (RTS) algorithm [1]
 to refine the state (and covariance) estimates.
 
-The following example demonstrates how to refine a VRU's roll and pitch estimates
-using :class:`~smsfusion.FixedIntervalSmoother` when a fixed interval of measurements
-is available:
-
+The following example demonstrates how to refine a :class:`~smsfusion.VRU`'s roll
+and pitch estimates using :class:`~smsfusion.FixedIntervalSmoother`. The same
+workflow applies if the underlying AINS instance is an :class:`~smsfusion.AidedINS`
+or an :class:`~smsfusion.AHRS` instead. Note that the ``update()`` method may take
+additional aiding parameters depending on the type of AINS instance used.
 
 .. code-block:: python
 
