@@ -17,9 +17,15 @@ from ._transforms import (
 from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
 
-def _roll_pitch_from_acc(acc):
-    roll = np.arctan(acc[1] / acc[2])
-    pitch = np.arctan(acc[0] / np.sqrt(acc[1] ** 2 + acc[2] ** 2))
+def _roll_pitch_from_acc(acc, nav_frame):
+    if nav_frame.lower() == "ned":
+        roll = np.arctan(acc[1] / acc[2])
+        pitch = np.arctan(acc[0] / np.sqrt(acc[1] ** 2 + acc[2] ** 2))
+    elif nav_frame.lower() == "enu":  # TODO: verify equations
+        roll = np.arctan(acc[1] / acc[2])
+        pitch = np.arctan(-acc[0] / np.sqrt(acc[1] ** 2 + acc[2] ** 2))
+    else:
+        raise ValueError("Invalid navigation frame. Must be 'NED' or 'ENU'.")
     return roll, pitch
 
 
@@ -1119,7 +1125,7 @@ class AidedINS(INSMixin):
         else:
             self._f_avg = beta * f_imu + (1.0 - beta) * self._f_avg
 
-        alpha_avg, beta_avg = _roll_pitch_from_acc(self._f_avg)
+        alpha_avg, beta_avg = _roll_pitch_from_acc(self._f_avg, self._ins._nav_frame)
         euler_avg = np.array([alpha_avg, beta_avg, 0.0])
         q_nm_avg = _quaternion_from_euler(euler_avg)
 
