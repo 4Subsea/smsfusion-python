@@ -653,7 +653,9 @@ class AidedINS(INSMixin):
         and thus initializes the Kalman filter immediately using these initial conditions.
         A 'cold' start, on the other hand, will perform an initial calibration (or warmup)
         before initializing the Kalman filter. The calibration is done to refine
-        the initial state estimate to mitigate the risk of divergence.
+        the initial state estimate to mitigate the risk of divergence. The calibration
+        period is set to 60 seconds by default, but can be adjusted using the ``warmup_period``
+        parameter. The IMU sensor should be stationary during the calibration period.
     warmup_period : float, default 60.0
         The duration of the warmup (or calibration) period in seconds. Only relevant
         for 'cold' starts.
