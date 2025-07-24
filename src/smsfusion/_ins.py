@@ -18,20 +18,17 @@ from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
 
 def _roll_pitch_from_acc(acc, nav_frame):
-    if nav_frame.lower() == "ned":
-        roll = np.arctan(acc[1] / acc[2])
-        pitch = np.arctan(acc[0] / np.sqrt(acc[1] ** 2 + acc[2] ** 2))
-    elif nav_frame.lower() == "enu":  # TODO: verify equations
-        roll = np.arctan(acc[1] / acc[2])
-        pitch = np.arctan(-acc[0] / np.sqrt(acc[1] ** 2 + acc[2] ** 2))
-    else:
-        raise ValueError("Invalid navigation frame. Must be 'NED' or 'ENU'.")
+    roll = np.arctan(acc[1] / acc[2])
+    pitch = np.arctan(acc[0] / np.sqrt(acc[1] ** 2 + acc[2] ** 2))
+    if nav_frame.lower() == "enu":
+        pitch = -pitch
     return roll, pitch
 
 
 def _acc_from_quaternion(q_nm, g_n):
     R_nm = _rot_matrix_from_quaternion(q_nm)  # body-to-ned rotation matrix
     return R_nm.T @ g_n
+
 
 class FixedNED:
     """
@@ -675,6 +672,12 @@ class AidedINS(INSMixin):
     warmup_period : float, default 60.0
         The duration of the warmup (or calibration) period in seconds. Only relevant
         for 'cold' starts.
+    warmup_smoothing_factor : float, default 0.8
+        Smoothing factor used during calibration. Exponential smoothing is applied
+        to the measurement data to reduce noise and improve the accuracy of the
+        initial state estimate. The smoothing factor should be in the range [0, 1],
+        where a value of 1 means no smoothing, while a value of 0 means no influence
+        from new measurements. A value of 0.8 is a good default choice.
     """
 
     # Permutation matrix for reordering error-state bias terms, such that:
@@ -704,6 +707,7 @@ class AidedINS(INSMixin):
         ignore_bias_acc: bool = True,
         warm: bool = False,
         warmup_period: float = 60.0,
+        warmup_smoothing_factor: float = 0.8,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
@@ -713,6 +717,7 @@ class AidedINS(INSMixin):
         self._ignore_bias_acc = ignore_bias_acc
         self._warm = warm
         self._warmup_period = warmup_period
+        self._warmup_smoothing_factor = warmup_smoothing_factor
         self._elapsed_time = 0.0
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
@@ -766,6 +771,8 @@ class AidedINS(INSMixin):
         self._phi = np.empty_like(self._F)  # needed for smoothing only
 
         # Coldstart variables
+        self._pos_avg = self._ins.position()
+        self._vel_avg = self._ins.velocity()
         self._f_avg = _acc_from_quaternion(q0, self._ins._g_n)
 
     @property
@@ -1117,13 +1124,21 @@ class AidedINS(INSMixin):
         """
         f_imu = np.asarray(f_imu, dtype=float)
 
-        beta = 0.9
+        beta = self._warmup_smoothing_factor
         self._f_avg = beta * f_imu + (1.0 - beta) * self._f_avg
+        if pos is not None:
+            pos = np.asarray(pos, dtype=float, order="C")
+            self._pos_avg = beta * pos + (1.0 - beta) * self._pos_avg
+        if vel is not None:
+            vel = np.asarray(vel, dtype=float, order="C")
+            self._vel_avg = beta * vel + (1.0 - beta) * self._vel_avg
 
         alpha_avg, beta_avg = _roll_pitch_from_acc(self._f_avg, self._ins._nav_frame)
         euler_avg = np.array([alpha_avg, beta_avg, 0.0])
         q_nm_avg = _quaternion_from_euler(euler_avg)
 
+        self._ins._x[:3] = self._pos_avg
+        self._ins._x[3:6] = self._vel_avg
         self._ins._x[6:10] = q_nm_avg
         self._x[:] = self._ins._x
 
