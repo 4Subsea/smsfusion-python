@@ -1108,17 +1108,9 @@ class AidedINS(INSMixin):
     def _update_cold(
         self,
         f_imu: ArrayLike,
-        w_imu: ArrayLike,
-        degrees: bool,
         pos: ArrayLike | None,
-        pos_var: ArrayLike | None,
         vel: ArrayLike | None,
-        vel_var: ArrayLike | None,
-        head: float | None,
-        head_var: float | None,
-        head_degrees: bool,
-        g_ref: bool,
-        g_var: ArrayLike | None,
+        **kwargs: Any,
     ) -> None:
         """
         Cold update.
@@ -1207,25 +1199,25 @@ class AidedINS(INSMixin):
             A reference to the instance itself after the update.
         """
 
-        args = (
-            f_imu,
-            w_imu,
-            degrees,
-            pos,
-            pos_var,
-            vel,
-            vel_var,
-            head,
-            head_var,
-            head_degrees,
-            g_ref,
-            g_var,
+        kwargs = dict(
+            f_imu=f_imu,
+            w_imu=w_imu,
+            degrees=degrees,
+            pos=pos,
+            pos_var=pos_var,
+            vel=vel,
+            vel_var=vel_var,
+            head=head,
+            head_var=head_var,
+            head_degrees=head_degrees,
+            g_ref=g_ref,
+            g_var=g_var,
         )
 
         if self._warm:
-            self._update_warm(*args)
+            self._update_warm(**kwargs)
         else:
-            self._update_cold(*args)
+            self._update_cold(**kwargs)
 
         self._elapsed_time += self._dt
         if not self._warm and self._elapsed_time >= self._warmup_period:
