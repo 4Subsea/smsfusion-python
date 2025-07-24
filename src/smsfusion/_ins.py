@@ -17,6 +17,16 @@ from ._transforms import (
 from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
 
+def _roll_pitch_from_acc(acc):
+    roll = np.arctan(acc[1] / acc[2])
+    pitch = np.arctan(acc[0] / np.sqrt(acc[1] ** 2 + acc[2] ** 2))
+    return roll, pitch
+
+
+def _acc_from_euler(euler):
+    pass
+
+
 class FixedNED:
     """
     Convert position coordinates between a fixed NED frame (x, y, z) and ECEF frame
@@ -1109,13 +1119,11 @@ class AidedINS(INSMixin):
         else:
             self._f_avg = beta * f_imu + (1.0 - beta) * self._f_avg
 
-        alpha = np.arctan(self._f_avg[1] / self._f_avg[2])
-        beta = np.arctan(
-            self._f_avg[0] / np.sqrt(self._f_avg[1] ** 2 + self._f_avg[2] ** 2)
-        )
+        alpha_avg, beta_avg = _roll_pitch_from_acc(self._f_avg)
+        euler_avg = np.array([alpha_avg, beta_avg, 0.0])
+        q_nm_avg = _quaternion_from_euler(euler_avg)
 
-        euler = np.array([alpha, beta, 0.0])
-        self._ins._x[6:10] = _quaternion_from_euler(euler)
+        self._ins._x[6:10] = q_nm_avg
         self._x[:] = self._ins._x
 
     def update(
