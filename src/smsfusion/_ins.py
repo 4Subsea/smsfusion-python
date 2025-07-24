@@ -650,8 +650,8 @@ class AidedINS(INSMixin):
     warm : bool, default False
         Whether to start the AINS filter in a 'warm' or 'cold' state. A 'warm' start
         assumes that the provided intial conditions are close to the true state,
-        and thus initializes the Kalman filter immediately using these initial conditions.
-        A 'cold' start, on the other hand, will perform an initial calibration (or warmup)
+        and thus initializes the Kalman filter using these initial conditions. A
+        'cold' start, on the other hand, will perform an initial calibration (or warmup)
         before initializing the Kalman filter. The calibration is done to refine
         the initial state estimate to mitigate the risk of divergence. The calibration
         period is set to 60 seconds by default, but can be adjusted using the ``warmup_period``
