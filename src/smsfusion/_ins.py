@@ -1115,21 +1115,6 @@ class AidedINS(INSMixin):
         self._ins._x[6:10] = _quaternion_from_euler(euler)
         self._x[:] = self._ins._x
 
-        # self._update_warm(
-        #     f_imu,
-        #     w_imu,
-        #     degrees,
-        #     pos,
-        #     pos_var,
-        #     vel,
-        #     vel_var,
-        #     head,
-        #     head_var,
-        #     head_degrees,
-        #     g_ref,
-        #     g_var,
-        # )
-
     def update(
         self,
         f_imu: ArrayLike,
@@ -1193,36 +1178,26 @@ class AidedINS(INSMixin):
         AidedINS
             A reference to the instance itself after the update.
         """
+
+        args = (
+            f_imu,
+            w_imu,
+            degrees,
+            pos,
+            pos_var,
+            vel,
+            vel_var,
+            head,
+            head_var,
+            head_degrees,
+            g_ref,
+            g_var,
+        )
+
         if self._warm:
-            self._update_warm(
-                f_imu,
-                w_imu,
-                degrees,
-                pos,
-                pos_var,
-                vel,
-                vel_var,
-                head,
-                head_var,
-                head_degrees,
-                g_ref,
-                g_var,
-            )
+            self._update_warm(*args)
         else:
-            self._update_cold(
-                f_imu,
-                w_imu,
-                degrees,
-                pos,
-                pos_var,
-                vel,
-                vel_var,
-                head,
-                head_var,
-                head_degrees,
-                g_ref,
-                g_var,
-            )
+            self._update_cold(*args)
 
         self._elapsed_time += self._dt
         if not self._warm and self._elapsed_time >= self._warmup_period:
