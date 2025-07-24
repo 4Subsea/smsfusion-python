@@ -673,6 +673,8 @@ class AidedINS(INSMixin):
         nav_frame: str = "NED",
         lever_arm: ArrayLike = np.zeros(3),
         ignore_bias_acc: bool = True,
+        warm: bool = False,
+        warmup_period: float = 60.0,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
@@ -680,6 +682,9 @@ class AidedINS(INSMixin):
         self._err_gyro = err_gyro
         self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
         self._ignore_bias_acc = ignore_bias_acc
+        self._warm = warm
+        self._warmup_period = warmup_period
+        self._runtime = 0.0
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
         # Strapdown algorithm / INS state
