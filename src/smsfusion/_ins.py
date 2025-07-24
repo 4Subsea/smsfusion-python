@@ -693,7 +693,7 @@ class AidedINS(INSMixin):
         self._ignore_bias_acc = ignore_bias_acc
         self._warm = warm
         self._warmup_period = warmup_period
-        self._runtime = 0.0
+        self._elapsed_time = 0.0
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
         # Strapdown algorithm / INS state
