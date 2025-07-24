@@ -12,6 +12,7 @@ from ._transforms import (
     _angular_matrix_from_quaternion,
     _euler_from_quaternion,
     _rot_matrix_from_quaternion,
+    _quaternion_from_euler,
 )
 from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
@@ -745,6 +746,9 @@ class AidedINS(INSMixin):
         # State transition matrix
         self._phi = np.empty_like(self._F)  # needed for smoothing only
 
+        # Coldstart variables
+        self._f_avg = None
+
     @property
     def x_prior(self) -> NDArray[np.float64]:
         """
@@ -960,64 +964,19 @@ class AidedINS(INSMixin):
         self,
         f_imu: ArrayLike,
         w_imu: ArrayLike,
-        degrees: bool = False,
-        pos: ArrayLike | None = None,
-        pos_var: ArrayLike | None = None,
-        vel: ArrayLike | None = None,
-        vel_var: ArrayLike | None = None,
-        head: float | None = None,
-        head_var: float | None = None,
-        head_degrees: bool = True,
-        g_ref: bool = False,
-        g_var: ArrayLike | None = None,
-    ) -> Self:
+        degrees: bool,
+        pos: ArrayLike | None,
+        pos_var: ArrayLike | None,
+        vel: ArrayLike | None,
+        vel_var: ArrayLike | None,
+        head: float | None,
+        head_var: float | None,
+        head_degrees: bool,
+        g_ref: bool,
+        g_var: ArrayLike | None,
+    ) -> None:
         """
-        Update/correct the AINS' state estimate with aiding measurements, and project
-        ahead using IMU measurements.
-
-        If no aiding measurements are provided, the AINS is simply propagated ahead
-        using dead reckoning with the IMU measurements.
-
-        Parameters
-        ----------
-        f_imu : array-like, shape (3,)
-            Specific force measurements (i.e., accelerations + gravity), given
-            as [f_x, f_y, f_z]^T where f_x, f_y and f_z are
-            acceleration measurements in x-, y-, and z-direction, respectively.
-        w_imu : array-like, shape (3,)
-            Angular rate measurements, given as [w_x, w_y, w_z]^T where
-            w_x, w_y and w_z are angular rates about the x-, y-,
-            and z-axis, respectively.
-        degrees : bool, default False
-            Specifies whether the unit of ``w_imu`` are in degrees or radians.
-        pos : array-like, shape (3,), optional
-            Position aiding measurement in m. If ``None``, position aiding is not used.
-        pos_var : array-like, shape (3,), optional
-            Variance of position measurement noise in m^2. Required for ``pos``.
-        vel : array-like, shape (3,), optional
-            Velocity aiding measurement in m/s. If ``None``, velocity aiding is not used.
-        vel_var : array-like, shape (3,), optional
-            Variance of velocity measurement noise in (m/s)^2. Required for ``vel``.
-        head : float, optional
-            Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
-            assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
-            If ``None``, compass aiding is not used. See ``head_degrees`` for units.
-        head_var : float, optional
-            Variance of heading measurement noise. Units must be compatible with ``head``.
-             See ``head_degrees`` for units. Required for ``head``.
-        head_degrees : bool, default False
-            Specifies whether the unit of ``head`` and ``head_var`` are in degrees and degrees^2,
-            or radians and radians^2. Default is in radians and radians^2.
-        g_ref : bool, optional, default False
-            Specifies whether the gravity reference vector is used as an aiding measurement.
-        g_var : array-like, shape (3,), optional
-            Variance of gravitational reference vector measurement noise. Required for
-            ``g_ref``.
-
-        Returns
-        -------
-        AidedINS
-            A reference to the instance itself after the update.
+        Warm update.
         """
         f_imu = np.asarray(f_imu, dtype=float)
         w_imu = np.asarray(w_imu, dtype=float)
@@ -1119,10 +1078,57 @@ class AidedINS(INSMixin):
         self._ins.update(f_imu, w_imu, degrees=False)
         self._P_prior[:] = self._phi @ P @ self._phi.T + Q
 
-        return self
+    def _update_cold(
+        self,
+        f_imu: ArrayLike,
+        w_imu: ArrayLike,
+        degrees: bool,
+        pos: ArrayLike | None,
+        pos_var: ArrayLike | None,
+        vel: ArrayLike | None,
+        vel_var: ArrayLike | None,
+        head: float | None,
+        head_var: float | None,
+        head_degrees: bool,
+        g_ref: bool,
+        g_var: ArrayLike | None,
+    ) -> None:
+        """
+        Cold update.
+        """
+        f_imu = np.asarray(f_imu, dtype=float)
 
-    def _update_cold(self, *args, **kwargs):
-        return self._update_warm(*args, **kwargs)
+        # tau = min(0.5, self._warmup_period / 4.0)  # time constant for averaging
+        # beta = 1.0 - np.exp(-self._dt / tau)
+        beta = 0.9
+        if self._f_avg is None:
+            self._f_avg = f_imu.copy()
+        else:
+            self._f_avg = beta * f_imu + (1.0 - beta) * self._f_avg
+
+        alpha = np.arctan(self._f_avg[1] / self._f_avg[2])
+        beta = np.arctan(
+            self._f_avg[0] / np.sqrt(self._f_avg[1] ** 2 + self._f_avg[2] ** 2)
+        )
+
+        euler = np.array([alpha, beta, 0.0])
+        self._ins._x[6:10] = _quaternion_from_euler(euler)
+        self._x[:] = self._ins._x
+
+        # self._update_warm(
+        #     f_imu,
+        #     w_imu,
+        #     degrees,
+        #     pos,
+        #     pos_var,
+        #     vel,
+        #     vel_var,
+        #     head,
+        #     head_var,
+        #     head_degrees,
+        #     g_ref,
+        #     g_var,
+        # )
 
     def update(
         self,
