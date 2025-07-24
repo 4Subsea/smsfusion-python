@@ -29,9 +29,9 @@ def _roll_pitch_from_acc(acc, nav_frame):
     return roll, pitch
 
 
-def _acc_from_euler(euler):
-    pass
-
+def _acc_from_quaternion(q_nm, g_n):
+    R_nm = _rot_matrix_from_quaternion(q_nm)  # body-to-ned rotation matrix
+    return R_nm.T @ g_n
 
 class FixedNED:
     """
@@ -766,7 +766,7 @@ class AidedINS(INSMixin):
         self._phi = np.empty_like(self._F)  # needed for smoothing only
 
         # Coldstart variables
-        self._f_avg = None
+        self._f_avg = _acc_from_quaternion(q0, self._ins._g_n)
 
     @property
     def x_prior(self) -> NDArray[np.float64]:
@@ -1118,10 +1118,7 @@ class AidedINS(INSMixin):
         f_imu = np.asarray(f_imu, dtype=float)
 
         beta = 0.9
-        if self._f_avg is None:
-            self._f_avg = f_imu.copy()
-        else:
-            self._f_avg = beta * f_imu + (1.0 - beta) * self._f_avg
+        self._f_avg = beta * f_imu + (1.0 - beta) * self._f_avg
 
         alpha_avg, beta_avg = _roll_pitch_from_acc(self._f_avg, self._ins._nav_frame)
         euler_avg = np.array([alpha_avg, beta_avg, 0.0])
