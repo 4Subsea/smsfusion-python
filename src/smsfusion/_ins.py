@@ -670,15 +670,15 @@ class AidedINS(INSMixin):
         period is set to 60 seconds by default, but can be adjusted using the ``warmup_period``
         parameter. The IMU sensor should be stationary during the calibration period.
     warmup_period : float, default 60.0
-        The duration of the warmup (or calibration) period in seconds. Only relevant
+        The duration of the calibration (or warmup) period in seconds. Only relevant
         for 'cold' starts.
     warmup_smoothing_factor : float, default 0.8
         Smoothing factor used during calibration. Only relevant for 'cold' starts.
-        Exponential smoothing is applied to the measurement data to reduce noise
-        and improve the accuracy of the initial state estimate. The smoothing factor
-        should be in the range [0, 1], where a value of 1 means no smoothing, while
-        a value of 0 means no influence from new measurements. A value of 0.8 is
-        a good default choice.
+        Exponential smoothing is applied to the measurement data during calibration
+        to reduce noise and improve robustness of the initial state estimate. The
+        smoothing factor should be in the range [0, 1], where a value of 1 means
+        no smoothing, while a value of 0 means no influence from new measurements.
+        A value of 0.8 is a good default choice.
     """
 
     # Permutation matrix for reordering error-state bias terms, such that:
