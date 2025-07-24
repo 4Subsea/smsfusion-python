@@ -1117,8 +1117,6 @@ class AidedINS(INSMixin):
         """
         f_imu = np.asarray(f_imu, dtype=float)
 
-        # tau = min(0.5, self._warmup_period / 4.0)  # time constant for averaging
-        # beta = 1.0 - np.exp(-self._dt / tau)
         beta = 0.9
         if self._f_avg is None:
             self._f_avg = f_imu.copy()
