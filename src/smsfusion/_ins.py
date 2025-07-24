@@ -648,11 +648,12 @@ class AidedINS(INSMixin):
         error covariance matrix, **P**, from dimension (15, 15) to (12, 12). When set to
         ``False``, the P0_prior argument must have shape (15, 15).
     warm : bool, default False
-        Whether the AINS filter is 'warm' or 'cold'; i.e., if the given initial
-        state vector and covariance matrix represents converged estimates from a
-        previous run or not. For 'cold' starts, a calibration period of 60 seconds
-        (default) will be performed before the filter starts producing reliable
-        estimates.
+        Whether to start the AINS filter in a 'warm' or 'cold' state. A 'warm' start
+        assumes that the provided intial conditions are close to the true state,
+        and thus initializes the Kalman filter immediately using these initial conditions.
+        A 'cold' start, on the other hand, will perform an initial calibration (or warmup)
+        before initializing the Kalman filter. The calibration is done to refine
+        the initial state estimate to mitigate the risk of divergence.
     warmup_period : float, default 60.0
         The duration of the warmup (or calibration) period in seconds. Only relevant
         for 'cold' starts.
