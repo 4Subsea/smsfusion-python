@@ -14,7 +14,7 @@ from smsfusion.noise import (
     random_walk,
     white_noise,
 )
-from smsfusion.noise._noise import _gen_seeds, _standard_normal
+from smsfusion.noise._noise import _standard_normal
 
 TEST_PATH = Path(__file__).parent
 
@@ -80,7 +80,9 @@ class Test_NoiseModel:
         assert noise._K == 4
         assert noise._tau_ck == 5
         assert noise._bc == 6
-        assert noise._seed == 7
+        np.testing.assert_array_equal(
+            noise._rng.random(10), np.random.default_rng(7).random(10)
+        )
 
     def test__init__default(self):
         noise = NoiseModel(1, 2, 3)
@@ -91,7 +93,7 @@ class Test_NoiseModel:
         assert noise._K is None
         assert noise._tau_ck is None
         assert noise._bc == 0.0
-        assert noise._seed is None
+        assert isinstance(noise._rng, np.random.Generator)
 
     def test__init__constants(self):
         noise = NoiseModel(**sf.constants.ERR_ACC_MOTION2)
