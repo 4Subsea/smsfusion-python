@@ -812,9 +812,13 @@ class AidedINS(INSMixin):
             "P0_prior": self.P_prior.tolist(),
             "err_acc": self._err_acc,
             "err_gyro": self._err_gyro,
-            "lever_arm": self._lever_arm.tolist(),
             "g": self._ins._g,
+            "nav_frame": self._ins._nav_frame,
+            "lever_arm": self._lever_arm.tolist(),
             "ignore_bias_acc": self._ignore_bias_acc,
+            "warm": self._warm,
+            "warmup_period": self._warmup_period,
+            "warmup_smoothing_factor": self._warmup_smoothing_factor,
         }
         return params
 
