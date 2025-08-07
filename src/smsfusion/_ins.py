@@ -661,19 +661,19 @@ class AidedINS(INSMixin):
         error covariance matrix, **P**, from dimension (15, 15) to (12, 12). When set to
         ``False``, the P0_prior argument must have shape (15, 15).
     warm : bool, default False
-        Whether to start the AINS filter in a 'warm' or 'cold' state. A 'warm' start
-        assumes that the provided intial conditions are close to the true state,
-        and thus initializes the Kalman filter using these initial conditions. A
-        'cold' start, on the other hand, will perform an initial calibration (or warmup)
-        before initializing the Kalman filter. The calibration is done to refine
+        Whether to start the AINS in a 'warm' or 'cold' state. A warm state assumes
+        that the provided initial conditions are close to the true state, and thus
+        initializes the Kalman filter using these initial conditions. A cold state,
+        on the other hand, will perform an initial calibration (or warmup) before
+        initializing the Kalman filter. The calibration is done to refine
         the initial state estimate to mitigate the risk of divergence. The calibration
         period is set to 60 seconds by default, but can be adjusted using the ``warmup_period``
         parameter. The IMU sensor should be stationary during the calibration period.
     warmup_period : float, default 60.0
-        The duration of the calibration (or warmup) period in seconds. Only relevant
-        for 'cold' starts.
+        Duration of the calibration period in seconds. Only relevant for 'cold' starts.
+        The IMU should be stationary during this period.
     warmup_smoothing_factor : float, default 0.8
-        Smoothing factor used during calibration. Only relevant for 'cold' starts.
+        Smoothing factor used in calibration. Only relevant for 'cold' starts.
         Exponential smoothing is applied to the measurement data during calibration
         to reduce noise and improve robustness of the initial state estimate. The
         smoothing factor should be in the range [0, 1], where a value of 1 means
