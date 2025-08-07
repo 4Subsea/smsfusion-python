@@ -719,7 +719,6 @@ class AidedINS(INSMixin):
         self._warm = warm
         self._warmup_period = warmup_period
         self._warmup_smoothing_factor = warmup_smoothing_factor
-        self._elapsed_time = 0.0
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
         # Strapdown algorithm / INS state
@@ -772,9 +771,9 @@ class AidedINS(INSMixin):
         self._phi = np.empty_like(self._F)  # needed for smoothing only
 
         # Coldstart variables
-        self._pos_avg = self._ins.position()
-        self._vel_avg = self._ins.velocity()
+        self._update_counter = 0
         self._f_avg = _acc_from_quaternion(q0, self._ins._g_n)
+        self._head_avg = _h_head(q0)
 
     @property
     def x_prior(self) -> NDArray[np.float64]:
@@ -987,24 +986,78 @@ class AidedINS(INSMixin):
             P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
         return dx, P
 
-    def _update_warm(
+    def update(
         self,
         f_imu: ArrayLike,
         w_imu: ArrayLike,
-        degrees: bool,
-        pos: ArrayLike | None,
-        pos_var: ArrayLike | None,
-        vel: ArrayLike | None,
-        vel_var: ArrayLike | None,
-        head: float | None,
-        head_var: float | None,
-        head_degrees: bool,
-        g_ref: bool,
-        g_var: ArrayLike | None,
-    ) -> None:
+        degrees: bool = False,
+        pos: ArrayLike | None = None,
+        pos_var: ArrayLike | None = None,
+        vel: ArrayLike | None = None,
+        vel_var: ArrayLike | None = None,
+        head: float | None = None,
+        head_var: float | None = None,
+        head_degrees: bool = True,
+        g_ref: bool = False,
+        g_var: ArrayLike | None = None,
+    ) -> Self:
         """
-        Warm update.
+        Update/correct the AINS' state estimate with aiding measurements, and project
+        ahead using IMU measurements.
+
+        If no aiding measurements are provided, the AINS is simply propagated ahead
+        using dead reckoning with the IMU measurements.
+
+        Parameters
+        ----------
+        f_imu : array-like, shape (3,)
+            Specific force measurements (i.e., accelerations + gravity), given
+            as [f_x, f_y, f_z]^T where f_x, f_y and f_z are
+            acceleration measurements in x-, y-, and z-direction, respectively.
+        w_imu : array-like, shape (3,)
+            Angular rate measurements, given as [w_x, w_y, w_z]^T where
+            w_x, w_y and w_z are angular rates about the x-, y-,
+            and z-axis, respectively.
+        degrees : bool, default False
+            Specifies whether the unit of ``w_imu`` are in degrees or radians.
+        pos : array-like, shape (3,), optional
+            Position aiding measurement in m. If ``None``, position aiding is not used.
+        pos_var : array-like, shape (3,), optional
+            Variance of position measurement noise in m^2. Required for ``pos``.
+        vel : array-like, shape (3,), optional
+            Velocity aiding measurement in m/s. If ``None``, velocity aiding is not used.
+        vel_var : array-like, shape (3,), optional
+            Variance of velocity measurement noise in (m/s)^2. Required for ``vel``.
+        head : float, optional
+            Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
+            assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
+            If ``None``, compass aiding is not used. See ``head_degrees`` for units.
+        head_var : float, optional
+            Variance of heading measurement noise. Units must be compatible with ``head``.
+             See ``head_degrees`` for units. Required for ``head``.
+        head_degrees : bool, default False
+            Specifies whether the unit of ``head`` and ``head_var`` are in degrees and degrees^2,
+            or radians and radians^2. Default is in radians and radians^2.
+        g_ref : bool, optional, default False
+            Specifies whether the gravity reference vector is used as an aiding measurement.
+        g_var : array-like, shape (3,), optional
+            Variance of gravitational reference vector measurement noise. Required for
+            ``g_ref``.
+
+        Returns
+        -------
+        AidedINS
+            A reference to the instance itself after the update.
         """
+
+        self._update_counter += 1
+
+        # Cold update
+        if not self._warm:
+            self._update_cold(f_imu, pos, vel, head, head_degrees)
+            self._warm = self._update_counter * self._fs >= self._warmup_period
+            return self
+
         f_imu = np.asarray(f_imu, dtype=float)
         w_imu = np.asarray(w_imu, dtype=float)
 
@@ -1110,120 +1163,131 @@ class AidedINS(INSMixin):
         f_imu: ArrayLike,
         pos: ArrayLike | None,
         vel: ArrayLike | None,
-        **kwargs: Any,
+        head: float | None,
+        head_degrees: bool,
     ) -> None:
         """
         Cold update.
         """
-        f_imu = np.asarray(f_imu, dtype=float)
 
         beta = self._warmup_smoothing_factor
-        self._f_avg = beta * f_imu + (1.0 - beta) * self._f_avg
+
+        # Position moving average
         if pos is not None:
             pos = np.asarray(pos, dtype=float, order="C")
-            self._pos_avg = beta * pos + (1.0 - beta) * self._pos_avg
+            self._ins._x[:3] = beta * pos + (1.0 - beta) * self._ins._x[:3]
+
+        # Velocity moving average
         if vel is not None:
             vel = np.asarray(vel, dtype=float, order="C")
-            self._vel_avg = beta * vel + (1.0 - beta) * self._vel_avg
+            self._ins._x[3:6] = beta * vel + (1.0 - beta) * self._ins._x[3:6]
 
+        # Heading moving average
+        if head is not None:
+            if head_degrees:
+                head = (np.pi / 180.0) * head
+            self._head_avg = beta * head + (1.0 - beta) * self._head_avg
+
+        # Acceleration moving average
+        f_imu = np.asarray(f_imu, dtype=float)
+        self._f_avg = beta * f_imu + (1.0 - beta) * self._f_avg
+
+        # Attitude (unit quaternion) moving average
         alpha_avg, beta_avg = _roll_pitch_from_acc(self._f_avg, self._ins._nav_frame)
-        euler_avg = np.array([alpha_avg, beta_avg, 0.0])
-        q_nm_avg = _quaternion_from_euler(euler_avg)
+        euler_avg = np.array([alpha_avg, beta_avg, self._head_avg])
+        self._ins._x[6:10] = _quaternion_from_euler(euler_avg)
 
-        self._ins._x[:3] = self._pos_avg
-        self._ins._x[3:6] = self._vel_avg
-        self._ins._x[6:10] = q_nm_avg
         self._x[:] = self._ins._x
 
-    def update(
-        self,
-        f_imu: ArrayLike,
-        w_imu: ArrayLike,
-        degrees: bool = False,
-        pos: ArrayLike | None = None,
-        pos_var: ArrayLike | None = None,
-        vel: ArrayLike | None = None,
-        vel_var: ArrayLike | None = None,
-        head: float | None = None,
-        head_var: float | None = None,
-        head_degrees: bool = True,
-        g_ref: bool = False,
-        g_var: ArrayLike | None = None,
-    ) -> Self:
-        """
-        Update/correct the AINS' state estimate with aiding measurements, and project
-        ahead using IMU measurements.
+    # def update(
+    #     self,
+    #     f_imu: ArrayLike,
+    #     w_imu: ArrayLike,
+    #     degrees: bool = False,
+    #     pos: ArrayLike | None = None,
+    #     pos_var: ArrayLike | None = None,
+    #     vel: ArrayLike | None = None,
+    #     vel_var: ArrayLike | None = None,
+    #     head: float | None = None,
+    #     head_var: float | None = None,
+    #     head_degrees: bool = True,
+    #     g_ref: bool = False,
+    #     g_var: ArrayLike | None = None,
+    # ) -> Self:
+    #     """
+    #     Update/correct the AINS' state estimate with aiding measurements, and project
+    #     ahead using IMU measurements.
 
-        If no aiding measurements are provided, the AINS is simply propagated ahead
-        using dead reckoning with the IMU measurements.
+    #     If no aiding measurements are provided, the AINS is simply propagated ahead
+    #     using dead reckoning with the IMU measurements.
 
-        Parameters
-        ----------
-        f_imu : array-like, shape (3,)
-            Specific force measurements (i.e., accelerations + gravity), given
-            as [f_x, f_y, f_z]^T where f_x, f_y and f_z are
-            acceleration measurements in x-, y-, and z-direction, respectively.
-        w_imu : array-like, shape (3,)
-            Angular rate measurements, given as [w_x, w_y, w_z]^T where
-            w_x, w_y and w_z are angular rates about the x-, y-,
-            and z-axis, respectively.
-        degrees : bool, default False
-            Specifies whether the unit of ``w_imu`` are in degrees or radians.
-        pos : array-like, shape (3,), optional
-            Position aiding measurement in m. If ``None``, position aiding is not used.
-        pos_var : array-like, shape (3,), optional
-            Variance of position measurement noise in m^2. Required for ``pos``.
-        vel : array-like, shape (3,), optional
-            Velocity aiding measurement in m/s. If ``None``, velocity aiding is not used.
-        vel_var : array-like, shape (3,), optional
-            Variance of velocity measurement noise in (m/s)^2. Required for ``vel``.
-        head : float, optional
-            Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
-            assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
-            If ``None``, compass aiding is not used. See ``head_degrees`` for units.
-        head_var : float, optional
-            Variance of heading measurement noise. Units must be compatible with ``head``.
-             See ``head_degrees`` for units. Required for ``head``.
-        head_degrees : bool, default False
-            Specifies whether the unit of ``head`` and ``head_var`` are in degrees and degrees^2,
-            or radians and radians^2. Default is in radians and radians^2.
-        g_ref : bool, optional, default False
-            Specifies whether the gravity reference vector is used as an aiding measurement.
-        g_var : array-like, shape (3,), optional
-            Variance of gravitational reference vector measurement noise. Required for
-            ``g_ref``.
+    #     Parameters
+    #     ----------
+    #     f_imu : array-like, shape (3,)
+    #         Specific force measurements (i.e., accelerations + gravity), given
+    #         as [f_x, f_y, f_z]^T where f_x, f_y and f_z are
+    #         acceleration measurements in x-, y-, and z-direction, respectively.
+    #     w_imu : array-like, shape (3,)
+    #         Angular rate measurements, given as [w_x, w_y, w_z]^T where
+    #         w_x, w_y and w_z are angular rates about the x-, y-,
+    #         and z-axis, respectively.
+    #     degrees : bool, default False
+    #         Specifies whether the unit of ``w_imu`` are in degrees or radians.
+    #     pos : array-like, shape (3,), optional
+    #         Position aiding measurement in m. If ``None``, position aiding is not used.
+    #     pos_var : array-like, shape (3,), optional
+    #         Variance of position measurement noise in m^2. Required for ``pos``.
+    #     vel : array-like, shape (3,), optional
+    #         Velocity aiding measurement in m/s. If ``None``, velocity aiding is not used.
+    #     vel_var : array-like, shape (3,), optional
+    #         Variance of velocity measurement noise in (m/s)^2. Required for ``vel``.
+    #     head : float, optional
+    #         Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
+    #         assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
+    #         If ``None``, compass aiding is not used. See ``head_degrees`` for units.
+    #     head_var : float, optional
+    #         Variance of heading measurement noise. Units must be compatible with ``head``.
+    #          See ``head_degrees`` for units. Required for ``head``.
+    #     head_degrees : bool, default False
+    #         Specifies whether the unit of ``head`` and ``head_var`` are in degrees and degrees^2,
+    #         or radians and radians^2. Default is in radians and radians^2.
+    #     g_ref : bool, optional, default False
+    #         Specifies whether the gravity reference vector is used as an aiding measurement.
+    #     g_var : array-like, shape (3,), optional
+    #         Variance of gravitational reference vector measurement noise. Required for
+    #         ``g_ref``.
 
-        Returns
-        -------
-        AidedINS
-            A reference to the instance itself after the update.
-        """
+    #     Returns
+    #     -------
+    #     AidedINS
+    #         A reference to the instance itself after the update.
+    #     """
 
-        kwargs = dict(
-            f_imu=f_imu,
-            w_imu=w_imu,
-            degrees=degrees,
-            pos=pos,
-            pos_var=pos_var,
-            vel=vel,
-            vel_var=vel_var,
-            head=head,
-            head_var=head_var,
-            head_degrees=head_degrees,
-            g_ref=g_ref,
-            g_var=g_var,
-        )
+    #     kwargs = dict(
+    #         f_imu=f_imu,
+    #         w_imu=w_imu,
+    #         degrees=degrees,
+    #         pos=pos,
+    #         pos_var=pos_var,
+    #         vel=vel,
+    #         vel_var=vel_var,
+    #         head=head,
+    #         head_var=head_var,
+    #         head_degrees=head_degrees,
+    #         g_ref=g_ref,
+    #         g_var=g_var,
+    #     )
 
-        if self._warm:
-            self._update_warm(**kwargs)
-        else:
-            self._update_cold(**kwargs)
+    #     if self._warm:
+    #         self._update_warm(**kwargs)
+    #     else:
+    #         self._update_cold(**kwargs)
 
-        self._elapsed_time += self._dt
-        if not self._warm and self._elapsed_time >= self._warmup_period:
-            self._warm = True
+    #     self._elapsed_time += self._dt
+    #     if not self._warm and self._elapsed_time >= self._warmup_period:
+    #         self._warm = True
 
-        return self
+    #     return self
 
 
 class VRU(AidedINS):
