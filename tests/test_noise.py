@@ -162,6 +162,21 @@ class Test_NoiseModel:
 
         assert np.mean(x_out) == 1.0
 
+    def test_multiple_calls_varying_output(self):
+        # Repeated calls to NoiseModel should yield different outputs
+        N = 4.0e-4
+        B = 3.0e-4
+        tau_cb = 10
+        K = 3.0e-5
+        tau_ck = None  # Random walk (RW) drift model
+        bc = 0.1
+        noise = NoiseModel(N, B, tau_cb, K, tau_ck, bc, seed=123)
+        num_samples = 100
+        sampling_frequency = 10.24
+        x_out1 = noise(sampling_frequency, num_samples)
+        x_out2 = noise(sampling_frequency, num_samples)
+        assert not np.array_equal(x_out1, x_out2)
+
 
 class Test_IMUNoise:
     @pytest.fixture
