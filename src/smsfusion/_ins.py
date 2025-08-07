@@ -661,14 +661,15 @@ class AidedINS(INSMixin):
         error covariance matrix, **P**, from dimension (15, 15) to (12, 12). When set to
         ``False``, the P0_prior argument must have shape (15, 15).
     warm : bool, default False
-        Whether to start the AINS in a 'warm' or 'cold' state. A warm state assumes
-        that the provided initial conditions are close to the true state, and thus
-        initializes the Kalman filter using these initial conditions. A cold state,
-        on the other hand, will perform an initial calibration (or warmup) before
-        initializing the Kalman filter. The calibration is done to refine
-        the initial state estimate to mitigate the risk of divergence. The calibration
-        period is set to 60 seconds by default, but can be adjusted using the ``warmup_period``
-        parameter. The IMU sensor should be stationary during the calibration period.
+        Whether to start the AINS filter in a 'warm' or 'cold' state. A warm start
+        assumes that the provided initial conditions are close to the true state
+        and initializes the Kalman filter immediately, without performing any initial
+        calibration. A cold start, on the other hand, performs an initial calibration
+        (or warmup) before initializing the filter. This calibration phase refines
+        the initial state estimate to reduce the risk of divergence. By default,
+        the calibration period is set to 60 seconds, but it can be adjusted via
+        the ``warmup_period`` parameter. The IMU should remain stationary during
+        the calibration period.
     warmup_period : float, default 60.0
         Duration of the calibration period in seconds. Only relevant for 'cold' starts.
         The IMU should be stationary during this period.
