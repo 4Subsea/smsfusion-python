@@ -1377,6 +1377,7 @@ class Test_AidedINS:
             err_acc,
             err_gyro,
             ignore_bias_acc=False,
+            warm=True,
         )
 
         g = gravity()
@@ -1570,6 +1571,7 @@ class Test_AidedINS:
             err_acc,
             err_gyro,
             ignore_bias_acc=False,
+            warm=True,
         )
 
         ains_b = AidedINS(  # ignore accelerometer bias
@@ -1579,6 +1581,7 @@ class Test_AidedINS:
             err_acc,
             err_gyro,
             ignore_bias_acc=True,
+            warm=True,
         )
 
         g = gravity()
