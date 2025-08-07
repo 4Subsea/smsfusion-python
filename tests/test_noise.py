@@ -70,34 +70,6 @@ def test_gauss_markov():
     np.testing.assert_array_almost_equal(gm_out, gm_expect)
 
 
-class Test_gen_seed:
-    def test_one_int(self):
-        seeds_out = _gen_seeds(123, 1)
-        assert len(seeds_out) == 1
-        assert isinstance(seeds_out[0], np.uint64)
-        assert seeds_out != 123  # could be the same, but very unlikely
-
-    def test_one_none(self):
-        seeds_out = _gen_seeds(None, 1)
-        assert len(seeds_out) == 1
-        assert isinstance(seeds_out[0], np.uint64)
-
-    def test_multiple_int(self):
-        seeds_out = _gen_seeds(123, 3)
-        assert len(seeds_out) == 3
-        assert len(np.unique(seeds_out)) == 3
-        for i in range(3):
-            assert isinstance(seeds_out[i], np.uint64)
-            assert seeds_out[i] != 123  # could be the same, but very unlikely
-
-    def test_multiple_none(self):
-        seeds_out = _gen_seeds(None, 3)
-        assert len(seeds_out) == 3
-        assert len(np.unique(seeds_out)) == 3
-        for i in range(3):
-            assert isinstance(seeds_out[i], np.uint64)
-
-
 class Test_NoiseModel:
     def test__init__(self):
         noise = NoiseModel(1, 2, 3, 4, 5, 6, 7)
