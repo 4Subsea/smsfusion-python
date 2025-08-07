@@ -1288,7 +1288,7 @@ class VRU(AidedINS):
     def __init__(
         self,
         fs: float,
-        x0_prior: ArrayLike,
+        x0_prior: ArrayLike = X0,
         P0_prior: ArrayLike = P0,
         err_acc: dict[str, float] = ERR_ACC_MOTION2,
         err_gyro: dict[str, float] = ERR_GYRO_MOTION2,
@@ -1446,7 +1446,7 @@ class AHRS(AidedINS):
     def __init__(
         self,
         fs: float,
-        x0_prior: ArrayLike,
+        x0_prior: ArrayLike = X0,
         P0_prior: ArrayLike = P0,
         err_acc: dict[str, float] = ERR_ACC_MOTION2,
         err_gyro: dict[str, float] = ERR_GYRO_MOTION2,
