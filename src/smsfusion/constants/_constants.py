@@ -1,5 +1,10 @@
 import numpy as np
 
+# Default initial state vector
+X0 = np.zeros(16, dtype=np.float64)
+X0[6] = 1.0
+
+# Default initial covariance matrix
 P0 = np.eye(12) * 1e-6
 
 # Noise and bias parameters for SMS Motion Gen 2

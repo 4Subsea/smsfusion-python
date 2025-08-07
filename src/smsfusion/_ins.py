@@ -6,7 +6,7 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from smsfusion.constants import ERR_ACC_MOTION2, ERR_GYRO_MOTION2, P0
+from smsfusion.constants import ERR_ACC_MOTION2, ERR_GYRO_MOTION2, P0, X0
 
 from ._transforms import (
     _angular_matrix_from_quaternion,
@@ -698,7 +698,7 @@ class AidedINS(INSMixin):
     def __init__(
         self,
         fs: float,
-        x0_prior: ArrayLike,
+        x0_prior: ArrayLike = X0,
         P0_prior: ArrayLike = P0,
         err_acc: dict[str, float] = ERR_ACC_MOTION2,
         err_gyro: dict[str, float] = ERR_GYRO_MOTION2,
@@ -1055,7 +1055,7 @@ class AidedINS(INSMixin):
         # Cold update
         if not self._warm:
             self._update_cold(f_imu, pos, vel, head, head_degrees)
-            self._warm = self._update_counter * self._fs >= self._warmup_period
+            self._warm = self._update_counter >= self._warmup_period * self._fs
             return self
 
         f_imu = np.asarray(f_imu, dtype=float)
