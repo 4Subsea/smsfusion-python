@@ -1175,12 +1175,12 @@ class AidedINS(INSMixin):
 
         # Position moving average
         if pos is not None:
-            pos = np.asarray(pos, dtype=float, order="C")
+            pos = np.asarray(pos, dtype=float)
             self._ins._x[:3] = beta * pos + (1.0 - beta) * self._ins._x[:3]
 
         # Velocity moving average
         if vel is not None:
-            vel = np.asarray(vel, dtype=float, order="C")
+            vel = np.asarray(vel, dtype=float)
             self._ins._x[3:6] = beta * vel + (1.0 - beta) * self._ins._x[3:6]
 
         # Heading moving average
