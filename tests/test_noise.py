@@ -14,7 +14,7 @@ from smsfusion.noise import (
     random_walk,
     white_noise,
 )
-from smsfusion.noise._noise import _gen_seeds, _standard_normal
+from smsfusion.noise._noise import _standard_normal
 
 TEST_PATH = Path(__file__).parent
 
@@ -70,34 +70,6 @@ def test_gauss_markov():
     np.testing.assert_array_almost_equal(gm_out, gm_expect)
 
 
-class Test_gen_seed:
-    def test_one_int(self):
-        seeds_out = _gen_seeds(123, 1)
-        assert len(seeds_out) == 1
-        assert isinstance(seeds_out[0], np.uint64)
-        assert seeds_out != 123  # could be the same, but very unlikely
-
-    def test_one_none(self):
-        seeds_out = _gen_seeds(None, 1)
-        assert len(seeds_out) == 1
-        assert isinstance(seeds_out[0], np.uint64)
-
-    def test_multiple_int(self):
-        seeds_out = _gen_seeds(123, 3)
-        assert len(seeds_out) == 3
-        assert len(np.unique(seeds_out)) == 3
-        for i in range(3):
-            assert isinstance(seeds_out[i], np.uint64)
-            assert seeds_out[i] != 123  # could be the same, but very unlikely
-
-    def test_multiple_none(self):
-        seeds_out = _gen_seeds(None, 3)
-        assert len(seeds_out) == 3
-        assert len(np.unique(seeds_out)) == 3
-        for i in range(3):
-            assert isinstance(seeds_out[i], np.uint64)
-
-
 class Test_NoiseModel:
     def test__init__(self):
         noise = NoiseModel(1, 2, 3, 4, 5, 6, 7)
@@ -108,7 +80,9 @@ class Test_NoiseModel:
         assert noise._K == 4
         assert noise._tau_ck == 5
         assert noise._bc == 6
-        assert noise._seed == 7
+        np.testing.assert_array_equal(
+            noise._rng.random(10), np.random.default_rng(7).random(10)
+        )
 
     def test__init__default(self):
         noise = NoiseModel(1, 2, 3)
@@ -119,7 +93,7 @@ class Test_NoiseModel:
         assert noise._K is None
         assert noise._tau_ck is None
         assert noise._bc == 0.0
-        assert noise._seed is None
+        assert isinstance(noise._rng, np.random.Generator)
 
     def test__init__constants(self):
         noise = NoiseModel(**sf.constants.ERR_ACC_MOTION2)
@@ -187,6 +161,21 @@ class Test_NoiseModel:
         x_out = noise(10.24, 100)
 
         assert np.mean(x_out) == 1.0
+
+    def test_multiple_calls_varying_output(self):
+        # Repeated calls to NoiseModel should yield different outputs
+        N = 4.0e-4
+        B = 3.0e-4
+        tau_cb = 10
+        K = 3.0e-5
+        tau_ck = None  # Random walk (RW) drift model
+        bc = 0.1
+        noise = NoiseModel(N, B, tau_cb, K, tau_ck, bc, seed=123)
+        num_samples = 100
+        sampling_frequency = 10.24
+        x_out1 = noise(sampling_frequency, num_samples)
+        x_out2 = noise(sampling_frequency, num_samples)
+        assert not np.array_equal(x_out1, x_out2)
 
 
 class Test_IMUNoise:
