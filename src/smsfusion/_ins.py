@@ -1053,7 +1053,7 @@ class AidedINS(INSMixin):
 
         self._update_counter += 1
 
-        # Cold update
+        # Cold update / calibration
         if not self._warm:
             self._update_cold(f_imu, pos, vel, head, head_degrees)
             self._warm = self._update_counter >= self._warmup_period * self._fs
