@@ -1353,7 +1353,7 @@ class VRU(AidedINS):
         VRU
             A reference to the instance itself after the update.
         """
-        super().update(
+        return super().update(
             f_imu,
             w_imu,
             degrees=degrees,
@@ -1524,7 +1524,7 @@ class AHRS(AidedINS):
         AHRS
             A reference to the instance itself after the update.
         """
-        super().update(
+        return super().update(
             f_imu,
             w_imu,
             degrees=degrees,
