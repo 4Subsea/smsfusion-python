@@ -21,7 +21,7 @@ def _roll_pitch_from_acc(acc, nav_frame):
     roll = np.arctan(acc[1] / acc[2])
     pitch = np.arctan(acc[0] / np.sqrt(acc[1] ** 2 + acc[2] ** 2))
     if nav_frame.lower() == "enu":
-        pitch = -pitch
+        pitch *= -1
     return roll, pitch
 
 
