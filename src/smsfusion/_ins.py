@@ -25,11 +25,6 @@ def _roll_pitch_from_acc(acc, nav_frame):
     return roll, pitch
 
 
-def _acc_from_quaternion(q_nm, g_n):
-    R_nm = _rot_matrix_from_quaternion(q_nm)  # body-to-ned rotation matrix
-    return R_nm.T @ g_n
-
-
 class FixedNED:
     """
     Convert position coordinates between a fixed NED frame (x, y, z) and ECEF frame
@@ -773,7 +768,7 @@ class AidedINS(INSMixin):
 
         # Coldstart variables
         self._update_counter = 0
-        self._f_avg = _acc_from_quaternion(q0, self._ins._g_n)
+        self._f_avg = np.zeros(3, dtype=np.float64)
         self._head_avg = _h_head(q0)
 
     @property
@@ -1177,7 +1172,7 @@ class AidedINS(INSMixin):
         Cold update.
         """
 
-        beta = self._warmup_smoothing_factor
+        beta = self._warmup_smoothing_factor if self._update_counter != 1 else 1.0
 
         # Position moving average
         if pos is not None:
