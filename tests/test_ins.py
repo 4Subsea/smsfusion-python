@@ -17,6 +17,7 @@ from pytest import approx
 from scipy.signal import resample_poly
 from scipy.spatial.transform import Rotation
 
+import smsfusion as sf
 from smsfusion._ins import (
     AHRS,
     VRU,
@@ -1440,7 +1441,9 @@ class Test_AidedINS:
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
 
-        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro, ignore_bias_acc=False, warm=True)
+        ains = AidedINS(
+            fs, x0, P0_prior, err_acc, err_gyro, ignore_bias_acc=False, warm=True
+        )
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
@@ -1476,7 +1479,9 @@ class Test_AidedINS:
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
 
-        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro, ignore_bias_acc=False, warm=True)
+        ains = AidedINS(
+            fs, x0, P0_prior, err_acc, err_gyro, ignore_bias_acc=False, warm=True
+        )
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
@@ -1658,6 +1663,74 @@ class Test_AidedINS:
 
         assert not np.array_equal(ains_a.bias_acc(), x0[9:12])  # bias is updated
         np.testing.assert_allclose(ains_b.bias_acc(), x0[9:12])  # no update
+
+    def test_update_coldstart(self):
+        fs = 10.24
+        n = int(60 * fs)  # 1 min
+
+        g = gravity()
+        euler_mean = np.array([-10.0, 5.0, 45.0])  # deg
+        q_mean = quaternion_from_euler(euler_mean, degrees=True)
+        R_mean = _rot_matrix_from_quaternion(q_mean)  # body-to-ned
+        acc_mean = R_mean.T @ np.array([0.0, 0.0, -g])  # gravity only
+
+        # Standstill reference signals
+        acc_ref = np.tile(acc_mean, (n, 1))  # m/s^2
+        gyro_ref = np.zeros((n, 3))  # rad/s
+        pos_ref = np.tile([1.0, 2.0, 3.0], (n, 1))  # m
+        vel_ref = np.zeros((n, 3))  # m/s
+        euler_ref = np.tile(euler_mean, (n, 1))  # deg
+
+        err_acc = sf.constants.ERR_ACC_MOTION2
+        err_gyro = sf.constants.ERR_GYRO_MOTION2
+        imu_noise = IMUNoise(err_acc, err_gyro, seed=0)(fs, n)
+
+        pos_noise = 0.1 * np.random.default_rng(0).standard_normal((n, 3))
+        vel_noise = 0.1 * np.random.default_rng(1).standard_normal((n, 3))
+        head_noise = 0.1 * np.random.default_rng(2).standard_normal(n)
+
+        f_imu = acc_ref + imu_noise[:, :3]
+        w_imu = gyro_ref + imu_noise[:, 3:]
+        pos_aid = pos_ref + pos_noise
+        vel_aid = vel_ref + vel_noise
+        head_aid = euler_ref[:, 2] + head_noise
+
+        ains = AidedINS(
+            fs,
+            g=g,
+            nav_frame="ned",
+            warm=False,
+            warmup_period=60.0,
+            warmup_smoothing_factor=0.8,
+        )
+
+        pos_est, vel_est, euler_est = [], [], []
+        for i in range(n):
+            # Update with aiding measurements
+            ains.update(
+                f_imu[i],
+                w_imu[i],
+                degrees=False,
+                pos=pos_aid[i],
+                pos_var=0.1**2 * np.ones(3),
+                vel=vel_aid[i],
+                vel_var=0.1**2 * np.ones(3),
+                head=head_aid[i],
+                head_var=0.5**2,
+                head_degrees=True,
+            )
+
+            pos_est.append(ains.position())
+            vel_est.append(ains.velocity())
+            euler_est.append(ains.euler(degrees=True))
+
+        pos_est = np.array(pos_est)
+        vel_est = np.array(vel_est)
+        euler_est = np.array(euler_est)
+
+        np.testing.assert_allclose(pos_est[5:], pos_ref[5:], atol=0.5)
+        np.testing.assert_allclose(vel_est[5:], vel_ref[5:], atol=0.5)
+        np.testing.assert_allclose(euler_est[5:], euler_ref[5:], atol=0.5)
 
     @pytest.mark.parametrize(
         "benchmark_gen",
