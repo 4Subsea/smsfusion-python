@@ -1700,7 +1700,7 @@ class Test_AidedINS:
             g=g,
             nav_frame="ned",
             warm=False,
-            warmup_period=60.0,
+            warmup_period=10.0,
             warmup_smoothing_factor=0.8,
         )
 
@@ -1728,9 +1728,9 @@ class Test_AidedINS:
         vel_est = np.array(vel_est)
         euler_est = np.array(euler_est)
 
-        np.testing.assert_allclose(pos_est[5:], pos_ref[5:], atol=0.5)
-        np.testing.assert_allclose(vel_est[5:], vel_ref[5:], atol=0.5)
-        np.testing.assert_allclose(euler_est[5:], euler_ref[5:], atol=0.5)
+        np.testing.assert_allclose(pos_est, pos_ref, atol=0.5)
+        np.testing.assert_allclose(vel_est, vel_ref, atol=0.5)
+        np.testing.assert_allclose(euler_est, euler_ref, atol=0.5)
 
     @pytest.mark.parametrize(
         "benchmark_gen",
