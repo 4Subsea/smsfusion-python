@@ -1265,10 +1265,10 @@ class VRU(AidedINS):
         calibration. A cold start, on the other hand, performs an initial calibration
         (or warmup) before initializing the filter. This calibration phase refines
         the initial state estimate to reduce the risk of divergence. By default,
-        the calibration period is set to 60 seconds, but it can be adjusted via
+        the calibration period is set to 10 seconds, but it can be adjusted via
         the ``warmup_period`` parameter. The IMU should remain stationary during
         the calibration period.
-    warmup_period : float, default 60.0
+    warmup_period : float, default 10.0
         Duration of the calibration period in seconds. Only relevant for 'cold' starts.
         The IMU should be stationary during this period.
     warmup_smoothing_factor : float, default 0.8
@@ -1292,7 +1292,7 @@ class VRU(AidedINS):
         g: float = 9.80665,
         nav_frame: str = "NED",
         warm: bool = False,
-        warmup_period: float = 60.0,
+        warmup_period: float = 10.0,
         warmup_smoothing_factor: float = 0.8,
         **kwargs: dict[str, Any],
     ) -> None:
@@ -1423,10 +1423,10 @@ class AHRS(AidedINS):
         calibration. A cold start, on the other hand, performs an initial calibration
         (or warmup) before initializing the filter. This calibration phase refines
         the initial state estimate to reduce the risk of divergence. By default,
-        the calibration period is set to 60 seconds, but it can be adjusted via
+        the calibration period is set to 10 seconds, but it can be adjusted via
         the ``warmup_period`` parameter. The IMU should remain stationary during
         the calibration period.
-    warmup_period : float, default 60.0
+    warmup_period : float, default 10.0
         Duration of the calibration period in seconds. Only relevant for 'cold' starts.
         The IMU should be stationary during this period.
     warmup_smoothing_factor : float, default 0.8
