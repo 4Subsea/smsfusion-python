@@ -1,8 +1,10 @@
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import NDArray
 
 
-def _standard_normal(n: int, seed: int | None = None) -> NDArray[np.float64]:
+def _standard_normal(
+    n: int, seed: int | np.random.Generator | None = None
+) -> NDArray[np.float64]:
     """
     Draw i.i.d. samples from a standard Normal distribution (mean=0, stdev=1).
 
@@ -10,8 +12,9 @@ def _standard_normal(n: int, seed: int | None = None) -> NDArray[np.float64]:
     ----------
     n : int
         Number of samples to generate.
-    seed : int, optional
-        A seed used to initialize a random number generator.
+    seed : int, np.random.Generator or None, optional
+        A seed used to initialize a random number generator. If passed a Generator,
+        it will be used unaltered.
 
     Returns
     -------
@@ -22,7 +25,10 @@ def _standard_normal(n: int, seed: int | None = None) -> NDArray[np.float64]:
 
 
 def white_noise(
-    N: float, fs: float, n: int, seed: int | None = None
+    N: float,
+    fs: float,
+    n: int,
+    seed: int | np.random.Generator | None = None,
 ) -> NDArray[np.float64]:
     """
     Generates a discrete-time (bandlimited) Gaussian white noise sequence.
@@ -47,6 +53,9 @@ def white_noise(
         Sampling frequency in Hz.
     n : int
         Number of samples to generate.
+    seed : int, np.random.Generator or None, optional
+        A seed used to initialize a random number generator. If passed a Generator,
+        it will be used unaltered.
 
     Returns
     -------
@@ -62,7 +71,7 @@ def white_noise(
 
 
 def random_walk(
-    K: float, fs: float, n: int, seed: int | None = None
+    K: float, fs: float, n: int, seed: int | np.random.Generator | None = None
 ) -> NDArray[np.float64]:
     """
     Generates a discrete-time random walk (i.e., Brownian noise) sequence.
@@ -94,9 +103,12 @@ def random_walk(
         Sampling frequency in Hz.
     n : int
         Number of samples to generate.
+    seed: int, np.random.Generator or None, optional
+        A seed used to initialize a random number generator. If passed a Generator,
+        it will be used unaltered.
 
-    Return
-    ------
+    Returns
+    -------
     numpy.ndarray, shape (n,)
         Discrete-time random walk sequence.
 
@@ -115,7 +127,11 @@ def random_walk(
 
 
 def gauss_markov(
-    sigma: float, tau_c: float, fs: float, n: int, seed: int | None = None
+    sigma: float,
+    tau_c: float,
+    fs: float,
+    n: int,
+    seed: int | np.random.Generator | None = None,
 ) -> NDArray[np.float64]:
     """
     Generates a discrete-time first-order Gauss-Markov sequence.
@@ -150,9 +166,12 @@ def gauss_markov(
         Sampling frequency in Hz.
     n : int
         Number of samples to generate.
+    seed : int, np.random.Generator or None, optional
+        A seed used to initialize a random number generator. If passed a Generator,
+        it will be used unaltered.
 
-    Return
-    ------
+    Returns
+    -------
     numpy.ndarray, shape (n,)
         Discrete-time first-order Gauss-Markov sequence.
 
@@ -177,25 +196,6 @@ def gauss_markov(
         x[i] = phi * x[i - 1] + sigma_wn * epsilon[i - 1]
 
     return x
-
-
-def _gen_seeds(seed: int | None, num: int) -> NDArray[np.uint64]:
-    """
-    Generates a sequence of seeds based on one seed.
-
-    Parameters
-    ----------
-    seed : int or None
-        A seed used to generate a sequence of new seeds.
-    num : int
-        Number of new seeds to generate.
-
-    Returns
-    -------
-    seeds : numpy.ndarray, shape (num,)
-        Sequence of seeds.
-    """
-    return np.random.SeedSequence(seed).generate_state(num, "uint64")  # type: ignore[return-value]
 
 
 class NoiseModel:
@@ -277,7 +277,7 @@ class NoiseModel:
         self._K = K
         self._tau_ck = tau_ck
         self._bc = bc or 0.0
-        self._seed = seed
+        self._rng = np.random.default_rng(seed)
 
     def __call__(self, fs: float, n: int) -> NDArray[np.float64]:
         """
@@ -300,23 +300,21 @@ class NoiseModel:
         The generated noise will have units corresponding to the noise
         parameters given during initialization.
         """
-        seeds = _gen_seeds(self._seed, 3)
-
         # Constant bias
         bc = self._bc
 
         # White noise
-        wn = white_noise(self._N, fs, n, seed=seeds[0])
+        wn = white_noise(self._N, fs, n, seed=self._rng)
 
         # Flicker noise / pink noise
-        pn = gauss_markov(self._B, self._tau_cb, fs, n, seed=seeds[1])
+        pn = gauss_markov(self._B, self._tau_cb, fs, n, seed=self._rng)
 
         # Drift / Brownian noise
         if self._K and self._tau_ck:
             sigma = self._K * np.sqrt(self._tau_ck / 2.0)
-            bn = gauss_markov(sigma, self._tau_ck, fs, n, seed=seeds[2])
+            bn = gauss_markov(sigma, self._tau_ck, fs, n, seed=self._rng)
         elif self._K:
-            bn = random_walk(self._K, fs, n, seed=seeds[2])
+            bn = random_walk(self._K, fs, n, seed=self._rng)
         else:
             bn = np.zeros(n)
 
@@ -532,7 +530,8 @@ class IMUNoise:
         The generated noise will have units corresponding to the noise
         parameters given during initialization.
         """
-        seeds = _gen_seeds(self._seed, 6)
+        # Generate seeds for each noise component based on class seed
+        seeds = np.random.SeedSequence(self._seed).generate_state(6, "uint64")
         x = np.column_stack(
             [NoiseModel(**self._err_list[i], seed=seeds[i])(fs, n) for i in range(6)]
         )
