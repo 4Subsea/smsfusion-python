@@ -1163,6 +1163,8 @@ class AidedINS(INSMixin):
         self._ins.update(f_imu, w_imu, degrees=False)
         self._P_prior[:] = self._phi @ P @ self._phi.T + Q
 
+        return self
+
     def _update_cold(
         self,
         f_imu: ArrayLike,

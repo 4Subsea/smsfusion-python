@@ -665,6 +665,7 @@ class Test_AidedINS:
             lever_arm=np.ones(3),
             ignore_bias_acc=False,
             nav_frame="NED",
+            warm=True,
         )
         return ains
 
@@ -699,6 +700,7 @@ class Test_AidedINS:
             lever_arm=np.ones(3),
             ignore_bias_acc=True,
             nav_frame="NED",
+            warm=True,
         )
         return ains
 
@@ -730,6 +732,9 @@ class Test_AidedINS:
             lever_arm=(1, 2, 3),
             g=9.81,
             ignore_bias_acc=False,
+            warm=True,
+            warmup_period=10.0,
+            warmup_smoothing_factor=0.8,
         )
 
         assert isinstance(ains, AidedINS)
@@ -740,6 +745,9 @@ class Test_AidedINS:
         assert ains._err_gyro == err_gyro
         assert isinstance(ains._ins, StrapdownINS)
         assert ains._ignore_bias_acc is False
+        assert ains._warm is True
+        assert ains._warmup_period == 10.0
+        assert ains._warmup_smoothing_factor == 0.8
 
         np.testing.assert_allclose(ains._x, x0)
         np.testing.assert_allclose(ains._ins._x, x0)
@@ -757,16 +765,13 @@ class Test_AidedINS:
         assert ains._W.shape == (12, 12)
         assert ains._H.shape == (10, 15)
 
-    def test__init__without_p0_err(self):
+    def test__init__without_P0_err(self):
         # Test initialization without P0_prior and err_acc/err_gyro
         fs = 10.24
         x0 = np.zeros(16)
         x0[6] = 1.0
 
-        ains = AidedINS(
-            fs,
-            x0,
-        )
+        ains = AidedINS(fs, x0)
 
         assert ains._err_acc == ERR_ACC_MOTION2
         assert ains._err_gyro == ERR_GYRO_MOTION2
@@ -911,6 +916,9 @@ class Test_AidedINS:
         np.testing.assert_allclose(ains_b._ins._x, ains._ins._x)
         np.testing.assert_allclose(ains_b._P_prior, ains._P_prior)
         np.testing.assert_allclose(ains_b._ignore_bias_acc, ains._ignore_bias_acc)
+        assert ains_b._warm is ains._warm
+        assert ains_b._warmup_period == ains._warmup_period
+        assert ains_b._warmup_smoothing_factor == ains._warmup_smoothing_factor
 
     def test_x(self, ains):
         x_expect = np.array(
@@ -1328,6 +1336,7 @@ class Test_AidedINS:
             err_acc,
             err_gyro,
             ignore_bias_acc=False,
+            warm=True,
         )
 
         g = gravity()
@@ -1431,7 +1440,7 @@ class Test_AidedINS:
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
 
-        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro, ignore_bias_acc=False)
+        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro, ignore_bias_acc=False, warm=True)
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
@@ -1467,7 +1476,7 @@ class Test_AidedINS:
         err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
         err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
 
-        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro, ignore_bias_acc=False)
+        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro, ignore_bias_acc=False, warm=True)
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
