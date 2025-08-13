@@ -40,7 +40,7 @@ from smsfusion.benchmark import (
     benchmark_full_pva_beat_202311A,
     benchmark_full_pva_chirp_202311A,
 )
-from smsfusion.constants import ERR_ACC_MOTION2, ERR_GYRO_MOTION2, P0
+from smsfusion.constants import ERR_ACC_MOTION2, ERR_GYRO_MOTION2, P0, X0
 from smsfusion.noise import IMUNoise, white_noise
 
 
@@ -1894,16 +1894,17 @@ class Test_AidedINS:
 
 class Test_VRU:
 
-    def test__init__no_p0_err(self):
+    def test__init__no_x0_p0_err(self):
         # Tests that default values for p0 and errors are set correctly
         fs = 10.24
         x0 = np.zeros(16)
         x0[6] = 1.0
 
-        ains = VRU(fs, x0)
+        ains = VRU(fs)
 
         assert ains._err_acc == ERR_ACC_MOTION2
         assert ains._err_gyro == ERR_GYRO_MOTION2
+        np.testing.assert_allclose(ains.x, X0)
         np.testing.assert_allclose(ains._P_prior, P0)
 
     def test_update_compare_to_ains(self):
