@@ -12,7 +12,7 @@ class Test_FixedIntervalSmoother:
     def ains(self):
         x0 = np.zeros(16)
         x0[6:10] = np.array([1.0, 0.0, 0.0, 0.0])
-        ains = sf.AidedINS(10.24, x0, g=sf.gravity())
+        ains = sf.AidedINS(10.24, x0, g=sf.gravity(), warm=True)
         return ains
 
     @pytest.fixture
@@ -23,6 +23,7 @@ class Test_FixedIntervalSmoother:
         smoother = FixedIntervalSmoother(ains)
         assert smoother._ains is ains
         assert smoother._cov_smoothing is True
+        assert smoother._n_cold_updates == 0
         assert smoother.x.size == 0
         assert smoother.P.size == 0
         assert smoother.position().size == 0
@@ -119,7 +120,10 @@ class Test_FixedIntervalSmoother:
         P0 = np.eye(12) * 1e-3
         err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
         err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
-        ains = sf.AidedINS(fs, x0, P0, err_acc, err_gyro)
+        warmup_period = 10.0
+        ains = sf.AidedINS(
+            fs, x0, P0, err_acc, err_gyro, warm=False, warmup_period=warmup_period
+        )
 
         smoother = sf.FixedIntervalSmoother(ains, cov_smoothing=True)
 
@@ -152,6 +156,15 @@ class Test_FixedIntervalSmoother:
         vel_smth = smoother.velocity()
         euler_smth = smoother.euler(degrees=True)
         err_smth = np.array([P_i.diagonal() for P_i in smoother.P])
+
+        # No smoothing should be done during coldstart period
+        n_cold_updates = smoother._n_cold_updates
+        assert n_cold_updates == np.ceil(fs * warmup_period)
+        np.testing.assert_allclose(pos_ains[:n_cold_updates], pos_smth[:n_cold_updates])
+        np.testing.assert_allclose(vel_ains[:n_cold_updates], vel_smth[:n_cold_updates])
+        np.testing.assert_allclose(
+            euler_ains[:n_cold_updates], euler_smth[:n_cold_updates]
+        )
 
         # Half-sample shift
         # # (compensates for the delay introduced by Euler integration)
@@ -212,7 +225,10 @@ class Test_FixedIntervalSmoother:
         P0 = np.eye(12) * 1e-3
         err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
         err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
-        ains = sf.AHRS(fs, x0, P0, err_acc, err_gyro)
+        warmup_period = 10.0
+        ains = sf.AHRS(
+            fs, x0, P0, err_acc, err_gyro, warm=False, warmup_period=warmup_period
+        )
 
         smoother = sf.FixedIntervalSmoother(ains, cov_smoothing=True)
 
@@ -237,6 +253,13 @@ class Test_FixedIntervalSmoother:
         # Smoothed state estimates
         euler_smth = smoother.euler(degrees=True)
         err_smth = np.array([P_i.diagonal() for P_i in smoother.P])
+
+        # No smoothing should be done during coldstart period
+        n_cold_updates = smoother._n_cold_updates
+        assert n_cold_updates == np.ceil(fs * warmup_period)
+        np.testing.assert_allclose(
+            euler_ains[:n_cold_updates], euler_smth[:n_cold_updates]
+        )
 
         # Half-sample shift
         # # (compensates for the delay introduced by Euler integration)
@@ -277,7 +300,10 @@ class Test_FixedIntervalSmoother:
         P0 = np.eye(12) * 1e-3
         err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
         err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
-        ains = sf.VRU(fs, x0, P0, err_acc, err_gyro)
+        warmup_period = 10.0
+        ains = sf.VRU(
+            fs, x0, P0, err_acc, err_gyro, warm=False, warmup_period=warmup_period
+        )
 
         smoother = sf.FixedIntervalSmoother(ains, cov_smoothing=True)
 
@@ -299,6 +325,13 @@ class Test_FixedIntervalSmoother:
         # Smoothed state estimates
         euler_smth = smoother.euler(degrees=True)
         err_smth = np.array([P_i.diagonal() for P_i in smoother.P])
+
+        # No smoothing should be done during coldstart period
+        n_cold_updates = smoother._n_cold_updates
+        assert n_cold_updates == np.ceil(fs * warmup_period)
+        np.testing.assert_allclose(
+            euler_ains[:n_cold_updates], euler_smth[:n_cold_updates]
+        )
 
         # Half-sample shift
         # # (compensates for the delay introduced by Euler integration)
