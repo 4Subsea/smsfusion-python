@@ -26,22 +26,6 @@ still be corrected using the IMU's accelerometer data and the known direction of
 the gravitational field. When operated in this mode, the AINS is referred to as
 a `Vertical Reference Unit` (VRU).
 
-``smsfusion`` provides Python implementations of a few INS algorithms, including:
-
-* :class:`~smsfusion.AidedINS`: Aided INS (AINS) algorithm. Used to estimate position,
-  velocity and attitude (PVA) using IMU data, GNSS data and compass data.
-* :class:`~smsfusion.AHRS`: AHRS wrapper around :class:`~smsfusion.AidedINS` with sane defaults.
-  Used to estimate attitude only using IMU data and compass data.
-* :class:`~smsfusion.VRU`: VRU wrapper around :class:`~smsfusion.AidedINS` with sane defaults.
-  Used to estimate roll and pitch only using IMU data.
-* :class:`~smsfusion.StrapdownINS`: Simple strapdown INS algorithm, where the
-  IMU measurements are integrated without incorporating any additional aiding measurements.
-  The state estimates will therefore drift over time and quickly diverge from their true values.
-  This class is primarily used for PVA propagation in other aided INS algorithms.
-
-All AINS algorithms in ``smsfusion`` are based on a fusion filtering technique known
-as the `multiplicative extended Kalman filter` (MEKF).
-
 In this quickstart guide, we will demonstrate how to use the AINS algorithms
 available in ``smsfusion`` to estimate PVA of a moving body using IMU measurements
 and aiding measurements.
@@ -108,8 +92,26 @@ For simpler cases where only compass or no aiding is available, consider using
 :func:`~smsfusion.benchmark.benchmark_pure_attitude_beat_202311A` instead to
 generate synthetic data.
 
-Aided INS: Estimate position, velocity and attitude (PVA)
----------------------------------------------------------
+INS algorithms
+--------------
+``smsfusion`` provides Python implementations of a few INS algorithms, including:
+
+* :class:`~smsfusion.AidedINS`: Aided INS (AINS) algorithm. Used to estimate position,
+  velocity and attitude (PVA) using IMU data, GNSS data and compass data.
+* :class:`~smsfusion.AHRS`: AHRS wrapper around :class:`~smsfusion.AidedINS` with sane defaults.
+  Used to estimate attitude only using IMU data and compass data.
+* :class:`~smsfusion.VRU`: VRU wrapper around :class:`~smsfusion.AidedINS` with sane defaults.
+  Used to estimate roll and pitch only using IMU data.
+* :class:`~smsfusion.StrapdownINS`: Simple strapdown INS algorithm, where the
+  IMU measurements are integrated without incorporating any additional aiding measurements.
+  The state estimates will therefore drift over time and quickly diverge from their true values.
+  This class is primarily used for PVA propagation in other aided INS algorithms.
+
+All AINS algorithms in ``smsfusion`` are based on a fusion filtering technique known
+as the `multiplicative extended Kalman filter` (MEKF).
+
+Aided INS: IMU + compass and position aiding
+.....................................................
 If you have access to accelerometer and gyroscope data from an IMU sensor, as well
 as position and heading data from other aiding sensors, you can estimate the position,
 velocity and attitude (PVA) of a moving body using the :func:`~smsfusion.AidedINS` class:
@@ -145,8 +147,8 @@ velocity and attitude (PVA) of a moving body using the :func:`~smsfusion.AidedIN
     vel_est = np.array(vel_est)
     euler_est = np.array(euler_est)
 
-AHRS: Estimate attitude with compass-aiding
--------------------------------------------
+AHRS: IMU + compass aiding
+--------------------------
 To limit integration drift in AHRS mode, we must assume that the sensor on average
 is stationary. The static assumtion is incorporated as so-called pseudo aiding measurements
 of zero with corresponding error variances. For most applications, the following pseudo
@@ -184,8 +186,8 @@ the :func:`~smsfusion.AHRS` class:
 
     euler_est = np.array(euler_est)
 
-VRU: Estimate partial attitude in aiding-denied scenarios
----------------------------------------------------------
+VRU: IMU only
+-------------
 To limit integration drift in VRU mode, we must assume that the sensor on average
 is stationary. The static assumption is incorporated as so-called pseudo aiding measurements
 of zero with corresponding error variances. For most applications, the following pseudo
