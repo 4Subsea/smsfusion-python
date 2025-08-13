@@ -26,14 +26,15 @@ still be corrected using the IMU's accelerometer data and the known direction of
 the gravitational field. When operated in this mode, the AINS is referred to as
 a `Vertical Reference Unit` (VRU).
 
-In this quickstart guide, we will demonstrate how to use the AINS algorithms
-available in ``smsfusion`` to estimate PVA of a moving body using IMU measurements
-and aiding measurements.
+``smsfusion`` provides Python implementations of a few AINS algorithms, including
+:class:`~smsfusion.AidedINS`, :class:`~smsfusion.AHRS` and :class:`~smsfusion.VRU`.
+In this quickstart guide we will demonstrate how to use these AINS algorithms to
+estimate PVA of a moving body using IMU measurements and aiding measurements.
 
 Measurement data
 ----------------
 This quickstart guide assumes that you have access to accelerometer and gyroscope
-data from an IMU sensor, and maybe position and heading data from other aiding
+data from an IMU sensor, and ideally position and heading data from other aiding
 sensors. If you do not have access to such data, you can generate synthetic
 measurements using the code provided here.
 
