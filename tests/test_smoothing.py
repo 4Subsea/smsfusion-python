@@ -57,6 +57,7 @@ class Test_FixedIntervalSmoother:
             degrees=True,
         )
         assert smoother.x.shape == (1, 16)
+        assert smoother._n_cold_updates == 0  # always 'warm'
 
         smoother.update(
             np.array([0.0, 0.0, -g]),
@@ -73,6 +74,7 @@ class Test_FixedIntervalSmoother:
             g_var=np.ones(3),
         )
         assert smoother.x.shape == (2, 16)
+        assert smoother._n_cold_updates == 0  # always 'warm'
 
         smoother.update(
             np.array([0.0, 0.0, -g]),
@@ -83,8 +85,7 @@ class Test_FixedIntervalSmoother:
             head_degrees=True,
         )
         assert smoother.x.shape == (3, 16)
-
-        assert smoother._n_coldstart_updates == 0  # always 'warm'
+        assert smoother._n_cold_updates == 0  # always 'warm'
 
     def test_update_cold(self, smoother_cold):
         smoother = smoother_cold
@@ -97,6 +98,7 @@ class Test_FixedIntervalSmoother:
             degrees=True,
         )
         assert smoother.x.shape == (1, 16)
+        assert smoother._n_cold_updates == 1
 
         smoother.update(
             np.array([0.0, 0.0, -g]),
@@ -113,6 +115,7 @@ class Test_FixedIntervalSmoother:
             g_var=np.ones(3),
         )
         assert smoother.x.shape == (2, 16)
+        assert smoother._n_cold_updates == 2
 
         smoother.update(
             np.array([0.0, 0.0, -g]),
@@ -123,8 +126,7 @@ class Test_FixedIntervalSmoother:
             head_degrees=True,
         )
         assert smoother.x.shape == (3, 16)
-
-        assert smoother._n_coldstart_updates == 3  # always 'warm'
+        assert smoother._n_cold_updates == 3
 
     def test_clear(self, smoother_cold):
         smoother = smoother_cold
