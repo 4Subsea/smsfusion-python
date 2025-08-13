@@ -16,8 +16,20 @@ class Test_FixedIntervalSmoother:
         return ains
 
     @pytest.fixture
+    def ains_cold(self):
+        x0 = np.zeros(16)
+        x0[6:10] = np.array([1.0, 0.0, 0.0, 0.0])
+        ains = sf.AidedINS(10.24, x0, g=sf.gravity(), warm=False)
+        return ains
+
+
+    @pytest.fixture
     def smoother(self, ains):
         return FixedIntervalSmoother(ains)
+    
+    @pytest.fixture
+    def smoother_cold(self, ains_cold):
+        return FixedIntervalSmoother(ains_cold)
 
     def test__init__(self, ains):
         smoother = FixedIntervalSmoother(ains)
@@ -72,13 +84,57 @@ class Test_FixedIntervalSmoother:
         )
         assert smoother.x.shape == (3, 16)
 
-    def test_clear(self, smoother):
+        assert smoother._n_coldstart_updates == 0  # always 'warm'
+
+    def test_update_cold(self, smoother_cold):
+        smoother = smoother_cold
+
+        g = sf.gravity()
+
+        smoother.update(
+            np.array([0.0, 0.0, -g]),
+            np.zeros(3),
+            degrees=True,
+        )
+        assert smoother.x.shape == (1, 16)
+
+        smoother.update(
+            np.array([0.0, 0.0, -g]),
+            np.zeros(3),
+            degrees=True,
+            pos=np.zeros(3),
+            pos_var=np.ones(3),
+            vel=np.zeros(3),
+            vel_var=np.ones(3),
+            head=0.0,
+            head_var=1.0,
+            head_degrees=True,
+            g_ref=True,
+            g_var=np.ones(3),
+        )
+        assert smoother.x.shape == (2, 16)
+
+        smoother.update(
+            np.array([0.0, 0.0, -g]),
+            np.zeros(3),
+            degrees=True,
+            head=0.0,
+            head_var=1.0,
+            head_degrees=True,
+        )
+        assert smoother.x.shape == (3, 16)
+
+        assert smoother._n_coldstart_updates == 3  # always 'warm'
+
+    def test_clear(self, smoother_cold):
+        smoother = smoother_cold
         smoother.update(
             np.zeros(3),
             np.zeros(3),
             degrees=True,
         )
         assert smoother.x.size > 0
+        assert smoother._n_cold_updates == 1
         smoother.clear()
         assert smoother.x.size == 0
         assert smoother.P.size == 0
@@ -87,6 +143,7 @@ class Test_FixedIntervalSmoother:
         assert smoother.quaternion().size == 0
         assert smoother.bias_acc().size == 0
         assert smoother.bias_gyro().size == 0
+        assert smoother._n_cold_updates == 0
 
     def test_benchmark_ains(self):
         # Reference signal

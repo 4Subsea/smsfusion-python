@@ -99,6 +99,7 @@ class FixedIntervalSmoother:
         self._P_buf.clear()
         self._P_prior_buf.clear()
         self._phi_buf.clear()
+        self._n_cold_updates = 0
 
     def _smooth(self):
         n_samples = len(self._x_buf)
