@@ -14,18 +14,6 @@ long-term stable aiding measurements to ensure convergence and stability of the 
 The aiding measurements are typically provided by a `global navigation satellite system`
 (GNSS) and a compass, providing absolute position, velocity, and heading information.
 
-In scenarios where only compass aiding (but no GNSS) is available, the INS cannot provide
-reliable position and velocity information but still deliver stable attitude estimates.
-When the AINS is operated in this mode, we call it an `Attitude and Heading Reference System`
-(AHRS).
-
-In aiding-denied scenarios, where no aiding measurements are available, the INS
-must rely solely on the IMU's measurements to estimate the body's motion. In such
-scenarios, only the roll and pitch degrees of freedom are observable, as they can
-still be corrected using the IMU's accelerometer data and the known direction of
-the gravitational field. When operated in this mode, the AINS is referred to as
-a `Vertical Reference Unit` (VRU).
-
 ``smsfusion`` provides Python implementations of a few AINS algorithms, including
 :class:`~smsfusion.AidedINS`, :class:`~smsfusion.AHRS` and :class:`~smsfusion.VRU`.
 In this quickstart guide we will demonstrate how to use these AINS algorithms to
@@ -95,7 +83,7 @@ generate synthetic data.
 
 INS algorithms
 --------------
-``smsfusion`` provides Python implementations of a few INS algorithms, including:
+The following INS algorithms are provided by ``smsfusion``:
 
 * :class:`~smsfusion.AidedINS`: Aided INS (AINS) algorithm. Used to estimate position,
   velocity and attitude (PVA) using IMU data, GNSS data and compass data.
@@ -111,8 +99,8 @@ INS algorithms
 All AINS algorithms provided by ``smsfusion`` are based on a fusion filtering technique
 known as the `multiplicative extended Kalman filter` (MEKF).
 
-AidedINS: IMU + compass and position aiding
-...........................................
+AidedINS - IMU + heading and position aiding
+............................................
 If you have access to accelerometer and gyroscope data from an IMU sensor, as well
 as position and heading data from other aiding sensors, you can estimate the position,
 velocity and attitude (PVA) of a moving body using the :func:`~smsfusion.AidedINS` class:
@@ -148,8 +136,13 @@ velocity and attitude (PVA) of a moving body using the :func:`~smsfusion.AidedIN
     vel_est = np.array(vel_est)
     euler_est = np.array(euler_est)
 
-AHRS: IMU + compass aiding
-..........................
+AHRS - IMU + heading aiding
+...........................
+In scenarios where only compass aiding is available (i.e., no GNSS), the INS is
+unable to provide reliable position and velocity information, but it can still
+deliver stable attitude estimates. When the AINS is operated in this mode, we call
+it an `Attitude and Heading Reference System` (AHRS).
+
 To limit integration drift in AHRS mode, we must assume that the sensor on average
 is stationary. The static assumtion is incorporated as so-called pseudo aiding measurements
 of zero with corresponding error variances. For most applications, the following pseudo
@@ -159,8 +152,8 @@ aiding is sufficient:
 * Velocity: 0 m/s with 10 m/s standard deviation
 
 If you have access to accelerometer and gyroscope data from an IMU sensor and
-compass measurements, you can estimate the attitude of a moving body using
-the :func:`~smsfusion.AHRS` class:
+heading measurements from a compass, you can estimate the attitude of a moving body
+using the :func:`~smsfusion.AHRS` class:
 
 .. code-block:: python
 
@@ -187,8 +180,15 @@ the :func:`~smsfusion.AHRS` class:
 
     euler_est = np.array(euler_est)
 
-VRU: IMU only
-.............
+VRU - IMU only (aiding-denied)
+..............................
+In aiding-denied scenarios, where no aiding measurements are available, the INS
+must rely solely on the IMU's measurements to estimate the body's motion. In such
+scenarios only the roll and pitch degrees of freedom are observable, as they can
+still be corrected using the IMU's accelerometer data and the known direction of
+the gravitational field. When operated in this mode, the AINS is referred to as
+a `Vertical Reference Unit` (VRU).
+
 To limit integration drift in VRU mode, we must assume that the sensor on average
 is stationary. The static assumption is incorporated as so-called pseudo aiding measurements
 of zero with corresponding error variances. For most applications, the following pseudo
@@ -252,13 +252,13 @@ additional aiding parameters depending on the type of AINS instance used.
     import smsfusion as sf
 
 
-    # Initialize fixed-interval smoother
+    # Initialize VRU-based fixed-interval smoother
     fs = 10.24  # sampling rate in Hz
-    vru_smoother = sf.FixedIntervalSmoother(sf.VRU(fs))
+    smoother = sf.FixedIntervalSmoother(sf.VRU(fs))
 
     # Update with accelerometer and gyroscope measurements
     for f_i, w_i in zip(acc_imu, gyro_imu):
-        vru_smoother.update(f_i, w_i, degrees=False)
+        smoother.update(f_i, w_i, degrees=False)
 
     # Get smoothed roll and pitch estimates
-    roll_pitch_est = vru_smoother.euler(degrees=False)[:, :2]
+    roll_pitch_est = smoother.euler(degrees=False)[:, :2]
