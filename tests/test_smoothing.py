@@ -22,11 +22,10 @@ class Test_FixedIntervalSmoother:
         ains = sf.AidedINS(10.24, x0, g=sf.gravity(), warm=False)
         return ains
 
-
     @pytest.fixture
     def smoother(self, ains):
         return FixedIntervalSmoother(ains)
-    
+
     @pytest.fixture
     def smoother_cold(self, ains_cold):
         return FixedIntervalSmoother(ains_cold)
