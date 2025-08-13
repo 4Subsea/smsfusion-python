@@ -605,14 +605,17 @@ class AidedINS(INSMixin):
     ----------
     fs : float
         Sampling rate in Hz.
-    x0_prior : array-like, shape (16,)
-        Initial (a priori) INS state estimate, containing the following elements in order:
+    x0_prior : array-like, shape (16,), default :const:`smsfusion.constants.X0`
+        Initial (a priori) 16-element INS state estimate:
 
-        * Position in x, y, z directions (3 elements).
-        * Velocity in x, y, z directions (3 elements).
-        * Attitude as unit quaternion (4 elements).
-        * Accelerometer bias in x, y, z directions (3 elements).
-        * Gyroscope bias in x, y, z directions (3 elements).
+        * Position (x, y, z) - 3 elements
+        * Velocity (x, y, z) - 3 elements
+        * Attitude (unit quaternion) - 4 elements
+        * Accelerometer bias (x, y, z) - 3 elements
+        * Gyroscope bias (x, y, z) - 3 elements
+
+        Defaults to a zero vector, but with the attitude part as a unit quaternion
+        (i.e., no rotation).
     P0_prior : array-like (shape (12, 12) or (15, 15)), default np.eye(12) * 1e-6 (:const:`smsfusion.constants.P0`)
         Initial (a priori) estimate of the error covariance matrix, **P**. If not given, a
         small diagonal matrix will be used. If the accelerometer bias is excluded from the
@@ -1225,14 +1228,17 @@ class VRU(AidedINS):
     ----------
     fs : float
         Sampling rate in Hz.
-    x0_prior : array-like, shape (16,)
-        Initial (a priori) INS state estimate, containing the following elements in order:
+    x0_prior : array-like, shape (16,), default :const:`smsfusion.constants.X0`
+        Initial (a priori) 16-element INS state estimate:
 
-        * Position in x, y, z directions (3 elements), should be zeros.
-        * Velocity in x, y, z directions (3 elements), should be zeros.
-        * Attitude as unit quaternion (4 elements).
-        * Accelerometer bias in x, y, z directions (3 elements).
-        * Gyroscope bias in x, y, z directions (3 elements).
+        * Position (x, y, z) - 3 elements
+        * Velocity (x, y, z) - 3 elements
+        * Attitude (unit quaternion) - 4 elements
+        * Accelerometer bias (x, y, z) - 3 elements
+        * Gyroscope bias (x, y, z) - 3 elements
+
+        Defaults to a zero vector, but with the attitude part as a unit quaternion
+        (i.e., no rotation).
     P0_prior : array-like, shape (12, 12), default np.eye(12) * 1e-6 (:const:`smsfusion.constants.P0`)
         Initial (a priori) estimate of the error covariance matrix, **P**.
     err_acc : dict of {str: float}, default :const:`smsfusion.constants.ERR_ACC_MOTION2`
@@ -1383,14 +1389,17 @@ class AHRS(AidedINS):
     ----------
     fs : float
         Sampling rate in Hz.
-    x0_prior : array-like, shape (16,)
-        Initial (a priori) INS state estimate, containing the following elements in order:
+    x0_prior : array-like, shape (16,), default :const:`smsfusion.constants.X0`
+        Initial (a priori) 16-element INS state estimate:
 
-        * Position in x, y, z directions (3 elements), should be zeros.
-        * Velocity in x, y, z directions (3 elements), should be zeros.
-        * Attitude as unit quaternion (4 elements).
-        * Accelerometer bias in x, y, z directions (3 elements).
-        * Gyroscope bias in x, y, z directions (3 elements).
+        * Position (x, y, z) - 3 elements
+        * Velocity (x, y, z) - 3 elements
+        * Attitude (unit quaternion) - 4 elements
+        * Accelerometer bias (x, y, z) - 3 elements
+        * Gyroscope bias (x, y, z) - 3 elements
+
+        Defaults to a zero vector, but with the attitude part as a unit quaternion
+        (i.e., no rotation).
     P0_prior : array-like, shape (12, 12), default np.eye(12) * 1e-6 (:const:`smsfusion.constants.P0`)
         Initial (a priori) estimate of the error covariance matrix, **P**.
     err_acc : dict of {str: float}, default :const:`smsfusion.constants.ERR_ACC_MOTION2`
