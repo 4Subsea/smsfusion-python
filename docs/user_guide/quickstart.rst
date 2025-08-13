@@ -108,11 +108,11 @@ INS algorithms
   The state estimates will therefore drift over time and quickly diverge from their true values.
   This class is primarily used for PVA propagation in other aided INS algorithms.
 
-All AINS algorithms in ``smsfusion`` are based on a fusion filtering technique known
-as the `multiplicative extended Kalman filter` (MEKF).
+All AINS algorithms provided by ``smsfusion`` are based on a fusion filtering technique
+known as the `multiplicative extended Kalman filter` (MEKF).
 
-Aided INS: IMU + compass and position aiding
-.....................................................
+AidedINS: IMU + compass and position aiding
+...........................................
 If you have access to accelerometer and gyroscope data from an IMU sensor, as well
 as position and heading data from other aiding sensors, you can estimate the position,
 velocity and attitude (PVA) of a moving body using the :func:`~smsfusion.AidedINS` class:
@@ -149,7 +149,7 @@ velocity and attitude (PVA) of a moving body using the :func:`~smsfusion.AidedIN
     euler_est = np.array(euler_est)
 
 AHRS: IMU + compass aiding
---------------------------
+..........................
 To limit integration drift in AHRS mode, we must assume that the sensor on average
 is stationary. The static assumtion is incorporated as so-called pseudo aiding measurements
 of zero with corresponding error variances. For most applications, the following pseudo
@@ -188,7 +188,7 @@ the :func:`~smsfusion.AHRS` class:
     euler_est = np.array(euler_est)
 
 VRU: IMU only
--------------
+.............
 To limit integration drift in VRU mode, we must assume that the sensor on average
 is stationary. The static assumption is incorporated as so-called pseudo aiding measurements
 of zero with corresponding error variances. For most applications, the following pseudo
