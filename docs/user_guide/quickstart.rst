@@ -120,16 +120,9 @@ velocity and attitude (PVA) of a moving body using the :func:`~smsfusion.AidedIN
     import smsfusion as sf
 
 
-    # Initial (a priori) state
-    p0 = pos[0]  # position [m]
-    v0 = vel[0]  # velocity [m/s]
-    q0 = sf.quaternion_from_euler(euler[0], degrees=False)  # attitude as unit quaternion
-    ba0 = np.zeros(3)  # accelerometer bias [m/s^2]
-    bg0 = np.zeros(3)  # gyroscope bias [rad/s]
-    x0 = np.concatenate((p0, v0, q0, ba0, bg0))
-
     # Initialize AINS
-    ains = sf.AidedINS(fs, x0)
+    fs = 10.24  # sampling rate in Hz
+    ains = sf.AidedINS(fs)
 
     # Estimate PVA states sequentially using AINS
     pos_est, vel_est, euler_est = [], [], []
@@ -172,16 +165,9 @@ the :func:`~smsfusion.AHRS` class:
     import smsfusion as sf
 
 
-    # Initial (a priori) state
-    p0 = np.zeros(3)  # position [m]
-    v0 = np.zeros(3)  # velocity [m/s]
-    q0 = sf.quaternion_from_euler(euler[0], degrees=False)  # attitude as unit quaternion
-    ba0 = np.zeros(3)  # accelerometer bias [m/s^2]
-    bg0 = np.zeros(3)  # gyroscope bias [rad/s]
-    x0 = np.concatenate((p0, v0, q0, ba0, bg0))
-
     # Initialize AHRS
-    ahrs = sf.AHRS(fs, x0)
+    fs = 10.24  # sampling rate in Hz
+    ahrs = sf.AHRS(fs)
 
     # Estimate attitude sequentially using AHRS
     euler_est = []
@@ -221,25 +207,14 @@ estimate the roll and pitch degrees of freedom of a moving body using the
     import smsfusion as sf
 
 
-    # Initial (a priori) state
-    p0 = np.zeros(3)  # position [m]
-    v0 = np.zeros(3)  # velocity [m/s]
-    q0 = sf.quaternion_from_euler(euler[0], degrees=False)  # attitude as unit quaternion
-    ba0 = np.zeros(3)  # accelerometer bias [m/s^2]
-    bg0 = np.zeros(3)  # gyroscope bias [rad/s]
-    x0 = np.concatenate((p0, v0, q0, ba0, bg0))
-
     # Initialize VRU
-    vru = sf.VRU(fs, x0)
+    fs = 10.24  # sampling rate in Hz
+    vru = sf.VRU(fs)
 
     # Estimate roll and pitch sequentially using VRU
     roll_pitch_est = []
     for f_i, w_i in zip(acc_imu, gyro_imu):
-        vru.update(
-            f_i,
-            w_i,
-            degrees=False
-        )
+        vru.update(f_i, w_i, degrees=False)
         roll_pitch_est.append(vru.euler(degrees=False)[:2])
 
     roll_pitch_est = np.array(roll_pitch_est)
@@ -249,17 +224,17 @@ Smoothing
 ---------
 Smoothing refers to post-processing techniques that enhance the accuracy of a Kalman
 filter's state and covariance estimates by incorporating both past and future measurements.
-In contrast, standard forward filtering (as implemented in :class:`~smsfusion.AidedINS`)
-relies only on past and current measurements, leading to suboptimal estimates when
-future data is available.
+In contrast, standard forward filtering (as provided by :class:`~smsfusion.AidedINS`,
+:class:`~smsfusion.AHRS` and :class:`~smsfusion.VRU`) relies only on past and current
+measurements, leading to suboptimal estimates when future data is available.
 
 Fixed-interval smoothing
 ........................
 The :class:`~smsfusion.FixedIntervalSmoother` class implements fixed-interval smoothing
 for an :class:`~smsfusion.AidedINS` instance or one of its subclasses (:class:`~smsfusion.AHRS`
-or :class:`~smsfusion.VRU`). After a complete forward pass using the AINS algorithm,
-a backward sweep with a smoothing algorithm is performed to refine the state
-and covariance estimates. Fixed-interval smoothing is particularly useful
+or :class:`~smsfusion.VRU`). After a complete forward pass using the given AINS
+algorithm, a backward sweep with a smoothing algorithm is performed to refine the
+state and covariance estimates. Fixed-interval smoothing is particularly useful
 when the entire measurement sequence is available, as it allows for optimal state
 estimation by considering all measurements in the sequence.
 
@@ -274,13 +249,13 @@ additional aiding parameters depending on the type of AINS instance used.
     import smsfusion as sf
 
 
-    vru_smoother = sf.FixedIntervalSmoother(vru)
+    # Initialize fixed-interval smoother
+    fs = 10.24  # sampling rate in Hz
+    vru_smoother = sf.FixedIntervalSmoother(sf.VRU(fs))
 
+    # Update with accelerometer and gyroscope measurements
     for f_i, w_i in zip(acc_imu, gyro_imu):
-        vru_smoother.update(
-            f_i,
-            w_i,
-            degrees=False
-        )
+        vru_smoother.update(f_i, w_i, degrees=False)
 
+    # Get smoothed roll and pitch estimates
     roll_pitch_est = vru_smoother.euler(degrees=False)[:, :2]
