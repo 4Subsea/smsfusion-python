@@ -12,29 +12,17 @@ class Test_FixedIntervalSmoother:
     def ains(self):
         x0 = np.zeros(16)
         x0[6:10] = np.array([1.0, 0.0, 0.0, 0.0])
-        ains = sf.AidedINS(10.24, x0, g=sf.gravity(), warm=True)
-        return ains
-
-    @pytest.fixture
-    def ains_cold(self):
-        x0 = np.zeros(16)
-        x0[6:10] = np.array([1.0, 0.0, 0.0, 0.0])
-        ains = sf.AidedINS(10.24, x0, g=sf.gravity(), warm=False)
+        ains = sf.AidedINS(10.24, x0, g=sf.gravity(), cold_start=True)
         return ains
 
     @pytest.fixture
     def smoother(self, ains):
         return FixedIntervalSmoother(ains)
 
-    @pytest.fixture
-    def smoother_cold(self, ains_cold):
-        return FixedIntervalSmoother(ains_cold)
-
     def test__init__(self, ains):
         smoother = FixedIntervalSmoother(ains)
         assert smoother._ains is ains
         assert smoother._cov_smoothing is True
-        assert smoother._n_cold_updates == 0
         assert smoother.x.size == 0
         assert smoother.P.size == 0
         assert smoother.position().size == 0
@@ -56,7 +44,6 @@ class Test_FixedIntervalSmoother:
             degrees=True,
         )
         assert smoother.x.shape == (1, 16)
-        assert smoother._n_cold_updates == 0  # always 'warm'
 
         smoother.update(
             np.array([0.0, 0.0, -g]),
@@ -73,7 +60,6 @@ class Test_FixedIntervalSmoother:
             g_var=np.ones(3),
         )
         assert smoother.x.shape == (2, 16)
-        assert smoother._n_cold_updates == 0  # always 'warm'
 
         smoother.update(
             np.array([0.0, 0.0, -g]),
@@ -84,67 +70,6 @@ class Test_FixedIntervalSmoother:
             head_degrees=True,
         )
         assert smoother.x.shape == (3, 16)
-        assert smoother._n_cold_updates == 0  # always 'warm'
-
-    def test_update_cold(self, smoother_cold):
-        smoother = smoother_cold
-
-        g = sf.gravity()
-
-        smoother.update(
-            np.array([0.0, 0.0, -g]),
-            np.zeros(3),
-            degrees=True,
-        )
-        assert smoother.x.shape == (1, 16)
-        assert smoother._n_cold_updates == 1
-
-        smoother.update(
-            np.array([0.0, 0.0, -g]),
-            np.zeros(3),
-            degrees=True,
-            pos=np.zeros(3),
-            pos_var=np.ones(3),
-            vel=np.zeros(3),
-            vel_var=np.ones(3),
-            head=0.0,
-            head_var=1.0,
-            head_degrees=True,
-            g_ref=True,
-            g_var=np.ones(3),
-        )
-        assert smoother.x.shape == (2, 16)
-        assert smoother._n_cold_updates == 2
-
-        smoother.update(
-            np.array([0.0, 0.0, -g]),
-            np.zeros(3),
-            degrees=True,
-            head=0.0,
-            head_var=1.0,
-            head_degrees=True,
-        )
-        assert smoother.x.shape == (3, 16)
-        assert smoother._n_cold_updates == 3
-
-    def test_clear(self, smoother_cold):
-        smoother = smoother_cold
-        smoother.update(
-            np.zeros(3),
-            np.zeros(3),
-            degrees=True,
-        )
-        assert smoother.x.size > 0
-        assert smoother._n_cold_updates == 1
-        smoother.clear()
-        assert smoother.x.size == 0
-        assert smoother.P.size == 0
-        assert smoother.position().size == 0
-        assert smoother.velocity().size == 0
-        assert smoother.quaternion().size == 0
-        assert smoother.bias_acc().size == 0
-        assert smoother.bias_gyro().size == 0
-        assert smoother._n_cold_updates == 0
 
     def test_benchmark_ains(self):
         # Reference signal
@@ -179,9 +104,7 @@ class Test_FixedIntervalSmoother:
         err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
         err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
         warmup_period = 10.0
-        ains = sf.AidedINS(
-            fs, x0, P0, err_acc, err_gyro, warm=False, warmup_period=warmup_period
-        )
+        ains = sf.AidedINS(fs, x0, P0, err_acc, err_gyro, cold_start=True)
 
         smoother = sf.FixedIntervalSmoother(ains, cov_smoothing=True)
 
@@ -214,15 +137,6 @@ class Test_FixedIntervalSmoother:
         vel_smth = smoother.velocity()
         euler_smth = smoother.euler(degrees=True)
         err_smth = np.array([P_i.diagonal() for P_i in smoother.P])
-
-        # No smoothing should be done during coldstart period
-        n_cold_updates = smoother._n_cold_updates
-        assert n_cold_updates == np.ceil(fs * warmup_period)
-        np.testing.assert_allclose(pos_ains[:n_cold_updates], pos_smth[:n_cold_updates])
-        np.testing.assert_allclose(vel_ains[:n_cold_updates], vel_smth[:n_cold_updates])
-        np.testing.assert_allclose(
-            euler_ains[:n_cold_updates], euler_smth[:n_cold_updates]
-        )
 
         # Half-sample shift
         # # (compensates for the delay introduced by Euler integration)
@@ -283,10 +197,7 @@ class Test_FixedIntervalSmoother:
         P0 = np.eye(12) * 1e-3
         err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
         err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
-        warmup_period = 10.0
-        ains = sf.AHRS(
-            fs, x0, P0, err_acc, err_gyro, warm=False, warmup_period=warmup_period
-        )
+        ains = sf.AHRS(fs, x0, P0, err_acc, err_gyro, cold_start=True)
 
         smoother = sf.FixedIntervalSmoother(ains, cov_smoothing=True)
 
@@ -311,13 +222,6 @@ class Test_FixedIntervalSmoother:
         # Smoothed state estimates
         euler_smth = smoother.euler(degrees=True)
         err_smth = np.array([P_i.diagonal() for P_i in smoother.P])
-
-        # No smoothing should be done during coldstart period
-        n_cold_updates = smoother._n_cold_updates
-        assert n_cold_updates == np.ceil(fs * warmup_period)
-        np.testing.assert_allclose(
-            euler_ains[:n_cold_updates], euler_smth[:n_cold_updates]
-        )
 
         # Half-sample shift
         # # (compensates for the delay introduced by Euler integration)
@@ -359,9 +263,7 @@ class Test_FixedIntervalSmoother:
         err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
         err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
         warmup_period = 10.0
-        ains = sf.VRU(
-            fs, x0, P0, err_acc, err_gyro, warm=False, warmup_period=warmup_period
-        )
+        ains = sf.VRU(fs, x0, P0, err_acc, err_gyro, cold_start=True)
 
         smoother = sf.FixedIntervalSmoother(ains, cov_smoothing=True)
 
@@ -383,13 +285,6 @@ class Test_FixedIntervalSmoother:
         # Smoothed state estimates
         euler_smth = smoother.euler(degrees=True)
         err_smth = np.array([P_i.diagonal() for P_i in smoother.P])
-
-        # No smoothing should be done during coldstart period
-        n_cold_updates = smoother._n_cold_updates
-        assert n_cold_updates == np.ceil(fs * warmup_period)
-        np.testing.assert_allclose(
-            euler_ains[:n_cold_updates], euler_smth[:n_cold_updates]
-        )
 
         # Half-sample shift
         # # (compensates for the delay introduced by Euler integration)
