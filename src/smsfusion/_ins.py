@@ -19,7 +19,7 @@ from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
 def _roll_pitch_from_acc(f, nav_frame):
     """
-    Estimate roll and pitch angles from specific force (i.e., accelerometer) measurements.
+    Estimate roll and pitch angles from specific force (i.e., accelerometer) measurement.
 
     Parameters
     ----------
