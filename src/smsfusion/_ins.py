@@ -993,8 +993,8 @@ class AidedINS(INSMixin):
         return dx, P
     
     def _acc_align(self, f_ins):
-        # yaw = _h_head(self.quaternion())
-        yaw = 0.0
+        yaw = _h_head(self.quaternion())
+        # yaw = 0.0
         roll, pitch = _roll_pitch_from_acc(f_ins, self._ins._nav_frame)
         self._ins._x[6:10] = _quaternion_from_euler(np.array([roll, pitch, yaw]))
         self._x[:] = self._ins._x
