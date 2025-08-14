@@ -17,11 +17,54 @@ from ._transforms import (
 from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
 
-def _roll_pitch_from_acc(acc, nav_frame):
-    roll = np.arctan(acc[1] / acc[2])
-    pitch = np.arctan(acc[0] / np.sqrt(acc[1] ** 2 + acc[2] ** 2))
-    if nav_frame.lower() == "enu":
-        pitch *= -1
+def _roll_pitch_from_acc(f, nav_frame):
+    """
+    Estimate roll and pitch angles from specific force (i.e., accelerometer) measurements.
+
+    Parameters
+    ----------
+    f: array-like
+        Specific force (i.e., acceleration) measurement vector (fx, fy, fz).
+    nav_frame: {'NED', 'ENU'}
+        Navigation frame. Should be either 'NED' or 'ENU'.
+
+    Returns
+    -------
+    roll: float
+        Estimated roll angle in radians.
+    pitch: float
+        Estimated pitch angle in radians.
+    """
+
+    fx, fy, fz = f
+
+    if nav_frame.lower() == "ned":
+        roll = np.arctan2(-fy, -fz)
+        pitch = np.arctan2(fx, np.sqrt(fy**2 + fz**2))
+    elif nav_frame.lower() == "enu":
+        roll = np.arctan2(fy, fz)
+        pitch = -np.arctan2(fx, np.sqrt(fy**2 + fz**2))
+
+
+    # roll = np.arctan2(ay, az)
+    # pitch = np.arctan2(-ax, np.sqrt(ay**2 + az**2))
+    
+    # if nav_frame.lower() == "enu":
+    #     pitch *= -1
+
+    # roll = np.arctan(acc[1] / acc[2])
+    # pitch = np.arctan(acc[0] / np.sqrt(acc[1] ** 2 + acc[2] ** 2))
+    # if nav_frame.lower() == "enu":
+    #     pitch *= -1
+
+    # roll = np.arctan2(acc[1], acc[2])
+    # if nav_frame.lower() == "ned":
+    #     pitch = np.arctan2(-acc[0], np.sqrt(acc[1] ** 2 + acc[2] ** 2))
+    # elif nav_frame.lower() == "enu":
+    #     pitch = np.arctan2(acc[0], np.sqrt(acc[1] ** 2 + acc[2] ** 2))
+    # else:
+    #     raise ValueError("Invalid navigation frame. Must be 'NED' or 'ENU'.")
+
     return roll, pitch
 
 
