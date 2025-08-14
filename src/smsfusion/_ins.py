@@ -688,10 +688,10 @@ class AidedINS(INSMixin):
         A cold state indicates that the provided initial conditions are uncertain,
         and possibly far from the true state. Thus, to reduce the risk of divergence,
         an initial vertical alignment (roll and pitch calibration) is performed
-        using accelerometer measurements from the first update and the known direction
-        of gravity. A warm start, on the other hand, assumes accurate initial conditions,
-        and initializes the filter immediately without any initial roll and pitch
-        calibration.
+        using accelerometer measurements and the known direction of gravity during
+        the first measurement update. A warm start, on the other hand, assumes accurate
+        initial conditions, and initializes the filter immediately without any initial
+        roll and pitch calibration.
     """
 
     # Permutation matrix for reordering error-state bias terms, such that:
