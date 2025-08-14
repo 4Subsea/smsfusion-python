@@ -730,7 +730,7 @@ class AidedINS(INSMixin):
         nav_frame: str = "NED",
         lever_arm: ArrayLike = np.zeros(3),
         ignore_bias_acc: bool = True,
-        calibrate: bool = False,
+        cold_start: bool = True,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
@@ -738,7 +738,7 @@ class AidedINS(INSMixin):
         self._err_gyro = err_gyro
         self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
         self._ignore_bias_acc = ignore_bias_acc
-        self._calibrate = calibrate
+        self._warm = False if cold_start else True
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
         # Strapdown algorithm / INS state
@@ -1004,6 +1004,13 @@ class AidedINS(INSMixin):
             H_i = np.ascontiguousarray(H_i[np.newaxis, :])  # as 2D array
             P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
         return dx, P
+    
+    def _acc_align(self, f_ins):
+        # yaw = _h_head(self.quaternion())
+        yaw = 0.0
+        roll, pitch = _roll_pitch_from_acc(f_ins, self._ins._nav_frame)
+        self._ins._x[6:10] = _quaternion_from_euler(np.array([roll, pitch, yaw]))
+        self._x[:] = self._ins._x
 
     def update(
         self,
@@ -1072,25 +1079,22 @@ class AidedINS(INSMixin):
         f_imu = np.asarray(f_imu, dtype=float)
         w_imu = np.asarray(w_imu, dtype=float)
 
-        if self._calibrate:
-            yaw = head or 0.0
-            if head_degrees:
-                yaw *= np.pi / 180.0
-
-            roll, pitch = _roll_pitch_from_acc(f_imu, self._ins._nav_frame)
-            self._ins._x[6:10] = _quaternion_from_euler(np.array([roll, pitch, yaw]))
-            self._x[:] = self._ins._x
-            self._calibrate = False
-
         if degrees:
             w_imu = (np.pi / 180.0) * w_imu
+
+        # Bias compensated IMU measurements
+        f_ins = f_imu - self._ins._bias_acc
+        w_ins = w_imu - self._ins._bias_gyro
+
+        if not self._warm:
+            self._acc_align(f_ins)
+            self._warm = True
+            return self
 
         # Current INS state estimates
         pos_ins = self._ins._pos
         vel_ins = self._ins._vel
         q_ins_nm = self._ins._q_nm
-        bias_acc_ins = self._ins._bias_acc
-        bias_gyro_ins = self._ins._bias_gyro
         R_ins_nm = _rot_matrix_from_quaternion(q_ins_nm)  # body-to-inertial rot matrix
 
         # Aliases
@@ -1101,10 +1105,6 @@ class AidedINS(INSMixin):
         W = self._W
         P = self._P_prior
         I_ = self._I
-
-        # Bias compensated IMU measurements
-        f_ins = f_imu - bias_acc_ins
-        w_ins = w_imu - bias_gyro_ins
 
         # Lever arm vector - IMU-to-aiding
         lever_arm = self._lever_arm
@@ -1315,7 +1315,8 @@ class VRU(AidedINS):
         err_gyro: dict[str, float] = ERR_GYRO_MOTION2,
         g: float = 9.80665,
         nav_frame: str = "NED",
-        calibrate: bool = True,
+        cold_start: bool = True,
+        **kwargs: dict[str, Any],
     ) -> None:
         super().__init__(
             fs=fs,
@@ -1327,7 +1328,7 @@ class VRU(AidedINS):
             nav_frame=nav_frame,
             lever_arm=np.zeros(3),
             ignore_bias_acc=True,
-            calibrate=calibrate,
+            cold_start=cold_start,
         )
 
     def update(
@@ -1471,7 +1472,7 @@ class AHRS(AidedINS):
         err_gyro: dict[str, float] = ERR_GYRO_MOTION2,
         g: float = 9.80665,
         nav_frame: str = "NED",
-        calibrate: bool = True,
+        cold_start: bool = True,
         **kwargs: dict[str, Any],
     ) -> None:
         super().__init__(
@@ -1484,7 +1485,7 @@ class AHRS(AidedINS):
             nav_frame=nav_frame,
             lever_arm=np.zeros(3),
             ignore_bias_acc=True,
-            calibrate=calibrate,
+            cold_start=cold_start,
         )
 
     def update(
