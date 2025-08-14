@@ -830,9 +830,7 @@ class AidedINS(INSMixin):
             "nav_frame": self._ins._nav_frame,
             "lever_arm": self._lever_arm.tolist(),
             "ignore_bias_acc": self._ignore_bias_acc,
-            "warm": self._warm,
-            "warmup_period": self._warmup_period,
-            "warmup_smoothing_factor": self._warmup_smoothing_factor,
+            "cold_start": False if self._warm else True,
         }
         return params
 
