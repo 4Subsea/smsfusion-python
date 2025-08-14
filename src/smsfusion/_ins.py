@@ -730,9 +730,7 @@ class AidedINS(INSMixin):
         nav_frame: str = "NED",
         lever_arm: ArrayLike = np.zeros(3),
         ignore_bias_acc: bool = True,
-        warm: bool = False,
-        warmup_period: float = 10.0,
-        warmup_smoothing_factor: float = 0.8,
+        calibrate: bool = False,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
@@ -740,9 +738,7 @@ class AidedINS(INSMixin):
         self._err_gyro = err_gyro
         self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
         self._ignore_bias_acc = ignore_bias_acc
-        self._warm = warm
-        self._warmup_period = warmup_period
-        self._warmup_smoothing_factor = warmup_smoothing_factor
+        self._calibrate = calibrate
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
         # Strapdown algorithm / INS state
@@ -793,11 +789,6 @@ class AidedINS(INSMixin):
 
         # State transition matrix
         self._phi = np.empty_like(self._F)  # needed for smoothing only
-
-        # Coldstart variables
-        self._update_counter = 0
-        self._f_avg = np.zeros(3, dtype=np.float64)
-        self._head_avg = _h_head(q0)
 
     @property
     def x_prior(self) -> NDArray[np.float64]:
@@ -1078,16 +1069,18 @@ class AidedINS(INSMixin):
             A reference to the instance itself after the update.
         """
 
-        self._update_counter += 1
-
-        # Cold update / calibration
-        if not self._warm:
-            self._update_cold(f_imu, pos, vel, head, head_degrees)
-            self._warm = self._update_counter >= self._warmup_period * self._fs
-            return self
-
         f_imu = np.asarray(f_imu, dtype=float)
         w_imu = np.asarray(w_imu, dtype=float)
+
+        if self._calibrate:
+            yaw = head or 0.0
+            if head_degrees:
+                yaw *= np.pi / 180.0
+
+            roll, pitch = _roll_pitch_from_acc(f_imu, self._ins._nav_frame)
+            self._ins._x[6:10] = _quaternion_from_euler(np.array([roll, pitch, yaw]))
+            self._x[:] = self._ins._x
+            self._calibrate = False
 
         if degrees:
             w_imu = (np.pi / 180.0) * w_imu
@@ -1188,46 +1181,46 @@ class AidedINS(INSMixin):
 
         return self
 
-    def _update_cold(
-        self,
-        f_imu: ArrayLike,
-        pos: ArrayLike | None,
-        vel: ArrayLike | None,
-        head: float | None,
-        head_degrees: bool,
-    ) -> None:
-        """
-        Cold update.
-        """
+    # def _update_cold(
+    #     self,
+    #     f_imu: ArrayLike,
+    #     pos: ArrayLike | None,
+    #     vel: ArrayLike | None,
+    #     head: float | None,
+    #     head_degrees: bool,
+    # ) -> None:
+    #     """
+    #     Cold update.
+    #     """
 
-        beta = self._warmup_smoothing_factor if self._update_counter != 1 else 1.0
+    #     beta = self._warmup_smoothing_factor if self._update_counter != 1 else 1.0
 
-        # Position moving average
-        if pos is not None:
-            pos = np.asarray(pos, dtype=float)
-            self._ins._x[:3] = beta * pos + (1.0 - beta) * self._ins._x[:3]
+    #     # Position moving average
+    #     if pos is not None:
+    #         pos = np.asarray(pos, dtype=float)
+    #         self._ins._x[:3] = beta * pos + (1.0 - beta) * self._ins._x[:3]
 
-        # Velocity moving average
-        if vel is not None:
-            vel = np.asarray(vel, dtype=float)
-            self._ins._x[3:6] = beta * vel + (1.0 - beta) * self._ins._x[3:6]
+    #     # Velocity moving average
+    #     if vel is not None:
+    #         vel = np.asarray(vel, dtype=float)
+    #         self._ins._x[3:6] = beta * vel + (1.0 - beta) * self._ins._x[3:6]
 
-        # Heading moving average
-        if head is not None:
-            if head_degrees:
-                head = (np.pi / 180.0) * head
-            self._head_avg = beta * head + (1.0 - beta) * self._head_avg
+    #     # Heading moving average
+    #     if head is not None:
+    #         if head_degrees:
+    #             head = (np.pi / 180.0) * head
+    #         self._head_avg = beta * head + (1.0 - beta) * self._head_avg
 
-        # Acceleration moving average
-        f_imu = np.asarray(f_imu, dtype=float)
-        self._f_avg = beta * f_imu + (1.0 - beta) * self._f_avg
+    #     # Acceleration moving average
+    #     f_imu = np.asarray(f_imu, dtype=float)
+    #     self._f_avg = beta * f_imu + (1.0 - beta) * self._f_avg
 
-        # Attitude (unit quaternion) moving average
-        alpha_avg, beta_avg = _roll_pitch_from_acc(self._f_avg, self._ins._nav_frame)
-        euler_avg = np.array([alpha_avg, beta_avg, self._head_avg])
-        self._ins._x[6:10] = _quaternion_from_euler(euler_avg)
+    #     # Attitude (unit quaternion) moving average
+    #     alpha_avg, beta_avg = _roll_pitch_from_acc(self._f_avg, self._ins._nav_frame)
+    #     euler_avg = np.array([alpha_avg, beta_avg, self._head_avg])
+    #     self._ins._x[6:10] = _quaternion_from_euler(euler_avg)
 
-        self._x[:] = self._ins._x
+    #     self._x[:] = self._ins._x
 
 
 class VRU(AidedINS):
@@ -1322,10 +1315,7 @@ class VRU(AidedINS):
         err_gyro: dict[str, float] = ERR_GYRO_MOTION2,
         g: float = 9.80665,
         nav_frame: str = "NED",
-        warm: bool = False,
-        warmup_period: float = 10.0,
-        warmup_smoothing_factor: float = 0.8,
-        **kwargs: dict[str, Any],
+        calibrate: bool = True,
     ) -> None:
         super().__init__(
             fs=fs,
@@ -1337,9 +1327,7 @@ class VRU(AidedINS):
             nav_frame=nav_frame,
             lever_arm=np.zeros(3),
             ignore_bias_acc=True,
-            warm=warm,
-            warmup_period=warmup_period,
-            warmup_smoothing_factor=warmup_smoothing_factor,
+            calibrate=calibrate,
         )
 
     def update(
@@ -1483,9 +1471,7 @@ class AHRS(AidedINS):
         err_gyro: dict[str, float] = ERR_GYRO_MOTION2,
         g: float = 9.80665,
         nav_frame: str = "NED",
-        warm: bool = False,
-        warmup_period: float = 60.0,
-        warmup_smoothing_factor: float = 0.8,
+        calibrate: bool = True,
         **kwargs: dict[str, Any],
     ) -> None:
         super().__init__(
@@ -1498,9 +1484,7 @@ class AHRS(AidedINS):
             nav_frame=nav_frame,
             lever_arm=np.zeros(3),
             ignore_bias_acc=True,
-            warm=warm,
-            warmup_period=warmup_period,
-            warmup_smoothing_factor=warmup_smoothing_factor,
+            calibrate=calibrate,
         )
 
     def update(

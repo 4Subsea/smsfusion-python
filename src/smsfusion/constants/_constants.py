@@ -3,7 +3,7 @@ from numpy.typing import NDArray
 
 
 X0: NDArray[np.float64] = np.array(
-    [0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.]
+    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 )
 
 # Default initial covariance matrix
