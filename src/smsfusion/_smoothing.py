@@ -42,7 +42,6 @@ class FixedIntervalSmoother:
         )
         self._ains = ains
         self._cov_smoothing = cov_smoothing
-        self._n_cold_updates = 0  # number of coldstart updates (excl. from smoothing)
 
         # Buffers for storing state and covariance estimates from forward sweep
         self._x_buf = []  # state estimates (w/o smoothing)
@@ -79,8 +78,6 @@ class FixedIntervalSmoother:
         **kwargs : dict
             Keyword arguments to be passed on to ``ains.update()``.
         """
-        if not self._ains._warm:
-            self._n_cold_updates += 1
         self._P_prior_buf.append(self._ains.P_prior)
         self._ains.update(*args, **kwargs)
         self._x_buf.append(self._ains.x)
@@ -99,7 +96,6 @@ class FixedIntervalSmoother:
         self._P_buf.clear()
         self._P_prior_buf.clear()
         self._phi_buf.clear()
-        self._n_cold_updates = 0
 
     def _smooth(self):
         n_samples = len(self._x_buf)
@@ -117,7 +113,6 @@ class FixedIntervalSmoother:
                 self._P_prior_buf,
                 self._phi_buf,
                 self._cov_smoothing,
-                self._n_cold_updates,
             )
             self._x = np.asarray(x)
             self._P = np.asarray(P)
@@ -256,7 +251,6 @@ def _rts_backward_sweep(
     P_prior: list[NDArray],
     phi: list[NDArray],
     cov_smoothing: bool,
-    n_cold_updates: int,
 ) -> tuple[list[NDArray], list[NDArray]]:
     """
     Perform a backward sweep with the RTS algorithm [1].
@@ -275,8 +269,6 @@ def _rts_backward_sweep(
         The state transition matrix.
     cov_smoothing : bool
         Whether to include the error covariance matrix in the smoothing process.
-    n_cold_updates : int
-        The number of cold start updates (excluded from the smoothing process).
 
     Returns
     -------
@@ -298,7 +290,7 @@ def _rts_backward_sweep(
     q_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
     # Backward sweep
-    for k in range(len(x) - 2, n_cold_updates - 1, -1):
+    for k in range(len(x) - 2, -1, -1):
         # Smoothed error-state estimate and corresponding covariance
         A = P[k] @ phi[k].T @ np.linalg.inv(P_prior[k + 1])
         ddx = A @ dx[k + 1]
