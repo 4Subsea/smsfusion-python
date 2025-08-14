@@ -1086,6 +1086,7 @@ class AidedINS(INSMixin):
         f_ins = f_imu - self._ins._bias_acc
         w_ins = w_imu - self._ins._bias_gyro
 
+        # Initial vertical alignment using accelerometer measurements
         if not self._warm:
             self._acc_align(f_ins)
             self._warm = True
