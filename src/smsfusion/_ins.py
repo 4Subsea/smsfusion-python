@@ -1090,7 +1090,6 @@ class AidedINS(INSMixin):
         if not self._warm:
             self._acc_align(f_ins)
             self._warm = True
-            return self
 
         # Current INS state estimates
         pos_ins = self._ins._pos
