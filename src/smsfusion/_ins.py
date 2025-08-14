@@ -683,26 +683,15 @@ class AidedINS(INSMixin):
         that this will reduce the error-state dimension from 15 to 12, and hence also the
         error covariance matrix, **P**, from dimension (15, 15) to (12, 12). When set to
         ``False``, the P0_prior argument must have shape (15, 15).
-    warm : bool, default False
-        Whether to start the AINS filter in a 'warm' or 'cold' state. A warm start
-        assumes that the provided initial conditions are close to the true state
-        and initializes the Kalman filter immediately, without performing any initial
-        calibration. A cold start, on the other hand, performs an initial calibration
-        (or warmup) before initializing the filter. This calibration phase refines
-        the initial state estimate to reduce the risk of divergence. By default,
-        the calibration period is set to 10 seconds, but it can be adjusted via
-        the ``warmup_period`` parameter. The IMU should remain stationary during
-        the calibration period.
-    warmup_period : float, default 10.0
-        Duration of the calibration period in seconds. Only relevant for 'cold' starts.
-        The IMU should be stationary during this period.
-    warmup_smoothing_factor : float, default 0.8
-        Smoothing factor used in calibration. Only relevant for 'cold' starts.
-        Exponential smoothing is applied to the measurement data during calibration
-        to reduce noise and improve robustness of the initial state estimate. The
-        smoothing factor should be in the range [0, 1], where a value of 1 means
-        no smoothing, while a value of 0 means no influence from new measurements.
-        A value of 0.8 is a good default choice.
+    cold_start : bool, default True
+        Whether to start the AINS filter in a 'cold' (default) or 'warm' state.
+        A cold state indicates that the provided initial conditions are uncertain,
+        and possibly far from the true state. Thus, to reduce the risk of divergence,
+        an initial vertical alignment (roll and pitch calibration) is performed
+        using accelerometer measurements from the first update and the known direction
+        of gravity. A warm start, on the other hand, assumes accurate initial conditions,
+        and initializes the filter immediately without any initial roll and pitch
+        calibration.
     """
 
     # Permutation matrix for reordering error-state bias terms, such that:
