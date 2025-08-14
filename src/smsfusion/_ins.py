@@ -44,26 +44,8 @@ def _roll_pitch_from_acc(f, nav_frame):
     elif nav_frame.lower() == "enu":
         roll = np.arctan2(fy, fz)
         pitch = -np.arctan2(fx, np.sqrt(fy**2 + fz**2))
-
-
-    # roll = np.arctan2(ay, az)
-    # pitch = np.arctan2(-ax, np.sqrt(ay**2 + az**2))
-    
-    # if nav_frame.lower() == "enu":
-    #     pitch *= -1
-
-    # roll = np.arctan(acc[1] / acc[2])
-    # pitch = np.arctan(acc[0] / np.sqrt(acc[1] ** 2 + acc[2] ** 2))
-    # if nav_frame.lower() == "enu":
-    #     pitch *= -1
-
-    # roll = np.arctan2(acc[1], acc[2])
-    # if nav_frame.lower() == "ned":
-    #     pitch = np.arctan2(-acc[0], np.sqrt(acc[1] ** 2 + acc[2] ** 2))
-    # elif nav_frame.lower() == "enu":
-    #     pitch = np.arctan2(acc[0], np.sqrt(acc[1] ** 2 + acc[2] ** 2))
-    # else:
-    #     raise ValueError("Invalid navigation frame. Must be 'NED' or 'ENU'.")
+    else:
+        raise ValueError("Invalid navigation frame. Should be 'NED' or 'ENU'.")
 
     return roll, pitch
 
