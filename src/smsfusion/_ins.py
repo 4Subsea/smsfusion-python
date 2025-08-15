@@ -993,6 +993,11 @@ class AidedINS(INSMixin):
         return dx, P
 
     def _acc_align(self, f_ins):
+        """
+        Estimate the attitude (roll and pitch) of the IMU sensor relative to the
+        navigation frame using accelerometer measurements and the known direction
+        of gravity. Assumes a static sensor; i.e., negligible linear acceleration.
+        """
         yaw = _h_head(self.quaternion())
         roll, pitch = _roll_pitch_from_acc(f_ins, self._ins._nav_frame)
         self._ins._x[6:10] = _quaternion_from_euler(np.array([roll, pitch, yaw]))
