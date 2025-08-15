@@ -1569,10 +1569,14 @@ class Test_AidedINS:
         np.testing.assert_allclose(ains_b.bias_acc(), x0[9:12])  # no update
 
     def test_update_cold_start(self):
+        """
+        Cold start with initial attitude far from true attitude. Cold start
+        roll and pitch calibration should fix this and avoid divergence.
+        """
         fs = 10.24
         n = int(60 * fs)  # 1 min
 
-        # Euler angles far from initial (a priori) state
+        # True euler angles (far from initial state attitude)
         euler_mean = np.array([-10.0, 45.0, 0.0])  # deg
 
         g = gravity()
@@ -1601,16 +1605,10 @@ class Test_AidedINS:
         vel_aid = vel_ref + vel_noise
         head_aid = euler_ref[:, 2] + head_noise
 
-        ains = AidedINS(
-            fs,
-            g=g,
-            nav_frame="ned",
-            cold_start=True,
-        )
+        ains = AidedINS(fs, g=g, nav_frame="ned", cold_start=True)
 
         pos_est, vel_est, euler_est = [], [], []
         for i in range(n):
-            # Update with aiding measurements
             ains.update(
                 f_imu[i],
                 w_imu[i],
