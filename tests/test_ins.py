@@ -1894,16 +1894,12 @@ class Test_VRU:
 
 
 class Test_AHRS:
-    def test__init__no_p0_err(self):
-        # Tests that default values for p0 and errors are set correctly
-        fs = 10.24
-        x0 = np.zeros(16)
-        x0[6] = 1.0
-
-        ains = AHRS(fs, x0)
+    def test__init__no_x0_P0_err(self):
+        ains = AHRS(10.24)
 
         assert ains._err_acc == ERR_ACC_MOTION2
         assert ains._err_gyro == ERR_GYRO_MOTION2
+        np.testing.assert_allclose(ains.x, X0)
         np.testing.assert_allclose(ains._P_prior, P0)
 
     def test_update_compare_to_ains(self):
