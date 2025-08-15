@@ -1796,13 +1796,8 @@ class Test_AidedINS:
 
 class Test_VRU:
 
-    def test__init__no_x0_p0_err(self):
-        # Tests that default values for p0 and errors are set correctly
-        fs = 10.24
-        x0 = np.zeros(16)
-        x0[6] = 1.0
-
-        ains = VRU(fs)
+    def test__init__no_x0_P0_err(self):
+        ains = VRU(10.24)
 
         assert ains._err_acc == ERR_ACC_MOTION2
         assert ains._err_gyro == ERR_GYRO_MOTION2
