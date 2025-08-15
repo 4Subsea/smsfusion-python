@@ -885,28 +885,13 @@ class Test_AidedINS:
         np.testing.assert_allclose(ains_b._ignore_bias_acc, ains._ignore_bias_acc)
         assert ains_b._warm is ains._warm
 
-    def test_x(self, ains):
-        x_expect = np.array(
-            [
-                0.1,
-                0.0,
-                0.0,
-                0.0,
-                -0.1,
-                0.0,
-                *self.quaternion(),
-                0.0,
-                0.0,
-                0.1,
-                -0.1,
-                0.0,
-                0.0,
-            ]
-        )
-        x_out = ains.x
+    def test_x(self):
+        x = np.random.random(16)
+        x[6:10] = x[6:10] / np.linalg.norm(x[6:10])  # unit quaternion
+        ains = AidedINS(10.24, x0_prior=x)
 
-        np.testing.assert_allclose(x_out, x_expect)
-        assert x_out is not ains._x
+        np.testing.assert_allclose(ains.x, x)
+        assert ains.x is not ains._x
 
     def test_position(self, ains):
         pos_out = ains.position()
