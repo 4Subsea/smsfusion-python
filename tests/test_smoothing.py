@@ -10,9 +10,7 @@ from smsfusion.benchmark import benchmark_full_pva_beat_202311A
 class Test_FixedIntervalSmoother:
     @pytest.fixture
     def ains(self):
-        x0 = np.zeros(16)
-        x0[6:10] = np.array([1.0, 0.0, 0.0, 0.0])
-        ains = sf.AidedINS(10.24, x0, g=sf.gravity(), cold_start=True)
+        ains = sf.AidedINS(10.24)
         return ains
 
     @pytest.fixture
@@ -101,9 +99,6 @@ class Test_FixedIntervalSmoother:
         bg0 = np.zeros(3)  # gyroscope bias [rad/s]
         x0 = np.concatenate((p0, v0, q0, ba0, bg0))
         P0 = np.eye(12) * 1e-3
-        err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
-        err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
-        warmup_period = 10.0
         ains = sf.AidedINS(fs, x0, P0, err_acc, err_gyro, cold_start=True)
 
         smoother = sf.FixedIntervalSmoother(ains, cov_smoothing=True)
@@ -195,8 +190,6 @@ class Test_FixedIntervalSmoother:
         bg0 = np.zeros(3)  # gyroscope bias [rad/s]
         x0 = np.concatenate((p0, v0, q0, ba0, bg0))
         P0 = np.eye(12) * 1e-3
-        err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
-        err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
         ains = sf.AHRS(fs, x0, P0, err_acc, err_gyro, cold_start=True)
 
         smoother = sf.FixedIntervalSmoother(ains, cov_smoothing=True)
@@ -260,9 +253,6 @@ class Test_FixedIntervalSmoother:
         bg0 = np.zeros(3)  # gyroscope bias [rad/s]
         x0 = np.concatenate((p0, v0, q0, ba0, bg0))
         P0 = np.eye(12) * 1e-3
-        err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
-        err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
-        warmup_period = 10.0
         ains = sf.VRU(fs, x0, P0, err_acc, err_gyro, cold_start=True)
 
         smoother = sf.FixedIntervalSmoother(ains, cov_smoothing=True)
@@ -328,8 +318,6 @@ class Test_FixedIntervalSmoother:
         bg0 = np.zeros(3)  # gyroscope bias [rad/s]
         x0 = np.concatenate((p0, v0, q0, ba0, bg0))
         P0 = np.eye(12) * 1e-3
-        err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
-        err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
 
         ains_a = sf.VRU(fs, x0, P0, err_acc, err_gyro)
         smoother_a = sf.FixedIntervalSmoother(ains_a, cov_smoothing=True)
