@@ -1483,31 +1483,22 @@ class Test_AidedINS:
         np.testing.assert_allclose(ains.x, x0)
 
     def test_update_ignore_bias_acc(self):
-        fs = 10.24
-
         x0 = np.zeros(16)
         x0[6] = 1.0
 
-        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 10.0}
-        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 10.0}
-
-        ains_a = AidedINS(  # include accelerometer bias
-            fs,
+        ains_a = AidedINS(
+            10.24,
             x0,
             np.eye(15),
-            err_acc,
-            err_gyro,
-            ignore_bias_acc=False,
+            ignore_bias_acc=False,  # include accelerometer bias
             cold_start=False,
         )
 
-        ains_b = AidedINS(  # ignore accelerometer bias
-            fs,
+        ains_b = AidedINS(
+            10.24,
             x0,
             np.eye(12),
-            err_acc,
-            err_gyro,
-            ignore_bias_acc=True,
+            ignore_bias_acc=True,  # ignore accelerometer bias
             cold_start=False,
         )
 
