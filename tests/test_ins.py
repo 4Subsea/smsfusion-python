@@ -27,9 +27,9 @@ from smsfusion._ins import (
     StrapdownINS,
     _dhda_head,
     _h_head,
+    _roll_pitch_from_acc,
     _signed_smallest_angle,
     gravity,
-    _roll_pitch_from_acc,
 )
 from smsfusion._transforms import (
     _angular_matrix_from_quaternion,
@@ -1361,9 +1361,7 @@ class Test_AidedINS:
         x0[6] = 1.0
         P0_prior = 1e-6 * np.eye(15)
 
-        ains = AidedINS(
-            10.24, x0, P0_prior, ignore_bias_acc=False, cold_start=False
-        )
+        ains = AidedINS(10.24, x0, P0_prior, ignore_bias_acc=False, cold_start=False)
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])

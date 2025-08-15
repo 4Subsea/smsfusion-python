@@ -991,7 +991,7 @@ class AidedINS(INSMixin):
             H_i = np.ascontiguousarray(H_i[np.newaxis, :])  # as 2D array
             P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
         return dx, P
-    
+
     def _acc_align(self, f_ins):
         yaw = _h_head(self.quaternion())
         roll, pitch = _roll_pitch_from_acc(f_ins, self._ins._nav_frame)
