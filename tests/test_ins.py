@@ -1356,17 +1356,13 @@ class Test_AidedINS:
             )
 
     def test_update_standstill(self):
-        fs = 10.24
 
         x0 = np.zeros(16)
         x0[6] = 1.0
         P0_prior = 1e-6 * np.eye(15)
 
-        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-
         ains = AidedINS(
-            fs, x0, P0_prior, err_acc, err_gyro, ignore_bias_acc=False, cold_start=False
+            10.24, x0, P0_prior, ignore_bias_acc=False, cold_start=False
         )
 
         g = gravity()
