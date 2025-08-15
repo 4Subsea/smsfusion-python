@@ -994,15 +994,31 @@ class AidedINS(INSMixin):
             P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
         return dx, P
 
-    def _acc_align(self, f_ins):
+    def _align_vertical(self, f_ins, head, head_degrees):
         """
+        Vertical alignment.
+
         Estimate the attitude (roll and pitch) of the IMU sensor relative to the
         navigation frame using accelerometer measurements and the known direction
         of gravity. Assumes a static sensor; i.e., negligible linear acceleration.
+
+        Parameters
+        ----------
+        f_ins : array-like, shape (3,)
+            Bias-compensated specific force measurements (fx, fy, fz).
+        head : float, optional
+            Heading of measurement frame relative to navigation frame.
+        head_degrees : bool, default False
+            Specifies whether the heading is given in degrees or radians.
         """
-        yaw = _h_head(self.quaternion())
+        if head is None:
+            head = _h_head(self.quaternion())
+        else:
+            if head_degrees:
+                head = (np.pi / 180.0) * head
+
         roll, pitch = _roll_pitch_from_acc(f_ins, self._ins._nav_frame)
-        self._ins._x[6:10] = _quaternion_from_euler(np.array([roll, pitch, yaw]))
+        self._ins._x[6:10] = _quaternion_from_euler(np.array([roll, pitch, head]))
         self._x[:] = self._ins._x
 
     def update(
@@ -1079,9 +1095,9 @@ class AidedINS(INSMixin):
         f_ins = f_imu - self._ins._bias_acc
         w_ins = w_imu - self._ins._bias_gyro
 
-        # Initial vertical alignment using accelerometer measurements
+        # Initial vertical alignment (i.e., roll and pitch calibration)
         if self._cold:
-            self._acc_align(f_ins)
+            self._align_vertical(f_ins, head, head_degrees)
             self._cold = False
 
         # Current INS state estimates
@@ -1234,26 +1250,17 @@ class VRU(AidedINS):
         (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
         will be expressed relative to this frame. Furthermore, the aiding heading angle is
         also interpreted relative to this frame according to the right-hand rule.
-    warm : bool, default False
-        Whether to start the AINS filter in a 'warm' or 'cold' state. A warm start
-        assumes that the provided initial conditions are close to the true state
-        and initializes the Kalman filter immediately, without performing any initial
-        calibration. A cold start, on the other hand, performs an initial calibration
-        (or warmup) before initializing the filter. This calibration phase refines
-        the initial state estimate to reduce the risk of divergence. By default,
-        the calibration period is set to 10 seconds, but it can be adjusted via
-        the ``warmup_period`` parameter. The IMU should remain stationary during
-        the calibration period.
-    warmup_period : float, default 10.0
-        Duration of the calibration period in seconds. Only relevant for 'cold' starts.
-        The IMU should be stationary during this period.
-    warmup_smoothing_factor : float, default 0.8
-        Smoothing factor used in calibration. Only relevant for 'cold' starts.
-        Exponential smoothing is applied to the measurement data during calibration
-        to reduce noise and improve robustness of the initial state estimate. The
-        smoothing factor should be in the range [0, 1], where a value of 1 means
-        no smoothing, while a value of 0 means no influence from new measurements.
-        A value of 0.8 is a good default choice.
+    cold_start : bool, default True
+        Whether to start the AINS filter in a 'cold' (default) or 'warm' state.
+        A cold state indicates that the provided initial conditions are uncertain,
+        and possibly far from the true state. Thus, to reduce the risk of divergence,
+        an initial vertical alignment (i.e., roll and pitch calibration) is performed
+        using accelerometer measurements and the known direction of gravity during
+        the first measurement update. The IMU should remain stationary with negligible
+        linear acceleration during a cold start; otherwise, divergence may occur.
+        A warm start, on the other hand, assumes accurate initial conditions, and
+        initializes the Kalman filter immediately without any initial roll and pitch
+        calibration.
     **kwargs :
         Ignored. For compatibility with parent class.
     """
@@ -1391,26 +1398,17 @@ class AHRS(AidedINS):
         (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
         will be expressed relative to this frame. Furthermore, the aiding heading angle is
         also interpreted relative to this frame according to the right-hand rule.
-    warm : bool, default False
-        Whether to start the AINS filter in a 'warm' or 'cold' state. A warm start
-        assumes that the provided initial conditions are close to the true state
-        and initializes the Kalman filter immediately, without performing any initial
-        calibration. A cold start, on the other hand, performs an initial calibration
-        (or warmup) before initializing the filter. This calibration phase refines
-        the initial state estimate to reduce the risk of divergence. By default,
-        the calibration period is set to 10 seconds, but it can be adjusted via
-        the ``warmup_period`` parameter. The IMU should remain stationary during
-        the calibration period.
-    warmup_period : float, default 10.0
-        Duration of the calibration period in seconds. Only relevant for 'cold' starts.
-        The IMU should be stationary during this period.
-    warmup_smoothing_factor : float, default 0.8
-        Smoothing factor used in calibration. Only relevant for 'cold' starts.
-        Exponential smoothing is applied to the measurement data during calibration
-        to reduce noise and improve robustness of the initial state estimate. The
-        smoothing factor should be in the range [0, 1], where a value of 1 means
-        no smoothing, while a value of 0 means no influence from new measurements.
-        A value of 0.8 is a good default choice.
+    cold_start : bool, default True
+        Whether to start the AINS filter in a 'cold' (default) or 'warm' state.
+        A cold state indicates that the provided initial conditions are uncertain,
+        and possibly far from the true state. Thus, to reduce the risk of divergence,
+        an initial vertical alignment (i.e., roll and pitch calibration) is performed
+        using accelerometer measurements and the known direction of gravity during
+        the first measurement update. The IMU should remain stationary with negligible
+        linear acceleration during a cold start; otherwise, divergence may occur.
+        A warm start, on the other hand, assumes accurate initial conditions, and
+        initializes the Kalman filter immediately without any initial roll and pitch
+        calibration.
     **kwargs :
         Ignored. For compatibility with parent class.
     """
