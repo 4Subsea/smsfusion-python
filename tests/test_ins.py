@@ -836,32 +836,8 @@ class Test_AidedINS:
     def test__init__ignore_bias_acc(self):
         fs = 10.24
 
-        p_init = np.array([0.0, 0.0, 0.0])
-        v_init = np.array([0.0, 0.0, 0.0])
-        q_init = np.array([1.0, 0.0, 0.0, 0.0])
-        bias_acc_init = np.array([0.0, 0.0, 0.0])
-        bias_gyro_init = np.array([0.0, 0.0, 0.0])
-
-        x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
         P0_prior = 1e-6 * np.eye(12)
-
-        err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
-        err_gyro = {
-            "N": (np.pi) / 180.0 * 2.0e-3,
-            "B": (np.pi) / 180.0 * 8.0e-4,
-            "tau_cb": 50,
-        }
-
-        ains = AidedINS(
-            fs,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-            lever_arm=(1, 2, 3),
-            g=9.80665,
-            ignore_bias_acc=True,
-        )
+        ains = AidedINS(fs, P0_prior=P0_prior, ignore_bias_acc=True)
 
         assert ains._ignore_bias_acc is True
         np.testing.assert_allclose(ains._P_prior, P0_prior)
