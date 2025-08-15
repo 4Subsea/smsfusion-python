@@ -727,7 +727,7 @@ class AidedINS(INSMixin):
         self._err_gyro = err_gyro
         self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
         self._ignore_bias_acc = ignore_bias_acc
-        self._warm = False if cold_start else True
+        self._cold = cold_start
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
         # Strapdown algorithm / INS state
@@ -819,7 +819,7 @@ class AidedINS(INSMixin):
             "nav_frame": self._ins._nav_frame,
             "lever_arm": self._lever_arm.tolist(),
             "ignore_bias_acc": self._ignore_bias_acc,
-            "cold_start": False if self._warm else True,
+            "cold_start": self._cold,
         }
         return params
 
@@ -1073,9 +1073,9 @@ class AidedINS(INSMixin):
         w_ins = w_imu - self._ins._bias_gyro
 
         # Initial vertical alignment using accelerometer measurements
-        if not self._warm:
+        if self._cold:
             self._acc_align(f_ins)
-            self._warm = True
+            self._cold = False
 
         # Current INS state estimates
         pos_ins = self._ins._pos
@@ -1166,47 +1166,6 @@ class AidedINS(INSMixin):
         self._P_prior[:] = self._phi @ P @ self._phi.T + Q
 
         return self
-
-    # def _update_cold(
-    #     self,
-    #     f_imu: ArrayLike,
-    #     pos: ArrayLike | None,
-    #     vel: ArrayLike | None,
-    #     head: float | None,
-    #     head_degrees: bool,
-    # ) -> None:
-    #     """
-    #     Cold update.
-    #     """
-
-    #     beta = self._warmup_smoothing_factor if self._update_counter != 1 else 1.0
-
-    #     # Position moving average
-    #     if pos is not None:
-    #         pos = np.asarray(pos, dtype=float)
-    #         self._ins._x[:3] = beta * pos + (1.0 - beta) * self._ins._x[:3]
-
-    #     # Velocity moving average
-    #     if vel is not None:
-    #         vel = np.asarray(vel, dtype=float)
-    #         self._ins._x[3:6] = beta * vel + (1.0 - beta) * self._ins._x[3:6]
-
-    #     # Heading moving average
-    #     if head is not None:
-    #         if head_degrees:
-    #             head = (np.pi / 180.0) * head
-    #         self._head_avg = beta * head + (1.0 - beta) * self._head_avg
-
-    #     # Acceleration moving average
-    #     f_imu = np.asarray(f_imu, dtype=float)
-    #     self._f_avg = beta * f_imu + (1.0 - beta) * self._f_avg
-
-    #     # Attitude (unit quaternion) moving average
-    #     alpha_avg, beta_avg = _roll_pitch_from_acc(self._f_avg, self._ins._nav_frame)
-    #     euler_avg = np.array([alpha_avg, beta_avg, self._head_avg])
-    #     self._ins._x[6:10] = _quaternion_from_euler(euler_avg)
-
-    #     self._x[:] = self._ins._x
 
 
 class VRU(AidedINS):

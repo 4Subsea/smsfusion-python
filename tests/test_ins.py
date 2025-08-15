@@ -772,7 +772,7 @@ class Test_AidedINS:
         assert ains._err_gyro == err_gyro
         assert isinstance(ains._ins, StrapdownINS)
         assert ains._ignore_bias_acc is False
-        assert ains._warm is True
+        assert ains._cold is False
 
         np.testing.assert_allclose(ains._x, x0)
         np.testing.assert_allclose(ains._ins._x, x0)
@@ -883,7 +883,7 @@ class Test_AidedINS:
         np.testing.assert_allclose(ains_b._ins._x, ains._ins._x)
         np.testing.assert_allclose(ains_b._P_prior, ains._P_prior)
         np.testing.assert_allclose(ains_b._ignore_bias_acc, ains._ignore_bias_acc)
-        assert ains_b._warm is ains._warm
+        assert ains_b._cold is ains._cold
 
     def test_x(self):
         x = np.random.random(16)
