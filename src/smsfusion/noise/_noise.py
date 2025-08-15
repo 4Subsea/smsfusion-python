@@ -1,7 +1,6 @@
 import numpy as np
 from numpy.typing import NDArray
 
-
 # def _standard_normal(
 #     n: int, seed: int | np.random.Generator | None = None
 # ) -> NDArray[np.float64]:
