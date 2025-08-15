@@ -894,37 +894,50 @@ class Test_AidedINS:
         assert ains.x is not ains._x
 
     def test_position(self, ains):
+        x = np.random.random(16)
+        x[6:10] = x[6:10] / np.linalg.norm(x[6:10])  # unit quaternion
+        ains = AidedINS(10.24, x0_prior=x)
+
         pos_out = ains.position()
-        pos_expect = np.array([0.1, 0.0, 0.0])
+        pos_expect = x[0:3]
 
         np.testing.assert_allclose(pos_out, pos_expect)
         assert pos_out is not ains._pos
 
     def test_velocity(self, ains):
+        x = np.random.random(16)
+        x[6:10] = x[6:10] / np.linalg.norm(x[6:10])  # unit quaternion
+        ains = AidedINS(10.24, x0_prior=x)
+
         vel_out = ains.velocity()
-        vel_expect = np.array([0.0, -0.1, 0.0])
+        vel_expect = x[3:6]
 
         np.testing.assert_allclose(vel_out, vel_expect)
         assert vel_out is not ains._vel
 
-    def test_euler_radians(self, ains):
-        theta_out = ains.euler(degrees=False)
-        theta_expect = np.radians(np.array([-10.0, 5.0, 25.0]))
+    def test_euler(self):
 
-        np.testing.assert_allclose(theta_out, theta_expect)
+        euler_deg = np.array([-10.0, 5.0, 25.0])
+        euler_rad = np.radians(euler_deg)
+        q = quaternion_from_euler(euler_rad, degrees=False)
 
-    def test_euler_degrees(self, ains):
-        theta_out = ains.euler(degrees=True)
-        theta_expect = np.array([-10.0, 5.0, 25.0])
+        x0 = np.zeros(16)
+        x0[6:10] = q
+        ains = AidedINS(10.24, x0_prior=x0)
 
-        np.testing.assert_allclose(theta_out, theta_expect)
+        np.testing.assert_allclose(ains.euler(degrees=False), euler_rad)
+        np.testing.assert_allclose(ains.euler(degrees=True), euler_deg)
 
-    def test_quaternion(self, ains):
-        quaternion_out = ains.quaternion()
-        quaternion_expect = self.quaternion()
+    def test_quaternion(self):
 
-        np.testing.assert_allclose(quaternion_out, quaternion_expect)
-        assert quaternion_out is not ains._q_nm
+        q = np.random.random(4)
+        q /= np.linalg.norm(q)  # normalize to unit quaternion
+
+        x0 = np.zeros(16)
+        x0[6:10] = q
+        ains = AidedINS(10.24, x0_prior=x0)
+
+        np.testing.assert_allclose(ains.quaternion(), q)
 
     def test__reset_ins(self, ains):
         x_ins = np.array(
