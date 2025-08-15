@@ -848,6 +848,21 @@ class Test_AidedINS:
         assert ains._W.shape == (9, 9)
         assert ains._H.shape == (10, 12)
 
+    def test__init__dont_ignore_bias_acc(self):
+        fs = 10.24
+
+        P0_prior = 1e-6 * np.eye(15)
+        ains = AidedINS(fs, P0_prior=P0_prior, ignore_bias_acc=False)
+
+        assert ains._ignore_bias_acc is False
+        np.testing.assert_allclose(ains._P_prior, P0_prior)
+        assert ains._P_prior.shape == (15, 15)
+        assert ains._P.shape == (15, 15)
+        assert ains._F.shape == (15, 15)
+        assert ains._G.shape == (15, 12)
+        assert ains._W.shape == (12, 12)
+        assert ains._H.shape == (10, 15)
+
     def test__init__defualt_lever_arm(self):
         x0 = np.random.random(16)
         x0[6:10] = (1.0, 0.0, 0.0, 0.0)
