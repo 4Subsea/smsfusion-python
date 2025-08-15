@@ -29,6 +29,7 @@ from smsfusion._ins import (
     _h_head,
     _signed_smallest_angle,
     gravity,
+    _roll_pitch_from_acc,
 )
 from smsfusion._transforms import (
     _angular_matrix_from_quaternion,
@@ -42,6 +43,33 @@ from smsfusion.benchmark import (
 )
 from smsfusion.constants import ERR_ACC_MOTION2, ERR_GYRO_MOTION2, P0, X0
 from smsfusion.noise import IMUNoise, white_noise
+
+
+@pytest.mark.parametrize(
+    "euler",
+    [
+        np.radians([10.0, 45.0, 0.0]),
+        np.radians([0.0, 0.0, 0.0]),
+        np.radians([90.0, 0.0, 0.0]),
+        np.radians([180.0, 0.0, 0.0]),
+        np.radians([130.0, -28.0, 90.0]),
+    ],
+)
+def test__roll_pitch_from_acc(euler):
+    R_nm = _rot_matrix_from_quaternion(quaternion_from_euler(euler))  # body-to-nav
+    g = gravity()
+
+    # North-East-Down (NED) frame
+    g_ned = np.array([0.0, 0.0, -g])
+    acc_ned = R_nm.T @ g_ned
+    roll_pitch_ned = _roll_pitch_from_acc(acc_ned, nav_frame="NED")
+    np.testing.assert_allclose(roll_pitch_ned, euler[:2])
+
+    # North-East-Up (ENU) frame
+    g_enu = np.array([0.0, 0.0, g])
+    acc_enu = R_nm.T @ g_enu
+    roll_pitch_enu = _roll_pitch_from_acc(acc_enu, nav_frame="ENU")
+    np.testing.assert_allclose(roll_pitch_enu, euler[:2])
 
 
 @pytest.mark.parametrize(
