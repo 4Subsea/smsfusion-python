@@ -818,46 +818,19 @@ class Test_AidedINS:
             AidedINS(10.24, x0, P0_prior, ignore_bias_acc=ignore_bias_acc)
 
     def test__init__nav_frame(self):
-        x0 = np.zeros(16)
-        x0[6:10] = (1.0, 0.0, 0.0, 0.0)
 
-        P0_prior = np.eye(15)
-
-        err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
-        err_gyro = {
-            "N": (np.pi) / 180.0 * 2.0e-3,
-            "B": (np.pi) / 180.0 * 8.0e-4,
-            "tau_cb": 50,
-        }
+        g = gravity()
 
         # ENU
-        ains_enu = AidedINS(
-            10.24,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-            g=9.81,
-            ignore_bias_acc=False,
-            nav_frame="ENU",
-        )
+        ains_enu = AidedINS(10.24, g=g, nav_frame="ENU")
         assert ains_enu._ins._nav_frame == "enu"
-        np.testing.assert_allclose(ains_enu._ins._g_n, [0.0, 0.0, -9.81])
+        np.testing.assert_allclose(ains_enu._ins._g_n, [0.0, 0.0, -g])
         np.testing.assert_allclose(ains_enu._vg_ref_n, [0.0, 0.0, -1.0])
 
         # NED
-        ains_ned = AidedINS(
-            10.24,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-            g=9.81,
-            ignore_bias_acc=False,
-            nav_frame="NED",
-        )
+        ains_ned = AidedINS(10.24, nav_frame="NED")
         assert ains_ned._ins._nav_frame == "ned"
-        np.testing.assert_allclose(ains_ned._ins._g_n, [0.0, 0.0, 9.81])
+        np.testing.assert_allclose(ains_ned._ins._g_n, [0.0, 0.0, g])
         np.testing.assert_allclose(ains_ned._vg_ref_n, [0.0, 0.0, 1.0])
 
     def test__init__ignore_bias_acc(self):
