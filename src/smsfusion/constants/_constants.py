@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.typing import NDArray
 
+# Default initial state vector
 X0: NDArray[np.float64] = np.array(
     [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 )
