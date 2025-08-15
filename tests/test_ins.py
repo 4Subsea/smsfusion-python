@@ -790,17 +790,14 @@ class Test_AidedINS:
         assert ains._W.shape == (12, 12)
         assert ains._H.shape == (10, 15)
 
-    def test__init__without_P0_err(self):
-        # Test initialization without P0_prior and err_acc/err_gyro
-        fs = 10.24
-        x0 = np.zeros(16)
-        x0[6] = 1.0
-
-        ains = AidedINS(fs, x0)
+    def test__init__without_x0_P0_err(self):
+        # Test initialization without x0_prior, P0_prior and err_acc/err_gyro
+        ains = AidedINS(10.24)
 
         assert ains._err_acc == ERR_ACC_MOTION2
         assert ains._err_gyro == ERR_GYRO_MOTION2
 
+        np.testing.assert_allclose(ains._ins._x, X0)
         np.testing.assert_allclose(ains._P_prior, P0)
         assert ains._P.shape == (12, 12)
         assert ains._F.shape == (12, 12)
