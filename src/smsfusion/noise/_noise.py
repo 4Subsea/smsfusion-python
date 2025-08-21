@@ -1,27 +1,26 @@
 import numpy as np
 from numpy.typing import NDArray
 
+# def _standard_normal(
+#     n: int, seed: int | np.random.Generator | None = None
+# ) -> NDArray[np.float64]:
+#     """
+#     Draw i.i.d. samples from a standard Normal distribution (mean=0, stdev=1).
 
-def _standard_normal(
-    n: int, seed: int | np.random.Generator | None = None
-) -> NDArray[np.float64]:
-    """
-    Draw i.i.d. samples from a standard Normal distribution (mean=0, stdev=1).
+#     Parameters
+#     ----------
+#     n : int
+#         Number of samples to generate.
+#     seed : int, np.random.Generator or None, optional
+#         A seed used to initialize a random number generator. If passed a Generator,
+#         it will be used unaltered.
 
-    Parameters
-    ----------
-    n : int
-        Number of samples to generate.
-    seed : int, np.random.Generator or None, optional
-        A seed used to initialize a random number generator. If passed a Generator,
-        it will be used unaltered.
-
-    Returns
-    -------
-    numpy.ndarray, shape (n,)
-        Sequence of i.i.d. samples.
-    """
-    return np.random.default_rng(seed).standard_normal(n)
+#     Returns
+#     -------
+#     numpy.ndarray, shape (n,)
+#         Sequence of i.i.d. samples.
+#     """
+#     return np.random.default_rng(seed).standard_normal(n)
 
 
 def white_noise(
@@ -66,8 +65,10 @@ def white_noise(
     --------
     smsfusion.gauss_markov, smsfusion.random_walk
     """
+    rng = np.random.default_rng(seed)
     sigma_wn = N * np.sqrt(fs)
-    return sigma_wn * _standard_normal(n, seed=seed)  # type: ignore[no-any-return]
+    wn = sigma_wn * rng.standard_normal(n)  # type: ignore[no-any-return]
+    return wn
 
 
 def random_walk(
@@ -116,10 +117,12 @@ def random_walk(
     --------
     smsfusion.gauss_markov, smsfusion.white_noise
     """
+    rng = np.random.default_rng(seed)
+
     sigma_wn = K / np.sqrt(fs)
 
     x = np.zeros(n)
-    epsilon = _standard_normal(n - 1, seed=seed)
+    epsilon = rng.standard_normal(n - 1)
     for i in range(1, n):
         x[i] = x[i - 1] + sigma_wn * epsilon[i - 1]
 
@@ -184,6 +187,8 @@ def gauss_markov(
     --------
     smsfusion.random_walk, smsfusion.white_noise
     """
+    rng = np.random.default_rng(seed)
+
     dt = 1.0 / fs
     beta = 1.0 / tau_c
 
@@ -191,7 +196,7 @@ def gauss_markov(
     sigma_wn = sigma * np.sqrt(1.0 - np.exp(-2 * beta * dt))
 
     x = np.zeros(n)
-    epsilon = _standard_normal(n - 1, seed=seed)
+    epsilon = rng.standard_normal(n - 1)
     for i in range(1, n):
         x[i] = phi * x[i - 1] + sigma_wn * epsilon[i - 1]
 
