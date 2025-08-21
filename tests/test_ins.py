@@ -17,6 +17,7 @@ from pytest import approx
 from scipy.signal import resample_poly
 from scipy.spatial.transform import Rotation
 
+import smsfusion as sf
 from smsfusion._ins import (
     AHRS,
     VRU,
@@ -26,6 +27,7 @@ from smsfusion._ins import (
     StrapdownINS,
     _dhda_head,
     _h_head,
+    _roll_pitch_from_acc,
     _signed_smallest_angle,
     gravity,
 )
@@ -39,8 +41,35 @@ from smsfusion.benchmark import (
     benchmark_full_pva_beat_202311A,
     benchmark_full_pva_chirp_202311A,
 )
-from smsfusion.constants import ERR_ACC_MOTION2, ERR_GYRO_MOTION2, P0
+from smsfusion.constants import ERR_ACC_MOTION2, ERR_GYRO_MOTION2, P0, X0
 from smsfusion.noise import IMUNoise, white_noise
+
+
+@pytest.mark.parametrize(
+    "euler",
+    [
+        np.radians([10.0, 45.0, 0.0]),
+        np.radians([0.0, 0.0, 0.0]),
+        np.radians([90.0, 0.0, 0.0]),
+        np.radians([180.0, 0.0, 0.0]),
+        np.radians([130.0, -28.0, 90.0]),
+    ],
+)
+def test__roll_pitch_from_acc(euler):
+    R_nm = _rot_matrix_from_quaternion(quaternion_from_euler(euler))  # body-to-nav
+    g = gravity()
+
+    # North-East-Down (NED) frame
+    g_ned = np.array([0.0, 0.0, -g])
+    acc_ned = R_nm.T @ g_ned
+    roll_pitch_ned = _roll_pitch_from_acc(acc_ned, nav_frame="NED")
+    np.testing.assert_allclose(roll_pitch_ned, euler[:2])
+
+    # North-East-Up (ENU) frame
+    g_enu = np.array([0.0, 0.0, g])
+    acc_enu = R_nm.T @ g_enu
+    roll_pitch_enu = _roll_pitch_from_acc(acc_enu, nav_frame="ENU")
+    np.testing.assert_allclose(roll_pitch_enu, euler[:2])
 
 
 @pytest.mark.parametrize(
@@ -665,6 +694,7 @@ class Test_AidedINS:
             lever_arm=np.ones(3),
             ignore_bias_acc=False,
             nav_frame="NED",
+            cold_start=False,
         )
         return ains
 
@@ -699,6 +729,7 @@ class Test_AidedINS:
             lever_arm=np.ones(3),
             ignore_bias_acc=True,
             nav_frame="NED",
+            cold_start=False,
         )
         return ains
 
@@ -730,6 +761,7 @@ class Test_AidedINS:
             lever_arm=(1, 2, 3),
             g=9.81,
             ignore_bias_acc=False,
+            cold_start=False,
         )
 
         assert isinstance(ains, AidedINS)
@@ -740,6 +772,7 @@ class Test_AidedINS:
         assert ains._err_gyro == err_gyro
         assert isinstance(ains._ins, StrapdownINS)
         assert ains._ignore_bias_acc is False
+        assert ains._cold is False
 
         np.testing.assert_allclose(ains._x, x0)
         np.testing.assert_allclose(ains._ins._x, x0)
@@ -757,20 +790,14 @@ class Test_AidedINS:
         assert ains._W.shape == (12, 12)
         assert ains._H.shape == (10, 15)
 
-    def test__init__without_p0_err(self):
-        # Test initialization without P0_prior and err_acc/err_gyro
-        fs = 10.24
-        x0 = np.zeros(16)
-        x0[6] = 1.0
-
-        ains = AidedINS(
-            fs,
-            x0,
-        )
+    def test__init__without_x0_P0_err(self):
+        # Test initialization without x0_prior, P0_prior and err_acc/err_gyro
+        ains = AidedINS(10.24)
 
         assert ains._err_acc == ERR_ACC_MOTION2
         assert ains._err_gyro == ERR_GYRO_MOTION2
 
+        np.testing.assert_allclose(ains._ins._x, X0)
         np.testing.assert_allclose(ains._P_prior, P0)
         assert ains._P.shape == (12, 12)
         assert ains._F.shape == (12, 12)
@@ -791,77 +818,26 @@ class Test_AidedINS:
             AidedINS(10.24, x0, P0_prior, ignore_bias_acc=ignore_bias_acc)
 
     def test__init__nav_frame(self):
-        x0 = np.zeros(16)
-        x0[6:10] = (1.0, 0.0, 0.0, 0.0)
 
-        P0_prior = np.eye(15)
-
-        err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
-        err_gyro = {
-            "N": (np.pi) / 180.0 * 2.0e-3,
-            "B": (np.pi) / 180.0 * 8.0e-4,
-            "tau_cb": 50,
-        }
+        g = gravity()
 
         # ENU
-        ains_enu = AidedINS(
-            10.24,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-            g=9.81,
-            ignore_bias_acc=False,
-            nav_frame="ENU",
-        )
+        ains_enu = AidedINS(10.24, g=g, nav_frame="ENU")
         assert ains_enu._ins._nav_frame == "enu"
-        np.testing.assert_allclose(ains_enu._ins._g_n, [0.0, 0.0, -9.81])
+        np.testing.assert_allclose(ains_enu._ins._g_n, [0.0, 0.0, -g])
         np.testing.assert_allclose(ains_enu._vg_ref_n, [0.0, 0.0, -1.0])
 
         # NED
-        ains_ned = AidedINS(
-            10.24,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-            g=9.81,
-            ignore_bias_acc=False,
-            nav_frame="NED",
-        )
+        ains_ned = AidedINS(10.24, nav_frame="NED")
         assert ains_ned._ins._nav_frame == "ned"
-        np.testing.assert_allclose(ains_ned._ins._g_n, [0.0, 0.0, 9.81])
+        np.testing.assert_allclose(ains_ned._ins._g_n, [0.0, 0.0, g])
         np.testing.assert_allclose(ains_ned._vg_ref_n, [0.0, 0.0, 1.0])
 
     def test__init__ignore_bias_acc(self):
         fs = 10.24
 
-        p_init = np.array([0.0, 0.0, 0.0])
-        v_init = np.array([0.0, 0.0, 0.0])
-        q_init = np.array([1.0, 0.0, 0.0, 0.0])
-        bias_acc_init = np.array([0.0, 0.0, 0.0])
-        bias_gyro_init = np.array([0.0, 0.0, 0.0])
-
-        x0 = np.r_[p_init, v_init, q_init, bias_acc_init, bias_gyro_init]
         P0_prior = 1e-6 * np.eye(12)
-
-        err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
-        err_gyro = {
-            "N": (np.pi) / 180.0 * 2.0e-3,
-            "B": (np.pi) / 180.0 * 8.0e-4,
-            "tau_cb": 50,
-        }
-
-        ains = AidedINS(
-            fs,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-            lever_arm=(1, 2, 3),
-            g=9.80665,
-            ignore_bias_acc=True,
-        )
+        ains = AidedINS(fs, P0_prior=P0_prior, ignore_bias_acc=True)
 
         assert ains._ignore_bias_acc is True
         np.testing.assert_allclose(ains._P_prior, P0_prior)
@@ -872,27 +848,23 @@ class Test_AidedINS:
         assert ains._W.shape == (9, 9)
         assert ains._H.shape == (10, 12)
 
-    def test__init__defualt_lever_arm(self):
-        x0 = np.random.random(16)
-        x0[6:10] = (1.0, 0.0, 0.0, 0.0)
-        P0_prior = np.eye(12)
+    def test__init__dont_ignore_bias_acc(self):
+        fs = 10.24
 
-        err_acc = {"N": 4.0e-4, "B": 2.0e-4, "tau_cb": 50}
-        err_gyro = {
-            "N": np.radians(2.0e-3),
-            "B": np.radians(180.0 * 8.0e-4),
-            "tau_cb": 50,
-        }
+        P0_prior = 1e-6 * np.eye(15)
+        ains = AidedINS(fs, P0_prior=P0_prior, ignore_bias_acc=False)
 
-        ains = AidedINS(
-            10.24,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-            # no lever_arm
-        )
+        assert ains._ignore_bias_acc is False
+        np.testing.assert_allclose(ains._P_prior, P0_prior)
+        assert ains._P_prior.shape == (15, 15)
+        assert ains._P.shape == (15, 15)
+        assert ains._F.shape == (15, 15)
+        assert ains._G.shape == (15, 12)
+        assert ains._W.shape == (12, 12)
+        assert ains._H.shape == (10, 15)
 
+    def test__init__default_lever_arm(self):
+        ains = AidedINS(10.24)  # use default lever arm
         np.testing.assert_allclose(ains._lever_arm, np.zeros(3))
 
     def test_dump(self, tmp_path, ains):
@@ -911,62 +883,61 @@ class Test_AidedINS:
         np.testing.assert_allclose(ains_b._ins._x, ains._ins._x)
         np.testing.assert_allclose(ains_b._P_prior, ains._P_prior)
         np.testing.assert_allclose(ains_b._ignore_bias_acc, ains._ignore_bias_acc)
+        assert ains_b._cold is ains._cold
 
-    def test_x(self, ains):
-        x_expect = np.array(
-            [
-                0.1,
-                0.0,
-                0.0,
-                0.0,
-                -0.1,
-                0.0,
-                *self.quaternion(),
-                0.0,
-                0.0,
-                0.1,
-                -0.1,
-                0.0,
-                0.0,
-            ]
-        )
-        x_out = ains.x
+    def test_x(self):
+        x = np.random.random(16)
+        x[6:10] = x[6:10] / np.linalg.norm(x[6:10])  # unit quaternion
+        ains = AidedINS(10.24, x0_prior=x)
 
-        np.testing.assert_allclose(x_out, x_expect)
-        assert x_out is not ains._x
+        np.testing.assert_allclose(ains.x, x)
+        assert ains.x is not ains._x
 
     def test_position(self, ains):
+        x = np.random.random(16)
+        x[6:10] = x[6:10] / np.linalg.norm(x[6:10])  # unit quaternion
+        ains = AidedINS(10.24, x0_prior=x)
+
         pos_out = ains.position()
-        pos_expect = np.array([0.1, 0.0, 0.0])
+        pos_expect = x[0:3]
 
         np.testing.assert_allclose(pos_out, pos_expect)
         assert pos_out is not ains._pos
 
     def test_velocity(self, ains):
+        x = np.random.random(16)
+        x[6:10] = x[6:10] / np.linalg.norm(x[6:10])  # unit quaternion
+        ains = AidedINS(10.24, x0_prior=x)
+
         vel_out = ains.velocity()
-        vel_expect = np.array([0.0, -0.1, 0.0])
+        vel_expect = x[3:6]
 
         np.testing.assert_allclose(vel_out, vel_expect)
         assert vel_out is not ains._vel
 
-    def test_euler_radians(self, ains):
-        theta_out = ains.euler(degrees=False)
-        theta_expect = np.radians(np.array([-10.0, 5.0, 25.0]))
+    def test_euler(self):
 
-        np.testing.assert_allclose(theta_out, theta_expect)
+        euler_deg = np.array([-10.0, 5.0, 25.0])
+        euler_rad = np.radians(euler_deg)
+        q = quaternion_from_euler(euler_rad, degrees=False)
 
-    def test_euler_degrees(self, ains):
-        theta_out = ains.euler(degrees=True)
-        theta_expect = np.array([-10.0, 5.0, 25.0])
+        x0 = np.zeros(16)
+        x0[6:10] = q
+        ains = AidedINS(10.24, x0_prior=x0)
 
-        np.testing.assert_allclose(theta_out, theta_expect)
+        np.testing.assert_allclose(ains.euler(degrees=False), euler_rad)
+        np.testing.assert_allclose(ains.euler(degrees=True), euler_deg)
 
-    def test_quaternion(self, ains):
-        quaternion_out = ains.quaternion()
-        quaternion_expect = self.quaternion()
+    def test_quaternion(self):
 
-        np.testing.assert_allclose(quaternion_out, quaternion_expect)
-        assert quaternion_out is not ains._q_nm
+        q = np.random.random(4)
+        q /= np.linalg.norm(q)  # normalize to unit quaternion
+
+        x0 = np.zeros(16)
+        x0[6:10] = q
+        ains = AidedINS(10.24, x0_prior=x0)
+
+        np.testing.assert_allclose(ains.quaternion(), q)
 
     def test__reset_ins(self, ains):
         x_ins = np.array(
@@ -1309,26 +1280,8 @@ class Test_AidedINS:
         )
         assert update_return is ains
 
-    def test_update_var(self):
+    def test_update_var(self, ains):
         """Update using aiding variances in update method."""
-        fs = 10.24
-
-        x0 = np.zeros(16)
-        x0[6] = 1.0
-        P0_prior = 1e-6 * np.eye(15)
-
-        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-
-        # Aiding variances given in __init__
-        ains_a = AidedINS(
-            fs,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-            ignore_bias_acc=False,
-        )
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
@@ -1343,7 +1296,7 @@ class Test_AidedINS:
         g_var = np.ones(3)
 
         for _ in range(5):
-            ains_a.update(
+            ains.update(
                 f_imu,
                 w_imu,
                 degrees=True,
@@ -1358,26 +1311,8 @@ class Test_AidedINS:
                 g_var=g_var,
             )
 
-    def test_update_var_raises(self):
+    def test_update_var_raises(self, ains):
         """Check that update raise ValueError if no aiding variances are provided."""
-        fs = 10.24
-
-        x0 = np.zeros(16)
-        x0[6] = 1.0
-        P0_prior = 1e-6 * np.eye(15)
-
-        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-
-        # Aiding variances given in __init__
-        ains = AidedINS(
-            fs,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-            ignore_bias_acc=False,
-        )
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
@@ -1421,16 +1356,12 @@ class Test_AidedINS:
             )
 
     def test_update_standstill(self):
-        fs = 10.24
 
         x0 = np.zeros(16)
         x0[6] = 1.0
         P0_prior = 1e-6 * np.eye(15)
 
-        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-
-        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro, ignore_bias_acc=False)
+        ains = AidedINS(10.24, x0, P0_prior, ignore_bias_acc=False, cold_start=False)
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
@@ -1457,16 +1388,11 @@ class Test_AidedINS:
             np.testing.assert_allclose(ains.x, x0)
 
     def test_update_irregular_aiding(self):
-        fs = 10.24
-
         x0 = np.zeros(16)
         x0[6] = 1.0
         P0_prior = 1e-6 * np.eye(15)
 
-        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-
-        ains = AidedINS(fs, x0, P0_prior, err_acc, err_gyro, ignore_bias_acc=False)
+        ains = AidedINS(10.24, x0, P0_prior, ignore_bias_acc=False, cold_start=False)
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
@@ -1555,30 +1481,23 @@ class Test_AidedINS:
         np.testing.assert_allclose(ains.x, x0)
 
     def test_update_ignore_bias_acc(self):
-        fs = 10.24
-
         x0 = np.zeros(16)
         x0[6] = 1.0
 
-        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 10.0}
-        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 10.0}
-
-        ains_a = AidedINS(  # include accelerometer bias
-            fs,
+        ains_a = AidedINS(
+            10.24,
             x0,
             np.eye(15),
-            err_acc,
-            err_gyro,
-            ignore_bias_acc=False,
+            ignore_bias_acc=False,  # include accelerometer bias
+            cold_start=False,
         )
 
-        ains_b = AidedINS(  # ignore accelerometer bias
-            fs,
+        ains_b = AidedINS(
+            10.24,
             x0,
             np.eye(12),
-            err_acc,
-            err_gyro,
-            ignore_bias_acc=True,
+            ignore_bias_acc=True,  # ignore accelerometer bias
+            cold_start=False,
         )
 
         g = gravity()
@@ -1646,6 +1565,72 @@ class Test_AidedINS:
 
         assert not np.array_equal(ains_a.bias_acc(), x0[9:12])  # bias is updated
         np.testing.assert_allclose(ains_b.bias_acc(), x0[9:12])  # no update
+
+    def test_update_cold_start(self):
+        """
+        Cold start with initial attitude far from true attitude. Cold start
+        roll and pitch calibration should fix this and avoid divergence.
+        """
+        fs = 10.24
+        n = int(60 * fs)  # 1 min
+
+        # True euler angles (far from initial state attitude)
+        euler_mean = np.array([-10.0, 45.0, 0.0])  # deg
+
+        g = gravity()
+        q_mean = quaternion_from_euler(euler_mean, degrees=True)
+        R_mean = _rot_matrix_from_quaternion(q_mean)  # body-to-ned
+        acc_mean = R_mean.T @ np.array([0.0, 0.0, -g])  # gravity only
+
+        # Standstill reference signals
+        acc_ref = np.tile(acc_mean, (n, 1))  # m/s^2
+        gyro_ref = np.zeros((n, 3))  # rad/s
+        pos_ref = np.zeros((n, 3))  # m
+        vel_ref = np.zeros((n, 3))  # m/s
+        euler_ref = np.tile(euler_mean, (n, 1))  # deg
+
+        err_acc = sf.constants.ERR_ACC_MOTION2
+        err_gyro = sf.constants.ERR_GYRO_MOTION2
+        imu_noise = IMUNoise(err_acc, err_gyro, seed=0)(fs, n)
+
+        pos_noise = 0.1 * np.random.default_rng(0).standard_normal((n, 3))
+        vel_noise = 0.1 * np.random.default_rng(1).standard_normal((n, 3))
+        head_noise = 0.1 * np.random.default_rng(2).standard_normal(n)
+
+        f_imu = acc_ref + imu_noise[:, :3]
+        w_imu = gyro_ref + imu_noise[:, 3:]
+        pos_aid = pos_ref + pos_noise
+        vel_aid = vel_ref + vel_noise
+        head_aid = euler_ref[:, 2] + head_noise
+
+        ains = AidedINS(fs, g=g, nav_frame="ned", cold_start=True)
+
+        pos_est, vel_est, euler_est = [], [], []
+        for i in range(n):
+            ains.update(
+                f_imu[i],
+                w_imu[i],
+                degrees=False,
+                pos=pos_aid[i],
+                pos_var=0.1**2 * np.ones(3),
+                vel=vel_aid[i],
+                vel_var=0.1**2 * np.ones(3),
+                head=head_aid[i],
+                head_var=0.5**2,
+                head_degrees=True,
+            )
+
+            pos_est.append(ains.position())
+            vel_est.append(ains.velocity())
+            euler_est.append(ains.euler(degrees=True))
+
+        pos_est = np.array(pos_est)
+        vel_est = np.array(vel_est)
+        euler_est = np.array(euler_est)
+
+        np.testing.assert_allclose(pos_est, pos_ref, atol=0.2)
+        np.testing.assert_allclose(vel_est, vel_ref, atol=0.2)
+        np.testing.assert_allclose(euler_est, euler_ref, atol=0.2)
 
     @pytest.mark.parametrize(
         "benchmark_gen",
@@ -1809,44 +1794,19 @@ class Test_AidedINS:
 
 class Test_VRU:
 
-    def test__init__no_p0_err(self):
-        # Tests that default values for p0 and errors are set correctly
-        fs = 10.24
-        x0 = np.zeros(16)
-        x0[6] = 1.0
-
-        ains = VRU(fs, x0)
+    def test__init__no_x0_P0_err(self):
+        ains = VRU(10.24)
 
         assert ains._err_acc == ERR_ACC_MOTION2
         assert ains._err_gyro == ERR_GYRO_MOTION2
+        np.testing.assert_allclose(ains.x, X0)
         np.testing.assert_allclose(ains._P_prior, P0)
 
     def test_update_compare_to_ains(self):
         """Update using aiding variances in update method."""
         fs = 10.24
-
-        x0 = np.zeros(16)
-        x0[6] = 1.0
-        P0_prior = 1e-6 * np.eye(12)
-
-        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-
-        ains = AidedINS(
-            fs,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-        )
-
-        vru = VRU(
-            fs,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-        )
+        ains = AidedINS(fs)
+        vru = VRU(fs)
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
@@ -1888,29 +1848,8 @@ class Test_VRU:
     def test_update_compare_to_ains_other_aid(self):
         """Update using aiding variances in update method."""
         fs = 10.24
-
-        x0 = np.zeros(16)
-        x0[6] = 1.0
-        P0_prior = 1e-6 * np.eye(12)
-
-        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-
-        ains = AidedINS(
-            fs,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-        )
-
-        vru = VRU(
-            fs,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-        )
+        ains = AidedINS(fs)
+        vru = VRU(fs)
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
@@ -1953,44 +1892,19 @@ class Test_VRU:
 
 
 class Test_AHRS:
-    def test__init__no_p0_err(self):
-        # Tests that default values for p0 and errors are set correctly
-        fs = 10.24
-        x0 = np.zeros(16)
-        x0[6] = 1.0
-
-        ains = AHRS(fs, x0)
+    def test__init__no_x0_P0_err(self):
+        ains = AHRS(10.24)
 
         assert ains._err_acc == ERR_ACC_MOTION2
         assert ains._err_gyro == ERR_GYRO_MOTION2
+        np.testing.assert_allclose(ains.x, X0)
         np.testing.assert_allclose(ains._P_prior, P0)
 
     def test_update_compare_to_ains(self):
         """Update using aiding variances in update method."""
         fs = 10.24
-
-        x0 = np.zeros(16)
-        x0[6] = 1.0
-        P0_prior = 1e-6 * np.eye(12)
-
-        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-
-        ains = AidedINS(
-            fs,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-        )
-
-        ahrs = AHRS(
-            fs,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-        )
+        ains = AidedINS(fs)
+        ahrs = AHRS(fs)
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])
@@ -2034,29 +1948,9 @@ class Test_AHRS:
     def test_update_compare_to_ains_other_aid(self):
         """Update using aiding variances in update method."""
         fs = 10.24
+        ains = AidedINS(fs)
 
-        x0 = np.zeros(16)
-        x0[6] = 1.0
-        P0_prior = 1e-6 * np.eye(12)
-
-        err_acc = {"N": 0.01, "B": 0.002, "tau_cb": 1000.0}
-        err_gyro = {"N": 0.03, "B": 0.004, "tau_cb": 2000.0}
-
-        ains = AidedINS(
-            fs,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-        )
-
-        ahrs = AHRS(
-            fs,
-            x0,
-            P0_prior,
-            err_acc,
-            err_gyro,
-        )
+        ahrs = AHRS(fs)
 
         g = gravity()
         f_imu = np.array([0.0, 0.0, -g])

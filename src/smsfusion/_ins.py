@@ -6,14 +6,48 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from smsfusion.constants import ERR_ACC_MOTION2, ERR_GYRO_MOTION2, P0
+from smsfusion.constants import ERR_ACC_MOTION2, ERR_GYRO_MOTION2, P0, X0
 
 from ._transforms import (
     _angular_matrix_from_quaternion,
     _euler_from_quaternion,
+    _quaternion_from_euler,
     _rot_matrix_from_quaternion,
 )
 from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
+
+
+def _roll_pitch_from_acc(f, nav_frame):
+    """
+    Estimate roll and pitch angles from specific force (i.e., accelerometer) measurement.
+
+    Parameters
+    ----------
+    f: array-like
+        Specific force (i.e., acceleration) measurement vector (fx, fy, fz).
+    nav_frame: {'NED', 'ENU'}
+        Navigation frame. Should be either 'NED' or 'ENU'.
+
+    Returns
+    -------
+    roll: float
+        Estimated roll angle in radians.
+    pitch: float
+        Estimated pitch angle in radians.
+    """
+
+    fx, fy, fz = f
+
+    if nav_frame.lower() == "ned":
+        roll = np.arctan2(-fy, -fz)
+        pitch = np.arctan2(fx, np.sqrt(fy**2 + fz**2))
+    elif nav_frame.lower() == "enu":
+        roll = np.arctan2(fy, fz)
+        pitch = -np.arctan2(fx, np.sqrt(fy**2 + fz**2))
+    else:
+        raise ValueError("Invalid navigation frame. Should be 'NED' or 'ENU'.")
+
+    return roll, pitch
 
 
 class FixedNED:
@@ -596,14 +630,17 @@ class AidedINS(INSMixin):
     ----------
     fs : float
         Sampling rate in Hz.
-    x0_prior : array-like, shape (16,)
-        Initial (a priori) INS state estimate, containing the following elements in order:
+    x0_prior : array-like, shape (16,), default :const:`smsfusion.constants.X0`
+        Initial (a priori) 16-element INS state estimate:
 
-        * Position in x, y, z directions (3 elements).
-        * Velocity in x, y, z directions (3 elements).
-        * Attitude as unit quaternion (4 elements).
-        * Accelerometer bias in x, y, z directions (3 elements).
-        * Gyroscope bias in x, y, z directions (3 elements).
+        * Position (x, y, z) - 3 elements
+        * Velocity (x, y, z) - 3 elements
+        * Attitude (unit quaternion) - 4 elements
+        * Accelerometer bias (x, y, z) - 3 elements
+        * Gyroscope bias (x, y, z) - 3 elements
+
+        Defaults to a zero vector, but with the attitude part as a unit quaternion
+        (i.e., no rotation).
     P0_prior : array-like (shape (12, 12) or (15, 15)), default np.eye(12) * 1e-6 (:const:`smsfusion.constants.P0`)
         Initial (a priori) estimate of the error covariance matrix, **P**. If not given, a
         small diagonal matrix will be used. If the accelerometer bias is excluded from the
@@ -646,6 +683,17 @@ class AidedINS(INSMixin):
         that this will reduce the error-state dimension from 15 to 12, and hence also the
         error covariance matrix, **P**, from dimension (15, 15) to (12, 12). When set to
         ``False``, the P0_prior argument must have shape (15, 15).
+    cold_start : bool, default True
+        Whether to start the AINS filter in a 'cold' (default) or 'warm' state.
+        A cold state indicates that the provided initial conditions are uncertain,
+        and possibly far from the true state. Thus, to reduce the risk of divergence,
+        an initial vertical alignment (i.e., roll and pitch calibration) is performed
+        using accelerometer measurements and the known direction of gravity during
+        the first measurement update. The IMU should remain stationary with negligible
+        linear acceleration during a cold start; otherwise, divergence may occur.
+        A warm start, on the other hand, assumes accurate initial conditions, and
+        initializes the Kalman filter immediately without any initial roll and pitch
+        calibration.
     """
 
     # Permutation matrix for reordering error-state bias terms, such that:
@@ -665,7 +713,7 @@ class AidedINS(INSMixin):
     def __init__(
         self,
         fs: float,
-        x0_prior: ArrayLike,
+        x0_prior: ArrayLike = X0,
         P0_prior: ArrayLike = P0,
         err_acc: dict[str, float] = ERR_ACC_MOTION2,
         err_gyro: dict[str, float] = ERR_GYRO_MOTION2,
@@ -673,6 +721,7 @@ class AidedINS(INSMixin):
         nav_frame: str = "NED",
         lever_arm: ArrayLike = np.zeros(3),
         ignore_bias_acc: bool = True,
+        cold_start: bool = True,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
@@ -680,6 +729,7 @@ class AidedINS(INSMixin):
         self._err_gyro = err_gyro
         self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
         self._ignore_bias_acc = ignore_bias_acc
+        self._cold = cold_start
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
         # Strapdown algorithm / INS state
@@ -767,9 +817,11 @@ class AidedINS(INSMixin):
             "P0_prior": self.P_prior.tolist(),
             "err_acc": self._err_acc,
             "err_gyro": self._err_gyro,
-            "lever_arm": self._lever_arm.tolist(),
             "g": self._ins._g,
+            "nav_frame": self._ins._nav_frame,
+            "lever_arm": self._lever_arm.tolist(),
             "ignore_bias_acc": self._ignore_bias_acc,
+            "cold_start": self._cold,
         }
         return params
 
@@ -942,6 +994,33 @@ class AidedINS(INSMixin):
             P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
         return dx, P
 
+    def _align_vertical(self, f_ins, head, head_degrees):
+        """
+        Vertical alignment.
+
+        Estimate the attitude (roll and pitch) of the IMU sensor relative to the
+        navigation frame using accelerometer measurements and the known direction
+        of gravity. Assumes a static sensor; i.e., negligible linear acceleration.
+
+        Parameters
+        ----------
+        f_ins : array-like, shape (3,)
+            Bias-compensated specific force measurements (fx, fy, fz).
+        head : float, optional
+            Heading of measurement frame relative to navigation frame.
+        head_degrees : bool, default False
+            Specifies whether the heading is given in degrees or radians.
+        """
+        if head is None:
+            head = _h_head(self.quaternion())
+        else:
+            if head_degrees:
+                head = (np.pi / 180.0) * head
+
+        roll, pitch = _roll_pitch_from_acc(f_ins, self._ins._nav_frame)
+        self._ins._x[6:10] = _quaternion_from_euler(np.array([roll, pitch, head]))
+        self._x[:] = self._ins._x
+
     def update(
         self,
         f_imu: ArrayLike,
@@ -1005,18 +1084,26 @@ class AidedINS(INSMixin):
         AidedINS
             A reference to the instance itself after the update.
         """
+
         f_imu = np.asarray(f_imu, dtype=float)
         w_imu = np.asarray(w_imu, dtype=float)
 
         if degrees:
             w_imu = (np.pi / 180.0) * w_imu
 
+        # Bias compensated IMU measurements
+        f_ins = f_imu - self._ins._bias_acc
+        w_ins = w_imu - self._ins._bias_gyro
+
+        # Initial vertical alignment (i.e., roll and pitch calibration)
+        if self._cold:
+            self._align_vertical(f_ins, head, head_degrees)
+            self._cold = False
+
         # Current INS state estimates
         pos_ins = self._ins._pos
         vel_ins = self._ins._vel
         q_ins_nm = self._ins._q_nm
-        bias_acc_ins = self._ins._bias_acc
-        bias_gyro_ins = self._ins._bias_gyro
         R_ins_nm = _rot_matrix_from_quaternion(q_ins_nm)  # body-to-inertial rot matrix
 
         # Aliases
@@ -1027,10 +1114,6 @@ class AidedINS(INSMixin):
         W = self._W
         P = self._P_prior
         I_ = self._I
-
-        # Bias compensated IMU measurements
-        f_ins = f_imu - bias_acc_ins
-        w_ins = w_imu - bias_gyro_ins
 
         # Lever arm vector - IMU-to-aiding
         lever_arm = self._lever_arm
@@ -1131,14 +1214,17 @@ class VRU(AidedINS):
     ----------
     fs : float
         Sampling rate in Hz.
-    x0_prior : array-like, shape (16,)
-        Initial (a priori) INS state estimate, containing the following elements in order:
+    x0_prior : array-like, shape (16,), default :const:`smsfusion.constants.X0`
+        Initial (a priori) 16-element INS state estimate:
 
-        * Position in x, y, z directions (3 elements), should be zeros.
-        * Velocity in x, y, z directions (3 elements), should be zeros.
-        * Attitude as unit quaternion (4 elements).
-        * Accelerometer bias in x, y, z directions (3 elements).
-        * Gyroscope bias in x, y, z directions (3 elements).
+        * Position (x, y, z) - 3 elements
+        * Velocity (x, y, z) - 3 elements
+        * Attitude (unit quaternion) - 4 elements
+        * Accelerometer bias (x, y, z) - 3 elements
+        * Gyroscope bias (x, y, z) - 3 elements
+
+        Defaults to a zero vector, but with the attitude part as a unit quaternion
+        (i.e., no rotation).
     P0_prior : array-like, shape (12, 12), default np.eye(12) * 1e-6 (:const:`smsfusion.constants.P0`)
         Initial (a priori) estimate of the error covariance matrix, **P**.
     err_acc : dict of {str: float}, default :const:`smsfusion.constants.ERR_ACC_MOTION2`
@@ -1164,6 +1250,17 @@ class VRU(AidedINS):
         (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
         will be expressed relative to this frame. Furthermore, the aiding heading angle is
         also interpreted relative to this frame according to the right-hand rule.
+    cold_start : bool, default True
+        Whether to start the AINS filter in a 'cold' (default) or 'warm' state.
+        A cold state indicates that the provided initial conditions are uncertain,
+        and possibly far from the true state. Thus, to reduce the risk of divergence,
+        an initial vertical alignment (i.e., roll and pitch calibration) is performed
+        using accelerometer measurements and the known direction of gravity during
+        the first measurement update. The IMU should remain stationary with negligible
+        linear acceleration during a cold start; otherwise, divergence may occur.
+        A warm start, on the other hand, assumes accurate initial conditions, and
+        initializes the Kalman filter immediately without any initial roll and pitch
+        calibration.
     **kwargs :
         Ignored. For compatibility with parent class.
     """
@@ -1171,12 +1268,13 @@ class VRU(AidedINS):
     def __init__(
         self,
         fs: float,
-        x0_prior: ArrayLike,
+        x0_prior: ArrayLike = X0,
         P0_prior: ArrayLike = P0,
         err_acc: dict[str, float] = ERR_ACC_MOTION2,
         err_gyro: dict[str, float] = ERR_GYRO_MOTION2,
         g: float = 9.80665,
         nav_frame: str = "NED",
+        cold_start: bool = True,
         **kwargs: dict[str, Any],
     ) -> None:
         super().__init__(
@@ -1189,6 +1287,7 @@ class VRU(AidedINS):
             nav_frame=nav_frame,
             lever_arm=np.zeros(3),
             ignore_bias_acc=True,
+            cold_start=cold_start,
         )
 
     def update(
@@ -1228,7 +1327,7 @@ class VRU(AidedINS):
         VRU
             A reference to the instance itself after the update.
         """
-        super().update(
+        return super().update(
             f_imu,
             w_imu,
             degrees=degrees,
@@ -1263,14 +1362,17 @@ class AHRS(AidedINS):
     ----------
     fs : float
         Sampling rate in Hz.
-    x0_prior : array-like, shape (16,)
-        Initial (a priori) INS state estimate, containing the following elements in order:
+    x0_prior : array-like, shape (16,), default :const:`smsfusion.constants.X0`
+        Initial (a priori) 16-element INS state estimate:
 
-        * Position in x, y, z directions (3 elements), should be zeros.
-        * Velocity in x, y, z directions (3 elements), should be zeros.
-        * Attitude as unit quaternion (4 elements).
-        * Accelerometer bias in x, y, z directions (3 elements).
-        * Gyroscope bias in x, y, z directions (3 elements).
+        * Position (x, y, z) - 3 elements
+        * Velocity (x, y, z) - 3 elements
+        * Attitude (unit quaternion) - 4 elements
+        * Accelerometer bias (x, y, z) - 3 elements
+        * Gyroscope bias (x, y, z) - 3 elements
+
+        Defaults to a zero vector, but with the attitude part as a unit quaternion
+        (i.e., no rotation).
     P0_prior : array-like, shape (12, 12), default np.eye(12) * 1e-6 (:const:`smsfusion.constants.P0`)
         Initial (a priori) estimate of the error covariance matrix, **P**.
     err_acc : dict of {str: float}, default :const:`smsfusion.constants.ERR_ACC_MOTION2`
@@ -1296,6 +1398,17 @@ class AHRS(AidedINS):
         (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
         will be expressed relative to this frame. Furthermore, the aiding heading angle is
         also interpreted relative to this frame according to the right-hand rule.
+    cold_start : bool, default True
+        Whether to start the AINS filter in a 'cold' (default) or 'warm' state.
+        A cold state indicates that the provided initial conditions are uncertain,
+        and possibly far from the true state. Thus, to reduce the risk of divergence,
+        an initial vertical alignment (i.e., roll and pitch calibration) is performed
+        using accelerometer measurements and the known direction of gravity during
+        the first measurement update. The IMU should remain stationary with negligible
+        linear acceleration during a cold start; otherwise, divergence may occur.
+        A warm start, on the other hand, assumes accurate initial conditions, and
+        initializes the Kalman filter immediately without any initial roll and pitch
+        calibration.
     **kwargs :
         Ignored. For compatibility with parent class.
     """
@@ -1303,12 +1416,13 @@ class AHRS(AidedINS):
     def __init__(
         self,
         fs: float,
-        x0_prior: ArrayLike,
+        x0_prior: ArrayLike = X0,
         P0_prior: ArrayLike = P0,
         err_acc: dict[str, float] = ERR_ACC_MOTION2,
         err_gyro: dict[str, float] = ERR_GYRO_MOTION2,
         g: float = 9.80665,
         nav_frame: str = "NED",
+        cold_start: bool = True,
         **kwargs: dict[str, Any],
     ) -> None:
         super().__init__(
@@ -1321,6 +1435,7 @@ class AHRS(AidedINS):
             nav_frame=nav_frame,
             lever_arm=np.zeros(3),
             ignore_bias_acc=True,
+            cold_start=cold_start,
         )
 
     def update(
@@ -1373,7 +1488,7 @@ class AHRS(AidedINS):
         AHRS
             A reference to the instance itself after the update.
         """
-        super().update(
+        return super().update(
             f_imu,
             w_imu,
             degrees=degrees,

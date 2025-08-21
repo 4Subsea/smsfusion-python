@@ -112,7 +112,7 @@ class FixedIntervalSmoother:
                 self._P_buf,
                 self._P_prior_buf,
                 self._phi_buf,
-                cov_smoothing=self._cov_smoothing,
+                self._cov_smoothing,
             )
             self._x = np.asarray(x)
             self._P = np.asarray(P)
