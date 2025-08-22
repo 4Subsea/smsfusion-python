@@ -1297,7 +1297,7 @@ class VRU(AidedINS):
         degrees: bool = False,
         pos_var: ArrayLike = np.array([1e6, 1e6, 1e6]),
         vel_var: ArrayLike = np.array([1e2, 1e2, 1e2]),
-        head_var: float = 0.5
+        head_var: float = 1.0,
     ) -> Self:
         """
         Update/correct the VRU's state estimate with pseudo aiding measurements
@@ -1322,9 +1322,9 @@ class VRU(AidedINS):
         vel_var : array-like, shape (3,), default [10**2, 10**2, 10**2]
             Variance of velocity measurement noise in (m/s)^2. Defaults to
             standard deviation of 10 m/s, while assuming zero velocity.
-        head_var : float, default 0.5
+        head_var : float, default 1.0
             Variance of heading measurement noise in (rad)^2. Defaults to
-            standard deviation of 0.5 rad, while assuming zero heading.
+            standard deviation of 1.0 rad, while assuming zero heading.
 
         Returns
         -------
