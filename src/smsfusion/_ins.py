@@ -1301,8 +1301,8 @@ class VRU(AidedINS):
     ) -> Self:
         """
         Update/correct the VRU's state estimate with pseudo aiding measurements
-        (i.e., zero velocity and zero position with corresponding variances), and
-        project ahead using IMU measurements.
+        (i.e., zero velocity, zero position and zero heading with corresponding
+        variances), and project ahead using IMU measurements.
 
         Parameters
         ----------
