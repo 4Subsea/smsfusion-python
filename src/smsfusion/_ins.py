@@ -1341,6 +1341,7 @@ class VRU(AidedINS):
             vel_var=vel_var,
             head=0.0,
             head_var=head_var,
+            head_degrees=False,
         )
 
 
