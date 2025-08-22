@@ -1485,10 +1485,10 @@ class AHRS(AidedINS):
             Specifies whether the unit of ``head`` and ``head_var`` are in degrees and degrees^2,
             or radians and radians^2. Default is in radians and radians^2.
         pos_var : array-like, shape (3,), default [10**6, 10**6, 10**6]
-            Variance of position measurement noise in m^2. Defaults to
+            Variance of position measurement noise in m^2. Defaults to a
             standard deviation of 1000 m, while assuming zero position.
         vel_var : array-like, shape (3,), default [10**2, 10**2, 10**2]
-            Variance of velocity measurement noise in (m/s)^2. Defaults to
+            Variance of velocity measurement noise in (m/s)^2. Defaults to a
             standard deviation of 10 m/s, while assuming zero velocity.
 
         Returns
