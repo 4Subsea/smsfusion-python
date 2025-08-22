@@ -196,9 +196,7 @@ aiding is sufficient:
 
 * Position: 0 m with 1000 m standard deviation
 * Velocity: 0 m/s with 10 m/s standard deviation
-
-Note that the heading is not corrected in VRU mode, and the yaw degree of freedom
-will thus drift arbitrarily.
+* Heading: 0 rad with 0.5 rad standard deviation
 
 If you have access to accelerometer and gyroscope data from an IMU sensor, you can
 estimate the roll and pitch degrees of freedom of a moving body using the
