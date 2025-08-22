@@ -216,9 +216,9 @@ estimate the roll and pitch degrees of freedom of a moving body using the
     roll_pitch_est = []
     for f_i, w_i in zip(acc_imu, gyro_imu):
         vru.update(f_i, w_i, degrees=False)
-        roll_pitch_est.append(vru.euler(degrees=False)[:2])
+        euler_est.append(vru.euler(degrees=False))
 
-    roll_pitch_est = np.array(roll_pitch_est)
+    euler_est = np.array(euler_est)
 
 
 Smoothing
@@ -259,4 +259,4 @@ additional aiding parameters depending on the type of AINS instance used.
         smoother.update(f_i, w_i, degrees=False)
 
     # Get smoothed roll and pitch estimates
-    roll_pitch_est = smoother.euler(degrees=False)[:, :2]
+    euler_est = smoother.euler(degrees=False)
