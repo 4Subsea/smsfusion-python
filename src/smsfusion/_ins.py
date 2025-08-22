@@ -1317,14 +1317,17 @@ class VRU(AidedINS):
         degrees : bool, default False
             Specifies whether the unit of ``w_imu`` are in degrees or radians.
         pos_var : array-like, shape (3,), default [10**6, 10**6, 10**6]
-            Variance of position measurement noise in m^2. Defaults to
+            Variance of position measurement noise in m^2. Defaults to a
             standard deviation of 1000 m, while assuming zero position.
         vel_var : array-like, shape (3,), default [10**2, 10**2, 10**2]
-            Variance of velocity measurement noise in (m/s)^2. Defaults to
+            Variance of velocity measurement noise in (m/s)^2. Defaults to a
             standard deviation of 10 m/s, while assuming zero velocity.
         head_var : float, default 1.0
-            Variance of heading measurement noise in (rad)^2. Defaults to
-            standard deviation of 1.0 rad, while assuming zero heading.
+            Variance of heading measurement noise in (rad)^2. Defaults to a
+            standard deviation of 1.0 rad, while assuming zero heading. Lower
+            values can speed up convergence of the gyroscope biases; however, a
+            too small value may be detrimental to the roll and pitch estimates
+            if the sensor experiences significant yaw motion.
 
         Returns
         -------
