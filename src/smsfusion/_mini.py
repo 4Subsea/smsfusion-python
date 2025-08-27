@@ -52,13 +52,10 @@ class AHRSMixin:
 
         Returns
         -------
-        numpy.ndarray, shape (16,)
+        numpy.ndarray, shape (7,)
             State vector, containing the following elements in order:
 
-            * Position in x, y, z directions (3 elements).
-            * Velocity in x, y, z directions (3 elements).
             * Attitude as unit quaternion (4 elements).
-            * Accelerometer bias in x, y, z directions (3 elements).
             * Gyroscope bias in x, y, z directions (3 elements).
         """
         return self._x.copy()
@@ -142,29 +139,20 @@ class AHRSMixin:
 
 class StrapdownAHRS(AHRSMixin):
     """
-    Strapdown inertial navigation system (INS).
+    Strapdown Attitude and Heading Reference System (AHRS).
 
-    This class provides an interface for estimating position, velocity and attitude
-    of a moving body by integrating the *strapdown navigation equations*.
+    This class provides an interface for estimating the attitude of a moving body
+    by integrating the *strapdown navigation equations*.
 
     Parameters
     ----------
     fs : float
         Sampling rate in Hz.
-    x0 : array-like, shape (16,)
+    x0 : array-like, shape (7,)
         Initial state vector containing the following elements in order:
 
-        * Position in x, y, z directions (3 elements).
-        * Velocity in x, y, z directions (3 elements).
         * Attitude as unit quaternion (4 elements).
-        * Accelerometer bias in x, y, z directions (3 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
-    g : float, default 9.80665
-        The gravitational acceleration. Default is 'standard gravity' of 9.80665.
-    nav_frame : {'NED', 'ENU'}, default 'NED'
-        Specifies the assumed inertial-like 'navigation' frame. Should be 'NED' (North-East-Down)
-        (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
-        will be expressed relative to this frame.
 
     Notes
     -----
@@ -209,37 +197,20 @@ class StrapdownAHRS(AHRSMixin):
         degrees: bool = False,
     ) -> Self:
         """
-        Update the INS states by integrating the *strapdown navigation equations*.
+        Update the AHRS states by integrating the *strapdown navigation equations*.
 
-        Assuming constant inputs (i.e., accelerations and angular velocities) over
-        the sampling period.
+        Assuming constant inputs (i.e., angular velocities) over the sampling period.
 
         The states are updated according to::
-
-            p[k+1] = p[k] + h * v[k] + 0.5 * dt * a[k]
-
-            v[k+1] = v[k] + dt * a[k]
 
             q[k+1] = q[k] + dt * T(q[k]) * w_ins[k]
 
         with bias compensated IMU measurements::
 
-            f_ins[k] = f_imu[k] - b_acc[k]
-
             w_ins[k] = w_imu[k] - b_gyro[k]
-
-        and::
-
-            a[k] = R(q[k]) * f_ins[k] + g
-
-            g = [0, 0, 9.81]^T
 
         Parameters
         ----------
-        f_imu : array-like, shape (3,)
-            Specific force measurements (i.e., accelerations + gravity), given
-            as [f_x, f_y, f_z]^T where f_x, f_y and f_z are
-            acceleration measurements in x-, y-, and z-direction, respectively.
         w_imu : array-like, shape (3,)
             Angular rate measurements, given as [w_x, w_y, w_z]^T where
             w_x, w_y and w_z are angular rates about the x-, y-,
@@ -249,7 +220,7 @@ class StrapdownAHRS(AHRSMixin):
 
         Returns
         -------
-        StrapdownINS :
+        StrapdownAHRS :
             A reference to the instance itself after the update.
         """
         w_imu = np.asarray(w_imu, dtype=float)
@@ -263,7 +234,7 @@ class StrapdownAHRS(AHRSMixin):
         q_nm = self._q_nm
         T = _angular_matrix_from_quaternion(q_nm)
 
-        # State propagation (assuming constant linear acceleration and angular velocity)
+        # State propagation (assuming constant angular velocity)
         q_nm = q_nm + self._dt * T @ w_ins
         self._q_nm = _normalize(q_nm)
 
