@@ -384,6 +384,12 @@ class MiniAHRS:
         self._W = self._prep_W(err_gyro)
         self._I = np.eye(6, order="C")
 
+        # Error-state estimate (before reset)
+        self._dx = np.empty_like(self._dx_prealloc)  # needed for smoothing only
+
+        # State transition matrix
+        self._phi = np.empty_like(self._F)  # needed for smoothing only
+
     @property
     def x_prior(self) -> NDArray[np.float64]:
         """
@@ -541,8 +547,8 @@ class MiniAHRS:
             if head_degrees:
                 head = (np.pi / 180.0) * head
 
-        roll, pitch = _roll_pitch_from_acc(f_ins, self._ins._nav_frame)
-        self._ins._x[6:10] = _quaternion_from_euler(np.array([roll, pitch, head]))
+        roll, pitch = _roll_pitch_from_acc(f_ins, self._nav_frame)
+        self._ins._x[0:4] = _quaternion_from_euler(np.array([roll, pitch, head]))
         self._x[:] = self._ins._x
 
     def update(
