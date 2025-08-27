@@ -3,10 +3,17 @@ from typing import Self
 import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
-from ._transforms import _euler_from_quaternion, _angular_matrix_from_quaternion, _rot_matrix_from_quaternion, _quaternion_from_euler
-from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
-from ._ins import _h_head, _signed_smallest_angle, _roll_pitch_from_acc, _dhda_head
+
 from smsfusion.constants import ERR_GYRO_MOTION2
+
+from ._ins import _dhda_head, _h_head, _roll_pitch_from_acc, _signed_smallest_angle
+from ._transforms import (
+    _angular_matrix_from_quaternion,
+    _euler_from_quaternion,
+    _quaternion_from_euler,
+    _rot_matrix_from_quaternion,
+)
+from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
 
 class AHRSMixin:
@@ -263,8 +270,6 @@ class StrapdownAHRS(AHRSMixin):
         return self
 
 
-
-
 class MiniAHRS(AHRSMixin):
     """
     Aided inertial navigation system (AINS) using a multiplicative extended
@@ -317,7 +322,7 @@ class MiniAHRS(AHRSMixin):
         self,
         fs: float,
         x0_prior: ArrayLike = (1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
-        P0_prior: ArrayLike = 1e-6*np.eye(6),
+        P0_prior: ArrayLike = 1e-6 * np.eye(6),
         err_gyro: dict[str, float] = ERR_GYRO_MOTION2,
         nav_frame: str = "NED",
         cold_start: bool = True,
@@ -649,4 +654,3 @@ class MiniAHRS(AHRSMixin):
         self._P_prior[:] = self._phi @ P @ self._phi.T + Q
 
         return self
-
