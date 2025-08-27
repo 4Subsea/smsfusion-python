@@ -274,13 +274,10 @@ class MiniAHRS(AHRSMixin):
     ----------
     fs : float
         Sampling rate in Hz.
-    x0_prior : array-like, shape (16,), default :const:`smsfusion.constants.X0`
-        Initial (a priori) 16-element INS state estimate:
+    x0_prior : array-like, shape (7,), default (1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        Initial (a priori) 7-element INS state estimate:
 
-        * Position (x, y, z) - 3 elements
-        * Velocity (x, y, z) - 3 elements
         * Attitude (unit quaternion) - 4 elements
-        * Accelerometer bias (x, y, z) - 3 elements
         * Gyroscope bias (x, y, z) - 3 elements
 
         Defaults to a zero vector, but with the attitude part as a unit quaternion
@@ -290,14 +287,6 @@ class MiniAHRS(AHRSMixin):
         small diagonal matrix will be used. If the accelerometer bias is excluded from the
         error estimate (see ``ignore_bias_acc``), the covariance matrix should be of shape
         (12, 12), otherwise (15, 15).
-    err_acc : dict of {str: float}, default :const:`smsfusion.constants.ERR_ACC_MOTION2`
-        Dictionary containing accelerometer noise parameters with keys:
-
-        * ``N``: White noise power spectral density in (m/s^2)/sqrt(Hz).
-        * ``B``: Bias stability in m/s^2.
-        * ``tau_cb``: Bias correlation time in seconds.
-
-        Defaults to error characteristics of SMS Motion gen. 2.
     err_gyro : dict of {str: float}, default :const:`smsfusion.constants.ERR_GYRO_MOTION2`
         Dictionary containing gyroscope noise parameters with keys:
 
@@ -306,27 +295,11 @@ class MiniAHRS(AHRSMixin):
         * ``tau_cb``: Bias correlation time in seconds.
 
         Defaults to error characteristics of SMS Motion gen. 2.
-    g : float, default 9.80665
-        The gravitational acceleration. Default is 'standard gravity' of 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
         Specifies the assumed inertial-like 'navigation' frame. Should be 'NED' (North-East-Down)
         (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
         will be expressed relative to this frame. Furthermore, the aiding heading angle is
         also interpreted relative to this frame according to the right-hand rule.
-    lever_arm : array-like, shape (3,), default numpy.zeros(3)
-        Lever-arm vector describing the location of position aiding (in meters) relative
-        to the IMU expressed in the IMU's measurement frame. For instance, the location
-        of the GNSS antenna relative to the IMU. By default it is assumed that the
-        aiding position coincides with the IMU's origin.
-    ignore_bias_acc : bool, default True
-        Determines whether the accelerometer bias should be included in the error estimate.
-        If set to ``True``, the accelerometer bias provided in ``x0`` during initialization
-        will remain fixed and not updated. This option is useful in situations where the
-        accelerometer bias is unobservable, such as when there is insufficient aiding
-        information or minimal dynamic motion, making bias estimation unreliable. Note
-        that this will reduce the error-state dimension from 15 to 12, and hence also the
-        error covariance matrix, **P**, from dimension (15, 15) to (12, 12). When set to
-        ``False``, the P0_prior argument must have shape (15, 15).
     cold_start : bool, default True
         Whether to start the AINS filter in a 'cold' (default) or 'warm' state.
         A cold state indicates that the provided initial conditions are uncertain,
@@ -397,13 +370,10 @@ class MiniAHRS(AHRSMixin):
 
         Returns
         -------
-        numpy.ndarray, shape (16,)
+        numpy.ndarray, shape (7,)
             A priori state vector estimate, containing the following elements in order:
 
-            * Position in x, y, z directions (3 elements).
-            * Velocity in x, y, z directions (3 elements).
             * Attitude as unit quaternion (4 elements).
-            * Accelerometer bias in x, y, z directions (3 elements).
             * Gyroscope bias in x, y, z directions (3 elements).
         """
         return self._ins.x
@@ -581,14 +551,6 @@ class MiniAHRS(AHRSMixin):
             and z-axis, respectively.
         degrees : bool, default False
             Specifies whether the unit of ``w_imu`` are in degrees or radians.
-        pos : array-like, shape (3,), optional
-            Position aiding measurement in m. If ``None``, position aiding is not used.
-        pos_var : array-like, shape (3,), optional
-            Variance of position measurement noise in m^2. Required for ``pos``.
-        vel : array-like, shape (3,), optional
-            Velocity aiding measurement in m/s. If ``None``, velocity aiding is not used.
-        vel_var : array-like, shape (3,), optional
-            Variance of velocity measurement noise in (m/s)^2. Required for ``vel``.
         head : float, optional
             Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
             assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
