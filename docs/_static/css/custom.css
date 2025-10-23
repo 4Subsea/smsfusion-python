@@ -136,6 +136,7 @@ div.admonition {
 .navbar-brand {
   margin-left: 73px;
   margin-top: 5px;
+  margin-right: 40px; /* Add some margin before coming elements*/
 }
 
 /* Fix logo image height*/
