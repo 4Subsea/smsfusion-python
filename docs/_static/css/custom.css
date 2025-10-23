@@ -92,6 +92,11 @@ h3 {
   font-weight: 700;
 }
 
+/* Keep link color for visited links */
+a:visited {
+  color: var(--pst-color-link);
+}
+
 /*****************************************************************************
 * Admonitions
 **/
