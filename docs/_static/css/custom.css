@@ -165,6 +165,11 @@ div.admonition {
   padding-left: 4px;
 }
 
+/* Make 4insight DOCUMENTATION take automatic width */
+.bd-header .navbar-header-items__start {
+  width: auto;
+}
+
 /*****************************************************************************
 * Navbar links
 **/
