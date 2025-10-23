@@ -121,6 +121,7 @@ jobs:
         env:
           AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.FOURINSIGHTTEST_DOC_BLOB_CONNSTR }}
         with:
+          azcliversion: 2.76.0  # Can be removed when this issue is fixed. https://github.com/Azure/azure-cli/issues/32039
           inlineScript: |
             az storage blob upload-batch -d "\$web" -s ./build/html --destination-path "$REPO_NAME_SHORT/python/docs/$VERSION_NUMBER"
         
@@ -130,6 +131,7 @@ jobs:
         env:
           AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.FOURINSIGHTTEST_DOC_BLOB_CONNSTR }}
         with:
+          azcliversion: 2.76.0  # Can be removed when this issue is fixed. https://github.com/Azure/azure-cli/issues/32039
           inlineScript: |
             az storage blob delete-batch -s "\$web" --pattern "$REPO_NAME_SHORT/python/docs/latest/*"
             az storage blob upload-batch -d "\$web" -s ./build/html --destination-path "$REPO_NAME_SHORT/python/docs/latest"
@@ -163,6 +165,7 @@ jobs:
         env:
           AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.FOURINSIGHTPROD_DOC_BLOB_CONNSTR }}
         with:
+          azcliversion: 2.76.0  # Can be removed when this issue is fixed. https://github.com/Azure/azure-cli/issues/32039
           inlineScript: |
             az storage blob upload-batch -d "\$web" -s ./build/html --destination-path "$REPO_NAME_SHORT/python/docs/$VERSION_NUMBER"
 
@@ -172,6 +175,7 @@ jobs:
         env:
           AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.FOURINSIGHTPROD_DOC_BLOB_CONNSTR }}
         with:
+          azcliversion: 2.76.0  # Can be removed when this issue is fixed. https://github.com/Azure/azure-cli/issues/32039
           inlineScript: |
             az storage blob delete-batch -s "\$web" --pattern "$REPO_NAME_SHORT/python/docs/latest/*"
             az storage blob upload-batch -d "\$web" -s ./build/html --destination-path "$REPO_NAME_SHORT/python/docs/latest"
