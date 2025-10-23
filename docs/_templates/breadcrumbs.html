@@ -1,0 +1,19 @@
+<ul class="breadcrumb">
+    {# Home link #}
+    <li><a href="http://docs.4insight.io">Home</a></li>
+
+    {# SDKs link #}
+    <li><a href="http://docs.4insight.io/sdks">SDKs</a></li>
+
+    {# Project ("home") link #}
+    <li><a href="{{ pathto(master_doc) }}">{{project}}</a></li>
+
+    {# Loop through parents #}
+    {% for parent in parents %}
+    <li><a href="{{ parent.link }}">{{ parent.title }}</a></li>
+    {% endfor %}
+
+    {# Current page #}
+    <li>{{ title }}</li>
+
+</ul>

@@ -1,0 +1,7 @@
+{% extends "!layout.html" %}
+
+{%- block docs_navbar %}
+{{ super() }}
+{# Insert breadcrumbs right after the navbar #}
+{% include "breadcrumbs.html" %}
+{%- endblock %}

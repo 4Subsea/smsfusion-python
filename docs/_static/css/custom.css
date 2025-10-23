@@ -1,0 +1,270 @@
+@import "../basic.css";
+
+:root {
+  /*****************************************************************************
+  * Theme config
+  **/
+  --pst-header-height: 44px;
+
+  /*****************************************************************************
+  * Font size
+  **/
+  --pst-font-size-base: 18px; /* base font size - applied at body / html level */
+  --pst-font-size-nav: 15px; /* navbar font size */
+  --pst-font-size-breadcrumb: 16px; /* breadcrumb font size */
+  --pst-font-size-logo: 16px; /* breadcrumb font size */
+
+  /*****************************************************************************
+  * Font family
+  **/
+  /* These are adapted from https://systemfontstack.com/ */
+  --pst-font-family-sansserif-system: "Trebuchet MS", -apple-system,
+    BlinkMacSystemFont, avenir next, avenir, "segoe ui", "helvetica neue",
+    helvetica, Ubuntu, roboto, noto, arial, sans-serif;
+
+  --pst-font-family-serif-system: "Georgia", "Iowan Old Style", "Apple Garamond",
+    Baskerville, "Times New Roman", "Droid Serif", Times, "Source Serif Pro",
+    serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+
+  --pst-font-family-monospace-system: SFMono-Regular, Menlo, Consolas, Monaco,
+    Liberation Mono, "Lucida Console", monospace;
+
+  --pst-font-family-base: var(--pst-font-family-sansserif-system);
+  --pst-font-family-heading: var(--pst-font-family-sansserif-system);
+  --pst-font-family-monospace: var(--pst-font-family-monospace-system);
+
+  /*****************************************************************************
+  * Color
+  **/
+  --pst-color-on-background: #333333 !important; /*navbar bg-colour*/
+  --pst-color-background: #ece9e5 !important;
+
+  --pst-color-primary: #00a0af !important; /* headers */
+  --pst-color-text-base: #49494a !important;
+  --pst-color-info: #009ddc !important;
+  --pst-color-success: 0, 168, 143;
+  --pst-color-warning: 250, 166, 52;
+  --pst-color-danger: 237, 23, 79;
+
+  --pst-color-h1: var(--pst-color-primary) !important;
+  --pst-color-h2: var(--pst-color-primary) !important;
+  --pst-color-h3: #49494a !important;
+  --pst-color-h4: var(--pst-color-primary) !important;
+  --pst-color-h5: var(--pst-color-text-base);
+  --pst-color-h6: var(--pst-color-text-base);
+  --pst-color-paragraph: var(--pst-color-text-base);
+  --pst-color-link: #00a0af !important; /*links*/
+  --pst-color-headerlink: #002d56 !important;
+  --pst-color-headerlink-hover: #0032fa !important;
+  --pst-color-inline-code: #ed174f !important;
+
+  --pst-color-text-muted: #77757a !important ; /* Inactive sidebar links*/
+
+  --pst-color-active-navigation: red !important; /*#00A0Af !important;*/
+  --pst-color-navbar-link: #ece9e5 !important;
+
+  /*****************************************************************************
+  * Admonitions
+  **/
+  --pst-color-admonition-default: var(--pst-color-info) !important;
+  --pst-color-admonition-note: var(--pst-color-info) !important;
+
+  --pst-color-secondary: #00a0af !important;
+}
+
+/*****************************************************************************
+* 4Subsea tweaks
+**/
+h1,
+h2 {
+  color: var(--pst-color-h1);
+}
+
+h1 {
+  font-size: 32px;
+}
+h2 {
+  font-size: 22px;
+}
+
+h3 {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* Keep link color for visited links */
+a:visited {
+  color: var(--pst-color-link);
+}
+
+/*****************************************************************************
+* Admonitions
+**/
+
+.admonition,
+div.admonition {
+  background-color: transparent;
+}
+
+.table tbody tr:nth-child(odd) {
+  background-color: transparent;
+}
+
+.table tbody tr:nth-child(even) {
+  background-color: transparent;
+}
+
+/*****************************************************************************
+* Header adjustments
+**/
+
+/* Let the inner header take full width */
+.bd-header__inner {
+  max-width: 100%;
+}
+
+/* Distribute navigation items, see https://css-tricks.com/snippets/css/a-guide-to-flexbox/#aa-justify-content */
+.bd-header {
+  justify-content: space-between;
+}
+
+/*****************************************************************************
+* Logo and title
+**/
+
+/* Offset the logo to mimic the docs.4insight.io behaviour */
+.navbar-brand {
+  margin-left: 73px;
+  margin-top: 5px;
+  margin-right: 40px; /* Add some margin before coming elements*/
+}
+
+/* Fix logo image height*/
+.navbar-brand img {
+  height: 22px;
+}
+
+.navbar-brand img:hover {
+  height: 32px;
+  border-top: transparent;
+  border-top-style: solid;
+  border-top-width: 2px;
+  padding-top: 3px;
+  border-bottom: var(--pst-color-primary);
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  padding-bottom: 3px;
+}
+
+/* Style the title next to logo */
+.navbar-brand p {
+  color: var(--pst-color-navbar-link);
+}
+
+/* Turn of underline on hover */
+.navbar-brand:hover {
+  text-decoration: none;
+}
+
+.logo__title {
+  font-size: var(--pst-font-size-logo);
+  padding-left: 4px;
+}
+
+/* Make 4insight DOCUMENTATION take automatic width */
+.bd-header .navbar-header-items__start {
+  width: auto;
+}
+
+/*****************************************************************************
+* Navbar links
+**/
+
+/* General text color */
+.navbar-nav .nav-link {
+  color: var(--pst-color-navbar-link) !important;
+}
+
+/* Style the underline on hover */
+.navbar-nav .nav-link:hover::after,
+.navbar-nav .nav-link:focus::after {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--pst-color-link);
+}
+
+/* For active/current page */
+.navbar-nav .nav-link.active::after {
+  color: var(--pst-color-navbar-link);
+  text-decoration: none; /* Remove underline for active link */
+}
+
+/* Set color for dropdown button */
+.bd-header ul.navbar-nav > li.nav-item.dropdown > .dropdown-toggle,
+.bd-header ul.navbar-nav > li.nav-item.dropdown > .dropdown-toggle:hover {
+  color: var(--pst-color-navbar-link);
+  font-size: var(--pst-font-size-nav);
+}
+
+/* Font size for navbar items */
+.bd-header .navbar-nav li {
+  font-size: var(--pst-font-size-nav);
+}
+
+/* Set background color on hover for dropdown items */
+.bd-header ul.navbar-nav li a.nav-link.dropdown-item:hover {
+  background-color: transparent;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--pst-color-link);
+}
+
+/* Color of navbar icons */
+html .pst-navbar-icon {
+  color: var(--pst-color-navbar-link);
+}
+
+/*****************************************************************************
+* Breadcrumb
+**/
+
+/* Styling for breadcrumb container */
+.breadcrumb {
+  height: var(--pst-header-height);
+  background-color: white;
+  font-size: var(--pst-font-size-breadcrumb);
+  padding-left: 16px;
+  padding-top: 10px;
+}
+
+/* Breadcrumb list styling */
+ul.breadcrumb {
+  list-style: none;
+}
+
+/* Remove default link styling */
+ul.breadcrumb li a {
+  text-decoration: none;
+}
+
+/* Add underline effect on hover */
+ul.breadcrumb li a:hover {
+  color: var(--pst-color-link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+/* Add '/' between breadcrumb items */
+ul.breadcrumb li + li:before {
+  padding: 5px;
+  color: var(--pst-color-text-base);
+  content: "/\00a0";
+}
+
+/* Keep the link color even if visited */
+ul.breadcrumb li a:visited {
+  color: var(--pst-color-link);
+}
