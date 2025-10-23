@@ -61,6 +61,7 @@ complete = [
 dependencies = [
   "sphinx",
   "myst-parser",
+  "pydata-sphinx-theme",
 ]
 
 [tool.hatch.envs.docs.scripts]
