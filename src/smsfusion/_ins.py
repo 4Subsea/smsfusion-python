@@ -1537,15 +1537,16 @@ class ConingAlg:
         """
         dt = self._dt
         beta = self._beta_next.copy()
-        dbeta = self._dbeta_next.copy()
         dtheta_prev = self._dtheta_prev.copy()
 
         dtheta = w * dt
         self._dbeta_next += 0.5 * np.cross((beta + (1.0 / 6.0) * dtheta_prev), dtheta)
-
         self._beta_next += dtheta
         self._dtheta_prev = dtheta
-        self._phi = beta + dbeta
+
+    @property
+    def _phi(self):
+        return self._beta_next + self._dbeta_next
 
     def reset(self):
         """
@@ -1557,7 +1558,9 @@ class ConingAlg:
 
 
 class StrapdownAHRS:
-    def __init__(self, fs: float, q0: NDArray[np.float64] = np.array([1.0, 0.0, 0.0, 0.0])):
+    def __init__(
+        self, fs: float, q0: NDArray[np.float64] = np.array([1.0, 0.0, 0.0, 0.0])
+    ):
         self._fs = fs
         self._q_nm = q0.copy()
 
@@ -1588,7 +1591,7 @@ class StrapdownAHRS:
     def update(self, dtheta: NDArray[np.float64], degrees=False) -> Self:
         dtheta = np.asarray_chkfinite(dtheta)
         if degrees:
-            dtheta *= (np.pi / 180.0)
+            dtheta *= np.pi / 180.0
 
         dq = self._quaternion_from_rotvec(dtheta)
 
@@ -1609,44 +1612,44 @@ class StrapdownAHRS:
         return self._q_nm.copy()
 
     def euler(self, degrees: bool = False) -> NDArray[np.float64]:
-            """
-            Get current attitude estimate as Euler angles (see Notes).
+        """
+        Get current attitude estimate as Euler angles (see Notes).
 
-            Parameters
-            ----------
-            degrees : bool, default False
-                Whether to return the Euler angles in degrees or radians.
+        Parameters
+        ----------
+        degrees : bool, default False
+            Whether to return the Euler angles in degrees or radians.
 
-            Returns
-            -------
-            numpy.ndarray, shape (3,)
-                Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
-                in that order.
+        Returns
+        -------
+        numpy.ndarray, shape (3,)
+            Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
+            in that order.
 
-            Notes
-            -----
-            The Euler angles describe how to transition from the 'navigation' frame
-            ('NED' or 'ENU) to the 'body' frame through three consecutive intrinsic
-            and passive rotations in the ZYX order:
+        Notes
+        -----
+        The Euler angles describe how to transition from the 'navigation' frame
+        ('NED' or 'ENU) to the 'body' frame through three consecutive intrinsic
+        and passive rotations in the ZYX order:
 
-            #. A rotation by an angle gamma (often called yaw) about the z-axis.
-            #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
-            #. A final rotation by an angle alpha (often called roll) about the x-axis.
+        #. A rotation by an angle gamma (often called yaw) about the z-axis.
+        #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+        #. A final rotation by an angle alpha (often called roll) about the x-axis.
 
-            This sequence of rotations is used to describe the orientation of the 'body' frame
-            relative to the 'navigation' frame ('NED' or 'ENU) in 3D space.
+        This sequence of rotations is used to describe the orientation of the 'body' frame
+        relative to the 'navigation' frame ('NED' or 'ENU) in 3D space.
 
-            Intrinsic rotations mean that the rotations are with respect to the changing
-            coordinate system; as one rotation is applied, the next is about the axis of
-            the newly rotated system.
+        Intrinsic rotations mean that the rotations are with respect to the changing
+        coordinate system; as one rotation is applied, the next is about the axis of
+        the newly rotated system.
 
-            Passive rotations mean that the frame itself is rotating, not the object
-            within the frame.
-            """
-            q = self.quaternion()
-            theta = _euler_from_quaternion(q)
+        Passive rotations mean that the frame itself is rotating, not the object
+        within the frame.
+        """
+        q = self.quaternion()
+        theta = _euler_from_quaternion(q)
 
-            if degrees:
-                theta = (180.0 / np.pi) * theta
+        if degrees:
+            theta = (180.0 / np.pi) * theta
 
-            return theta  # type: ignore[no-any-return]
+        return theta  # type: ignore[no-any-return]
