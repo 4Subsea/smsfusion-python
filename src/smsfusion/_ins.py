@@ -1564,29 +1564,29 @@ class StrapdownAHRS:
         self._fs = fs
         self._q_nm = q0.copy()
 
-    # @staticmethod
-    # def _quaternion_from_rotvec(phi):
-    #     phi_x, phi_y, phi_z = phi
-
-    #     a = 0.25 * (phi_x**2 + phi_y**2 + phi_z**2)
-    #     f3 = 0.5 * (1.0 - a / 6.0)
-    #     f4 = 1.0 - a / 2.0
-
-    #     q = np.array([f4, f3 * phi_x, f3 * phi_y, f3 * phi_z])
-
-    #     return q
-
     @staticmethod
     def _quaternion_from_rotvec(phi):
-        theta = np.linalg.norm(phi)
-        e = phi / theta
+        phi_x, phi_y, phi_z = phi
 
-        if theta < 1e-8:
-            q = np.array([1.0, 0.0, 0.0, 0.0])
-        else:
-            q = np.r_[np.cos(theta / 2), np.sin(theta / 2) * e]
+        a = 0.25 * (phi_x**2 + phi_y**2 + phi_z**2)
+        f3 = 0.5 * (1.0 - a / 6.0)
+        f4 = 1.0 - a / 2.0
 
-        return _normalize(q)
+        q = np.array([f4, f3 * phi_x, f3 * phi_y, f3 * phi_z])
+
+        return q
+
+    # @staticmethod
+    # def _quaternion_from_rotvec(phi):
+    #     theta = np.linalg.norm(phi)
+    #     e = phi / theta
+
+    #     if theta < 1e-8:
+    #         q = np.array([1.0, 0.0, 0.0, 0.0])
+    #     else:
+    #         q = np.r_[np.cos(theta / 2), np.sin(theta / 2) * e]
+
+    #     return _normalize(q)
 
     def update(self, dtheta: NDArray[np.float64], degrees=False) -> Self:
         dtheta = np.asarray_chkfinite(dtheta)
