@@ -1500,10 +1500,15 @@ class AHRS(AidedINS):
             head_var=head_var,
             head_degrees=head_degrees,
         )
-    
+
 
 class ConingAlg:
-    def __init__(self, fs: float, beta: NDArray[np.float64] = np.array([0.0, 0.0, 0.0]), dbeta: NDArray[np.float64] = np.array([0.0, 0.0, 0.0])) -> None:
+    def __init__(
+        self,
+        fs: float,
+        beta: NDArray[np.float64] = np.array([0.0, 0.0, 0.0]),
+        dbeta: NDArray[np.float64] = np.array([0.0, 0.0, 0.0]),
+    ) -> None:
         """
         Coning algorithm for high-speed IMU integration.
 
