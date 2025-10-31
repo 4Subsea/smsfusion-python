@@ -1521,8 +1521,8 @@ class ConingAlg:
         """
         self._fs = fs
         self._dt = 1.0 / self._fs
-        self._beta_next = np.asarray(beta, dtype=float)
-        self._dbeta_next = np.asarray(dbeta, dtype=float)
+        self._beta = np.asarray(beta, dtype=float)
+        self._dbeta = np.asarray(dbeta, dtype=float)
         self._dtheta_prev = np.zeros(3, dtype=float)
 
     def update(self, w: NDArray[np.float64]) -> None:
@@ -1535,24 +1535,21 @@ class ConingAlg:
             Angular rate measurements (i.e., [w_x, w_y, w_z]^T).
         """
         dt = self._dt
-        beta = self._beta_next.copy()
-        dtheta_prev = self._dtheta_prev.copy()
-
         dtheta = w * dt
-        self._dbeta_next += 0.5 * np.cross((beta + (1.0 / 6.0) * dtheta_prev), dtheta)
-        self._beta_next += dtheta
+        self._dbeta += 0.5 * np.cross((self._beta + (1.0 / 6.0) * self._dtheta_prev), dtheta)
+        self._beta += dtheta
         self._dtheta_prev = dtheta
 
     @property
     def _phi(self):
-        return self._beta_next + self._dbeta_next
+        return self._beta + self._dbeta
 
     def reset(self):
         """
         Reset the coning correction terms to zero.
         """
-        self._beta_next = np.zeros(3, dtype=float)
-        self._dbeta_next = np.zeros(3, dtype=float)
+        self._beta = np.zeros(3, dtype=float)
+        self._dbeta = np.zeros(3, dtype=float)
 
 
 class StrapdownAHRS:
