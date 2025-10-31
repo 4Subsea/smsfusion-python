@@ -1555,3 +1555,19 @@ class ConingAlg:
         self._beta = np.zeros(3, dtype=float)
         self._dbeta = np.zeros(3, dtype=float)
         self._phi = np.zeros(3, dtype=float)
+
+
+class StrapdownAHRS:
+    def __init__(self, fs: float, q0: NDArray[np.float64] = np.array([1.0, 0.0, 0.0, 0.0])):
+        self._fs = fs
+        self._q = q0.copy()
+
+    def update(self, dtheta: NDArray[np.float64], degrees=False) -> Self:
+        dtheta = np.asarray_chkfinite(dtheta)
+        if degrees:
+            dtheta *= (np.pi / 180.0)
+
+        dq = _quaternion_from_rotvec(dtheta)
+
+        self._q = _normalize(_quaternion_product(self._q, dq))
+        return self

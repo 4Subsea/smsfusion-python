@@ -7,6 +7,28 @@ from numpy.typing import ArrayLike, NDArray
 from smsfusion._vectorops import _normalize
 
 
+def _quaternion_from_rotvec(phi: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    Quaternion from rotation vector.
+    """
+
+    theta = np.sqrt(phi[0]**2 + phi[1]**2 + phi[2]**2)
+
+    if theta < 1e-8:
+        q_w = 1.0
+        q_x = 0.0
+        q_y = 0.0
+        q_z = 0.0
+    else:
+        e = phi / theta
+        q_w = np.cos(theta / 2)
+        q_x = np.sin(theta / 2) * e[0]
+        q_y = np.sin(theta / 2) * e[1]
+        q_z = np.sin(theta / 2) * e[2]
+
+    return _normalize(np.array([q_w, q_x, q_y, q_z]))  # type: ignore[no-any-return]  # see _normalize
+
+
 def _angular_matrix_from_euler(
     euler: NDArray[np.float64],
 ) -> NDArray[np.float64]:
