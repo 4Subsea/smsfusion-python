@@ -1521,10 +1521,10 @@ class ConingAlg:
         """
         self._fs = fs
         self._dt = 1.0 / self._fs
-        self._beta = np.asarray(beta, dtype=float)
-        self._dbeta = np.asarray(dbeta, dtype=float)
-        self._dtheta = np.zeros(3, dtype=float)
-        self._phi = self._beta + self._dbeta
+        self._beta_next = np.asarray(beta, dtype=float)
+        self._dbeta_next = np.asarray(dbeta, dtype=float)
+        self._dtheta_prev = np.zeros(3, dtype=float)
+        self._phi = self._beta_next + self._dbeta_next
 
     def update(self, w: NDArray[np.float64]) -> None:
         """
@@ -1560,9 +1560,8 @@ class ConingAlg:
 class StrapdownAHRS:
     def __init__(self, fs: float, q0: NDArray[np.float64] = np.array([1.0, 0.0, 0.0, 0.0])):
         self._fs = fs
-        self._q = q0.copy()
+        self._q_nm = q0.copy()
 
-    @njit
     @staticmethod
     def _quaternion_from_rotvec(phi):
         phi_x, phi_y, phi_z = phi
@@ -1582,5 +1581,61 @@ class StrapdownAHRS:
 
         dq = self._quaternion_from_rotvec(dtheta)
 
-        self._q = _normalize(_quaternion_product(self._q, dq))
+        self._q_nm = _normalize(_quaternion_product(self._q_nm, dq))
         return self
+
+    def quaternion(self) -> NDArray[np.float64]:
+        """
+        Get current attitude estimate as unit quaternion (from-body-to-navigation-frame).
+
+        Returns
+        -------
+        numpy.ndarray, shape (4,)
+            Attitude as unit quaternion. Given as ``[q1, q2, q3, q4]``, where
+            ``q1`` is the real part and ``q2``, ``q3`` and ``q4`` are the three
+            imaginary parts.
+        """
+        return self._q_nm.copy()
+
+    def euler(self, degrees: bool = False) -> NDArray[np.float64]:
+            """
+            Get current attitude estimate as Euler angles (see Notes).
+
+            Parameters
+            ----------
+            degrees : bool, default False
+                Whether to return the Euler angles in degrees or radians.
+
+            Returns
+            -------
+            numpy.ndarray, shape (3,)
+                Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
+                in that order.
+
+            Notes
+            -----
+            The Euler angles describe how to transition from the 'navigation' frame
+            ('NED' or 'ENU) to the 'body' frame through three consecutive intrinsic
+            and passive rotations in the ZYX order:
+
+            #. A rotation by an angle gamma (often called yaw) about the z-axis.
+            #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+            #. A final rotation by an angle alpha (often called roll) about the x-axis.
+
+            This sequence of rotations is used to describe the orientation of the 'body' frame
+            relative to the 'navigation' frame ('NED' or 'ENU) in 3D space.
+
+            Intrinsic rotations mean that the rotations are with respect to the changing
+            coordinate system; as one rotation is applied, the next is about the axis of
+            the newly rotated system.
+
+            Passive rotations mean that the frame itself is rotating, not the object
+            within the frame.
+            """
+            q = self.quaternion()
+            theta = _euler_from_quaternion(q)
+
+            if degrees:
+                theta = (180.0 / np.pi) * theta
+
+            return theta  # type: ignore[no-any-return]
