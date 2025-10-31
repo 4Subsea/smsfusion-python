@@ -1525,7 +1525,7 @@ class ConingAlg:
         self._dbeta = np.asarray(dbeta, dtype=float)
         self._dtheta_prev = np.zeros(3, dtype=float)
 
-    def update(self, w: NDArray[np.float64]) -> None:
+    def update(self, w: NDArray[np.float64], degrees=False) -> None:
         """
         Update the coning correction terms.
 
@@ -1534,6 +1534,11 @@ class ConingAlg:
         w : array-like, shape (3,)
             Angular rate measurements (i.e., [w_x, w_y, w_z]^T).
         """
+        w = np.asarray_chkfinite(w)
+
+        if degrees:
+            w *= np.pi / 180.0
+
         dt = self._dt
         dtheta = w * dt
         self._dbeta += 0.5 * np.cross((self._beta + (1.0 / 6.0) * self._dtheta_prev), dtheta)
