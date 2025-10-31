@@ -1551,8 +1551,8 @@ class ConingAlg:
         """
         Reset the coning correction terms to zero.
         """
-        self._beta = np.zeros(3, dtype=float)
-        self._dbeta = np.zeros(3, dtype=float)
+        self._beta_next = np.zeros(3, dtype=float)
+        self._dbeta_next = np.zeros(3, dtype=float)
         self._phi = np.zeros(3, dtype=float)
 
 
