@@ -1543,7 +1543,7 @@ class ConingAlg:
         dtheta = w * dt
         self._dbeta_next += 0.5 * np.cross((beta + (1.0 / 6.0) * dtheta_prev), dtheta)
 
-        self._beta_next += dbeta
+        self._beta_next += dtheta
         self._dtheta_prev = dtheta
         self._phi = beta + dbeta
 
