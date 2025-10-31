@@ -1562,12 +1562,25 @@ class StrapdownAHRS:
         self._fs = fs
         self._q = q0.copy()
 
+    @njit
+    @staticmethod
+    def _quaternion_from_rotvec(phi):
+        phi_x, phi_y, phi_z = phi
+
+        a = 0.25 * (phi_x**2 + phi_y**2 + phi_z**2)
+        f3 = 0.5 * (1.0 - a / 6.0)
+        f4 = 1.0 - a / 2.0
+
+        q = np.array([f4, f3 * phi_x, f3 * phi_y, f3 * phi_z])
+
+        return q
+
     def update(self, dtheta: NDArray[np.float64], degrees=False) -> Self:
         dtheta = np.asarray_chkfinite(dtheta)
         if degrees:
             dtheta *= (np.pi / 180.0)
 
-        dq = _quaternion_from_rotvec(dtheta)
+        dq = self._quaternion_from_rotvec(dtheta)
 
         self._q = _normalize(_quaternion_product(self._q, dq))
         return self
