@@ -1500,3 +1500,53 @@ class AHRS(AidedINS):
             head_var=head_var,
             head_degrees=head_degrees,
         )
+    
+
+class ConingAlg:
+    def __init__(self, fs: float, beta: NDArray[np.float64] = np.array([0.0, 0.0, 0.0]), dbeta: NDArray[np.float64] = np.array([0.0, 0.0, 0.0])) -> None:
+        """
+        Coning algorithm for high-speed IMU integration.
+
+        Parameters
+        ----------
+        beta : array-like, shape (3,), optional
+            Initial coning correction term. Defaults to zero vector.
+        dbeta : array-like, shape (3,), optional
+            Initial delta coning correction term. Defaults to zero vector.
+        """
+        self._fs = fs
+        self._dt = 1.0 / self._fs
+        self._beta = np.asarray(beta, dtype=float)
+        self._dbeta = np.asarray(dbeta, dtype=float)
+        self._dtheta = np.zeros(3, dtype=float)
+        self._phi = self._beta + self._dbeta
+
+    def update(self, w: NDArray[np.float64]) -> None:
+        """
+        Update the coning correction terms.
+
+        Parameters
+        ----------
+        w : array-like, shape (3,)
+            Angular rate measurements (i.e., [w_x, w_y, w_z]^T).
+        """
+        dt = self._dt
+        beta = self._beta_next
+        dbeta = self._dbeta_next
+        dtheta_prev = self._dtheta_prev
+
+        dtheta = w * dt
+        dbeta_next = dbeta + 0.5 * np.cross((beta + (1.0 / 6.0) * dtheta_prev), dtheta)
+
+        self._beta_next += dtheta
+        self._dbeta_next = dbeta_next
+        self._dtheta_prev = dtheta
+        self._phi = beta + dbeta
+
+    def reset(self):
+        """
+        Reset the coning correction terms to zero.
+        """
+        self._beta = np.zeros(3, dtype=float)
+        self._dbeta = np.zeros(3, dtype=float)
+        self._phi = np.zeros(3, dtype=float)
