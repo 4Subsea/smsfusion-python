@@ -1510,7 +1510,7 @@ class ConingAlg:
         dbeta: NDArray[np.float64] = np.array([0.0, 0.0, 0.0]),
     ) -> None:
         """
-        Coning algorithm for high-speed IMU integration.
+        Coning algorithm for high-speed IMU gyroscope integration.
 
         Parameters
         ----------
