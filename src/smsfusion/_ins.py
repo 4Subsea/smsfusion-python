@@ -1524,7 +1524,6 @@ class ConingAlg:
         self._beta_next = np.asarray(beta, dtype=float)
         self._dbeta_next = np.asarray(dbeta, dtype=float)
         self._dtheta_prev = np.zeros(3, dtype=float)
-        self._phi = self._beta_next + self._dbeta_next
 
     def update(self, w: NDArray[np.float64]) -> None:
         """
@@ -1554,7 +1553,6 @@ class ConingAlg:
         """
         self._beta_next = np.zeros(3, dtype=float)
         self._dbeta_next = np.zeros(3, dtype=float)
-        self._phi = np.zeros(3, dtype=float)
 
 
 class StrapdownAHRS:
