@@ -1536,9 +1536,9 @@ class ConingAlg:
             Angular rate measurements (i.e., [w_x, w_y, w_z]^T).
         """
         dt = self._dt
-        beta = self._beta_next
-        dbeta = self._dbeta_next
-        dtheta_prev = self._dtheta_prev
+        beta = self._beta_next.copy()
+        dbeta = self._dbeta_next.copy()
+        dtheta_prev = self._dtheta_prev.copy()
 
         dtheta = w * dt
         dbeta_next = dbeta + 0.5 * np.cross((beta + (1.0 / 6.0) * dtheta_prev), dtheta)
