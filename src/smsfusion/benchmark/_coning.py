@@ -244,11 +244,12 @@ class ConingSimulator2:
         # ZYX Euler angles
         alpha0 = 0.0
         gamma0 = 0.0
+        beta0 = 0.0
         alpha_dot = self._w_spin
         gamma_dot = self._w_prec
         alpha = alpha0 + alpha_dot * t  # spin angle
         gamma = gamma0 + gamma_dot * t  # precession angle
-        beta = 0.0 * np.ones_like(t)  # constant
+        beta = beta0 * np.ones_like(t)  # constant
         euler = np.column_stack([alpha, beta, gamma])
 
         # Body frame angular velocities from ZYZ Euler angle rates
