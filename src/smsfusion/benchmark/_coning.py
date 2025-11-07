@@ -5,14 +5,23 @@ class ConingSimulator:
     """
     Coning trajectory generator and IMU (gyro) simulator.
 
+    Simulates an IMU sensor with its z-axis tilted an angle beta (constant) with
+    respect to the inertial frame's z-axis. The sensor rotates about its z-axis
+    with a constant rate (the spin rate), while also spinning around the inertial
+    frame's z-axis with a constant rate (the precession rate). The IMU sensor's
+    z-axis will thus trace out a cone shape, with the half-angle defined by beta.
+
     Parameters
     ----------
     omega_prec : float
-        Precession angular velocity in rad/s.
+        Precession angular velocity in rad/s. I.e., the rate at which the IMU sensor's
+        z-axis rotates about the inertial frame's z-axis.
     omega_spin : float
-        Spin angular velocity in rad/s.
+        Spin angular velocity in rad/s. I.e., the rate at which the IMU sensor
+        rotates about its own z-axis.
     beta : float
-        Cone half-angle in radians.
+        Cone half-angle in radians. I.e., the angle between the IMU sensor's z-axis
+        and the inertial frame's z-axis.
     degrees: bool
         Whether to interpret beta in degrees (True) or radians (False), and angular
         velocities in deg/s (True) or rad/s (False).
