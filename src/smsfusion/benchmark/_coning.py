@@ -29,9 +29,9 @@ class ConingSimulator:
 
     def __init__(
         self,
-        omega_prec: float = 1.0,
-        omega_spin: float = 2.0,
-        beta: float = 10.0,
+        omega_prec: float = 180.0,
+        omega_spin: float = 360.0,
+        beta: float = 45.0,
         degrees: bool = True,
     ):
         self._beta = beta
