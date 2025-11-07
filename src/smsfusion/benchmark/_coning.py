@@ -59,7 +59,7 @@ class ConingSimulator:
         velocities in deg/s (True) or rad/s (False).
     """
 
-    def __init__(self, omega_prec: float = 1.0, omega_spin: float = 2.0, beta: float = 10.0, degrees: bool = False):
+    def __init__(self, omega_prec: float = 1.0, omega_spin: float = 2.0, beta: float = 10.0, degrees: bool = True):
         self._beta = beta
         self._w_prec = omega_prec
         self._w_spin = omega_spin
