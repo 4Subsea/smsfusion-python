@@ -114,11 +114,29 @@ class ConingSimulator:
         ctheta, stheta = np.cos(theta), np.sin(theta)
         cphi, sphi = np.cos(phi), np.sin(phi)
 
-        R = np.stack([
-            np.stack([ cpsi*ctheta*cphi - spsi*sphi,   -cpsi*ctheta*sphi - spsi*cphi,   cpsi*stheta ], axis=-1),
-            np.stack([ spsi*ctheta*cphi + cpsi*sphi,   -spsi*ctheta*sphi + cpsi*cphi,   spsi*stheta ], axis=-1),
-            np.stack([        -stheta*cphi,               stheta*sphi,       ctheta     ], axis=-1)
-        ], axis=-2)
+        R11 = cpsi * ctheta * cphi - spsi * sphi
+        R12 = -cpsi * ctheta * sphi - spsi * cphi
+        R13 = cpsi*stheta
+        R21 = spsi*ctheta*cphi + cpsi*sphi
+        R22 = -spsi*ctheta*sphi + cpsi*cphi
+        R23 = spsi*stheta
+        R31 = -stheta*cphi
+        R32 = stheta*sphi
+        R33 = ctheta
+
+        n = len(psi)
+        R = np.empty((n, 3, 3), dtype="float64")
+
+        R[..., 0, 0] = R11
+        R[..., 0, 1] = R12
+        R[..., 0, 2] = R13
+        R[..., 1, 0] = R21
+        R[..., 1, 1] = R22
+        R[..., 1, 2] = R23
+        R[..., 2, 0] = R31
+        R[..., 2, 1] = R32
+        R[..., 2, 2] = R33
+
         return R
 
     @staticmethod
@@ -129,7 +147,6 @@ class ConingSimulator:
         R32 = R[:, 2, 1]
         R33 = R[:, 2, 2]
         yaw   = np.arctan2(R21, R11)
-        # pitch = -np.arcsin(np.clip(R31, -1.0, 1.0))
         pitch = -np.arcsin(R31)
         roll  = np.arctan2(R32, R33)
 
