@@ -85,6 +85,22 @@ class ConingSimulator:
 
         return R_zyz
 
+    @staticmethod
+    def _euler_from_rot_matrix_zyx(R):
+        R11 = R[:, 0, 0]
+        R21 = R[:, 1, 0]
+        R31 = R[:, 2, 0]
+        R32 = R[:, 2, 1]
+        R33 = R[:, 2, 2]
+        yaw   = np.arctan2(R21, R11)
+        # pitch = -np.arcsin(np.clip(R31, -1.0, 1.0))
+        pitch = -np.arcsin(R31)
+        roll  = np.arctan2(R32, R33)
+
+        euler_zyx = np.column_stack([roll, pitch, yaw])
+
+        return euler_zyx
+
     def __call__(self, fs: float, n: int):
         """
         Generate a length-n coning trajectory and corresponding body-frame angular
@@ -116,21 +132,13 @@ class ConingSimulator:
         theta = self._beta * np.ones_like(t)  # constant cone half-angle
         phi = self._phi0 + self._w_spin * t  # spin angle
 
+        # Rotation matrix (body-to-inertial)
         R = self._rot_matrix_from_euler_zyz(psi, theta, phi)
 
-        # Extract ZYX (yaw, pitch, roll) Euler angles
-        R11 = R[:, 0, 0]
-        R21 = R[:, 1, 0]
-        R31 = R[:, 2, 0]
-        R32 = R[:, 2, 1]
-        R33 = R[:, 2, 2]
-        yaw   = np.arctan2(R21, R11)
-        pitch = -np.arcsin(np.clip(R31, -1.0, 1.0))
-        roll  = np.arctan2(R32, R33)
+        # Extract ZYX Euler angles (yaw, pitch, roll)
+        euler_zyx = self._euler_from_rot_matrix_zyx(R)
 
-        euler_zyx = np.column_stack([roll, pitch, yaw])
-
-        # Body frame angular velocities
+        # Body frame angular velocities from ZYZ Euler angle rates
         p = self._w_prec * np.sin(theta) * np.sin(phi)
         q = self._w_prec * np.sin(theta) * np.cos(phi)
         r = self._w_spin + self._w_prec * np.cos(theta)
