@@ -139,7 +139,7 @@ class ConingSimulator:
     def _body_rates_from_euler_zyz(self, psi, theta, phi):
         p = -self._w_prec * np.sin(theta) * np.cos(phi)
         q = self._w_prec * np.sin(theta) * np.sin(phi)
-        r = self._w_spin + self._w_prec * np.cos(theta)
+        r = self._w_spin + self._w_prec * np.cos(theta)  # constant
         r = np.full_like(p, r)
         w_b = np.column_stack([p, q, r])
 
