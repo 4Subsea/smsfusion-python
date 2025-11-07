@@ -42,67 +42,58 @@ import numpy as np
 #         pass
 
 
-class ConingTrajectorySimulator:
+class ConingSimulator:
     """
     Coning trajectory generator and IMU (gyro) simulator.
 
-    Internally uses 313 Euler angles with constant nutation (cone half-angle) β,
-    constant precession rate Ω about inertial Z, and constant spin rate σ about
-    the body Z. Orientation is then converted to ZYX (yaw, pitch, roll).
-
-    What you get from calling the simulator:
-      - t: (n,) time array [s]
-      - euler_zyx: (n, 3) array of [yaw, pitch, roll] in radians (ZYX convention)
-      - omega_b: (n, 3) array of body angular rates [p, q, r] in rad/s
-                 (these are exactly what a 3-axis gyro in the body frame measures)
-
     Parameters
     ----------
-    beta : float, rad
-        Cone half-angle (nutation). β = 0 is pure spin with no coning.
-    omega_prec : float, rad/s
-        Precession rate Ω about the inertial Z axis.
-    sigma_spin : float, rad/s
-        Spin rate σ about the body Z axis.
-    dt : float, s
-        Sampling interval.
-    psi0 : float, rad
-        Initial precession angle ψ(0).
-    phi0 : float, rad
-        Initial spin angle φ(0).
-
-    Notes
-    -----
-    313 angles are:
-        ψ(t) = psi0 + Ω t      (precession)
-        θ(t) = β                (nutation, constant)
-        φ(t) = phi0 + σ t       (spin)
-    Rotation matrix (body->inertial): R = Rz(ψ) Rx(β) Rz(φ)
-
-    ZYX (yaw–pitch–roll) extraction from R:
-        yaw   = atan2(R21, R11)
-        pitch = -arcsin(R31)
-        roll  = atan2(R32, R33)
-
-    Body angular velocity (what gyros measure), for 313 with θ=β const:
-        p = Ω sinβ sinφ
-        q = Ω sinβ cosφ
-        r = σ + Ω cosβ
+    omega_prec : float
+        Precession angular velocity in rad/s.
+    omega_spin : float
+        Spin angular velocity in rad/s.
+    beta : float
+        Cone half-angle in radians.
+    degrees: bool
+        Whether to interpret beta in degrees (True) or radians (False), and angular
+        velocities in deg/s (True) or rad/s (False).
     """
 
-    def __init__(self, omega_prec: float = 1.0, omega_spin: float = 2.0, beta: float = 10.0):
+    def __init__(self, omega_prec: float = 1.0, omega_spin: float = 2.0, beta: float = 10.0, degrees: bool = False):
         self._beta = beta
         self._w_prec = omega_prec
         self._w_spin = omega_spin
         self._psi0 = 0.0
         self._phi0 = 0.0
 
+        if degrees:
+            self._beta = np.deg2rad(self._beta)
+            self._w_prec = np.deg2rad(self._w_prec)
+            self._w_spin = np.deg2rad(self._w_spin)
+
+    @staticmethod
+    def _rot_matrix_from_euler_zyz(psi: np.ndarray, theta: np.ndarray, phi: np.ndarray) -> np.ndarray:
+        cpsi, spsi = np.cos(psi), np.sin(psi)
+        ctheta, stheta = np.cos(theta), np.sin(theta)
+        cphi, sphi = np.cos(phi), np.sin(phi)
+
+        R_zyz = np.stack([
+            np.stack([cpsi * cphi - spsi * ctheta * sphi, -cpsi * sphi - spsi * ctheta * cphi, spsi * stheta], axis=-1),
+            np.stack([spsi * cphi + cpsi * ctheta * sphi, -spsi * sphi + cpsi * ctheta * cphi, -cpsi * stheta], axis=-1),
+            np.stack([stheta * sphi, stheta * cphi, ctheta], axis=-1)
+        ], axis=-2)
+
+        return R_zyz
+
     def __call__(self, fs: float, n: int):
         """
-        Generate a length-n coning trajectory sample.
+        Generate a length-n coning trajectory and corresponding body-frame angular
+        velocities as measured by an IMU sensor.
 
         Parameters
         ----------
+        fs : float
+            Sampling frequency in Hz.
         n : int
             Number of samples to generate.
 
@@ -121,52 +112,29 @@ class ConingTrajectorySimulator:
         t = dt * np.arange(n)
 
         # ZYZ Euler angles
-        psi = self._psi0 + self._w_prec * t  # precession
-        theta = self._beta * np.ones_like(t)  # constant nutation
-        phi = self._phi0 + self._w_spin * t  # spin
+        psi = self._psi0 + self._w_prec * t  # precession angle
+        theta = self._beta * np.ones_like(t)  # constant cone half-angle
+        phi = self._phi0 + self._w_spin * t  # spin angle
 
-        cpsi, spsi = np.cos(psi), np.sin(psi)
-        cth,  sth  = np.cos(theta), np.sin(theta)
-        cphi, sphi = np.cos(phi), np.sin(phi)
+        R = self._rot_matrix_from_euler_zyz(psi, theta, phi)
 
-        # Rotation matrices (vectorized): R = Rz(psi) @ Rx(theta) @ Rz(phi)
-        # Build component matrices for each t: shape (n, 3, 3)
-        Rz_psi = np.stack([
-            np.stack([ cpsi, -spsi, np.zeros_like(t)], axis=-1),
-            np.stack([ spsi,  cpsi, np.zeros_like(t)], axis=-1),
-            np.stack([ np.zeros_like(t), np.zeros_like(t), np.ones_like(t)], axis=-1)
-        ], axis=-2)  # (n, 3, 3)
-
-        Rx_th = np.array([[1.0, 0.0, 0.0],
-                          [0.0,  cth, -sth],
-                          [0.0,  sth,  cth]], dtype=float)  # (3,3) constant
-
-        Rz_phi = np.stack([
-            np.stack([ cphi, -sphi, np.zeros_like(t)], axis=-1),
-            np.stack([ sphi,  cphi, np.zeros_like(t)], axis=-1),
-            np.stack([ np.zeros_like(t), np.zeros_like(t), np.ones_like(t)], axis=-1)
-        ], axis=-2)  # (n, 3, 3)
-
-        # Multiply R = Rz(psi) @ Rx(th) @ Rz(phi) for all t using einsum
-        # First A = Rz(psi) @ Rx(th) -> (n,3,3)
-        A = np.einsum('nij,jk->nik', Rz_psi, Rx_th)
-        # Then R = A @ Rz(phi) -> (n,3,3)
-        R = np.einsum('nij,njk->nik', A, Rz_phi)
-
-        # Extract ZYX (yaw, pitch, roll) from R
-        R11, R21, R31 = R[:, 0, 0], R[:, 1, 0], R[:, 2, 0]
-        R32, R33      = R[:, 2, 1], R[:, 2, 2]
-
+        # Extract ZYX (yaw, pitch, roll) Euler angles
+        R11 = R[:, 0, 0]
+        R21 = R[:, 1, 0]
+        R31 = R[:, 2, 0]
+        R32 = R[:, 2, 1]
+        R33 = R[:, 2, 2]
         yaw   = np.arctan2(R21, R11)
         pitch = -np.arcsin(np.clip(R31, -1.0, 1.0))
         roll  = np.arctan2(R32, R33)
 
-        euler_zyx = np.stack([yaw, pitch, roll], axis=-1)
+        euler_zyx = np.column_stack([roll, pitch, yaw])
 
-        # IMU gyros (body angular velocity) for uniform coning
-        p = self.omega_prec * sth * sphi
-        q = self.omega_prec * sth * cphi
-        r = self.sigma_spin + self.omega_prec * cth
-        omega_b = np.stack([p, q, np.full_like(p, r)], axis=-1)
+        # Body frame angular velocities
+        p = self._w_prec * np.sin(theta) * np.sin(phi)
+        q = self._w_prec * np.sin(theta) * np.cos(phi)
+        r = self._w_spin + self._w_prec * np.cos(theta)
+        r = np.full_like(p, r)
+        w_b = np.column_stack([p, q, r])
 
-        return t, euler_zyx, omega_b
+        return t, euler_zyx, w_b

@@ -7,6 +7,7 @@ from ._benchmark import (
     benchmark_pure_attitude_beat_202311A,
     benchmark_pure_attitude_chirp_202311A,
 )
+from ._coning import ConingSimulator
 
 __all__ = [
     "_benchmark_helper",
@@ -16,4 +17,5 @@ __all__ = [
     "benchmark_pure_attitude_beat_202311A",
     "benchmark_pure_attitude_chirp_202311A",
     "ChirpSignal",
+    "ConingSimulator",
 ]
