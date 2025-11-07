@@ -71,29 +71,6 @@ class ConingSimulator:
             self._w_prec = np.deg2rad(self._w_prec)
             self._w_spin = np.deg2rad(self._w_spin)
 
-    # @staticmethod
-    # def _rot_matrix_from_euler_zxz(psi: np.ndarray, theta: np.ndarray, phi: np.ndarray) -> np.ndarray:
-    #     cpsi, spsi = np.cos(psi), np.sin(psi)
-    #     ctheta, stheta = np.cos(theta), np.sin(theta)
-    #     cphi, sphi = np.cos(phi), np.sin(phi)
-
-    #     R_zyz = np.stack([
-    #         np.stack([cpsi * cphi - spsi * ctheta * sphi, -cpsi * sphi - spsi * ctheta * cphi, spsi * stheta], axis=-1),
-    #         np.stack([spsi * cphi + cpsi * ctheta * sphi, -spsi * sphi + cpsi * ctheta * cphi, -cpsi * stheta], axis=-1),
-    #         np.stack([stheta * sphi, stheta * cphi, ctheta], axis=-1)
-    #     ], axis=-2)
-
-    #     return R_zyz
-
-    # def _body_rates_from_euler_zxz(self, psi, theta, phi):
-    #     p = self._w_prec * np.sin(theta) * np.sin(phi)
-    #     q = self._w_prec * np.sin(theta) * np.cos(phi)
-    #     r = self._w_spin + self._w_prec * np.cos(theta)
-    #     r = np.full_like(p, r)
-    #     w_b = np.column_stack([p, q, r])
-
-    #     return w_b
-
     @staticmethod
     def _rot_matrix_from_euler_zyz(psi, theta, phi):
         """
