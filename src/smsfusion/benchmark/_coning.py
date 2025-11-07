@@ -210,9 +210,6 @@ class ConingSimulator2:
     def __init__(self, omega_prec: float = 1.0, omega_spin: float = 2.0, degrees: bool = True):
         self._w_prec = omega_prec
         self._w_spin = omega_spin
-        self._gamma0 = 0.0
-        self._alpha0 = 0.0
-        self._beta = 0.0
 
         if degrees:
             self._w_prec = np.deg2rad(self._w_prec)
@@ -245,11 +242,13 @@ class ConingSimulator2:
         t = dt * np.arange(n)
 
         # ZYX Euler angles
+        alpha0 = 0.0
+        gamma0 = 0.0
         alpha_dot = self._w_spin
         gamma_dot = self._w_prec
-        alpha = self._alpha0 + alpha_dot * t  # spin angle
-        beta = self._beta * np.ones_like(t)  # constant cone half-angle
-        gamma = self._gamma0 + gamma_dot * t  # precession angle
+        alpha = alpha0 + alpha_dot * t  # spin angle
+        gamma = gamma0 + gamma_dot * t  # precession angle
+        beta = 0.0 * np.ones_like(t)  # constant
         euler = np.column_stack([alpha, beta, gamma])
 
         # Body frame angular velocities from ZYZ Euler angle rates
