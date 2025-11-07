@@ -187,3 +187,75 @@ class ConingSimulator:
         w_b = self._body_rates_from_euler_zyz(psi, theta, phi)
 
         return t, euler_zyx, w_b
+    
+
+
+class ConingSimulator2:
+    """
+    Coning trajectory generator and IMU (gyro) simulator.
+
+    Parameters
+    ----------
+    omega_prec : float
+        Precession angular velocity in rad/s.
+    omega_spin : float
+        Spin angular velocity in rad/s.
+    beta : float
+        Cone half-angle in radians.
+    degrees: bool
+        Whether to interpret beta in degrees (True) or radians (False), and angular
+        velocities in deg/s (True) or rad/s (False).
+    """
+
+    def __init__(self, omega_prec: float = 1.0, omega_spin: float = 2.0, degrees: bool = True):
+        self._w_prec = omega_prec
+        self._w_spin = omega_spin
+        self._gamma0 = 0.0
+        self._alpha0 = 0.0
+        self._beta = 0.0
+
+        if degrees:
+            self._w_prec = np.deg2rad(self._w_prec)
+            self._w_spin = np.deg2rad(self._w_spin)
+
+    def __call__(self, fs: float, n: int):
+        """
+        Generate a length-n coning trajectory and corresponding body-frame angular
+        velocities as measured by an IMU sensor.
+
+        Parameters
+        ----------
+        fs : float
+            Sampling frequency in Hz.
+        n : int
+            Number of samples to generate.
+
+        Returns
+        -------
+        t : ndarray, shape (n,)
+            Time vector in seconds.
+        euler_zyx : ndarray, shape (n, 3)
+            ZYX Euler angles [yaw, pitch, roll] in radians.
+        omega_b : ndarray, shape (n, 3)
+            Body angular velocity [p, q, r] in rad/s (IMU gyro measurements).
+        """
+
+        # Time
+        dt = 1.0 / fs
+        t = dt * np.arange(n)
+
+        # ZYX Euler angles
+        alpha_dot = self._w_spin
+        gamma_dot = self._w_prec
+        alpha = self._alpha0 + alpha_dot * t  # spin angle
+        beta = self._beta * np.ones_like(t)  # constant cone half-angle
+        gamma = self._gamma0 + gamma_dot * t  # precession angle
+        euler = np.column_stack([alpha, beta, gamma])
+
+        # Body frame angular velocities from ZYZ Euler angle rates
+        w_x = alpha_dot * np.ones_like(t)
+        w_y = gamma_dot * np.sin(alpha)
+        w_z = gamma_dot * np.cos(alpha)
+        w_b = np.column_stack([w_x, w_y, w_z])
+
+        return t, euler, w_b
