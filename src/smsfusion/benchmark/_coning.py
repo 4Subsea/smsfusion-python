@@ -1,6 +1,5 @@
 import numpy as np
 
-
 # class ConingTrajectorySimulator:
 #     """
 #     Coning trajectory generator and IMU simulator.
@@ -14,7 +13,7 @@ import numpy as np
 #     - theta be the coning (half) angle. I.e., the angle between r and the z-axis.
 #     - phi be the heading angle. I.e., the angle between the projection of r onto the
 #       x-y plane and the x-axis.
-    
+
 #     Then, the vector, r, can be expressed as:
 
 #         r(t) = R * [sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta)]^T
@@ -59,7 +58,13 @@ class ConingSimulator:
         velocities in deg/s (True) or rad/s (False).
     """
 
-    def __init__(self, omega_prec: float = 1.0, omega_spin: float = 2.0, beta: float = 10.0, degrees: bool = True):
+    def __init__(
+        self,
+        omega_prec: float = 1.0,
+        omega_spin: float = 2.0,
+        beta: float = 10.0,
+        degrees: bool = True,
+    ):
         self._beta = beta
         self._w_prec = omega_prec
         self._w_spin = omega_spin
@@ -93,12 +98,12 @@ class ConingSimulator:
 
         R11 = cpsi * ctheta * cphi - spsi * sphi
         R12 = -cpsi * ctheta * sphi - spsi * cphi
-        R13 = cpsi*stheta
-        R21 = spsi*ctheta*cphi + cpsi*sphi
-        R22 = -spsi*ctheta*sphi + cpsi*cphi
-        R23 = spsi*stheta
-        R31 = -stheta*cphi
-        R32 = stheta*sphi
+        R13 = cpsi * stheta
+        R21 = spsi * ctheta * cphi + cpsi * sphi
+        R22 = -spsi * ctheta * sphi + cpsi * cphi
+        R23 = spsi * stheta
+        R31 = -stheta * cphi
+        R32 = stheta * sphi
         R33 = ctheta
 
         n = len(psi)
@@ -123,9 +128,9 @@ class ConingSimulator:
         R31 = R[:, 2, 0]
         R32 = R[:, 2, 1]
         R33 = R[:, 2, 2]
-        yaw   = np.arctan2(R21, R11)
+        yaw = np.arctan2(R21, R11)
         pitch = -np.arcsin(R31)
-        roll  = np.arctan2(R32, R33)
+        roll = np.arctan2(R32, R33)
 
         euler_zyx = np.column_stack([roll, pitch, yaw])
 
@@ -181,7 +186,6 @@ class ConingSimulator:
         w_b = self._body_rates_from_euler_zyz(psi, theta, phi)
 
         return t, euler_zyx, w_b
-    
 
 
 class ConingSimulator2:
@@ -201,7 +205,9 @@ class ConingSimulator2:
         velocities in deg/s (True) or rad/s (False).
     """
 
-    def __init__(self, omega_prec: float = 1.0, omega_spin: float = 2.0, degrees: bool = True):
+    def __init__(
+        self, omega_prec: float = 1.0, omega_spin: float = 2.0, degrees: bool = True
+    ):
         self._w_prec = omega_prec
         self._w_spin = omega_spin
 
