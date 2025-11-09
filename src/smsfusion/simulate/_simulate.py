@@ -87,7 +87,7 @@ class GyroSimulator:
         return t, euler, w_b
 
 
-class Sine1DSimulator:
+class SineSignal:
     """
     1D sine wave simulator.
 
