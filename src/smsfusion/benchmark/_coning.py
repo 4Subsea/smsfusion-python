@@ -385,7 +385,7 @@ class ConingSimulator3:
         return t, euler_zyx, w_b
 
 
-class SineSimulator1D:
+class Sine1DSimulator:
     def __init__(self, omega, phase, freq_hz=False, phase_degrees=False):
         self._w = 2.0 * np.pi * omega if freq_hz else omega
         self._phase = np.deg2rad(phase) if phase_degrees else phase
