@@ -47,8 +47,8 @@ class GyroSimulator:
         n : int
             Number of samples to generate.
         degrees : bool, optional
-            Whether to return angles and angular velocities in degrees and degrees
-            per second (True) or radians and radians per second (False).
+            Whether to return Euler angles and angular velocities in degrees and
+            degrees per second (True) or radians and radians per second (False).
 
         Returns
         -------
