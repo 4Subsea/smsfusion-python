@@ -1,3 +1,3 @@
-from ._simulate import GyroSimulator, SineSignal
+from ._simulate import IMUSimulator, SineSignal
 
-__all__ = ["GyroSimulator", "SineSignal"]
+__all__ = ["IMUSimulator", "SineSignal"]
