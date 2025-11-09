@@ -72,9 +72,9 @@ class GyroSimulator:
         t = dt * np.arange(n)
 
         # Euler angles and Euler rates
-        alpha, alpha_dot = self._alpha_sim(fs, n)
-        beta, beta_dot = self._beta_sim(fs, n)
-        gamma, gamma_dot = self._gamma_sim(fs, n)
+        _, alpha, alpha_dot = self._alpha_sim(fs, n)
+        _, beta, beta_dot = self._beta_sim(fs, n)
+        _, gamma, gamma_dot = self._gamma_sim(fs, n)
         euler = np.column_stack([alpha, beta, gamma])
         euler_dot = np.column_stack([alpha_dot, beta_dot, gamma_dot])
 
@@ -93,8 +93,15 @@ class Sine1DSimulator:
 
     Defined as:
 
-        y(t) = amp * sin(omega * t + phase)
-        dy(t)/dt = amp * omega * cos(omega * t + phase)
+        y(t) = A * sin(w * t + phi) + B
+        dy(t)/dt = A * w * cos(w * t + phi)
+
+    where,
+
+        A: Amplitude of the sine wave.
+        w: Angular frequency of the sine wave.
+        phi: Phase offset of the sine wave.
+        B: Offset of the sine wave.
 
     Parameters
     ----------
@@ -102,10 +109,12 @@ class Sine1DSimulator:
         Angular frequency of the sine wave. If `hz` is True, this is interpreted
         as frequency in Hz; otherwise, it is interpreted as angular frequency in
         radians per second.
-    amp : float, optional
+    amp : float, default 1.0
         Amplitude of the sine wave. Default is 1.0.
-    phase : float, optional
+    phase : float, default 0.0
         Phase offset of the sine wave. Default is 0.0.
+    offset : float, default 0.0
+        Offset of the sine wave. Default is 0.0.
     hz : bool, optional
         If True, interpret `omega` as frequency in Hz. If False, interpret as angular
         frequency in radians per second. Default is False.
@@ -114,10 +123,11 @@ class Sine1DSimulator:
         Default is False.
     """
 
-    def __init__(self, omega, amp=1.0, phase=0.0, hz=False, phase_degrees=False):
+    def __init__(self, omega, amp=1.0, phase=0.0, offset=0.0, hz=False, phase_degrees=False):
         self._w = 2.0 * np.pi * omega if hz else omega
         self._amp = amp
         self._phase = np.deg2rad(phase) if phase_degrees else phase
+        self._offset = offset
 
     def __call__(self, fs, n):
         """
@@ -133,37 +143,37 @@ class Sine1DSimulator:
         dt = 1.0 / fs
         t = dt * np.arange(n)
 
-        y = self._amp * np.sin(self._w * t + self._phase)
+        y = self._amp * np.sin(self._w * t + self._phase) + self._offset
         dydt = self._amp * self._w * np.cos(self._w * t + self._phase)
 
-        return y, dydt
+        return t, y, dydt
 
 
-class Constant1DSimulator:
-    """
-    Constant value simulator for 1D signals.
+# class Constant1DSimulator:
+#     """
+#     Constant value simulator for 1D signals.
 
-    Parameters
-    ----------
-    const : float
-        Constant value to simulate.
-    """
+#     Parameters
+#     ----------
+#     const : float
+#         Constant value to simulate.
+#     """
 
-    def __init__(self, const):
-        self._const = const
+#     def __init__(self, const):
+#         self._const = const
 
-    def __call__(self, fs, n):
-        """
-        Generate a constant signal and its derivative (always zero).
+#     def __call__(self, fs, n):
+#         """
+#         Generate a constant signal and its derivative (always zero).
 
-        Parameters
-        ----------
-        fs : float
-            Sampling frequency in Hz.
-        n : int
-            Number of samples to generate.
-        """
-        y = self._const * np.ones(int(n))
-        dydt = np.zeros_like(y)
+#         Parameters
+#         ----------
+#         fs : float
+#             Sampling frequency in Hz.
+#         n : int
+#             Number of samples to generate.
+#         """
+#         y = self._const * np.ones(int(n))
+#         dydt = np.zeros_like(y)
 
-        return y, dydt
+#         return y, dydt
