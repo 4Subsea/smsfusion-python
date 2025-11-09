@@ -264,7 +264,7 @@ class ConingSimulator3:
         self,
         psi_sim,
         phi_sim,
-        beta: float = np.pi/4.0,
+        beta: float = np.pi / 4.0,
         degrees: bool = False,
     ):
         self._beta = (np.pi / 180.0) * beta if degrees else beta
@@ -476,5 +476,5 @@ class ConingSimulator3:
 
 #         y = np.sin(self._w * t + self._phase)
 #         dydt = self._w * np.cos(self._w * t + self._phase)
-        
+
 #         return y, dydt

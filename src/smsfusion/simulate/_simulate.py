@@ -130,9 +130,9 @@ class Sine1DSimulator:
 
         y = self._amp * np.sin(self._w * t + self._phase)
         dydt = self._amp * self._w * np.cos(self._w * t + self._phase)
-        
+
         return y, dydt
-    
+
 
 class Constant1DSimulator:
     """
@@ -143,13 +143,14 @@ class Constant1DSimulator:
     const : float
         Constant value to simulate.
     """
+
     def __init__(self, const):
         self._const = const
 
     def __call__(self, fs, n):
         """
         Generate a constant signal and its derivative (always zero).
-        
+
         Parameters
         ----------
         fs : float
@@ -159,5 +160,5 @@ class Constant1DSimulator:
         """
         y = self._const * np.ones(int(n))
         dydt = np.zeros_like(y)
-        
+
         return y, dydt
