@@ -145,33 +145,3 @@ class SineSignal:
         dydt = self._amp * self._omega * np.cos(self._omega * t + self._phase)
 
         return t, y, dydt
-
-
-# class Constant1DSimulator:
-#     """
-#     Constant value simulator for 1D signals.
-
-#     Parameters
-#     ----------
-#     const : float
-#         Constant value to simulate.
-#     """
-
-#     def __init__(self, const):
-#         self._const = const
-
-#     def __call__(self, fs, n):
-#         """
-#         Generate a constant signal and its derivative (always zero).
-
-#         Parameters
-#         ----------
-#         fs : float
-#             Sampling frequency in Hz.
-#         n : int
-#             Number of samples to generate.
-#         """
-#         y = self._const * np.ones(int(n))
-#         dydt = np.zeros_like(y)
-
-#         return y, dydt
