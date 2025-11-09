@@ -228,3 +228,166 @@ class ConingSimulator2:
         w_b = np.column_stack([w_x, w_y, w_z])
 
         return t, euler, w_b
+
+
+class ConingSimulator3:
+    """
+    Coning trajectory generator and IMU (gyro) simulator.
+
+    Simulates an IMU sensor with its z-axis tilted an angle beta (constant) with
+    respect to the inertial frame's z-axis. The sensor rotates about its z-axis
+    with a constant rate (the spin rate), while also spinning around the inertial
+    frame's z-axis with a constant rate (the precession rate). The IMU sensor's
+    z-axis will thus trace out a cone shape, with the half-angle defined by beta.
+
+    Parameters
+    ----------
+    psi_fun : callable
+        Precession angle in radians as a function of time. I.e., rotation of IMU
+        sensor's z-axis about the inertial frame's z-axis.
+    psi_dot_fun : callable
+        Precession angular velocity in rad/s as a function of time.
+    phi_fun : callable
+        Spin angle in radians as a function of time.
+    phi_dot_fun : callable
+        Spin angular velocity in rad/s as a function of time. I.e., the rate at
+        which the IMU sensor rotates about its own z-axis.
+    beta : float
+        Cone half-angle in radians (constant). I.e., the angle between the IMU sensor's
+        z-axis and the inertial frame's z-axis.
+    degrees: bool
+        Whether to interpret beta in degrees (True) or radians (False), and angular
+        velocities in deg/s (True) or rad/s (False).
+    """
+
+    def __init__(
+        self,
+        psi: callable,
+        psi_dot: callable,
+        phi: callable,
+        phi_dot: callable,
+        beta: float = np.pi/4.0,
+        degrees: bool = False,
+    ):
+        self._beta = (np.pi / 180.0) * beta if degrees else beta
+        self._psi = psi
+        self._psi_dot = psi_dot
+        self._phi = phi
+        self._phi_dot = phi_dot
+        self._psi0 = 0.0
+        self._phi0 = 0.0
+
+    @staticmethod
+    def _rot_matrix_from_euler_zyz(psi, theta, phi):
+        """
+        Euler ZYZ rotation matrix:
+            R = Rz(psi) @ Ry(theta) @ Rz(phi)
+
+        Parameters
+        ----------
+        psi, theta, phi : array_like
+            Euler angles (ZYZ) in radians. Broadcasting is supported.
+
+        Returns
+        -------
+        R : ndarray
+            Rotation matrix/matrices of shape (..., 3, 3).
+        """
+        cpsi, spsi = np.cos(psi), np.sin(psi)
+        ctheta, stheta = np.cos(theta), np.sin(theta)
+        cphi, sphi = np.cos(phi), np.sin(phi)
+
+        R11 = cpsi * ctheta * cphi - spsi * sphi
+        R12 = -cpsi * ctheta * sphi - spsi * cphi
+        R13 = cpsi * stheta
+        R21 = spsi * ctheta * cphi + cpsi * sphi
+        R22 = -spsi * ctheta * sphi + cpsi * cphi
+        R23 = spsi * stheta
+        R31 = -stheta * cphi
+        R32 = stheta * sphi
+        R33 = ctheta
+
+        n = len(psi)
+        R = np.empty((n, 3, 3), dtype="float64")
+
+        R[..., 0, 0] = R11
+        R[..., 0, 1] = R12
+        R[..., 0, 2] = R13
+        R[..., 1, 0] = R21
+        R[..., 1, 1] = R22
+        R[..., 1, 2] = R23
+        R[..., 2, 0] = R31
+        R[..., 2, 1] = R32
+        R[..., 2, 2] = R33
+
+        return R
+
+    @staticmethod
+    def _euler_from_rot_matrix_zyx(R):
+        R11 = R[:, 0, 0]
+        R21 = R[:, 1, 0]
+        R31 = R[:, 2, 0]
+        R32 = R[:, 2, 1]
+        R33 = R[:, 2, 2]
+        yaw = np.arctan2(R21, R11)
+        pitch = -np.arcsin(R31)
+        roll = np.arctan2(R32, R33)
+
+        euler_zyx = np.column_stack([roll, pitch, yaw])
+
+        return euler_zyx
+
+    def _body_rates_from_euler_zyz(self, theta, phi, psi_dot, phi_dot):
+        p = -psi_dot * np.sin(theta) * np.cos(phi)
+        q = psi_dot * np.sin(theta) * np.sin(phi)
+        r = phi_dot + psi_dot * np.cos(theta)
+        r = np.full_like(p, r)
+        w_b = np.column_stack([p, q, r])
+
+        return w_b
+
+    def __call__(self, fs: float, n: int):
+        """
+        Generate a length-n coning trajectory and corresponding body-frame angular
+        velocities as measured by an IMU sensor.
+
+        Parameters
+        ----------
+        fs : float
+            Sampling frequency in Hz.
+        n : int
+            Number of samples to generate.
+
+        Returns
+        -------
+        t : ndarray, shape (n,)
+            Time vector in seconds.
+        euler_zyx : ndarray, shape (n, 3)
+            ZYX Euler angles [yaw, pitch, roll] in radians.
+        omega_b : ndarray, shape (n, 3)
+            Body angular velocity [p, q, r] in rad/s (IMU gyro measurements).
+        """
+
+        # Time
+        dt = 1.0 / fs
+        t = dt * np.arange(n)
+
+        # ZYZ Euler angles
+        psi = self._psi(t)  # precession angle
+        theta = self._beta * np.ones_like(t)  # constant cone half-angle
+        phi = self._phit()  # spin angle
+
+        # Euler rates
+        psi_dot = self._psi_dot(t)
+        phi_dot = self._phi_dot(t)
+
+        # Rotation matrix (body-to-inertial)
+        R = self._rot_matrix_from_euler_zyz(psi, theta, phi)
+
+        # Extract ZYX Euler angles (yaw, pitch, roll)
+        euler_zyx = self._euler_from_rot_matrix_zyx(R)
+
+        # Body frame angular velocities from ZYZ Euler angle rates
+        w_b = self._body_rates_from_euler_zyz(theta, phi, psi_dot, phi_dot)
+
+        return t, euler_zyx, w_b
