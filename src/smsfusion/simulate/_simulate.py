@@ -124,7 +124,7 @@ class IMUSimulator:
         Whether to interpret the Euler angle signals as degrees (True) or radians (False).
     """
 
-    def __init__(self, pos_x, pos_y, pos_z, alpha, beta, gamma, degrees=False, g=9.80665, nav_frame="NED"):
+    def __init__(self, pos_x=0.0, pos_y=0.0, pos_z=0.0, alpha=0.0, beta=0.0, gamma=0.0, degrees=False, g=9.80665, nav_frame="NED"):
         self._degrees = degrees
         self._nav_frame = nav_frame.lower()
         if self._nav_frame == "ned":
@@ -154,7 +154,7 @@ class IMUSimulator:
         else:
             self._gamma_sig = gamma
 
-    def _specific_force_body(self, pos, vel, acc, euler):
+    def _specific_force_body(self, pos, acc, euler):
         """
         Specific force in the body frame.
 
@@ -169,16 +169,15 @@ class IMUSimulator:
         euler : ndarray, shape (n, 3)
             Euler angles [alpha, beta, gamma]^T in radians.
         """
-        g = 9.80665  # m/s^2
         n = pos.shape[0]
         f_b = np.zeros((n, 3))
 
         for i in range(n):
-            euler_i = euler[i]
+            R_i = _rot_matrix_from_euler(euler[i])
+            f_b[i] = R_i.T.dot(acc[i] + self._g_n)
 
-            R_i = _rot_matrix_from_euler(euler_i).T.dot(
-                acc_i + np.array([0.0, 0.0, -gravity()])
-            )
+        return f_b
+
 
     def _angular_velocity_body(self, euler, euler_dot):
         """
@@ -251,7 +250,7 @@ class IMUSimulator:
             euler = np.deg2rad(euler)
             euler_dot = np.deg2rad(euler_dot)
 
-        f_b = self._specific_force_body(pos, vel, acc, euler)
+        f_b = self._specific_force_body(pos, acc, euler)
         w_b = self._angular_velocity_body(euler, euler_dot)
 
         if degrees:
