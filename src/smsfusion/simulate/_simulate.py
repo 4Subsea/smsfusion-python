@@ -109,7 +109,7 @@ class ConstantSignal:
         return t, y, dydt, d2ydt2
 
 
-Signal = SineSignal | ConstantSignal
+DOFSignal = SineSignal | ConstantSignal
 
 
 class IMUSimulator:
@@ -118,17 +118,17 @@ class IMUSimulator:
 
     Parameters
     ----------
-    pos_x : float or Signal, default 0.0
+    pos_x : float or DOFSignal, default 0.0
         X position signal.
-    pos_y : float or Signal, default 0.0
+    pos_y : float or DOFSignal, default 0.0
         Y position signal.
-    pos_z : float or Signal, default 0.0
+    pos_z : float or DOFSignal, default 0.0
         Z position signal.
-    alpha : float or Signal, default 0.0
+    alpha : float or DOFSignal, default 0.0
         Roll signal.
-    beta : float or Signal, default 0.0
+    beta : float or DOFSignal, default 0.0
         Pitch signal
-    gamma : float or Signal, default 0.0
+    gamma : float or DOFSignal, default 0.0
         Yaw signal
     degrees: bool
         Whether to interpret the Euler angle signals as degrees (True) or radians (False).
@@ -136,12 +136,12 @@ class IMUSimulator:
 
     def __init__(
         self,
-        pos_x: float | Signal = 0.0,
-        pos_y: float | Signal = 0.0,
-        pos_z: float | Signal = 0.0,
-        alpha: float | Signal = 0.0,
-        beta: float | Signal = 0.0,
-        gamma: float | Signal = 0.0,
+        pos_x: float | DOFSignal = 0.0,
+        pos_y: float | DOFSignal = 0.0,
+        pos_z: float | DOFSignal = 0.0,
+        alpha: float | DOFSignal = 0.0,
+        beta: float | DOFSignal = 0.0,
+        gamma: float | DOFSignal = 0.0,
         degrees=False,
         g=9.80665,
         nav_frame="NED",
@@ -162,43 +162,18 @@ class IMUSimulator:
         else:
             raise ValueError("Invalid navigation frame. Must be 'NED' or 'ENU'.")
 
-        if not isinstance(self._pos_x_sig, Signal):
+        if not isinstance(self._pos_x_sig, DOFSignal):
             self._pos_x_sig = ConstantSignal(self._pos_x_sig)
-        if not isinstance(self._pos_y_sig, Signal):
+        if not isinstance(self._pos_y_sig, DOFSignal):
             self._pos_y_sig = ConstantSignal(self._pos_y_sig)
-        if not isinstance(self._pos_z_sig, Signal):
+        if not isinstance(self._pos_z_sig, DOFSignal):
             self._pos_z_sig = ConstantSignal(self._pos_z_sig)
-        if not isinstance(self._alpha_sig, Signal):
+        if not isinstance(self._alpha_sig, DOFSignal):
             self._alpha_sig = ConstantSignal(self._alpha_sig)
-        if not isinstance(self._beta_sig, Signal):
+        if not isinstance(self._beta_sig, DOFSignal):
             self._beta_sig = ConstantSignal(self._beta_sig)
-        if not isinstance(self._gamma_sig, Signal):
+        if not isinstance(self._gamma_sig, DOFSignal):
             self._gamma_sig = ConstantSignal(self._gamma_sig)
-
-        # if isinstance(pos_x, (int, float)):
-        #     self._pos_x_sig = ConstantSignal(pos_x)
-        # else:
-        #     self._pos_x_sig = pos_x
-        # if isinstance(pos_y, (int, float)):
-        #     self._pos_y_sig = ConstantSignal(pos_y)
-        # else:
-        #     self._pos_y_sig = pos_y
-        # if isinstance(pos_z, (int, float)):
-        #     self._pos_z_sig = ConstantSignal(pos_z)
-        # else:
-        #     self._pos_z_sig = pos_z
-        # if isinstance(alpha, (int, float)):
-        #     self._alpha_sig = ConstantSignal(alpha)
-        # else:
-        #     self._alpha_sig = alpha
-        # if isinstance(beta, (int, float)):
-        #     self._beta_sig = ConstantSignal(beta)
-        # else:
-        #     self._beta_sig = beta
-        # if isinstance(gamma, (int, float)):
-        #     self._gamma_sig = ConstantSignal(gamma)
-        # else:
-        #     self._gamma_sig = gamma
 
     def _specific_force_body(self, pos, acc, euler):
         """
@@ -305,105 +280,105 @@ class IMUSimulator:
         return t, pos, vel, euler, f_b, w_b
 
 
-class GyroSimulator:
-    """
-    Gyroscope simulator.
+# class GyroSimulator:
+#     """
+#     Gyroscope simulator.
 
-    Parameters
-    ----------
-    alpha : float or SineSignal, default 0.0
-        Roll signal.
-    beta : float or SineSignal, default 0.0
-        Pitch signal
-    gamma : float or SineSignal, default 0.0
-        Yaw signal
-    degrees: bool
-        Whether to interpret the Euler angle signals as degrees (True) or radians (False).
-    """
+#     Parameters
+#     ----------
+#     alpha : float or SineSignal, default 0.0
+#         Roll signal.
+#     beta : float or SineSignal, default 0.0
+#         Pitch signal
+#     gamma : float or SineSignal, default 0.0
+#         Yaw signal
+#     degrees: bool
+#         Whether to interpret the Euler angle signals as degrees (True) or radians (False).
+#     """
 
-    def __init__(self, alpha, beta, gamma, degrees=False):
-        self._degrees = degrees
-        if isinstance(alpha, (int, float)):
-            self._alpha_sig = ConstantSignal(alpha)
-        else:
-            self._alpha_sig = alpha
-        if isinstance(beta, (int, float)):
-            self._beta_sig = ConstantSignal(beta)
-        else:
-            self._beta_sig = beta
-        if isinstance(gamma, (int, float)):
-            self._gamma_sig = ConstantSignal(gamma)
-        else:
-            self._gamma_sig = gamma
+#     def __init__(self, alpha, beta, gamma, degrees=False):
+#         self._degrees = degrees
+#         if isinstance(alpha, (int, float)):
+#             self._alpha_sig = ConstantSignal(alpha)
+#         else:
+#             self._alpha_sig = alpha
+#         if isinstance(beta, (int, float)):
+#             self._beta_sig = ConstantSignal(beta)
+#         else:
+#             self._beta_sig = beta
+#         if isinstance(gamma, (int, float)):
+#             self._gamma_sig = ConstantSignal(gamma)
+#         else:
+#             self._gamma_sig = gamma
 
-    def _angular_velocity_body(self, euler, euler_dot):
-        """
-        Angular velocity in the body frame.
+#     def _angular_velocity_body(self, euler, euler_dot):
+#         """
+#         Angular velocity in the body frame.
 
-        Parameters
-        ----------
-        euler : ndarray, shape (n, 3)
-            Euler angles [alpha, beta, gamma]^T in radians.
-        euler_dot : ndarray, shape (n, 3)
-            Time derivatives of Euler angles [alpha_dot, beta_dot, gamma_dot]^T
-            in radians per second.
-        """
-        alpha, beta, _ = euler.T
-        alpha_dot, beta_dot, gamma_dot = euler_dot.T
+#         Parameters
+#         ----------
+#         euler : ndarray, shape (n, 3)
+#             Euler angles [alpha, beta, gamma]^T in radians.
+#         euler_dot : ndarray, shape (n, 3)
+#             Time derivatives of Euler angles [alpha_dot, beta_dot, gamma_dot]^T
+#             in radians per second.
+#         """
+#         alpha, beta, _ = euler.T
+#         alpha_dot, beta_dot, gamma_dot = euler_dot.T
 
-        w_x = alpha_dot - np.sin(beta) * gamma_dot
-        w_y = np.cos(alpha) * beta_dot + np.sin(alpha) * np.cos(beta) * gamma_dot
-        w_z = -np.sin(alpha) * beta_dot + np.cos(alpha) * np.cos(beta) * gamma_dot
+#         w_x = alpha_dot - np.sin(beta) * gamma_dot
+#         w_y = np.cos(alpha) * beta_dot + np.sin(alpha) * np.cos(beta) * gamma_dot
+#         w_z = -np.sin(alpha) * beta_dot + np.cos(alpha) * np.cos(beta) * gamma_dot
 
-        w_b = np.column_stack([w_x, w_y, w_z])
+#         w_b = np.column_stack([w_x, w_y, w_z])
 
-        return w_b
+#         return w_b
 
-    def __call__(self, fs: float, n: int, degrees=None):
-        """
-        Generate a length-n gyroscope signal and corresponding Euler angles.
+#     def __call__(self, fs: float, n: int, degrees=None):
+#         """
+#         Generate a length-n gyroscope signal and corresponding Euler angles.
 
-        Parameters
-        ----------
-        fs : float
-            Sampling frequency in Hz.
-        n : int
-            Number of samples to generate.
-        degrees : bool, optional
-            Whether to return Euler angles and angular velocities in degrees and
-            degrees per second (True) or radians and radians per second (False).
+#         Parameters
+#         ----------
+#         fs : float
+#             Sampling frequency in Hz.
+#         n : int
+#             Number of samples to generate.
+#         degrees : bool, optional
+#             Whether to return Euler angles and angular velocities in degrees and
+#             degrees per second (True) or radians and radians per second (False).
 
-        Returns
-        -------
-        t : ndarray, shape (n,)
-            Time vector in seconds.
-        euler : ndarray, shape (n, 3)
-            Simulated (ZYX) Euler angles [roll, pitch, yaw]^T.
-        w_b : ndarray, shape (n, 3)
-            Simulated angular velocities, [w_x, w_y, w_z]^T, in the body frame.
-        """
-        if degrees is None:
-            degrees = self._degrees
+#         Returns
+#         -------
+#         t : ndarray, shape (n,)
+#             Time vector in seconds.
+#         euler : ndarray, shape (n, 3)
+#             Simulated (ZYX) Euler angles [roll, pitch, yaw]^T.
+#         w_b : ndarray, shape (n, 3)
+#             Simulated angular velocities, [w_x, w_y, w_z]^T, in the body frame.
+#         """
+#         if degrees is None:
+#             degrees = self._degrees
 
-        # Time
-        dt = 1.0 / fs
-        t = dt * np.arange(n)
+#         # Time
+#         dt = 1.0 / fs
+#         t = dt * np.arange(n)
 
-        # Euler angles and Euler rates
-        _, alpha, alpha_dot, _ = self._alpha_sig(fs, n)
-        _, beta, beta_dot, _ = self._beta_sig(fs, n)
-        _, gamma, gamma_dot, _ = self._gamma_sig(fs, n)
-        euler = np.column_stack([alpha, beta, gamma])
-        euler_dot = np.column_stack([alpha_dot, beta_dot, gamma_dot])
+#         # Euler angles and Euler rates
+#         _, alpha, alpha_dot, _ = self._alpha_sig(fs, n)
+#         _, beta, beta_dot, _ = self._beta_sig(fs, n)
+#         _, gamma, gamma_dot, _ = self._gamma_sig(fs, n)
+#         euler = np.column_stack([alpha, beta, gamma])
+#         euler_dot = np.column_stack([alpha_dot, beta_dot, gamma_dot])
 
-        if self._degrees:
-            euler = np.deg2rad(euler)
-            euler_dot = np.deg2rad(euler_dot)
+#         if self._degrees:
+#             euler = np.deg2rad(euler)
+#             euler_dot = np.deg2rad(euler_dot)
 
-        w_b = self._angular_velocity_body(euler, euler_dot)
+#         w_b = self._angular_velocity_body(euler, euler_dot)
 
-        if degrees:
-            euler = np.rad2deg(euler)
-            w_b = np.rad2deg(w_b)
+#         if degrees:
+#             euler = np.rad2deg(euler)
+#             w_b = np.rad2deg(w_b)
 
-        return t, euler, w_b
+#         return t, euler, w_b
