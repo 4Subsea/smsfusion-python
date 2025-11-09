@@ -145,8 +145,14 @@ class IMUSimulator:
     ):
         self._degrees = degrees
         self._nav_frame = nav_frame.lower()
+
         if self._nav_frame == "ned":
             self._g_n = np.array([0.0, 0.0, g])
+        elif self._nav_frame == "enu":
+            self._g_n = np.array([0.0, 0.0, -g])
+        else:
+            raise ValueError("Invalid navigation frame. Must be 'NED' or 'ENU'.")
+
         if isinstance(pos_x, (int, float)):
             self._pos_x_sig = ConstantSignal(pos_x)
         else:
@@ -192,7 +198,7 @@ class IMUSimulator:
 
         for i in range(n):
             R_i = _rot_matrix_from_euler(euler[i])
-            f_b[i] = R_i.T.dot(acc[i] + self._g_n)
+            f_b[i] = R_i.T.dot(acc[i] - self._g_n)
 
         return f_b
 
