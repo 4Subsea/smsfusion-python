@@ -109,23 +109,26 @@ class ConstantSignal:
         return t, y, dydt, d2ydt2
 
 
+Signal = SineSignal | ConstantSignal
+
+
 class IMUSimulator:
     """
     IMU simulator.
 
     Parameters
     ----------
-    pos_x : float or ConstantSignal, default 0.0
+    pos_x : float or Signal, default 0.0
         X position signal.
-    pos_y : float or ConstantSignal, default 0.0
+    pos_y : float or Signal, default 0.0
         Y position signal.
-    pos_z : float or ConstantSignal, default 0.0
+    pos_z : float or Signal, default 0.0
         Z position signal.
-    alpha : float or SineSignal, default 0.0
+    alpha : float or Signal, default 0.0
         Roll signal.
-    beta : float or SineSignal, default 0.0
+    beta : float or Signal, default 0.0
         Pitch signal
-    gamma : float or SineSignal, default 0.0
+    gamma : float or Signal, default 0.0
         Yaw signal
     degrees: bool
         Whether to interpret the Euler angle signals as degrees (True) or radians (False).
@@ -133,16 +136,22 @@ class IMUSimulator:
 
     def __init__(
         self,
-        pos_x=0.0,
-        pos_y=0.0,
-        pos_z=0.0,
-        alpha=0.0,
-        beta=0.0,
-        gamma=0.0,
+        pos_x: float | Signal = 0.0,
+        pos_y: float | Signal = 0.0,
+        pos_z: float | Signal = 0.0,
+        alpha: float | Signal = 0.0,
+        beta: float | Signal = 0.0,
+        gamma: float | Signal = 0.0,
         degrees=False,
         g=9.80665,
         nav_frame="NED",
     ):
+        self._pos_x_sig = pos_x
+        self._pos_y_sig = pos_y
+        self._pos_z_sig = pos_z
+        self._alpha_sig = alpha
+        self._beta_sig = beta
+        self._gamma_sig = gamma
         self._degrees = degrees
         self._nav_frame = nav_frame.lower()
 
@@ -153,30 +162,43 @@ class IMUSimulator:
         else:
             raise ValueError("Invalid navigation frame. Must be 'NED' or 'ENU'.")
 
-        if isinstance(pos_x, (int, float)):
-            self._pos_x_sig = ConstantSignal(pos_x)
-        else:
-            self._pos_x_sig = pos_x
-        if isinstance(pos_y, (int, float)):
-            self._pos_y_sig = ConstantSignal(pos_y)
-        else:
-            self._pos_y_sig = pos_y
-        if isinstance(pos_z, (int, float)):
-            self._pos_z_sig = ConstantSignal(pos_z)
-        else:
-            self._pos_z_sig = pos_z
-        if isinstance(alpha, (int, float)):
-            self._alpha_sig = ConstantSignal(alpha)
-        else:
-            self._alpha_sig = alpha
-        if isinstance(beta, (int, float)):
-            self._beta_sig = ConstantSignal(beta)
-        else:
-            self._beta_sig = beta
-        if isinstance(gamma, (int, float)):
-            self._gamma_sig = ConstantSignal(gamma)
-        else:
-            self._gamma_sig = gamma
+        if not isinstance(self._pos_x_sig, Signal):
+            self._pos_x_sig = ConstantSignal(self._pos_x_sig)
+        if not isinstance(self._pos_y_sig, Signal):
+            self._pos_y_sig = ConstantSignal(self._pos_y_sig)
+        if not isinstance(self._pos_z_sig, Signal):
+            self._pos_z_sig = ConstantSignal(self._pos_z_sig)
+        if not isinstance(self._alpha_sig, Signal):
+            self._alpha_sig = ConstantSignal(self._alpha_sig)
+        if not isinstance(self._beta_sig, Signal):
+            self._beta_sig = ConstantSignal(self._beta_sig)
+        if not isinstance(self._gamma_sig, Signal):
+            self._gamma_sig = ConstantSignal(self._gamma_sig)
+
+        # if isinstance(pos_x, (int, float)):
+        #     self._pos_x_sig = ConstantSignal(pos_x)
+        # else:
+        #     self._pos_x_sig = pos_x
+        # if isinstance(pos_y, (int, float)):
+        #     self._pos_y_sig = ConstantSignal(pos_y)
+        # else:
+        #     self._pos_y_sig = pos_y
+        # if isinstance(pos_z, (int, float)):
+        #     self._pos_z_sig = ConstantSignal(pos_z)
+        # else:
+        #     self._pos_z_sig = pos_z
+        # if isinstance(alpha, (int, float)):
+        #     self._alpha_sig = ConstantSignal(alpha)
+        # else:
+        #     self._alpha_sig = alpha
+        # if isinstance(beta, (int, float)):
+        #     self._beta_sig = ConstantSignal(beta)
+        # else:
+        #     self._beta_sig = beta
+        # if isinstance(gamma, (int, float)):
+        #     self._gamma_sig = ConstantSignal(gamma)
+        # else:
+        #     self._gamma_sig = gamma
 
     def _specific_force_body(self, pos, acc, euler):
         """
