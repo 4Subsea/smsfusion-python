@@ -8,6 +8,7 @@ from ._benchmark import (
     benchmark_pure_attitude_chirp_202311A,
 )
 from ._coning import ConingSimulator
+from ._simulate import GyroSimulator
 
 __all__ = [
     "_benchmark_helper",
@@ -18,4 +19,5 @@ __all__ = [
     "benchmark_pure_attitude_chirp_202311A",
     "ChirpSignal",
     "ConingSimulator",
+    "GyroSimulator",
 ]
