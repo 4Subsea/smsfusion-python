@@ -89,7 +89,12 @@ class GyroSimulator:
 
 class Sine1DSimulator:
     """
-    Sine wave simulator for 1D signals.
+    1D sine wave simulator.
+
+    Defined as:
+
+        y(t) = amp * sin(omega * t + phase)
+        dy(t)/dt = amp * omega * cos(omega * t + phase)
 
     Parameters
     ----------
