@@ -88,7 +88,7 @@ class GyroSimulator:
 
 class SineSignal:
     """
-    1D sine wave simulator.
+    1D sine wave signal generator.
 
     Defined as:
 
@@ -97,10 +97,10 @@ class SineSignal:
 
     where,
 
-        A: Amplitude of the sine wave.
-        w: Angular frequency of the sine wave.
-        phi: Phase offset of the sine wave.
-        B: Offset of the sine wave.
+    - A  : Amplitude of the sine wave.
+    - w  : Angular frequency of the sine wave.
+    - phi: Phase offset of the sine wave.
+    - B  : Offset of the sine wave.
 
     Parameters
     ----------
