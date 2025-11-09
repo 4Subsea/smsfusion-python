@@ -25,6 +25,17 @@ class GyroSimulator:
         self._rad_scale = np.pi / 180.0 if degrees else 1.0
 
     def _angular_velocity_body(self, euler, euler_dot):
+        """
+        Angular velocity in the body frame.
+
+        Parameters
+        ----------
+        euler : ndarray, shape (n, 3)
+            Euler angles [alpha, beta, gamma]^T in radians.
+        euler_dot : ndarray, shape (n, 3)
+            Time derivatives of Euler angles [alpha_dot, beta_dot, gamma_dot]^T
+            in radians per second.
+        """
         alpha, beta, _ = euler.T
         alpha_dot, beta_dot, gamma_dot = euler_dot.T
 
