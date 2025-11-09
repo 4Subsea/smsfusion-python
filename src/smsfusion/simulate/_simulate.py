@@ -1,4 +1,264 @@
 import numpy as np
+from smsfusion._transforms import _rot_matrix_from_euler
+
+
+class SineSignal:
+    """
+    1D sine wave signal generator.
+
+    Defined as:
+
+        y(t) = A * sin(w * t + phi) + B
+        dy(t)/dt = A * w * cos(w * t + phi)
+        d2y(t)/dt2 = -A * w^2 * sin(w * t + phi)
+
+    where,
+
+    - A  : Amplitude of the sine wave.
+    - w  : Angular frequency of the sine wave.
+    - phi: Phase offset of the sine wave.
+    - B  : Offset of the sine wave.
+
+    Parameters
+    ----------
+    amp : float, default 1.0
+        Amplitude of the sine wave. Default is 1.0.
+    omega : float, default 1.0
+        Angular frequency of the sine wave in rad/s. Default is 1.0
+        radians per second.
+    phase : float, default 0.0
+        Phase offset of the sine wave. Default is 0.0.
+    offset : float, default 0.0
+        Offset of the sine wave. Default is 0.0.
+    hz : bool, optional
+        If True, interpret `omega` as frequency in Hz. If False, interpret as angular
+        frequency in radians per second. Default is False.
+    phase_degrees : bool, optional
+        If True, interpret `phase` in degrees. If False, interpret in radians.
+        Default is False.
+    """
+
+    def __init__(self, amp=1.0, omega=1.0, phase=0.0, offset=0.0, phase_degrees=False):
+        self._amp = amp
+        self._omega = omega
+        self._phase = np.deg2rad(phase) if phase_degrees else phase
+        self._offset = offset
+
+    def __call__(self, fs, n):
+        """
+        Generate a sine wave and its derivative.
+
+        Parameters
+        ----------
+        fs : float
+            Sampling frequency in Hz.
+        n : int
+            Number of samples to generate.
+        """
+        dt = 1.0 / fs
+        t = dt * np.arange(n)
+
+        y = self._amp * np.sin(self._omega * t + self._phase) + self._offset
+        dydt = self._amp * self._omega * np.cos(self._omega * t + self._phase)
+        d2ydt2 = -self._amp * self._omega**2 * np.sin(self._omega * t + self._phase)
+
+        return t, y, dydt, d2ydt2
+
+
+class ConstantSignal:
+    """
+    1D constant signal generator.
+
+    Defined as:
+
+        y(t) = C
+        dy(t)/dt = 0
+        d2y(t)/dt2 = 0
+
+    where,
+
+    - C  : Constant value of the signal.
+
+    Parameters
+    ----------
+    value : float, default 0.0
+        Constant value of the signal. Default is 0.0.
+    """
+
+    def __init__(self, value=0.0):
+        self._value = value
+
+    def __call__(self, fs, n):
+        """
+        Generate a constant signal and its derivative.
+
+        Parameters
+        ----------
+        fs : float
+            Sampling frequency in Hz.
+        n : int
+            Number of samples to generate.
+        """
+        n = int(n)
+        t = np.arange(n) / fs
+        y = np.full(n, self._value)
+        dydt = np.zeros(n)
+        d2ydt2 = np.zeros(n)
+
+        return t, y, dydt, d2ydt2
+
+
+class IMUSimulator:
+    """
+    Gyroscope simulator.
+
+    Parameters
+    ----------
+    alpha : float or SineSignal, default 0.0
+        Roll signal.
+    beta : float or SineSignal, default 0.0
+        Pitch signal
+    gamma : float or SineSignal, default 0.0
+        Yaw signal
+    degrees: bool
+        Whether to interpret the Euler angle signals as degrees (True) or radians (False).
+    """
+
+    def __init__(self, pos_x, pos_y, pos_z, alpha, beta, gamma, degrees=False, g=9.80665, nav_frame="NED"):
+        self._degrees = degrees
+        self._nav_frame = nav_frame.lower()
+        if self._nav_frame == "ned":
+            self._g_n = np.array([0.0, 0.0, g])
+        if isinstance(pos_x, (int, float)):
+            self._pos_x_sig = ConstantSignal(pos_x)
+        else:
+            self._pos_x_sig = pos_x
+        if isinstance(pos_y, (int, float)):
+            self._pos_y_sig = ConstantSignal(pos_y)
+        else:
+            self._pos_y_sig = pos_y
+        if isinstance(pos_z, (int, float)):
+            self._pos_z_sig = ConstantSignal(pos_z)
+        else:
+            self._pos_z_sig = pos_z
+        if isinstance(alpha, (int, float)):
+            self._alpha_sig = ConstantSignal(alpha)
+        else:
+            self._alpha_sig = alpha
+        if isinstance(beta, (int, float)):
+            self._beta_sig = ConstantSignal(beta)
+        else:
+            self._beta_sig = beta
+        if isinstance(gamma, (int, float)):
+            self._gamma_sig = ConstantSignal(gamma)
+        else:
+            self._gamma_sig = gamma
+
+    def _specific_force_body(self, pos, vel, acc, euler):
+        """
+        Specific force in the body frame.
+
+        Parameters
+        ----------
+        pos : ndarray, shape (n, 3)
+            Position [x, y, z]^T in meters.
+        vel : ndarray, shape (n, 3)
+            Velocity [x_dot, y_dot, z_dot]^T in meters per second.
+        acc : ndarray, shape (n, 3)
+            Acceleration [x_ddot, y_ddot, z_ddot]^T in meters per second squared.
+        euler : ndarray, shape (n, 3)
+            Euler angles [alpha, beta, gamma]^T in radians.
+        """
+        g = 9.80665  # m/s^2
+        n = pos.shape[0]
+        f_b = np.zeros((n, 3))
+
+        for i in range(n):
+            euler_i = euler[i]
+
+            R_i = _rot_matrix_from_euler(euler_i).T.dot(
+                acc_i + np.array([0.0, 0.0, -gravity()])
+            )
+
+    def _angular_velocity_body(self, euler, euler_dot):
+        """
+        Angular velocity in the body frame.
+
+        Parameters
+        ----------
+        euler : ndarray, shape (n, 3)
+            Euler angles [alpha, beta, gamma]^T in radians.
+        euler_dot : ndarray, shape (n, 3)
+            Time derivatives of Euler angles [alpha_dot, beta_dot, gamma_dot]^T
+            in radians per second.
+        """
+        alpha, beta, _ = euler.T
+        alpha_dot, beta_dot, gamma_dot = euler_dot.T
+
+        w_x = alpha_dot - np.sin(beta) * gamma_dot
+        w_y = np.cos(alpha) * beta_dot + np.sin(alpha) * np.cos(beta) * gamma_dot
+        w_z = -np.sin(alpha) * beta_dot + np.cos(alpha) * np.cos(beta) * gamma_dot
+
+        w_b = np.column_stack([w_x, w_y, w_z])
+
+        return w_b
+
+    def __call__(self, fs: float, n: int, degrees=None):
+        """
+        Generate a length-n gyroscope signal and corresponding Euler angles.
+
+        Parameters
+        ----------
+        fs : float
+            Sampling frequency in Hz.
+        n : int
+            Number of samples to generate.
+        degrees : bool, optional
+            Whether to return Euler angles and angular velocities in degrees and
+            degrees per second (True) or radians and radians per second (False).
+
+        Returns
+        -------
+        t : ndarray, shape (n,)
+            Time vector in seconds.
+        euler : ndarray, shape (n, 3)
+            Simulated (ZYX) Euler angles [roll, pitch, yaw]^T.
+        w_b : ndarray, shape (n, 3)
+            Simulated angular velocities, [w_x, w_y, w_z]^T, in the body frame.
+        """
+        if degrees is None:
+            degrees = self._degrees
+
+        # Time
+        dt = 1.0 / fs
+        t = dt * np.arange(n)
+
+        # Euler angles and Euler rates
+        _, pos_x, pos_x_dot, pos_x_ddot = self._pos_x_sig(fs, n)
+        _, pos_y, pos_y_dot, pos_y_ddot = self._pos_y_sig(fs, n)
+        _, pos_z, pos_z_dot, pos_z_ddot = self._pos_z_sig(fs, n)
+        _, alpha, alpha_dot, _ = self._alpha_sig(fs, n)
+        _, beta, beta_dot, _ = self._beta_sig(fs, n)
+        _, gamma, gamma_dot, _ = self._gamma_sig(fs, n)
+
+        pos = np.column_stack([pos_x, pos_y, pos_z])
+        vel = np.column_stack([pos_x_dot, pos_y_dot, pos_z_dot])
+        acc = np.column_stack([pos_x_ddot, pos_y_ddot, pos_z_ddot])
+        euler = np.column_stack([alpha, beta, gamma])
+        euler_dot = np.column_stack([alpha_dot, beta_dot, gamma_dot])
+
+        if self._degrees:
+            euler = np.deg2rad(euler)
+            euler_dot = np.deg2rad(euler_dot)
+
+        f_b = self._specific_force_body(pos, vel, acc, euler)
+        w_b = self._angular_velocity_body(euler, euler_dot)
+
+        if degrees:
+            euler = np.rad2deg(euler)
+            w_b = np.rad2deg(w_b)
+
+        return t, pos, vel, euler, f_b, w_b
 
 
 class GyroSimulator:
@@ -86,9 +346,9 @@ class GyroSimulator:
         t = dt * np.arange(n)
 
         # Euler angles and Euler rates
-        _, alpha, alpha_dot = self._alpha_sig(fs, n)
-        _, beta, beta_dot = self._beta_sig(fs, n)
-        _, gamma, gamma_dot = self._gamma_sig(fs, n)
+        _, alpha, alpha_dot, _ = self._alpha_sig(fs, n)
+        _, beta, beta_dot,  _ = self._beta_sig(fs, n)
+        _, gamma, gamma_dot, _ = self._gamma_sig(fs, n)
         euler = np.column_stack([alpha, beta, gamma])
         euler_dot = np.column_stack([alpha_dot, beta_dot, gamma_dot])
 
@@ -103,105 +363,3 @@ class GyroSimulator:
             w_b = np.rad2deg(w_b)
 
         return t, euler, w_b
-
-
-class SineSignal:
-    """
-    1D sine wave signal generator.
-
-    Defined as:
-
-        y(t) = A * sin(w * t + phi) + B
-        dy(t)/dt = A * w * cos(w * t + phi)
-
-    where,
-
-    - A  : Amplitude of the sine wave.
-    - w  : Angular frequency of the sine wave.
-    - phi: Phase offset of the sine wave.
-    - B  : Offset of the sine wave.
-
-    Parameters
-    ----------
-    amp : float, default 1.0
-        Amplitude of the sine wave. Default is 1.0.
-    omega : float, default 1.0
-        Angular frequency of the sine wave in rad/s. Default is 1.0
-        radians per second.
-    phase : float, default 0.0
-        Phase offset of the sine wave. Default is 0.0.
-    offset : float, default 0.0
-        Offset of the sine wave. Default is 0.0.
-    hz : bool, optional
-        If True, interpret `omega` as frequency in Hz. If False, interpret as angular
-        frequency in radians per second. Default is False.
-    phase_degrees : bool, optional
-        If True, interpret `phase` in degrees. If False, interpret in radians.
-        Default is False.
-    """
-
-    def __init__(self, amp=1.0, omega=1.0, phase=0.0, offset=0.0, phase_degrees=False):
-        self._amp = amp
-        self._omega = omega
-        self._phase = np.deg2rad(phase) if phase_degrees else phase
-        self._offset = offset
-
-    def __call__(self, fs, n):
-        """
-        Generate a sine wave and its derivative.
-
-        Parameters
-        ----------
-        fs : float
-            Sampling frequency in Hz.
-        n : int
-            Number of samples to generate.
-        """
-        dt = 1.0 / fs
-        t = dt * np.arange(n)
-
-        y = self._amp * np.sin(self._omega * t + self._phase) + self._offset
-        dydt = self._amp * self._omega * np.cos(self._omega * t + self._phase)
-
-        return t, y, dydt
-
-
-class ConstantSignal:
-    """
-    1D constant signal generator.
-
-    Defined as:
-
-        y(t) = C
-        dy(t)/dt = 0
-
-    where,
-
-    - C  : Constant value of the signal.
-
-    Parameters
-    ----------
-    value : float, default 0.0
-        Constant value of the signal. Default is 0.0.
-    """
-
-    def __init__(self, value=0.0):
-        self._value = value
-
-    def __call__(self, fs, n):
-        """
-        Generate a constant signal and its derivative.
-
-        Parameters
-        ----------
-        fs : float
-            Sampling frequency in Hz.
-        n : int
-            Number of samples to generate.
-        """
-        n = int(n)
-        t = np.arange(n) / fs
-        y = np.full(n, self._value)
-        dydt = np.zeros(n)
-
-        return t, y, dydt
