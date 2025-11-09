@@ -262,18 +262,14 @@ class ConingSimulator3:
 
     def __init__(
         self,
-        psi: callable,
-        psi_dot: callable,
-        phi: callable,
-        phi_dot: callable,
+        psi_sim,
+        phi_sim,
         beta: float = np.pi/4.0,
         degrees: bool = False,
     ):
         self._beta = (np.pi / 180.0) * beta if degrees else beta
-        self._psi = psi
-        self._psi_dot = psi_dot
-        self._phi = phi
-        self._phi_dot = phi_dot
+        self._psi_sim = psi_sim
+        self._phi_sim = phi_sim
         self._psi0 = 0.0
         self._phi0 = 0.0
 
@@ -373,13 +369,9 @@ class ConingSimulator3:
         t = dt * np.arange(n)
 
         # ZYZ Euler angles
-        psi = self._psi(t)  # precession angle
+        psi, psi_dot = self._psi_sim(fs, n)  # precession angle and rate
+        phi, phi_dot = self._phi_sim(fs, n)
         theta = self._beta * np.ones_like(t)  # constant cone half-angle
-        phi = self._phi(t)  # spin angle
-
-        # Euler rates
-        psi_dot = self._psi_dot(t)
-        phi_dot = self._phi_dot(t)
 
         # Rotation matrix (body-to-inertial)
         R = self._rot_matrix_from_euler_zyz(psi, theta, phi)
@@ -391,3 +383,18 @@ class ConingSimulator3:
         w_b = self._body_rates_from_euler_zyz(theta, phi, psi_dot, phi_dot)
 
         return t, euler_zyx, w_b
+
+
+class SineSimulator1D:
+    def __init__(self, omega, phase, freq_hz=False, phase_degrees=False):
+        self._w = 2.0 * np.pi * omega if freq_hz else omega
+        self._phase = np.deg2rad(phase) if phase_degrees else phase
+
+    def __call__(self, fs, n):
+        dt = 1.0 / fs
+        t = dt * np.arange(n)
+
+        y = np.sin(self._w * t + self._phase)
+        dydt = self._w * np.cos(self._w * t + self._phase)
+        
+        return y, dydt
