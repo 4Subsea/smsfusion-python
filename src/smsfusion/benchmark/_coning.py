@@ -375,7 +375,7 @@ class ConingSimulator3:
         # ZYZ Euler angles
         psi = self._psi(t)  # precession angle
         theta = self._beta * np.ones_like(t)  # constant cone half-angle
-        phi = self._phit()  # spin angle
+        phi = self._phi(t)  # spin angle
 
         # Euler rates
         psi_dot = self._psi_dot(t)
