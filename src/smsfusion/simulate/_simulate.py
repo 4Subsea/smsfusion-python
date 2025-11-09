@@ -1,4 +1,5 @@
 import numpy as np
+
 from smsfusion._transforms import _rot_matrix_from_euler
 
 
@@ -110,10 +111,16 @@ class ConstantSignal:
 
 class IMUSimulator:
     """
-    Gyroscope simulator.
+    IMU simulator.
 
     Parameters
     ----------
+    pos_x : float or ConstantSignal, default 0.0
+        X position signal.
+    pos_y : float or ConstantSignal, default 0.0
+        Y position signal.
+    pos_z : float or ConstantSignal, default 0.0
+        Z position signal.
     alpha : float or SineSignal, default 0.0
         Roll signal.
     beta : float or SineSignal, default 0.0
@@ -124,7 +131,18 @@ class IMUSimulator:
         Whether to interpret the Euler angle signals as degrees (True) or radians (False).
     """
 
-    def __init__(self, pos_x=0.0, pos_y=0.0, pos_z=0.0, alpha=0.0, beta=0.0, gamma=0.0, degrees=False, g=9.80665, nav_frame="NED"):
+    def __init__(
+        self,
+        pos_x=0.0,
+        pos_y=0.0,
+        pos_z=0.0,
+        alpha=0.0,
+        beta=0.0,
+        gamma=0.0,
+        degrees=False,
+        g=9.80665,
+        nav_frame="NED",
+    ):
         self._degrees = degrees
         self._nav_frame = nav_frame.lower()
         if self._nav_frame == "ned":
@@ -177,7 +195,6 @@ class IMUSimulator:
             f_b[i] = R_i.T.dot(acc[i] + self._g_n)
 
         return f_b
-
 
     def _angular_velocity_body(self, euler, euler_dot):
         """
@@ -346,7 +363,7 @@ class GyroSimulator:
 
         # Euler angles and Euler rates
         _, alpha, alpha_dot, _ = self._alpha_sig(fs, n)
-        _, beta, beta_dot,  _ = self._beta_sig(fs, n)
+        _, beta, beta_dot, _ = self._beta_sig(fs, n)
         _, gamma, gamma_dot, _ = self._gamma_sig(fs, n)
         euler = np.column_stack([alpha, beta, gamma])
         euler_dot = np.column_stack([alpha_dot, beta_dot, gamma_dot])
