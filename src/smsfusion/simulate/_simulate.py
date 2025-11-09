@@ -7,22 +7,30 @@ class GyroSimulator:
 
     Parameters
     ----------
-    alpha : SineSignal
+    alpha : float or SineSignal, default 0.0
         Roll signal.
-    beta : SineSignal
+    beta : float or SineSignal, default 0.0
         Pitch signal
-    gamma : SineSignal
+    gamma : float or SineSignal, default 0.0
         Yaw signal
     degrees: bool
         Whether to interpret the Euler angle signals as degrees (True) or radians (False).
     """
 
     def __init__(self, alpha, beta, gamma, degrees=False):
-        self._alpha_sig = alpha
-        self._beta_sig = beta
-        self._gamma_sig = gamma
         self._degrees = degrees
-        self._rad_scale = np.pi / 180.0 if degrees else 1.0
+        if isinstance(alpha, (int, float)):
+            self._alpha_sig = ConstantSignal(alpha)
+        else:
+            self._alpha_sig = alpha
+        if isinstance(beta, (int, float)):
+            self._beta_sig = ConstantSignal(beta)
+        else:
+            self._beta_sig = beta
+        if isinstance(gamma, (int, float)):
+            self._gamma_sig = ConstantSignal(gamma)
+        else:
+            self._gamma_sig = gamma
 
     def _angular_velocity_body(self, euler, euler_dot):
         """
@@ -154,5 +162,46 @@ class SineSignal:
 
         y = self._amp * np.sin(self._omega * t + self._phase) + self._offset
         dydt = self._amp * self._omega * np.cos(self._omega * t + self._phase)
+
+        return t, y, dydt
+
+
+class ConstantSignal:
+    """
+    1D constant signal generator.
+
+    Defined as:
+
+        y(t) = C
+        dy(t)/dt = 0
+
+    where,
+
+    - C  : Constant value of the signal.
+
+    Parameters
+    ----------
+    value : float, default 0.0
+        Constant value of the signal. Default is 0.0.
+    """
+
+    def __init__(self, value=0.0):
+        self._value = value
+
+    def __call__(self, fs, n):
+        """
+        Generate a constant signal and its derivative.
+
+        Parameters
+        ----------
+        fs : float
+            Sampling frequency in Hz.
+        n : int
+            Number of samples to generate.
+        """
+        n = int(n)
+        t = np.arange(n) / fs
+        y = np.full(n, self._value)
+        dydt = np.zeros(n)
 
         return t, y, dydt
