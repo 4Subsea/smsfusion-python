@@ -7,27 +7,22 @@ class GyroSimulator:
 
     Parameters
     ----------
-    alpha_sim : callable
-        Roll angle and angular velocity simulator.
-    beta_sim : callable
-        Pitch angle and angular velocity simulator.
-    gamma_sim : callable
-        Yaw angle and angular velocity simulator.
+    alpha : SineSignal
+        Roll signal.
+    beta : SineSignal
+        Pitch signal
+    gamma : SineSignal
+        Yaw signal
     degrees: bool
-        Whether to interpret the simulated angles in degrees (True) or radians (False).
+        Whether to interpret the Euler angle signals as degrees (True) or radians (False).
     """
 
-    def __init__(
-        self,
-        alpha_sim,
-        beta_sim,
-        gamma_sim,
-        degrees=False,
-    ):
-        self._alpha_sim = alpha_sim
-        self._beta_sim = beta_sim
-        self._gamma_sim = gamma_sim
+    def __init__(self, alpha, beta, gamma, degrees=False):
+        self._alpha_sig = alpha
+        self._beta_sig = beta
+        self._gamma_sig = gamma
         self._degrees = degrees
+        self._rad_scale = np.pi / 180.0 if degrees else 1.0
 
     def _angular_velocity_body(self, euler, euler_dot):
         alpha, beta, _ = euler.T
@@ -72,11 +67,15 @@ class GyroSimulator:
         t = dt * np.arange(n)
 
         # Euler angles and Euler rates
-        _, alpha, alpha_dot = self._alpha_sim(fs, n)
-        _, beta, beta_dot = self._beta_sim(fs, n)
-        _, gamma, gamma_dot = self._gamma_sim(fs, n)
+        _, alpha, alpha_dot = self._alpha_sig(fs, n)
+        _, beta, beta_dot = self._beta_sig(fs, n)
+        _, gamma, gamma_dot = self._gamma_sig(fs, n)
         euler = np.column_stack([alpha, beta, gamma])
         euler_dot = np.column_stack([alpha_dot, beta_dot, gamma_dot])
+
+        if self._degrees:
+            euler = np.deg2rad(euler)
+            euler_dot = np.deg2rad(euler_dot)
 
         w_b = self._angular_velocity_body(euler, euler_dot)
 
@@ -105,12 +104,11 @@ class SineSignal:
 
     Parameters
     ----------
-    omega : float
-        Angular frequency of the sine wave. If `hz` is True, this is interpreted
-        as frequency in Hz; otherwise, it is interpreted as angular frequency in
-        radians per second.
     amp : float, default 1.0
         Amplitude of the sine wave. Default is 1.0.
+    omega : float, default 1.0
+        Angular frequency of the sine wave in rad/s. Default is 1.0
+        radians per second.
     phase : float, default 0.0
         Phase offset of the sine wave. Default is 0.0.
     offset : float, default 0.0
@@ -123,9 +121,9 @@ class SineSignal:
         Default is False.
     """
 
-    def __init__(self, omega, amp=1.0, phase=0.0, offset=0.0, hz=False, phase_degrees=False):
-        self._w = 2.0 * np.pi * omega if hz else omega
+    def __init__(self, amp=1.0, omega=1.0, phase=0.0, offset=0.0, phase_degrees=False):
         self._amp = amp
+        self._omega = omega
         self._phase = np.deg2rad(phase) if phase_degrees else phase
         self._offset = offset
 
@@ -143,8 +141,8 @@ class SineSignal:
         dt = 1.0 / fs
         t = dt * np.arange(n)
 
-        y = self._amp * np.sin(self._w * t + self._phase) + self._offset
-        dydt = self._amp * self._w * np.cos(self._w * t + self._phase)
+        y = self._amp * np.sin(self._omega * t + self._phase) + self._offset
+        dydt = self._amp * self._omega * np.cos(self._omega * t + self._phase)
 
         return t, y, dydt
 
