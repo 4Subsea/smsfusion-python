@@ -55,9 +55,9 @@ class GyroSimulator:
         t : ndarray, shape (n,)
             Time vector in seconds.
         euler : ndarray, shape (n, 3)
-            Simulated Euler angles (roll, pitch, yaw).
+            Simulated (ZYX) Euler angles [roll, pitch, yaw]^T.
         w_b : ndarray, shape (n, 3)
-            Simulated angular velocities in the body frame.
+            Simulated angular velocities, [w_x, w_y, w_z]^T, in the body frame.
         """
         if degrees is None:
             degrees = self._degrees
