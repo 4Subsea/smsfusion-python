@@ -3,13 +3,7 @@ import numpy as np
 
 class GyroSimulator:
     """
-    Coning trajectory generator and IMU (gyro) simulator.
-
-    Simulates an IMU sensor with its z-axis tilted an angle beta (constant) with
-    respect to the inertial frame's z-axis. The sensor rotates about its z-axis
-    with a constant rate (the spin rate), while also spinning around the inertial
-    frame's z-axis with a constant rate (the precession rate). The IMU sensor's
-    z-axis will thus trace out a cone shape, with the half-angle defined by beta.
+    Gyroscope simulator.
 
     Parameters
     ----------
@@ -19,6 +13,8 @@ class GyroSimulator:
         Pitch angle and angular velocity simulator.
     gamma_sim : callable
         Yaw angle and angular velocity simulator.
+    degrees: bool
+        Whether to interpret the simulated angles in degrees (True) or radians (False).
     """
 
     def __init__(
@@ -26,10 +22,12 @@ class GyroSimulator:
         alpha_sim,
         beta_sim,
         gamma_sim,
+        degrees=False,
     ):
         self._alpha_sim = alpha_sim
         self._beta_sim = beta_sim
         self._gamma_sim = gamma_sim
+        self._degrees = degrees
 
     def _angular_velocity_body(self, euler, euler_dot):
         alpha, beta, _ = euler.T
@@ -43,10 +41,9 @@ class GyroSimulator:
 
         return w_b
 
-    def __call__(self, fs: float, n: int):
+    def __call__(self, fs: float, n: int, degrees=None):
         """
-        Generate a length-n coning trajectory and corresponding body-frame angular
-        velocities as measured by an IMU sensor.
+        Generate a length-n gyroscope signal and corresponding Euler angles.
 
         Parameters
         ----------
@@ -54,16 +51,21 @@ class GyroSimulator:
             Sampling frequency in Hz.
         n : int
             Number of samples to generate.
+        degrees : bool, optional
+            Whether to return angles and angular velocities in degrees and degrees
+            per second (True) or radians and radians per second (False).
 
         Returns
         -------
         t : ndarray, shape (n,)
             Time vector in seconds.
-        euler_zyx : ndarray, shape (n, 3)
-            ZYX Euler angles [yaw, pitch, roll] in radians.
-        omega_b : ndarray, shape (n, 3)
-            Body angular velocity [p, q, r] in rad/s (IMU gyro measurements).
+        euler : ndarray, shape (n, 3)
+            Simulated Euler angles (roll, pitch, yaw).
+        w_b : ndarray, shape (n, 3)
+            Simulated angular velocities in the body frame.
         """
+        if degrees is None:
+            degrees = self._degrees
 
         # Time
         dt = 1.0 / fs
@@ -78,16 +80,51 @@ class GyroSimulator:
 
         w_b = self._angular_velocity_body(euler, euler_dot)
 
+        if degrees:
+            euler = np.rad2deg(euler)
+            w_b = np.rad2deg(w_b)
+
         return t, euler, w_b
 
 
 class Sine1DSimulator:
-    def __init__(self, omega, amp=0.0, phase=0.0, hz=False, phase_degrees=False):
+    """
+    Sine wave simulator for 1D signals.
+
+    Parameters
+    ----------
+    omega : float
+        Angular frequency of the sine wave. If `hz` is True, this is interpreted
+        as frequency in Hz; otherwise, it is interpreted as angular frequency in
+        radians per second.
+    amp : float, optional
+        Amplitude of the sine wave. Default is 1.0.
+    phase : float, optional
+        Phase offset of the sine wave. Default is 0.0.
+    hz : bool, optional
+        If True, interpret `omega` as frequency in Hz. If False, interpret as angular
+        frequency in radians per second. Default is False.
+    phase_degrees : bool, optional
+        If True, interpret `phase` in degrees. If False, interpret in radians.
+        Default is False.
+    """
+
+    def __init__(self, omega, amp=1.0, phase=0.0, hz=False, phase_degrees=False):
         self._w = 2.0 * np.pi * omega if hz else omega
         self._amp = amp
         self._phase = np.deg2rad(phase) if phase_degrees else phase
 
     def __call__(self, fs, n):
+        """
+        Generate a sine wave and its derivative.
+
+        Parameters
+        ----------
+        fs : float
+            Sampling frequency in Hz.
+        n : int
+            Number of samples to generate.
+        """
         dt = 1.0 / fs
         t = dt * np.arange(n)
 
@@ -98,10 +135,28 @@ class Sine1DSimulator:
     
 
 class Constant1DSimulator:
+    """
+    Constant value simulator for 1D signals.
+
+    Parameters
+    ----------
+    const : float
+        Constant value to simulate.
+    """
     def __init__(self, const):
         self._const = const
 
     def __call__(self, fs, n):
+        """
+        Generate a constant signal and its derivative (always zero).
+        
+        Parameters
+        ----------
+        fs : float
+            Sampling frequency in Hz.
+        n : int
+            Number of samples to generate.
+        """
         y = self._const * np.ones(int(n))
         dydt = np.zeros_like(y)
         
