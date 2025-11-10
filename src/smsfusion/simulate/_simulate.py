@@ -22,7 +22,7 @@ class BaseDOF(ABC):
     @abstractmethod
     def _dydt(self, fs, n):
         raise NotImplementedError("Not implemented.")
-    
+
     @abstractmethod
     def _d2ydt2(self, fs, n):
         raise NotImplementedError("Not implemented.")
@@ -224,12 +224,12 @@ class IMUSimulator:
         g=9.80665,
         nav_frame="NED",
     ):
-        self._pos_x_sig = pos_x
-        self._pos_y_sig = pos_y
-        self._pos_z_sig = pos_z
-        self._alpha_sig = alpha
-        self._beta_sig = beta
-        self._gamma_sig = gamma
+        self._pos_x_sig = pos_x if isinstance(pos_x, BaseDOF) else ConstantDOF(pos_x)
+        self._pos_y_sig = pos_y if isinstance(pos_y, BaseDOF) else ConstantDOF(pos_y)
+        self._pos_z_sig = pos_z if isinstance(pos_z, BaseDOF) else ConstantDOF(pos_z)
+        self._alpha_sig = alpha if isinstance(alpha, BaseDOF) else ConstantDOF(alpha)
+        self._beta_sig = beta if isinstance(beta, BaseDOF) else ConstantDOF(beta)
+        self._gamma_sig = gamma if isinstance(gamma, BaseDOF) else ConstantDOF(gamma)
         self._degrees = degrees
         self._nav_frame = nav_frame.lower()
 
@@ -239,19 +239,6 @@ class IMUSimulator:
             self._g_n = np.array([0.0, 0.0, -g])
         else:
             raise ValueError("Invalid navigation frame. Must be 'NED' or 'ENU'.")
-
-        if not isinstance(self._pos_x_sig, BaseDOF):
-            self._pos_x_sig = ConstantDOF(self._pos_x_sig)
-        if not isinstance(self._pos_y_sig, BaseDOF):
-            self._pos_y_sig = ConstantDOF(self._pos_y_sig)
-        if not isinstance(self._pos_z_sig, BaseDOF):
-            self._pos_z_sig = ConstantDOF(self._pos_z_sig)
-        if not isinstance(self._alpha_sig, BaseDOF):
-            self._alpha_sig = ConstantDOF(self._alpha_sig)
-        if not isinstance(self._beta_sig, BaseDOF):
-            self._beta_sig = ConstantDOF(self._beta_sig)
-        if not isinstance(self._gamma_sig, BaseDOF):
-            self._gamma_sig = ConstantDOF(self._gamma_sig)
 
     def _specific_force_body(self, pos, acc, euler):
         """
