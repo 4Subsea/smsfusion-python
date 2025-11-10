@@ -1,9 +1,17 @@
+from abc import ABC, abstractmethod
+
 import numpy as np
 
 from smsfusion._transforms import _rot_matrix_from_euler
 
 
-class SineDOFSignal:
+class _DOFSignal(ABC):
+    @abstractmethod
+    def __call__(self, fs, n):
+        raise NotImplementedError("Not implemented.")
+
+
+class SineDOFSignal(_DOFSignal):
     """
     1D sine wave signal generator.
 
@@ -65,7 +73,7 @@ class SineDOFSignal:
         return y, dydt, d2ydt2
 
 
-class ConstantDOFSignal:
+class ConstantDOFSignal(_DOFSignal):
     """
     1D constant signal generator.
 
@@ -107,7 +115,22 @@ class ConstantDOFSignal:
         return y, dydt, d2ydt2
 
 
-DOFSignal = SineDOFSignal | ConstantDOFSignal
+class LinearRamp(_DOFSignal):
+    def __init__(self, dof_signal: _DOFSignal, t_start=0.0, ramp_length=1.0):
+        self._dof_signal = dof_signal
+        self._t_start = t_start
+        self._ramp_length = ramp_length
+
+    def __call__(self, fs, n):
+        y, dydt, d2ydt2 = self._dof_signal(fs, n)
+
+        # Time
+        dt = 1.0 / fs
+        t = dt * np.arange(n)
+
+        ramp = np.clip((t - self._t_start) / self._ramp_length, 0.0, 1.0)
+
+        return ramp*y, ramp*dydt, ramp*d2ydt2
 
 
 class IMUSimulator:
@@ -140,12 +163,12 @@ class IMUSimulator:
 
     def __init__(
         self,
-        pos_x: float | DOFSignal = 0.0,
-        pos_y: float | DOFSignal = 0.0,
-        pos_z: float | DOFSignal = 0.0,
-        alpha: float | DOFSignal = 0.0,
-        beta: float | DOFSignal = 0.0,
-        gamma: float | DOFSignal = 0.0,
+        pos_x: float | _DOFSignal = 0.0,
+        pos_y: float | _DOFSignal = 0.0,
+        pos_z: float | _DOFSignal = 0.0,
+        alpha: float | _DOFSignal = 0.0,
+        beta: float | _DOFSignal = 0.0,
+        gamma: float | _DOFSignal = 0.0,
         degrees=False,
         g=9.80665,
         nav_frame="NED",
@@ -166,17 +189,17 @@ class IMUSimulator:
         else:
             raise ValueError("Invalid navigation frame. Must be 'NED' or 'ENU'.")
 
-        if not isinstance(self._pos_x_sig, DOFSignal):
+        if not isinstance(self._pos_x_sig, _DOFSignal):
             self._pos_x_sig = ConstantDOFSignal(self._pos_x_sig)
-        if not isinstance(self._pos_y_sig, DOFSignal):
+        if not isinstance(self._pos_y_sig, _DOFSignal):
             self._pos_y_sig = ConstantDOFSignal(self._pos_y_sig)
-        if not isinstance(self._pos_z_sig, DOFSignal):
+        if not isinstance(self._pos_z_sig, _DOFSignal):
             self._pos_z_sig = ConstantDOFSignal(self._pos_z_sig)
-        if not isinstance(self._alpha_sig, DOFSignal):
+        if not isinstance(self._alpha_sig, _DOFSignal):
             self._alpha_sig = ConstantDOFSignal(self._alpha_sig)
-        if not isinstance(self._beta_sig, DOFSignal):
+        if not isinstance(self._beta_sig, _DOFSignal):
             self._beta_sig = ConstantDOFSignal(self._beta_sig)
-        if not isinstance(self._gamma_sig, DOFSignal):
+        if not isinstance(self._gamma_sig, _DOFSignal):
             self._gamma_sig = ConstantDOFSignal(self._gamma_sig)
 
     def _specific_force_body(self, pos, acc, euler):
