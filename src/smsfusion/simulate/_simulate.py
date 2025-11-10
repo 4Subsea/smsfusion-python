@@ -128,8 +128,14 @@ class IMUSimulator:
         Pitch signal
     gamma : float or DOFSignal, default 0.0
         Yaw signal
-    degrees: bool
+    degrees: bool, default False
         Whether to interpret the Euler angle signals as degrees (True) or radians (False).
+        Default is False.
+    g : float, default 9.80665
+        The gravitational acceleration. Default is 'standard gravity' of 9.80665.
+    nav_frame : str, default "NED"
+        Navigation frame. Either "NED" (North-East-Down) or "ENU" (East-North-Up).
+        Default is "NED".
     """
 
     def __init__(
