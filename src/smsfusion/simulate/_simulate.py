@@ -224,12 +224,12 @@ class IMUSimulator:
         g=9.80665,
         nav_frame="NED",
     ):
-        self._pos_x_sig = pos_x if isinstance(pos_x, BaseDOF) else ConstantDOF(pos_x)
-        self._pos_y_sig = pos_y if isinstance(pos_y, BaseDOF) else ConstantDOF(pos_y)
-        self._pos_z_sig = pos_z if isinstance(pos_z, BaseDOF) else ConstantDOF(pos_z)
-        self._alpha_sig = alpha if isinstance(alpha, BaseDOF) else ConstantDOF(alpha)
-        self._beta_sig = beta if isinstance(beta, BaseDOF) else ConstantDOF(beta)
-        self._gamma_sig = gamma if isinstance(gamma, BaseDOF) else ConstantDOF(gamma)
+        self._pos_x = pos_x if isinstance(pos_x, BaseDOF) else ConstantDOF(pos_x)
+        self._pos_y = pos_y if isinstance(pos_y, BaseDOF) else ConstantDOF(pos_y)
+        self._pos_z = pos_z if isinstance(pos_z, BaseDOF) else ConstantDOF(pos_z)
+        self._alpha = alpha if isinstance(alpha, BaseDOF) else ConstantDOF(alpha)
+        self._beta = beta if isinstance(beta, BaseDOF) else ConstantDOF(beta)
+        self._gamma = gamma if isinstance(gamma, BaseDOF) else ConstantDOF(gamma)
         self._degrees = degrees
         self._nav_frame = nav_frame.lower()
 
@@ -318,12 +318,12 @@ class IMUSimulator:
         t = dt * np.arange(n)
 
         # DOFs and corresponding rates and accelerations
-        pos_x, pos_x_dot, pos_x_ddot = self._pos_x_sig(fs, n)
-        pos_y, pos_y_dot, pos_y_ddot = self._pos_y_sig(fs, n)
-        pos_z, pos_z_dot, pos_z_ddot = self._pos_z_sig(fs, n)
-        alpha, alpha_dot, _ = self._alpha_sig(fs, n)
-        beta, beta_dot, _ = self._beta_sig(fs, n)
-        gamma, gamma_dot, _ = self._gamma_sig(fs, n)
+        pos_x, pos_x_dot, pos_x_ddot = self._pos_x(fs, n)
+        pos_y, pos_y_dot, pos_y_ddot = self._pos_y(fs, n)
+        pos_z, pos_z_dot, pos_z_ddot = self._pos_z(fs, n)
+        alpha, alpha_dot, _ = self._alpha(fs, n)
+        beta, beta_dot, _ = self._beta(fs, n)
+        gamma, gamma_dot, _ = self._gamma(fs, n)
 
         pos = np.column_stack([pos_x, pos_y, pos_z])
         vel = np.column_stack([pos_x_dot, pos_y_dot, pos_z_dot])
