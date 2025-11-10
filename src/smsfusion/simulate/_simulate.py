@@ -121,7 +121,17 @@ class ConstantDOF(_DOF):
 
 class LinearRampUp(_DOF):
     """
-    Linear ramp-up wrapper for a DOF signal.
+    Linear ramp-up wrapper for DOF signals.
+
+    Parameters
+    ----------
+    dof : _DOF
+        The DOF signal to wrap with a linear ramp-up.
+    t_start : float, default 0.0
+        The start time of the ramp-up in seconds. Default is 0.0, i.e., the ramp-up
+        starts immediately.
+    ramp_length : float, default 1.0
+        The duration of the ramp-up in seconds. Default is 1.0 second.
     """
 
     def __init__(self, dof: _DOF, t_start=0.0, ramp_length=1.0):
@@ -136,9 +146,9 @@ class LinearRampUp(_DOF):
         dt = 1.0 / fs
         t = dt * np.arange(n)
 
-        ramp = np.clip((t - self._t_start) / self._ramp_length, 0.0, 1.0)
+        ramp_up = np.clip((t - self._t_start) / self._ramp_length, 0.0, 1.0)
 
-        return ramp * y, ramp * dydt, ramp * d2ydt2
+        return ramp_up * y, ramp_up * dydt, ramp_up * d2ydt2
 
 
 DOF = SineDOF | ConstantDOF | LinearRampUp
