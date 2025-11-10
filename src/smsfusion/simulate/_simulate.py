@@ -119,7 +119,7 @@ class ConstantDOF(_DOF):
         return y, dydt, d2ydt2
 
 
-class LinearRamp(_DOF):
+class LinearRampUp(_DOF):
     """
     Linear ramp-up wrapper for a DOF signal.
     """
@@ -141,7 +141,7 @@ class LinearRamp(_DOF):
         return ramp * y, ramp * dydt, ramp * d2ydt2
 
 
-DOF = SineDOF | ConstantDOF | LinearRamp
+DOF = SineDOF | ConstantDOF | LinearRampUp
 
 
 class IMUSimulator:
