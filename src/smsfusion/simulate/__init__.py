@@ -1,3 +1,3 @@
-from ._simulate import IMUSimulator, SineSignal
+from ._simulate import ConstantDOFSignal, IMUSimulator, SineDOFSignal
 
-__all__ = ["IMUSimulator", "SineSignal"]
+__all__ = ["IMUSimulator", "SineDOFSignal", "ConstantDOFSignal"]

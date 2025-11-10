@@ -3,7 +3,7 @@ import numpy as np
 from smsfusion._transforms import _rot_matrix_from_euler
 
 
-class SineSignal:
+class SineDOFSignal:
     """
     1D sine wave signal generator.
 
@@ -66,7 +66,7 @@ class SineSignal:
         return t, y, dydt, d2ydt2
 
 
-class ConstantSignal:
+class ConstantDOFSignal:
     """
     1D constant signal generator.
 
@@ -109,7 +109,7 @@ class ConstantSignal:
         return t, y, dydt, d2ydt2
 
 
-DOFSignal = SineSignal | ConstantSignal
+DOFSignal = SineDOFSignal | ConstantDOFSignal
 
 
 class IMUSimulator:
@@ -163,17 +163,17 @@ class IMUSimulator:
             raise ValueError("Invalid navigation frame. Must be 'NED' or 'ENU'.")
 
         if not isinstance(self._pos_x_sig, DOFSignal):
-            self._pos_x_sig = ConstantSignal(self._pos_x_sig)
+            self._pos_x_sig = ConstantDOFSignal(self._pos_x_sig)
         if not isinstance(self._pos_y_sig, DOFSignal):
-            self._pos_y_sig = ConstantSignal(self._pos_y_sig)
+            self._pos_y_sig = ConstantDOFSignal(self._pos_y_sig)
         if not isinstance(self._pos_z_sig, DOFSignal):
-            self._pos_z_sig = ConstantSignal(self._pos_z_sig)
+            self._pos_z_sig = ConstantDOFSignal(self._pos_z_sig)
         if not isinstance(self._alpha_sig, DOFSignal):
-            self._alpha_sig = ConstantSignal(self._alpha_sig)
+            self._alpha_sig = ConstantDOFSignal(self._alpha_sig)
         if not isinstance(self._beta_sig, DOFSignal):
-            self._beta_sig = ConstantSignal(self._beta_sig)
+            self._beta_sig = ConstantDOFSignal(self._beta_sig)
         if not isinstance(self._gamma_sig, DOFSignal):
-            self._gamma_sig = ConstantSignal(self._gamma_sig)
+            self._gamma_sig = ConstantDOFSignal(self._gamma_sig)
 
     def _specific_force_body(self, pos, acc, euler):
         """
