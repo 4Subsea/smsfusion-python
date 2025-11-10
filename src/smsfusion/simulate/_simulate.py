@@ -63,7 +63,7 @@ class SineDOFSignal:
         dydt = self._amp * self._omega * np.cos(self._omega * t + self._phase)
         d2ydt2 = -self._amp * self._omega**2 * np.sin(self._omega * t + self._phase)
 
-        return t, y, dydt, d2ydt2
+        return y, dydt, d2ydt2
 
 
 class ConstantDOFSignal:
@@ -101,12 +101,11 @@ class ConstantDOFSignal:
             Number of samples to generate.
         """
         n = int(n)
-        t = np.arange(n) / fs
         y = np.full(n, self._value)
         dydt = np.zeros(n)
         d2ydt2 = np.zeros(n)
 
-        return t, y, dydt, d2ydt2
+        return y, dydt, d2ydt2
 
 
 DOFSignal = SineDOFSignal | ConstantDOFSignal
@@ -253,12 +252,12 @@ class IMUSimulator:
         t = dt * np.arange(n)
 
         # Euler angles and Euler rates
-        _, pos_x, pos_x_dot, pos_x_ddot = self._pos_x_sig(fs, n)
-        _, pos_y, pos_y_dot, pos_y_ddot = self._pos_y_sig(fs, n)
-        _, pos_z, pos_z_dot, pos_z_ddot = self._pos_z_sig(fs, n)
-        _, alpha, alpha_dot, _ = self._alpha_sig(fs, n)
-        _, beta, beta_dot, _ = self._beta_sig(fs, n)
-        _, gamma, gamma_dot, _ = self._gamma_sig(fs, n)
+        pos_x, pos_x_dot, pos_x_ddot = self._pos_x_sig(fs, n)
+        pos_y, pos_y_dot, pos_y_ddot = self._pos_y_sig(fs, n)
+        pos_z, pos_z_dot, pos_z_ddot = self._pos_z_sig(fs, n)
+        alpha, alpha_dot, _ = self._alpha_sig(fs, n)
+        beta, beta_dot, _ = self._beta_sig(fs, n)
+        gamma, gamma_dot, _ = self._gamma_sig(fs, n)
 
         pos = np.column_stack([pos_x, pos_y, pos_z])
         vel = np.column_stack([pos_x_dot, pos_y_dot, pos_z_dot])
