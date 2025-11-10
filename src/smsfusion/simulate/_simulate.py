@@ -7,7 +7,7 @@ from smsfusion._transforms import _rot_matrix_from_euler
 
 class BaseDOF(ABC):
     """
-    Abstract base class for degree of freedom (DOF) signals.
+    Abstract base class for degree of freedom (DOF) signal generators.
     """
 
     def _time(self, fs, n):
@@ -37,6 +37,15 @@ class BaseDOF(ABC):
             Sampling frequency in Hz.
         n : int
             Number of samples to generate.
+
+        Returns
+        -------
+        y : numpy.ndarray, shape (n,)
+            Signal.
+        dydt : numpy.ndarray, shape (n,)
+            First time derivative of signal.
+        d2ydt2 : numpy.ndarray, shape (n,)
+            Second time derivative of signal.
         """
         y = self._y(fs, n)
         dydt = self._dydt(fs, n)
@@ -172,7 +181,7 @@ class LinearRampUp(BaseDOF):
         return ramp_up * self._dof(fs, n)[2]
 
 
-DOF = SineDOF | ConstantDOF | LinearRampUp
+DOFSignal = SineDOF | ConstantDOF | LinearRampUp
 
 
 class IMUSimulator:
@@ -205,12 +214,12 @@ class IMUSimulator:
 
     def __init__(
         self,
-        pos_x: float | DOF = 0.0,
-        pos_y: float | DOF = 0.0,
-        pos_z: float | DOF = 0.0,
-        alpha: float | DOF = 0.0,
-        beta: float | DOF = 0.0,
-        gamma: float | DOF = 0.0,
+        pos_x: float | DOFSignal = 0.0,
+        pos_y: float | DOFSignal = 0.0,
+        pos_z: float | DOFSignal = 0.0,
+        alpha: float | DOFSignal = 0.0,
+        beta: float | DOFSignal = 0.0,
+        gamma: float | DOFSignal = 0.0,
         degrees=False,
         g=9.80665,
         nav_frame="NED",
