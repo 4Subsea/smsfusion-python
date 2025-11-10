@@ -25,8 +25,7 @@ class SineDOFSignal:
     amp : float, default 1.0
         Amplitude of the sine wave. Default is 1.0.
     omega : float, default 1.0
-        Angular frequency of the sine wave in rad/s. Default is 1.0
-        radians per second.
+        Angular frequency of the sine wave in rad/s. Default is 1.0 rad/s.
     phase : float, default 0.0
         Phase offset of the sine wave. Default is 0.0.
     offset : float, default 0.0
