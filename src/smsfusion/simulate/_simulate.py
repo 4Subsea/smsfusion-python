@@ -251,7 +251,7 @@ class IMUSimulator:
         dt = 1.0 / fs
         t = dt * np.arange(n)
 
-        # Euler angles and Euler rates
+        # DOFs and corresponding rates and accelerations
         pos_x, pos_x_dot, pos_x_ddot = self._pos_x_sig(fs, n)
         pos_y, pos_y_dot, pos_y_ddot = self._pos_y_sig(fs, n)
         pos_z, pos_z_dot, pos_z_ddot = self._pos_z_sig(fs, n)
@@ -269,6 +269,7 @@ class IMUSimulator:
             euler = np.deg2rad(euler)
             euler_dot = np.deg2rad(euler_dot)
 
+        # IMU measurements (i.e., specific force and angular velocity in body frame)
         f_b = self._specific_force_body(pos, acc, euler)
         w_b = self._angular_velocity_body(euler, euler_dot)
 
