@@ -5,17 +5,46 @@ import numpy as np
 from smsfusion._transforms import _rot_matrix_from_euler
 
 
-class _DOF(ABC):
+class BaseDOF(ABC):
     """
     Abstract base class for degree of freedom (DOF) signals.
     """
 
+    def _time(self, fs, n):
+        dt = 1.0 / fs
+        t = dt * np.arange(n)
+        return t
+
     @abstractmethod
-    def __call__(self, fs, n):
+    def _y(self, fs, n):
         raise NotImplementedError("Not implemented.")
 
+    @abstractmethod
+    def _dydt(self, fs, n):
+        raise NotImplementedError("Not implemented.")
+    
+    @abstractmethod
+    def _d2ydt2(self, fs, n):
+        raise NotImplementedError("Not implemented.")
 
-class SineDOF(_DOF):
+    def __call__(self, fs, n):
+        """
+        Generate a length-n signal and its first and second time derivative.
+
+        Parameters
+        ----------
+        fs : float
+            Sampling frequency in Hz.
+        n : int
+            Number of samples to generate.
+        """
+        y = self._y(fs, n)
+        dydt = self._dydt(fs, n)
+        d2ydt2 = self._d2ydt2(fs, n)
+        return y, dydt, d2ydt2
+
+
+class SineDOF(BaseDOF):
     """
     1D sine wave DOF signal generator.
 
@@ -56,28 +85,23 @@ class SineDOF(_DOF):
         self._phase = np.deg2rad(phase) if phase_degrees else phase
         self._offset = offset
 
-    def __call__(self, fs, n):
-        """
-        Generate a sine wave and its derivative.
-
-        Parameters
-        ----------
-        fs : float
-            Sampling frequency in Hz.
-        n : int
-            Number of samples to generate.
-        """
-        dt = 1.0 / fs
-        t = dt * np.arange(n)
-
+    def _y(self, fs, n):
+        t = self._time(fs, n)
         y = self._amp * np.sin(self._omega * t + self._phase) + self._offset
+        return y
+
+    def _dydt(self, fs, n):
+        t = self._time(fs, n)
         dydt = self._amp * self._omega * np.cos(self._omega * t + self._phase)
+        return dydt
+
+    def _d2ydt2(self, fs, n):
+        t = self._time(fs, n)
         d2ydt2 = -self._amp * self._omega**2 * np.sin(self._omega * t + self._phase)
+        return d2ydt2
 
-        return y, dydt, d2ydt2
 
-
-class ConstantDOF(_DOF):
+class ConstantDOF(BaseDOF):
     """
     1D constant DOF signal generator.
 
@@ -100,26 +124,17 @@ class ConstantDOF(_DOF):
     def __init__(self, value=0.0):
         self._value = value
 
-    def __call__(self, fs, n):
-        """
-        Generate a constant signal and its derivative.
+    def _y(self, fs, n):
+        return np.full(int(n), self._value)
 
-        Parameters
-        ----------
-        fs : float
-            Sampling frequency in Hz.
-        n : int
-            Number of samples to generate.
-        """
-        n = int(n)
-        y = np.full(n, self._value)
-        dydt = np.zeros(n)
-        d2ydt2 = np.zeros(n)
+    def _dydt(self, fs, n):
+        return np.zeros(n)
 
-        return y, dydt, d2ydt2
+    def _d2ydt2(self, fs, n):
+        return np.zeros(n)
 
 
-class LinearRampUp(_DOF):
+class LinearRampUp(BaseDOF):
     """
     Linear ramp-up wrapper for DOF signals.
 
@@ -134,21 +149,27 @@ class LinearRampUp(_DOF):
         The duration of the ramp-up in seconds. Default is 1.0 second.
     """
 
-    def __init__(self, dof: _DOF, t_start=0.0, ramp_length=1.0):
+    def __init__(self, dof: SineDOF | ConstantDOF, t_start=0.0, ramp_length=1.0):
         self._dof = dof
         self._t_start = t_start
         self._ramp_length = ramp_length
 
-    def __call__(self, fs, n):
-        y, dydt, d2ydt2 = self._dof(fs, n)
-
-        # Time
-        dt = 1.0 / fs
-        t = dt * np.arange(n)
-
+    def _ramp_up(self, fs, n):
+        t = self._time(fs, n)
         ramp_up = np.clip((t - self._t_start) / self._ramp_length, 0.0, 1.0)
+        return ramp_up
 
-        return ramp_up * y, ramp_up * dydt, ramp_up * d2ydt2
+    def _y(self, fs, n):
+        ramp_up = self._ramp_up(fs, n)
+        return ramp_up * self._dof(fs, n)[0]
+
+    def _dydt(self, fs, n):
+        ramp_up = self._ramp_up(fs, n)
+        return ramp_up * self._dof(fs, n)[1]
+
+    def _d2ydt2(self, fs, n):
+        ramp_up = self._ramp_up(fs, n)
+        return ramp_up * self._dof(fs, n)[2]
 
 
 DOF = SineDOF | ConstantDOF | LinearRampUp
@@ -210,17 +231,17 @@ class IMUSimulator:
         else:
             raise ValueError("Invalid navigation frame. Must be 'NED' or 'ENU'.")
 
-        if not isinstance(self._pos_x_sig, _DOF):
+        if not isinstance(self._pos_x_sig, BaseDOF):
             self._pos_x_sig = ConstantDOF(self._pos_x_sig)
-        if not isinstance(self._pos_y_sig, _DOF):
+        if not isinstance(self._pos_y_sig, BaseDOF):
             self._pos_y_sig = ConstantDOF(self._pos_y_sig)
-        if not isinstance(self._pos_z_sig, _DOF):
+        if not isinstance(self._pos_z_sig, BaseDOF):
             self._pos_z_sig = ConstantDOF(self._pos_z_sig)
-        if not isinstance(self._alpha_sig, _DOF):
+        if not isinstance(self._alpha_sig, BaseDOF):
             self._alpha_sig = ConstantDOF(self._alpha_sig)
-        if not isinstance(self._beta_sig, _DOF):
+        if not isinstance(self._beta_sig, BaseDOF):
             self._beta_sig = ConstantDOF(self._beta_sig)
-        if not isinstance(self._gamma_sig, _DOF):
+        if not isinstance(self._gamma_sig, BaseDOF):
             self._gamma_sig = ConstantDOF(self._gamma_sig)
 
     def _specific_force_body(self, pos, acc, euler):
