@@ -11,23 +11,18 @@ class DOF(ABC):
     """
 
     @abstractmethod
-    def _y(self, fs, n):
+    def _y(self, t):
         raise NotImplementedError("Not implemented.")
 
     @abstractmethod
-    def _dydt(self, fs, n):
+    def _dydt(self, t):
         raise NotImplementedError("Not implemented.")
 
     @abstractmethod
-    def _d2ydt2(self, fs, n):
+    def _d2ydt2(self, t):
         raise NotImplementedError("Not implemented.")
 
-    def _time(self, fs, n):
-        dt = 1.0 / fs
-        t = dt * np.arange(n)
-        return t
-
-    def __call__(self, fs, n):
+    def __call__(self, t):
         """
         Generate a length-n signal and its first and second time derivative.
 
@@ -47,9 +42,9 @@ class DOF(ABC):
         d2ydt2 : numpy.ndarray, shape (n,)
             Second time derivative of signal.
         """
-        y = self._y(fs, n)
-        dydt = self._dydt(fs, n)
-        d2ydt2 = self._d2ydt2(fs, n)
+        y = self._y(t)
+        dydt = self._dydt(t)
+        d2ydt2 = self._d2ydt2(t)
         return y, dydt, d2ydt2
 
 
@@ -102,18 +97,15 @@ class SineDOF(DOF):
         self._phase = np.deg2rad(phase) if phase_degrees else phase
         self._offset = offset
 
-    def _y(self, fs, n):
-        t = self._time(fs, n)
+    def _y(self, t):
         y = self._amp * np.sin(self._omega * t + self._phase) + self._offset
         return y
 
-    def _dydt(self, fs, n):
-        t = self._time(fs, n)
+    def _dydt(self, t):
         dydt = self._amp * self._omega * np.cos(self._omega * t + self._phase)
         return dydt
 
-    def _d2ydt2(self, fs, n):
-        t = self._time(fs, n)
+    def _d2ydt2(self, t):
         d2ydt2 = -self._amp * self._omega**2 * np.sin(self._omega * t + self._phase)
         return d2ydt2
 
@@ -141,14 +133,14 @@ class ConstantDOF(DOF):
     def __init__(self, value=0.0):
         self._value = value
 
-    def _y(self, fs, n):
-        return np.full(int(n), self._value)
+    def _y(self, t):
+        return np.full_like(t, self._value)
 
-    def _dydt(self, fs, n):
-        return np.zeros(n)
+    def _dydt(self, t):
+        return np.zeros_like(t)
 
-    def _d2ydt2(self, fs, n):
-        return np.zeros(n)
+    def _d2ydt2(self, t):
+        return np.zeros_like(t)
 
 
 class LinearRampUp(DOF):
@@ -171,23 +163,21 @@ class LinearRampUp(DOF):
         self._t_start = t_start
         self._ramp_length = ramp_length
 
-    def _ramp_up(self, fs, n):
-        t = self._time(fs, n)
+    def _ramp_up(self, t):
         ramp_up = np.clip((t - self._t_start) / self._ramp_length, 0.0, 1.0)
         return ramp_up
 
-    def _y(self, fs, n):
-        ramp_up = self._ramp_up(fs, n)
-        return ramp_up * self._dof(fs, n)[0]
+    def _y(self, t):
+        ramp_up = self._ramp_up(t)
+        return ramp_up * self._dof._y(t)
 
-    def _dydt(self, fs, n):
-        ramp_up = self._ramp_up(fs, n)
-        return ramp_up * self._dof(fs, n)[1]
+    def _dydt(self, t):
+        ramp_up = self._ramp_up(t)
+        return ramp_up * self._dof._dydt(t)
 
-    def _d2ydt2(self, fs, n):
-        ramp_up = self._ramp_up(fs, n)
-        return ramp_up * self._dof(fs, n)[2]
-
+    def _d2ydt2(self, t):
+        ramp_up = self._ramp_up(t)
+        return ramp_up * self._dof._d2ydt2(t)
 
 class IMUSimulator:
     """
@@ -323,12 +313,12 @@ class IMUSimulator:
         t = dt * np.arange(n)
 
         # DOFs and corresponding rates and accelerations
-        pos_x, pos_x_dot, pos_x_ddot = self._pos_x(fs, n)
-        pos_y, pos_y_dot, pos_y_ddot = self._pos_y(fs, n)
-        pos_z, pos_z_dot, pos_z_ddot = self._pos_z(fs, n)
-        alpha, alpha_dot, _ = self._alpha(fs, n)
-        beta, beta_dot, _ = self._beta(fs, n)
-        gamma, gamma_dot, _ = self._gamma(fs, n)
+        pos_x, pos_x_dot, pos_x_ddot = self._pos_x(t)
+        pos_y, pos_y_dot, pos_y_ddot = self._pos_y(t)
+        pos_z, pos_z_dot, pos_z_ddot = self._pos_z(t)
+        alpha, alpha_dot, _ = self._alpha(t)
+        beta, beta_dot, _ = self._beta(t)
+        gamma, gamma_dot, _ = self._gamma(t)
 
         pos = np.column_stack([pos_x, pos_y, pos_z])
         vel = np.column_stack([pos_x_dot, pos_y_dot, pos_z_dot])
