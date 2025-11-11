@@ -190,17 +190,17 @@ class IMUSimulator:
 
     Parameters
     ----------
-    pos_x : float or DOF, default 0.0
+    pos_x : float or DOFSignal, default 0.0
         X position signal.
-    pos_y : float or DOF, default 0.0
+    pos_y : float or DOFSignal, default 0.0
         Y position signal.
-    pos_z : float or DOF, default 0.0
+    pos_z : float or DOFSignal, default 0.0
         Z position signal.
-    alpha : float or DOF, default 0.0
+    alpha : float or DOFSignal, default 0.0
         Roll signal.
-    beta : float or DOF, default 0.0
+    beta : float or DOFSignal, default 0.0
         Pitch signal
-    gamma : float or DOF, default 0.0
+    gamma : float or DOFSignal, default 0.0
         Yaw signal
     degrees: bool, default False
         Whether to interpret the Euler angle signals as degrees (True) or radians (False).
