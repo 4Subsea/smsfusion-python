@@ -177,6 +177,7 @@ class LinearRampUp(DOF):
         ramp_up = self._ramp_up(t)
         return ramp_up * self._dof._d2ydt2(t)
 
+
 class IMUSimulator:
     """
     IMU simulator.
