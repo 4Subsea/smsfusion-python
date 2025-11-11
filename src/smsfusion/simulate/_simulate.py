@@ -10,11 +10,6 @@ class DOF(ABC):
     Abstract base class for degree of freedom (DOF) signal generators.
     """
 
-    def _time(self, fs, n):
-        dt = 1.0 / fs
-        t = dt * np.arange(n)
-        return t
-
     @abstractmethod
     def _y(self, fs, n):
         raise NotImplementedError("Not implemented.")
@@ -26,6 +21,11 @@ class DOF(ABC):
     @abstractmethod
     def _d2ydt2(self, fs, n):
         raise NotImplementedError("Not implemented.")
+
+    def _time(self, fs, n):
+        dt = 1.0 / fs
+        t = dt * np.arange(n)
+        return t
 
     def __call__(self, fs, n):
         """
