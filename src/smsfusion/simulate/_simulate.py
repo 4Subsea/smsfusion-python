@@ -5,7 +5,7 @@ import numpy as np
 from smsfusion._transforms import _rot_matrix_from_euler
 
 
-class BaseDOF(ABC):
+class DOF(ABC):
     """
     Abstract base class for degree of freedom (DOF) signal generators.
     """
@@ -53,7 +53,7 @@ class BaseDOF(ABC):
         return y, dydt, d2ydt2
 
 
-class SineDOF(BaseDOF):
+class SineDOF(DOF):
     """
     1D sine wave DOF signal generator.
 
@@ -110,7 +110,7 @@ class SineDOF(BaseDOF):
         return d2ydt2
 
 
-class ConstantDOF(BaseDOF):
+class ConstantDOF(DOF):
     """
     1D constant DOF signal generator.
 
@@ -143,7 +143,7 @@ class ConstantDOF(BaseDOF):
         return np.zeros(n)
 
 
-class LinearRampUp(BaseDOF):
+class LinearRampUp(DOF):
     """
     Linear ramp-up wrapper for DOF signals.
 
@@ -158,7 +158,7 @@ class LinearRampUp(BaseDOF):
         The duration of the ramp-up in seconds. Default is 1.0 second.
     """
 
-    def __init__(self, dof: SineDOF | ConstantDOF, t_start=0.0, ramp_length=1.0):
+    def __init__(self, dof: DOF, t_start=0.0, ramp_length=1.0):
         self._dof = dof
         self._t_start = t_start
         self._ramp_length = ramp_length
@@ -181,26 +181,23 @@ class LinearRampUp(BaseDOF):
         return ramp_up * self._dof(fs, n)[2]
 
 
-DOFSignal = SineDOF | ConstantDOF | LinearRampUp
-
-
 class IMUSimulator:
     """
     IMU simulator.
 
     Parameters
     ----------
-    pos_x : float or DOFSignal, default 0.0
+    pos_x : float or DOF, default 0.0
         X position signal.
-    pos_y : float or DOFSignal, default 0.0
+    pos_y : float or DOF, default 0.0
         Y position signal.
-    pos_z : float or DOFSignal, default 0.0
+    pos_z : float or DOF, default 0.0
         Z position signal.
-    alpha : float or DOFSignal, default 0.0
+    alpha : float or DOF, default 0.0
         Roll signal.
-    beta : float or DOFSignal, default 0.0
+    beta : float or DOF, default 0.0
         Pitch signal
-    gamma : float or DOFSignal, default 0.0
+    gamma : float or DOF, default 0.0
         Yaw signal
     degrees: bool, default False
         Whether to interpret the Euler angle signals as degrees (True) or radians (False).
@@ -214,22 +211,22 @@ class IMUSimulator:
 
     def __init__(
         self,
-        pos_x: float | DOFSignal = 0.0,
-        pos_y: float | DOFSignal = 0.0,
-        pos_z: float | DOFSignal = 0.0,
-        alpha: float | DOFSignal = 0.0,
-        beta: float | DOFSignal = 0.0,
-        gamma: float | DOFSignal = 0.0,
+        pos_x: float | DOF = 0.0,
+        pos_y: float | DOF = 0.0,
+        pos_z: float | DOF = 0.0,
+        alpha: float | DOF = 0.0,
+        beta: float | DOF = 0.0,
+        gamma: float | DOF = 0.0,
         degrees=False,
         g=9.80665,
         nav_frame="NED",
     ):
-        self._pos_x = pos_x if isinstance(pos_x, BaseDOF) else ConstantDOF(pos_x)
-        self._pos_y = pos_y if isinstance(pos_y, BaseDOF) else ConstantDOF(pos_y)
-        self._pos_z = pos_z if isinstance(pos_z, BaseDOF) else ConstantDOF(pos_z)
-        self._alpha = alpha if isinstance(alpha, BaseDOF) else ConstantDOF(alpha)
-        self._beta = beta if isinstance(beta, BaseDOF) else ConstantDOF(beta)
-        self._gamma = gamma if isinstance(gamma, BaseDOF) else ConstantDOF(gamma)
+        self._pos_x = pos_x if isinstance(pos_x, DOF) else ConstantDOF(pos_x)
+        self._pos_y = pos_y if isinstance(pos_y, DOF) else ConstantDOF(pos_y)
+        self._pos_z = pos_z if isinstance(pos_z, DOF) else ConstantDOF(pos_z)
+        self._alpha = alpha if isinstance(alpha, DOF) else ConstantDOF(alpha)
+        self._beta = beta if isinstance(beta, DOF) else ConstantDOF(beta)
+        self._gamma = gamma if isinstance(gamma, DOF) else ConstantDOF(gamma)
         self._degrees = degrees
         self._nav_frame = nav_frame.lower()
 
