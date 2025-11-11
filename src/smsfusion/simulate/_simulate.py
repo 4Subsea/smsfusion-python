@@ -24,14 +24,12 @@ class DOF(ABC):
 
     def __call__(self, t):
         """
-        Generate a length-n signal and its first and second time derivative.
+        Generate signal and its first and second time derivatives.
 
         Parameters
         ----------
-        fs : float
-            Sampling frequency in Hz.
-        n : int
-            Number of samples to generate.
+        t : np.ndarray, shape (n,)
+            Time in seconds.
 
         Returns
         -------
