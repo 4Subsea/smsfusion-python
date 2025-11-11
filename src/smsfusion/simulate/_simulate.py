@@ -80,7 +80,7 @@ class SineDOF(DOF):
         Phase offset of the sine wave. Default is 0.0.
     offset : float, default 0.0
         Offset of the sine wave. Default is 0.0.
-    hz : bool, optional
+    freq_hz : bool, optional
         If True, interpret `omega` as frequency in Hz. If False, interpret as angular
         frequency in radians per second. Default is False.
     phase_degrees : bool, optional
@@ -88,9 +88,17 @@ class SineDOF(DOF):
         Default is False.
     """
 
-    def __init__(self, amp=1.0, omega=1.0, phase=0.0, offset=0.0, phase_degrees=False):
+    def __init__(
+        self,
+        amp=1.0,
+        omega=1.0,
+        phase=0.0,
+        offset=0.0,
+        freq_hz=False,
+        phase_degrees=False,
+    ):
         self._amp = amp
-        self._omega = omega
+        self._omega = 2 * np.pi * omega if freq_hz else omega
         self._phase = np.deg2rad(phase) if phase_degrees else phase
         self._offset = offset
 
