@@ -22,27 +22,46 @@ class DOF(ABC):
     def _d2ydt2(self, t):
         raise NotImplementedError("Not implemented.")
 
+    def y(self, t):
+        """
+        Generates y(t) signal.
+        """
+        return self._y(t)
+
+    def dydt(self, t):
+        """
+        Generates dy(t)/dt signal.
+        """
+        return self._dydt(t)
+
+    def d2ydt2(self, t):
+        """
+        Generates d2y(t)/dt2 signal.
+        """
+        return self._d2ydt2(t)
+
     def __call__(self, t):
         """
-        Generate signal and its first and second time derivatives.
+        Generates y(t), dy(t)/dt, and d2y(t)/dt2 signals.
 
         Parameters
         ----------
-        t : np.ndarray, shape (n,)
-            Time in seconds.
+        t : ndarray, shape (n,)
+            Time vector in seconds.
 
         Returns
         -------
-        y : numpy.ndarray, shape (n,)
-            Signal.
-        dydt : numpy.ndarray, shape (n,)
-            First time derivative of signal.
-        d2ydt2 : numpy.ndarray, shape (n,)
-            Second time derivative of signal.
+        y : ndarray, shape (n,)
+            DOF signal y(t).
+        dydt : ndarray, shape (n,)
+            Time derivative, dy(t)/dt, of DOF signal.
+        d2ydt2 : ndarray, shape (n,)
+            Second time derivative, d2y(t)/dt2, of DOF signal.
         """
         y = self._y(t)
         dydt = self._dydt(t)
         d2ydt2 = self._d2ydt2(t)
+
         return y, dydt, d2ydt2
 
 
