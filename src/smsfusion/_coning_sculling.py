@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.typing import ArrayLike
 
-from ._vectorops import _cross
+from smsfusion._vectorops import _cross
 
 
 class ConingScullingAlgorithm:
@@ -16,8 +16,8 @@ class ConingScullingAlgorithm:
         self._ba = bias_acc or np.zeros(3)
 
         # Coning params
-        self._theta = np.zeros(3)
-        self._dtheta = np.zeros(3)
+        self._beta = np.zeros(3)
+        self._dbeta = np.zeros(3)
         self._dtheta_prev = np.zeros(3)
         self._w_prev = np.zeros(3)
 
@@ -49,21 +49,23 @@ class ConingScullingAlgorithm:
         w : numpy.ndarray
             Bias corrected angular rate measurements.
         """
-        dtheta = (w - self._w_prev) * self._dt
-        self._dbeta += 0.5 * _cross(self._dbeta + (1.0 / 6.0) * self._dtheta_prev, dtheta)
+        dtheta = w * self._dt
+        # dtheta = 0.5 * (w + self._w_prev) * self._dt
+        self._dbeta += 0.5 * np.cross((self._beta + (1.0 / 6.0) * self._dtheta_prev), dtheta)
         self._beta += dtheta
 
-        self._w_prev = w
-        self._dtheta_prev = dtheta
+        self._w_prev = w.copy()
+        self._dtheta_prev = dtheta.copy()
 
     def _sculling_update(self, f):
         """
         Update the sculling integrals using new accelerometer measurements, f[l+1].
         """
-        dvel = (f - self._f_prev) * self._dt
-        self._gamma1 += np.cross(self._beta + 0.5 * self._dtheta, dvel)
+        dvel = f * self._dt
+        # dvel = 0.5 * (f + self._f_prev) * self._dt
+        self._gamma1 += np.cross(self._beta + 0.5 * self._dtheta_prev, dvel)
         self._u += dvel
-
+        self._f_prev = f
 
     def update(self, f_imu: ArrayLike, w_imu: ArrayLike, degrees: bool = False):
         """
