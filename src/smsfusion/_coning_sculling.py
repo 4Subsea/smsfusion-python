@@ -51,7 +51,7 @@ class ConingScullingAlg:
         """
         # dtheta = w * self._dt
         dtheta = 0.5 * (w + self._w_prev) * self._dt
-        self._dbeta += 0.5 * np.cross(
+        self._dbeta += 0.5 * _cross(
             self._beta + (1.0 / 6.0) * self._dtheta_prev, dtheta
         )
         self._beta += dtheta
