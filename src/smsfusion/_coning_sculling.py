@@ -49,20 +49,20 @@ class ConingScullingAlgorithm:
         w : numpy.ndarray
             Bias corrected angular rate measurements.
         """
-        dtheta = w * self._dt
-        # dtheta = 0.5 * (w + self._w_prev) * self._dt
-        self._dbeta += 0.5 * np.cross((self._beta + (1.0 / 6.0) * self._dtheta_prev), dtheta)
+        # dtheta = w * self._dt
+        dtheta = 0.5 * (w + self._w_prev) * self._dt
+        self._dbeta += 0.5 * np.cross(self._beta + (1.0 / 6.0) * self._dtheta_prev, dtheta)
         self._beta += dtheta
 
-        self._w_prev = w.copy()
-        self._dtheta_prev = dtheta.copy()
+        self._w_prev = w
+        self._dtheta_prev = dtheta
 
     def _sculling_update(self, f):
         """
         Update the sculling integrals using new accelerometer measurements, f[l+1].
         """
-        dvel = f * self._dt
-        # dvel = 0.5 * (f + self._f_prev) * self._dt
+        # dvel = f * self._dt
+        dvel = 0.5 * (f + self._f_prev) * self._dt
         self._gamma1 += np.cross(self._beta + 0.5 * self._dtheta_prev, dvel)
         self._u += dvel
         self._f_prev = f
