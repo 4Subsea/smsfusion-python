@@ -38,16 +38,14 @@ class ConingScullingAlg:
     .. [1] https://apps.dtic.mil/sti/tr/pdf/ADP003621.pdf
     """
 
-    def __init__(self, fs: float, bias_gyro=None, bias_acc=None):
+    def __init__(self, fs: float):
         self._fs = fs
         self._dt = 1.0 / fs
-        self._bg = bias_gyro or np.zeros(3)
-        self._ba = bias_acc or np.zeros(3)
 
         # Coning params
-        self._beta = np.zeros(3)
-        self._dbeta = np.zeros(3)
-        self._dtheta_prev = np.zeros(3)
+        self._beta = np.zeros(3, dtype=float)
+        self._dbeta = np.zeros(3, dtype=float)
+        self._dtheta_prev = np.zeros(3, dtype=float)
         self._w_prev = None
 
         # Sculling params
@@ -55,33 +53,30 @@ class ConingScullingAlg:
         self._u = np.zeros(3, dtype=float)
         self._f_prev = None
 
-    def update(self, f_imu: ArrayLike, w_imu: ArrayLike, degrees: bool = False):
+    def update(self, f: ArrayLike, w: ArrayLike, degrees: bool = False):
         """
         Update the coning (dtheta) and sculling (dvel) integrals using new IMU measurements.
 
         Parameters
         ----------
-        f_imu : array-like, shape (3,)
+        f : array-like, shape (3,)
             Specific force (acceleration + gravity) measurements [f_x, f_y, f_z],
             where f_x, f_y and f_z are specific forces along the x-, y-, and z-axis,
             respectively.
-        w_imu : array-like, shape (3,)
+        w : array-like, shape (3,)
             Angular rate measurements [w_x, w_y, w_z], where w_x, w_y and w_z are
             angular rates about the x-, y-, and z-axis, respectively.
         degrees : bool, default False
             Specify whether the angular rates are given in degrees or radians.
         """
-        f_imu = np.asarray(f_imu, dtype=float)
-        w_imu = np.asarray(w_imu, dtype=float)
+        f = np.asarray(f, dtype=float)
+        w = np.asarray(w, dtype=float)
 
         if degrees:
-            w_imu = (np.pi / 180.0) * w_imu
-
-        f = f_imu - self._ba
-        w = w_imu - self._bg
+            w = (np.pi / 180.0) * w
 
         # Accelerometer and gyro pulse vector counts from l to l+1
-        if self._f_prev is not None or self._w_prev is not None:  # first sample
+        if self._f_prev is None or self._w_prev is None:  # first sample
             dvel = f * self._dt  # backward Euler
             dtheta = w * self._dt  # backward Euler
         else:
@@ -98,17 +93,26 @@ class ConingScullingAlg:
         )
         self._beta += dtheta
 
-        self._f_prev = f
-        self._w_prev = w
-        self._dtheta_prev = dtheta
+        self._f_prev = f.copy()
+        self._w_prev = w.copy()
+        self._dtheta_prev = dtheta.copy()
 
-    def dtheta(self):
+    def dtheta(self, degrees=False):
         """
         The accumulated 'body attitude change' vector. I.e., the rotation vector
         describing the total rotation over all samples since initialization (or
         last reset).
+
+        Parameters
+        ----------
+        degrees : bool, default False
+            Specifies whether the returned rotation vector should be in degrees
+            or radians (default).
         """
-        return self._beta + self._dbeta
+        dtheta = self._beta + self._dbeta
+        if degrees:
+            dtheta *= (180.0 / np.pi)
+        return dtheta
 
     def dvel(self):
         """
