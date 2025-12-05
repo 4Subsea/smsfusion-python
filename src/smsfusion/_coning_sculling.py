@@ -4,7 +4,7 @@ from numpy.typing import ArrayLike
 from smsfusion._vectorops import _cross
 
 
-class ConingScullingAlgorithm:
+class ConingScullingAlg:
     """
     Coning and sculling algorithm.
     """
@@ -51,7 +51,9 @@ class ConingScullingAlgorithm:
         """
         # dtheta = w * self._dt
         dtheta = 0.5 * (w + self._w_prev) * self._dt
-        self._dbeta += 0.5 * np.cross(self._beta + (1.0 / 6.0) * self._dtheta_prev, dtheta)
+        self._dbeta += 0.5 * np.cross(
+            self._beta + (1.0 / 6.0) * self._dtheta_prev, dtheta
+        )
         self._beta += dtheta
 
         self._w_prev = w
@@ -98,13 +100,13 @@ class ConingScullingAlgorithm:
         Coning integral.
         """
         return self._beta + self._dbeta
-    
+
     def dvel(self):
         """
         Sculling integral.
         """
         return self._u + self._gamma1
-    
+
     def reset(self):
         self._beta = np.zeros(3, dtype=float)
         self._dbeta = np.zeros(3, dtype=float)
