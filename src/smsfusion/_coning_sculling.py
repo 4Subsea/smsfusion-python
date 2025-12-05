@@ -90,11 +90,8 @@ class ConingScullingAlgorithm:
         if degrees:
             w_imu = (np.pi / 180.0) * w_imu
 
-        f_ins = f_imu - self._ba
-        w_ins = w_imu - self._bg
-
-        self._sculling_update(f_ins)
-        self._coning_update(w_ins)
+        self._sculling_update(f_imu - self._ba)
+        self._coning_update(w_imu - self._bg)
 
     def dtheta(self):
         """
