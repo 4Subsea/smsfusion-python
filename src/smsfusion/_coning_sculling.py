@@ -30,7 +30,8 @@ class ConingScullingAlg:
     - h(dtheta[m]) is the unit quaternion representation of the rotation increment
       over the interval [m, m+1].
 
-    The coning and sculling integrals are computed according to ref [1]_.
+    The coning and sculling integrals are computed according to Eq. (26) and Eq. (55)
+    in ref [1]_.
 
     References
     ----------
