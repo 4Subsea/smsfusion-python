@@ -46,12 +46,12 @@ class ConingScullingAlg:
         self._beta = np.zeros(3, dtype=float)
         self._dbeta = np.zeros(3, dtype=float)
         self._dtheta_prev = np.zeros(3, dtype=float)
-        self._w_prev = None
+        # self._w_prev = None
 
         # Sculling params
         self._gamma1 = np.zeros(3, dtype=float)
         self._u = np.zeros(3, dtype=float)
-        self._f_prev = None
+        # self._f_prev = None
 
     def update(self, f: ArrayLike, w: ArrayLike, degrees: bool = False):
         """
@@ -96,8 +96,8 @@ class ConingScullingAlg:
         )
         self._beta += dtheta
 
-        self._f_prev = f.copy()
-        self._w_prev = w.copy()
+        # self._f_prev = f.copy()
+        # self._w_prev = w.copy()
         self._dtheta_prev = dtheta.copy()
 
     def dtheta(self, degrees=False):
