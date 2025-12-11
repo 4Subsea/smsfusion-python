@@ -11,15 +11,15 @@ class ConingScullingAlg:
     Integrates an IMU's specific force and angular rate measurements to coning and
     sculling corrected velocity (dvel) and attitude (dtheta) changes.
 
-    For use in a strapdown algorithm as:
+    Can be used in a strapdown algorithm as:
 
         vel[m+1] = vel[m] + R(q[m]) @ dvel[m] + dvel_corr
         q[m+1] = q[m] ⊗ h(dtheta[m])
 
     where,
 
-        dvel_corr = [0, 0, g] (if NED)
-        dvel_corr = [0, 0, -g] (if ENU)
+        dvel_corr = [0, 0, g] (if 'NED')
+        dvel_corr = [0, 0, -g] (if 'ENU')
 
     and,
 
