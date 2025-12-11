@@ -51,6 +51,7 @@ class ConingScullingAlg:
         # Sculling params
         self._gamma1 = np.zeros(3, dtype=float)
         self._u = np.zeros(3, dtype=float)
+        self._dvel_prev = np.zeros(3, dtype=float)
         # self._f_prev = None
 
     def update(self, f: ArrayLike, w: ArrayLike, degrees: bool = False):
@@ -86,8 +87,14 @@ class ConingScullingAlg:
         dvel = f * self._dt  # backward Euler
         dtheta = w * self._dt  # backward Euler
 
-        # Sculling update
-        self._gamma1 += np.cross(self._beta + 0.5 * dtheta, dvel)
+        # Sculling update 1st order
+        # self._gamma1 += np.cross(self._beta + 0.5 * dtheta, dvel)
+        # self._u += dvel
+
+        # Sculling update 2nd order
+        self._gamma1 += np.cross(self._beta + 0.5 * dtheta, dvel) + (1.0 / 12.0) * (
+            np.cross(self._dtheta_prev, dvel) + np.cross(self._dvel_prev, dtheta)
+        )
         self._u += dvel
 
         # Coning update
@@ -98,6 +105,7 @@ class ConingScullingAlg:
 
         # self._f_prev = f.copy()
         # self._w_prev = w.copy()
+        self._dvel_prev = dvel.copy()
         self._dtheta_prev = dtheta.copy()
 
     def dtheta(self, degrees=False):
@@ -114,12 +122,12 @@ class ConingScullingAlg:
         """
         dtheta = self._beta + self._dbeta
         if degrees:
-            dtheta *= (180.0 / np.pi)
+            dtheta *= 180.0 / np.pi
         return dtheta
 
     def dvel(self):
         """
-        The accumulated specific force velocity vector change. I.e., 
+        The accumulated specific force velocity vector change. I.e.,
         the total change in velocity (no gravity correction) over all samples since
         initialization (or last reset).
         """
