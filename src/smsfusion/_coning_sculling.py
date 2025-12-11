@@ -49,9 +49,10 @@ class ConingScullingAlg:
         # self._w_prev = None
 
         # Sculling params
-        self._gamma1 = np.zeros(3, dtype=float)
+        self._gamma2 = np.zeros(3, dtype=float)
+        # self._gamma1 = np.zeros(3, dtype=float)
         self._u = np.zeros(3, dtype=float)
-        self._dvel_prev = np.zeros(3, dtype=float)
+        # self._dvel_prev = np.zeros(3, dtype=float)
         # self._f_prev = None
 
     def update(self, f: ArrayLike, w: ArrayLike, degrees: bool = False):
@@ -91,11 +92,15 @@ class ConingScullingAlg:
         # self._gamma1 += np.cross(self._beta + 0.5 * dtheta, dvel)
         # self._u += dvel
 
-        # Sculling update 2nd order
-        self._gamma1 += np.cross(self._beta + 0.5 * dtheta, dvel) + (1.0 / 12.0) * (
-            np.cross(self._dtheta_prev, dvel) + np.cross(self._dvel_prev, dtheta)
-        )
+        # Sculling update 1st order
+        self._gamma2 += 0.5 * (np.cross(self._beta, dvel) + np.cross(self._u, dtheta))
         self._u += dvel
+
+        # # Sculling update 2nd order
+        # self._gamma1 += np.cross(self._beta + 0.5 * dtheta, dvel) + (1.0 / 12.0) * (
+        #     np.cross(self._dtheta_prev, dvel) + np.cross(self._dvel_prev, dtheta)
+        # )
+        # self._u += dvel
 
         # Coning update
         self._dbeta += 0.5 * _cross(
@@ -131,7 +136,7 @@ class ConingScullingAlg:
         the total change in velocity (no gravity correction) over all samples since
         initialization (or last reset).
         """
-        return self._u + self._gamma1
+        return self._u + 0.5 * np.cross(self._beta, self._u) + self._gamma2
 
     def reset(self):
         """
@@ -140,4 +145,5 @@ class ConingScullingAlg:
         self._beta = np.zeros(3, dtype=float)
         self._dbeta = np.zeros(3, dtype=float)
         self._gamma1 = np.zeros(3, dtype=float)
+        self._gamma2 = np.zeros(3, dtype=float)
         self._u = np.zeros(3, dtype=float)
