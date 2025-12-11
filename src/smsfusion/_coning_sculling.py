@@ -52,7 +52,7 @@ class ConingScullingAlg:
         self._gamma2 = np.zeros(3, dtype=float)
         # self._gamma1 = np.zeros(3, dtype=float)
         self._u = np.zeros(3, dtype=float)
-        # self._dvel_prev = np.zeros(3, dtype=float)
+        self._dvel_prev = np.zeros(3, dtype=float)
         # self._f_prev = None
 
     def update(self, f: ArrayLike, w: ArrayLike, degrees: bool = False):
@@ -92,8 +92,12 @@ class ConingScullingAlg:
         # self._gamma1 += np.cross(self._beta + 0.5 * dtheta, dvel)
         # self._u += dvel
 
-        # Sculling update 1st order
-        self._gamma2 += 0.5 * (np.cross(self._beta, dvel) + np.cross(self._u, dtheta))
+        # # Sculling update 1st order
+        # self._gamma2 += 0.5 * (np.cross(self._beta, dvel) + np.cross(self._u, dtheta))
+        # self._u += dvel
+
+        # Sculling update 2nd order
+        self._gamma2 += 0.5 * (np.cross(self._beta + (1.0 / 6.0) * self._dtheta_prev, dvel) + np.cross(self._u + (1.0 / 6.0) * self._dvel_prev, dtheta))
         self._u += dvel
 
         # # Sculling update 2nd order
