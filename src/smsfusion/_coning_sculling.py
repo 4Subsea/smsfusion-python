@@ -43,17 +43,14 @@ class ConingScullingAlg:
         self._dt = 1.0 / fs
 
         # Coning params
-        self._beta = np.zeros(3, dtype=float)
-        self._dbeta = np.zeros(3, dtype=float)
+        self._theta = np.zeros(3, dtype=float)
+        self._dtheta_con = np.zeros(3, dtype=float)
         self._dtheta_prev = np.zeros(3, dtype=float)
-        # self._w_prev = None
 
         # Sculling params
-        self._gamma2 = np.zeros(3, dtype=float)
-        # self._gamma1 = np.zeros(3, dtype=float)
-        self._u = np.zeros(3, dtype=float)
-        self._dvel_prev = np.zeros(3, dtype=float)
-        # self._f_prev = None
+        self._vel = np.zeros(3, dtype=float)
+        self._dvel_scul = np.zeros(3, dtype=float)
+        self._dv_prev = np.zeros(3, dtype=float)
 
     def update(self, f: ArrayLike, w: ArrayLike, degrees: bool = False):
         """
@@ -77,44 +74,23 @@ class ConingScullingAlg:
         if degrees:
             w = (np.pi / 180.0) * w
 
-        # Accelerometer and gyro pulse vector counts from l to l+1
-        # if self._f_prev is None or self._w_prev is None:  # first sample
-        #     dvel = f * self._dt  # backward Euler
-        #     dtheta = w * self._dt  # backward Euler
-        # else:
-        #     dvel = 0.5 * (f + self._f_prev) * self._dt  # trapezoidal
-        #     dtheta = 0.5 * (w + self._w_prev) * self._dt  # trapezoidal
-
-        dvel = f * self._dt  # backward Euler
+        dv = f * self._dt  # backward Euler
         dtheta = w * self._dt  # backward Euler
 
-        # Sculling update 1st order
-        # self._gamma1 += np.cross(self._beta + 0.5 * dtheta, dvel)
-        # self._u += dvel
-
-        # # Sculling update 1st order
-        # self._gamma2 += 0.5 * (np.cross(self._beta, dvel) + np.cross(self._u, dtheta))
-        # self._u += dvel
-
         # Sculling update 2nd order
-        self._gamma2 += 0.5 * (np.cross(self._beta + (1.0 / 6.0) * self._dtheta_prev, dvel) + np.cross(self._u + (1.0 / 6.0) * self._dvel_prev, dtheta))
-        self._u += dvel
-
-        # # Sculling update 2nd order
-        # self._gamma1 += np.cross(self._beta + 0.5 * dtheta, dvel) + (1.0 / 12.0) * (
-        #     np.cross(self._dtheta_prev, dvel) + np.cross(self._dvel_prev, dtheta)
-        # )
-        # self._u += dvel
+        self._dvel_scul += 0.5 * (
+            np.cross(self._theta + (1.0 / 6.0) * self._dtheta_prev, dv)
+            + np.cross(self._vel + (1.0 / 6.0) * self._dv_prev, dtheta)
+        )
+        self._vel += dv
 
         # Coning update
-        self._dbeta += 0.5 * _cross(
-            self._beta + (1.0 / 6.0) * self._dtheta_prev, dtheta
+        self._dtheta_con += 0.5 * _cross(
+            self._theta + (1.0 / 6.0) * self._dtheta_prev, dtheta
         )
-        self._beta += dtheta
+        self._theta += dtheta
 
-        # self._f_prev = f.copy()
-        # self._w_prev = w.copy()
-        self._dvel_prev = dvel.copy()
+        self._dv_prev = dv.copy()
         self._dtheta_prev = dtheta.copy()
 
     def dtheta(self, degrees=False):
@@ -129,10 +105,12 @@ class ConingScullingAlg:
             Specifies whether the returned rotation vector should be in degrees
             or radians (default).
         """
-        dtheta = self._beta + self._dbeta
-        if degrees:
-            dtheta *= 180.0 / np.pi
-        return dtheta
+        dtheta = self._theta + self._dtheta_con
+        return np.degrees(dtheta) if degrees else dtheta
+
+    @property
+    def _dvel_rot(self):
+        return 0.5 * np.cross(self._theta, self._vel)
 
     def dvel(self):
         """
@@ -140,14 +118,13 @@ class ConingScullingAlg:
         the total change in velocity (no gravity correction) over all samples since
         initialization (or last reset).
         """
-        return self._u + 0.5 * np.cross(self._beta, self._u) + self._gamma2
+        return self._vel + self._dvel_rot + self._dvel_scul
 
     def reset(self):
         """
         Reset the coning (dtheta) and sculling (dvel) integrals to zero.
         """
-        self._beta = np.zeros(3, dtype=float)
-        self._dbeta = np.zeros(3, dtype=float)
-        self._gamma1 = np.zeros(3, dtype=float)
-        self._gamma2 = np.zeros(3, dtype=float)
-        self._u = np.zeros(3, dtype=float)
+        self._theta = np.zeros(3, dtype=float)
+        self._dtheta_con = np.zeros(3, dtype=float)
+        self._dvel_scul = np.zeros(3, dtype=float)
+        self._vel = np.zeros(3, dtype=float)
