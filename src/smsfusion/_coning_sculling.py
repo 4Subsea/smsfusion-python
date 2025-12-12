@@ -71,7 +71,7 @@ class ConingScullingAlg:
             Angular rate measurements [w_x, w_y, w_z], where w_x, w_y and w_z are
             angular rates about the x-, y-, and z-axis, respectively.
         degrees : bool, default False
-            Specify whether the angular rates are given in degrees or radians.
+            Specifies whether the angular rates are given in degrees or radians (default).
         """
         f = np.asarray(f, dtype=float)
         w = np.asarray(w, dtype=float)
