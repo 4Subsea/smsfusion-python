@@ -78,14 +78,15 @@ class ConingScullingAlg:
         dv = f * self._dt  # backward Euler
         dtheta = w * self._dt  # backward Euler
 
-        # (2nd order) sculling update, see (Eq. 7.2.2.2.2-15) in ref [2]_
+        # (2nd order) sculling update
+        # See Eq. (7.2.2.2.2-15) in ref [2]_ and Eq. (56) in ref [1]_
         self._dvel_scul += 0.5 * (
             np.cross(self._theta + (1.0 / 6.0) * self._dtheta_prev, dv)
             + np.cross(self._vel + (1.0 / 6.0) * self._dv_prev, dtheta)
         )
         self._vel += dv
 
-        # Coning update, see (Eq. 26) in ref [1]_
+        # Coning update, see Eq. (26) in ref [1]_
         self._dtheta_con += 0.5 * _cross(
             self._theta + (1.0 / 6.0) * self._dtheta_prev, dtheta
         )
