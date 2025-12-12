@@ -86,14 +86,15 @@ class ConingScullingAlg:
         )
         self._vel += dv
 
-        # Coning update, see Eq. (26) in ref [1]_
+        # Coning update
+        # See Eq. (26) in ref [1]_
         self._dtheta_con += 0.5 * _cross(
             self._theta + (1.0 / 6.0) * self._dtheta_prev, dtheta
         )
         self._theta += dtheta
 
-        self._dv_prev = dv.copy()
-        self._dtheta_prev = dtheta.copy()
+        self._dv_prev[:] = dv
+        self._dtheta_prev[:] = dtheta
 
     def dtheta(self, degrees=False):
         """
@@ -126,7 +127,7 @@ class ConingScullingAlg:
         """
         Reset the coning (dtheta) and sculling (dvel) integrals to zero.
         """
-        self._theta = np.zeros(3, dtype=float)
-        self._dtheta_con = np.zeros(3, dtype=float)
-        self._dvel_scul = np.zeros(3, dtype=float)
-        self._vel = np.zeros(3, dtype=float)
+        self._theta[:] = np.zeros(3, dtype=float)
+        self._dtheta_con[:] = np.zeros(3, dtype=float)
+        self._dvel_scul[:] = np.zeros(3, dtype=float)
+        self._vel[:] = np.zeros(3, dtype=float)
