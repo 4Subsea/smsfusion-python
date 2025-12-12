@@ -75,26 +75,32 @@ class ConingScullingAlg:
         if degrees:
             w = (np.pi / 180.0) * w
 
+        # View for readability
+        theta = self._theta
+        dtheta_con = self._dtheta_con
+        dtheta_prev = self._dtheta_prev
+        vel = self._vel
+        dvel_scul = self._dvel_scul
+        dv_prev = self._dv_prev
+
         dv = f * self._dt  # backward Euler
         dtheta = w * self._dt  # backward Euler
 
         # (2nd order) sculling update
         # See Eq. (7.2.2.2.2-15) in ref [2]_ and Eq. (56) in ref [1]_
-        self._dvel_scul += 0.5 * (
-            np.cross(self._theta + (1.0 / 6.0) * self._dtheta_prev, dv)
-            + np.cross(self._vel + (1.0 / 6.0) * self._dv_prev, dtheta)
+        dvel_scul += 0.5 * (
+            _cross(theta + (1.0 / 6.0) * dtheta_prev, dv)
+            + _cross(vel + (1.0 / 6.0) * dv_prev, dtheta)
         )
-        self._vel += dv
+        vel += dv
 
         # Coning update
         # See Eq. (26) in ref [1]_
-        self._dtheta_con += 0.5 * _cross(
-            self._theta + (1.0 / 6.0) * self._dtheta_prev, dtheta
-        )
-        self._theta += dtheta
+        dtheta_con += 0.5 * _cross(theta + (1.0 / 6.0) * dtheta_prev, dtheta)
+        theta += dtheta
 
-        self._dv_prev[:] = dv
-        self._dtheta_prev[:] = dtheta
+        dv_prev[:] = dv
+        dtheta_prev[:] = dtheta
 
     def dtheta(self, degrees=False):
         """
@@ -113,7 +119,7 @@ class ConingScullingAlg:
 
     @property
     def _dvel_rot(self):
-        return 0.5 * np.cross(self._theta, self._vel)
+        return 0.5 * _cross(self._theta, self._vel)
 
     def dvel(self):
         """
