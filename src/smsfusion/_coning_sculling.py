@@ -30,12 +30,13 @@ class ConingScullingAlg:
     - h(dtheta[m]) is the unit quaternion representation of the rotation increment
       over the interval [m, m+1].
 
-    The coning and sculling integrals are computed according to Eq. (26) and Eq. (55)
-    in ref [1]_.
+    The coning and sculling integrals are computed using a 2nd order algorithm as
+    described in [1]_ and [2]_.
 
     References
     ----------
     .. [1] https://apps.dtic.mil/sti/tr/pdf/ADP003621.pdf
+    .. [2] https://strapdownassociates.com/Strapdown%20Analytics%20II%20Part%201.pdf
     """
 
     def __init__(self, fs: float):
@@ -77,14 +78,14 @@ class ConingScullingAlg:
         dv = f * self._dt  # backward Euler
         dtheta = w * self._dt  # backward Euler
 
-        # Sculling update 2nd order
+        # (2nd order) sculling update, see (Eq. 7.2.2.2.2-15) in ref [2]_
         self._dvel_scul += 0.5 * (
             np.cross(self._theta + (1.0 / 6.0) * self._dtheta_prev, dv)
             + np.cross(self._vel + (1.0 / 6.0) * self._dv_prev, dtheta)
         )
         self._vel += dv
 
-        # Coning update
+        # Coning update, see (Eq. 26) in ref [1]_
         self._dtheta_con += 0.5 * _cross(
             self._theta + (1.0 / 6.0) * self._dtheta_prev, dtheta
         )
