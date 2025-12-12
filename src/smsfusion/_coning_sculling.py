@@ -29,6 +29,10 @@ class ConingScullingAlg:
       step m to m+1.
     - h(dtheta[m]) is the unit quaternion representation of the rotation increment
       over the interval [m, m+1].
+    - R(q[m]) is the rotation matrix (body-to-nav) corresponding to the attitude
+      quaternion q[m].
+
+    Here, ⊗ denotes quaternion multiplication (Hamilton product) and R(q).
 
     The coning and sculling integrals are computed using a 2nd order algorithm as
     described in [1]_ and [2]_.
