@@ -198,3 +198,54 @@ class Test_ConingScullingAlg:
         dvel_expect = np.array([0.0, 0.0, 1.0])
         np.testing.assert_allclose(dvel_out, dvel_expect)
         np.testing.assert_allclose(dtheta_out, np.zeros(3))
+
+    def test_roll_and_surge(self):
+        fs = 100.0
+        alg = sf.ConingScullingAlg(fs)
+
+        f = np.array([1.0, 0.0, 0.0])  # m/s^2
+        w = np.array([np.radians(90.0), 0.0, 0.0])  # rad/s
+
+        for i in range(int(fs * 1.0)):  # 1 second
+            alg.update(f, w)
+
+        dtheta_out, dvel_out = alg.flush()
+
+        dtheta_expect = np.array([np.radians(90.0), 0.0, 0.0])
+        dvel_expect = np.array([1.0, 0.0, 0.0])
+        np.testing.assert_allclose(dtheta_out, dtheta_expect, atol=1e-8)
+        np.testing.assert_allclose(dvel_out, dvel_expect, atol=1e-8)
+
+    def test_pitch_and_sway(self):
+        fs = 100.0
+        alg = sf.ConingScullingAlg(fs)
+
+        f = np.array([0.0, 1.0, 0.0])  # m/s^2
+        w = np.array([0.0, np.radians(90.0), 0.0])  # rad/s
+
+        for i in range(int(fs * 1.0)):  # 1 second
+            alg.update(f, w)
+
+        dtheta_out, dvel_out = alg.flush()
+
+        dtheta_expect = np.array([0.0, np.radians(90.0), 0.0])
+        dvel_expect = np.array([0.0, 1.0, 0.0])
+        np.testing.assert_allclose(dtheta_out, dtheta_expect, atol=1e-8)
+        np.testing.assert_allclose(dvel_out, dvel_expect, atol=1e-8)
+
+    def test_yaw_and_heave(self):
+        fs = 100.0
+        alg = sf.ConingScullingAlg(fs)
+
+        f = np.array([0.0, 0.0, 1.0])  # m/s^2
+        w = np.array([0.0, 0.0, np.radians(90.0)])  # rad/s
+
+        for i in range(int(fs * 1.0)):  # 1 second
+            alg.update(f, w)
+
+        dtheta_out, dvel_out = alg.flush()
+
+        dtheta_expect = np.array([0.0, 0.0, np.radians(90.0)])
+        dvel_expect = np.array([0.0, 0.0, 1.0])
+        np.testing.assert_allclose(dtheta_out, dtheta_expect, atol=1e-8)
+        np.testing.assert_allclose(dvel_out, dvel_expect, atol=1e-8)
