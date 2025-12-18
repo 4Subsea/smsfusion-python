@@ -127,17 +127,36 @@ class ConingScullingAlg:
 
     def dvel(self):
         """
-        The accumulated specific force velocity vector change. I.e.,
+        The accumulated specific force velocity change vector. I.e.,
         the total change in velocity (no gravity correction) over all samples since
         initialization (or last reset).
         """
         return self._vel + self._dvel_rot + self._dvel_scul
 
-    def reset(self):
+    def flush(self, degrees=False):
         """
-        Reset the coning (dtheta) and sculling (dvel) integrals to zero.
+        Return dtheta (the accumulated 'body attitude change' vector) and
+        dvel (the accumulated specific force velocity change vector), and reset
+        the coning (dtheta) and sculling (dvel) integrals to zero.
+
+        Parameters
+        ----------
+        degrees : bool, default False
+            Specifies whether the returned rotation vector should be in degrees
+            or radians (default).
+
+        Returns
+        -------
+        dtheta : ndarray, shape (3,)
+            The accumulated 'body attitude change' vector, see :meth:`dtheta`.
+        dvel : ndarray, shape (3,)
+            The accumulated specific force velocity change vector, see :meth:`dvel`.
         """
+        dtheta = self.dtheta(degrees=degrees)
+        dvel = self.dvel()
+
         self._theta[:] = np.zeros(3, dtype=float)
         self._dtheta_con[:] = np.zeros(3, dtype=float)
         self._dvel_scul[:] = np.zeros(3, dtype=float)
         self._vel[:] = np.zeros(3, dtype=float)
+        return dtheta, dvel
