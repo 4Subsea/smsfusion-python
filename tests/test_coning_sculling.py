@@ -1,17 +1,23 @@
 from pathlib import Path
 from turtle import down
+
 import numpy as np
-import smsfusion as sf
 import pytest
 
+import smsfusion as sf
 
 TEST_PATH = Path(__file__).parent
 
 
 @pytest.fixture
 def data_ag():
+    """
+    200 Hz AG data.
+    """
+
     data = np.genfromtxt(
-        TEST_PATH / "testdata/coning_sculling/coning_sculling_sim_highfreq_20251218A.csv",
+        TEST_PATH
+        / "testdata/coning_sculling/coning_sculling_sim_highfreq_20251218A.csv",
         delimiter=",",
         names=True,
         dtype=float,
@@ -32,8 +38,13 @@ def data_ag():
 
 @pytest.fixture
 def data_dtheta_dvel():
+    """
+    10 Hz coning/sculling reference data.
+    """
+
     data = np.genfromtxt(
-        TEST_PATH / "testdata/coning_sculling/coning_sculling_sim_lowfreq_20251218A.csv",
+        TEST_PATH
+        / "testdata/coning_sculling/coning_sculling_sim_lowfreq_20251218A.csv",
         delimiter=",",
         names=True,
         dtype=float,
@@ -78,17 +89,13 @@ class Test_ConingScullingAlg:
         dtheta_out = []
         dvel_out = []
         for i, (w_i, f_i) in enumerate(zip(w, f)):
-            # w_i = (np.pi / 180.0) * w_i
 
             alg.update(f_i, w_i)
 
-            # Store downsampled coning integral, phi    
             if (i != 0) and (i % step == 0.0):
-                dtheta_out.append(alg.dtheta())
-                dvel_out.append(alg.dvel())
-
-                # Reset
-                alg.reset()
+                dtheta_i, dvel_i = alg.flush()
+                dtheta_out.append(dtheta_i)
+                dvel_out.append(dvel_i)
 
         dtheta_out = np.array(dtheta_out)
         dvel_out = np.array(dvel_out)
