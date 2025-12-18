@@ -150,3 +150,35 @@ class Test_ConingScullingAlg:
         dtheta_expect = np.array([0.0, 0.0, np.radians(90.0)])
         np.testing.assert_allclose(dtheta_out, dtheta_expect)
         np.testing.assert_allclose(dvel_out, np.zeros(3))
+
+    def test_pure_surge(self):
+        fs = 100.0
+        alg = sf.ConingScullingAlg(fs)
+
+        f = np.array([1.0, 0.0, 0.0])  # m/s^2
+        w = np.array([0.0, 0.0, 0.0])  # rad/s
+
+        for i in range(int(fs * 1.0)):  # 1 second
+            alg.update(f, w)
+
+        dtheta_out, dvel_out = alg.flush()
+
+        dvel_expect = np.array([1.0, 0.0, 0.0])
+        np.testing.assert_allclose(dvel_out, dvel_expect)
+        np.testing.assert_allclose(dtheta_out, np.zeros(3))
+
+    def test_pure_sway(self):
+        fs = 100.0
+        alg = sf.ConingScullingAlg(fs)
+
+        f = np.array([0.0, 1.0, 0.0])  # m/s^2
+        w = np.array([0.0, 0.0, 0.0])  # rad/s
+
+        for i in range(int(fs * 1.0)):  # 1 second
+            alg.update(f, w)
+
+        dtheta_out, dvel_out = alg.flush()
+
+        dvel_expect = np.array([0.0, 1.0, 0.0])
+        np.testing.assert_allclose(dvel_out, dvel_expect)
+        np.testing.assert_allclose(dtheta_out, np.zeros(3))
