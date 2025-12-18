@@ -8,18 +8,18 @@ class ConingScullingAlg:
     """
     Coning and sculling algorithm.
 
-    Integrates an IMU's specific force and angular rate measurements to coning and
+    Integrates the specific force and angular rate measurements to coning and
     sculling corrected velocity (dvel) and attitude (dtheta) changes.
 
     Can be used in a strapdown algorithm as:
 
         vel[m+1] = vel[m] + R(q[m]) @ dvel[m] + dvel_corr
-        q[m+1] = q[m] ⊗ h(dtheta[m])
+        q[m+1] = q[m] ⊗ dq(dtheta[m])
 
     where,
 
-        dvel_corr = [0, 0, g] (if 'NED')
-        dvel_corr = [0, 0, -g] (if 'ENU')
+        dvel_corr = [0, 0, g * dt] (if 'NED')
+        dvel_corr = [0, 0, -g * dt] (if 'ENU')
 
     and,
 
@@ -27,20 +27,20 @@ class ConingScullingAlg:
       correction) from time step m to m+1.
     - dtheta[m] is the coning integral, i.e., the rotation vector change from time
       step m to m+1.
-    - h(dtheta[m]) is the unit quaternion representation of the rotation increment
+    - dq(dtheta[m]) is the unit quaternion representation of the rotation increment
       over the interval [m, m+1].
     - R(q[m]) is the rotation matrix (body-to-nav) corresponding to the attitude
       quaternion q[m].
 
-    Here, ⊗ denotes quaternion multiplication (Hamilton product) and R(q).
+    Here, ⊗ denotes quaternion multiplication (Hamilton product).
 
     The coning and sculling integrals are computed using a 2nd order algorithm as
     described in [1]_ and [2]_.
 
     References
     ----------
-    .. [1] https://apps.dtic.mil/sti/tr/pdf/ADP003621.pdf
-    .. [2] https://strapdownassociates.com/Strapdown%20Analytics%20II%20Part%201.pdf
+    .. [1] Savage, Paul G., Strapdown System Algorithms, AD-P003 621, https://apps.dtic.mil/sti/tr/pdf/ADP003621.pdf
+    .. [2] Savage, Paul G., Strapdown Analytics, 2nd Edition, Part 1, 2007, https://strapdownassociates.com/Strapdown%20Analytics%20II%20Part%201.pdf
     """
 
     def __init__(self, fs: float):
