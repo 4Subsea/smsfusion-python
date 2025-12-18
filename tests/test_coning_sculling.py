@@ -315,3 +315,21 @@ class Test_ConingScullingAlg:
             [np.radians(30.0), -np.radians(45.0), np.radians(60.0)]
         )
         np.testing.assert_allclose(dtheta_out, dtheta_expect)
+
+    def test_flush(self):
+        fs = 100.0
+        alg = sf.ConingScullingAlg(fs)
+
+        f = np.array([1.0, 2.0, 3.0])  # m/s^2
+        w = np.array([np.radians(30.0), -np.radians(45.0), np.radians(60.0)])  # rad/s
+
+        for i in range(int(fs * 1.0)):  # 1 second
+            alg.update(f, w)
+
+        dtheta_expect = alg.dtheta()
+        dvel_expect = alg.dvel()
+        dtheta_out, dvel_out = alg.flush()
+        np.testing.assert_allclose(dtheta_out, dtheta_expect)
+        np.testing.assert_allclose(dvel_out, dvel_expect)
+        assert np.allclose(alg.dtheta(), np.zeros(3))
+        assert np.allclose(alg.dvel(), np.zeros(3))
