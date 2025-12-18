@@ -59,7 +59,7 @@ class ConingScullingAlg:
 
     def update(self, f: ArrayLike, w: ArrayLike, degrees: bool = False):
         """
-        Update the coning (dtheta) and sculling (dvel) integrals using new IMU measurements.
+        Update the coning (dtheta) and sculling (dvel) integrals using new measurements.
 
         Parameters
         ----------
