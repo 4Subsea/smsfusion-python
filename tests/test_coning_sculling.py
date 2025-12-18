@@ -1,5 +1,55 @@
+from pathlib import Path
+from turtle import down
 import numpy as np
 import smsfusion as sf
+import pytest
+
+
+TEST_PATH = Path(__file__).parent
+
+
+@pytest.fixture
+def data_ag():
+    data = np.genfromtxt(
+        TEST_PATH / "testdata/coning_sculling/coning_sculling_sim_highfreq_20251218A.csv",
+        delimiter=",",
+        names=True,
+        dtype=float,
+    )
+
+    gx = data["Gx_rads"]
+    gy = data["Gy_rads"]
+    gz = data["Gz_rads"]
+    ax = data["Ax_ms2"]
+    ay = data["Ay_ms2"]
+    az = data["Az_ms2"]
+
+    w = np.column_stack((gx, gy, gz))
+    f = np.column_stack((ax, ay, az))
+
+    return f, w
+
+
+@pytest.fixture
+def data_dtheta_dvel():
+    data = np.genfromtxt(
+        TEST_PATH / "testdata/coning_sculling/coning_sculling_sim_lowfreq_20251218A.csv",
+        delimiter=",",
+        names=True,
+        dtype=float,
+    )
+
+    dtheta_x = data["dThetaX_rad"]
+    dtheta_y = data["dThetaY_rad"]
+    dtheta_z = data["dThetaZ_rad"]
+    dvel_x = data["dVelX_ms"]
+    dvel_y = data["dVelY_ms"]
+    dvel_z = data["dVelZ_ms"]
+
+    dtheta = np.column_stack((dtheta_x, dtheta_y, dtheta_z))
+    dvel = np.column_stack((dvel_x, dvel_y, dvel_z))
+
+    return dvel, dtheta
 
 
 class Test_ConingScullingAlg:
@@ -15,3 +65,33 @@ class Test_ConingScullingAlg:
         np.testing.assert_allclose(alg._vel, np.zeros(3))
         np.testing.assert_allclose(alg._dvel_scul, np.zeros(3))
         np.testing.assert_allclose(alg._dv_prev, np.zeros(3))
+
+    def test_update(self, data_ag, data_dtheta_dvel):
+        f, w = data_ag
+        dvel_ref, dtheta_ref = data_dtheta_dvel
+
+        fs_highfreq = 200.0
+        fs_lowfreq = 10.0
+        step = int(fs_highfreq / fs_lowfreq)
+        alg = sf.ConingScullingAlg(200.0)
+
+        dtheta_out = []
+        dvel_out = []
+        for i, (w_i, f_i) in enumerate(zip(w, f)):
+            # w_i = (np.pi / 180.0) * w_i
+
+            alg.update(f_i, w_i)
+
+            # Store downsampled coning integral, phi    
+            if (i != 0) and (i % step == 0.0):
+                dtheta_out.append(alg.dtheta())
+                dvel_out.append(alg.dvel())
+
+                # Reset
+                alg.reset()
+
+        dtheta_out = np.array(dtheta_out)
+        dvel_out = np.array(dvel_out)
+
+        np.testing.assert_allclose(dvel_out, dvel_ref, atol=1e-8)
+        np.testing.assert_allclose(dtheta_out, dtheta_ref, atol=1e-8)
