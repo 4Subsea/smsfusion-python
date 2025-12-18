@@ -108,9 +108,9 @@ class ConingScullingAlg:
 
     def dtheta(self, degrees=False):
         """
-        The accumulated 'body attitude change' vector. I.e., the rotation vector
-        describing the total rotation over all samples since initialization (or
-        last reset).
+        Peek at the accumulated 'body attitude change' vector. I.e., the rotation
+        vector describing the total rotation over all samples since
+        initialization (or last reset).
 
         Parameters
         ----------
@@ -127,7 +127,7 @@ class ConingScullingAlg:
 
     def dvel(self):
         """
-        The accumulated specific force velocity change vector. I.e.,
+        Peek at the accumulated specific force velocity change vector. I.e.,
         the total change in velocity (no gravity correction) over all samples since
         initialization (or last reset).
         """
