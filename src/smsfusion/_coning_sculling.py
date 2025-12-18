@@ -109,8 +109,8 @@ class ConingScullingAlg:
     def dtheta(self, degrees=False):
         """
         Peek at the accumulated 'body attitude change' vector. I.e., the rotation
-        vector describing the total rotation over all samples since
-        initialization (or last reset).
+        vector describing the total rotation over all samples since initialization
+        (or last reset).
 
         Parameters
         ----------
