@@ -427,8 +427,8 @@ class Test_BeatDOF:
 
         assert isinstance(beat_dof, DOF)
         assert beat_dof._amp == 1.0
-        assert beat_dof._w_main == pytest.approx(1.0)
-        assert beat_dof._w_beat == pytest.approx(0.1)
+        assert beat_dof._w_main == pytest.approx(0.1)
+        assert beat_dof._w_beat == pytest.approx(0.01)
         assert beat_dof._phase == pytest.approx(0.0)
         assert beat_dof._offset == 0.0
 

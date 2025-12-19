@@ -217,8 +217,8 @@ class BeatDOF(DOF):
     def __init__(
         self,
         amp: float = 1.0,
-        freq_main: float = 1.0,
-        freq_beat: float = 0.1,
+        freq_main: float = 0.1,
+        freq_beat: float = 0.01,
         freq_hz: bool = False,
         phase: float = 0.0,
         phase_degrees: bool = False,
