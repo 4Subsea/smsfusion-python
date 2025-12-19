@@ -125,3 +125,33 @@ class Test_SineDOF:
         np.testing.assert_allclose(y, y_expect)
         np.testing.assert_allclose(dydt, dydt_expect)
         np.testing.assert_allclose(dy2dt2, dy2dt2_expect)
+
+    def test_freq_rads(self, t):
+        sine_dof = SineDOF(freq=np.pi, freq_hz=False)
+        y, dydt, dy2dt2 = sine_dof(t)
+        y_expect = np.sin(np.pi * t)
+        dydt_expect = np.pi * np.cos(np.pi * t)
+        dy2dt2_expect = -np.pi**2 * np.sin(np.pi * t)
+        np.testing.assert_allclose(y, y_expect)
+        np.testing.assert_allclose(dydt, dydt_expect)
+        np.testing.assert_allclose(dy2dt2, dy2dt2_expect)
+
+    def test_phase_degrees(self, t):
+        sine_dof = SineDOF(phase=90.0, phase_degrees=True)
+        y, dydt, dy2dt2 = sine_dof(t)
+        y_expect = np.sin(t + np.pi / 2)
+        dydt_expect = np.cos(t + np.pi / 2)
+        dy2dt2_expect = -np.sin(t + np.pi / 2)
+        np.testing.assert_allclose(y, y_expect)
+        np.testing.assert_allclose(dydt, dydt_expect)
+        np.testing.assert_allclose(dy2dt2, dy2dt2_expect)
+
+    def test_phase_radians(self, t):
+        sine_dof = SineDOF(phase=np.pi / 2, phase_degrees=False)
+        y, dydt, dy2dt2 = sine_dof(t)
+        y_expect = np.sin(t + np.pi / 2)
+        dydt_expect = np.cos(t + np.pi / 2)
+        dy2dt2_expect = -np.sin(t + np.pi / 2)
+        np.testing.assert_allclose(y, y_expect)
+        np.testing.assert_allclose(dydt, dydt_expect)
+        np.testing.assert_allclose(dy2dt2, dy2dt2_expect)
