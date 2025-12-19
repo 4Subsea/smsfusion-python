@@ -312,7 +312,9 @@ def test_benchmark_pure_attitude_beat_202311A():
     assert acc.shape == (len(t), 3)
     assert gyro.shape == (len(t), 3)
 
-    np.testing.assert_array_equal(euler[:, 0], np.radians(5.0) * signature_signal)
+    np.testing.assert_allclose(
+        euler[:, 0], np.radians(5.0) * signature_signal, atol=1e-12
+    )
 
 
 def test_benchmark_pure_attitude_chirp_202311A():

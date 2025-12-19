@@ -7,6 +7,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from smsfusion._ins import gravity
 from smsfusion._transforms import _inv_angular_matrix_from_euler, _rot_matrix_from_euler
+from smsfusion.simulate import BeatDOF, IMUSimulator
 
 
 class _Signal(abc.ABC):
@@ -396,17 +397,20 @@ def benchmark_pure_attitude_beat_202311A(
     within the frame.
     """
     duration = 1800.0  # 30 minutes
-    amplitude = np.radians(np.array([0.0, 0.0, 0.0, 5.0, 5.0, 5.0]))
-    mean = np.radians(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
-    phase = np.radians(np.array([0.0, 0.0, 0.0, 0.0, 45.0, 90.0]))
 
     f_main = 0.1
     f_beat = 0.01
 
-    t, _, _, euler, acc, gyro = _benchmark_helper(
-        duration, amplitude, mean, phase, BeatSignal(f_main, f_beat), fs
-    )
-    return t, euler, acc, gyro
+    amp = np.radians(5.0)
+    alpha = BeatDOF(amp, f_main, f_beat, freq_hz=True, phase=0.0)
+    beta = BeatDOF(amp, f_main, f_beat, freq_hz=True, phase=45.0, phase_degrees=True)
+    gamma = BeatDOF(amp, f_main, f_beat, freq_hz=True, phase=90.0, phase_degrees=True)
+    sim = IMUSimulator(alpha=alpha, beta=beta, gamma=gamma)
+
+    n = int(duration * fs)
+    t, _, _, euler, f, w = sim(fs, n, degrees=False)
+
+    return t, euler, f, w
 
 
 def benchmark_pure_attitude_chirp_202311A(
