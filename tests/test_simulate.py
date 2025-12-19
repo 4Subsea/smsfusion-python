@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import smsfusion as sf
-from smsfusion.simulate import ConstantDOF, IMUSimulator, SineDOF
+from smsfusion.simulate import ConstantDOF, IMUSimulator, SineDOF, BeatDOF
 from smsfusion.simulate._simulate import DOF
 
 
@@ -396,3 +396,27 @@ class Test_IMUSimulator:
         w_z = -np.sin(alpha) * beta_dot + np.cos(alpha) * np.cos(beta) * gamma_dot
         w_b = np.column_stack([w_x, w_y, w_z])
         np.testing.assert_allclose(w, w_b)
+
+
+class Test_BeatDOF:
+    @pytest.fixture
+    def beat_dof(self):
+        return BeatDOF(amp=2.0, freq_main=1.0, freq_beat=0.1)
+
+    def test__init__(self):
+        beat_dof = BeatDOF(
+            amp=3.0,
+            freq_main=2.0,
+            freq_beat=0.2,
+            freq_hz=True,
+            phase=4.0,
+            phase_degrees=True,
+            offset=5.0,
+        )
+
+        assert isinstance(beat_dof, DOF)
+        assert beat_dof._amp == 3.0
+        assert beat_dof._w_main == pytest.approx(2.0 * np.pi * 2.0)
+        assert beat_dof._w_beat == pytest.approx(2.0 * np.pi * 0.2)
+        assert beat_dof._phase == pytest.approx((np.pi / 180.0) * 4.0)
+        assert beat_dof._offset == 5.0

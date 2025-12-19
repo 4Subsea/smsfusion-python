@@ -223,6 +223,33 @@ class BeatDOF(DOF):
         self._phase = np.deg2rad(phase) if phase_degrees else phase
         self._offset = offset
 
+    def _y(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
+        main = np.cos(self._w_main * t + self._phase)
+        beat = np.sin(self._w_beat / 2.0 * t)
+        y = beat * main
+        return y  # type: ignore[no-any-return]
+    
+    def _dydt(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
+        main = np.cos(self._f_main * t + self._phase)
+        beat = np.sin(self._f_beat / 2.0 * t)
+        dmain = -self._f_main * np.sin(self._f_main * t + self._phase)
+        dbeat = self._f_beat / 2.0 * np.cos(self._f_beat / 2.0 * t)
+
+        dydt = dbeat * main + beat * dmain
+        return dydt  # type: ignore[no-any-return]
+
+    def _d2ydt2(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
+        main = np.cos(self._f_main * t + self._phase)
+        beat = np.sin(self._f_beat / 2.0 * t)
+        dmain = -self._f_main * np.sin(self._f_main * t + self._phase)
+        dbeat = self._f_beat / 2.0 * np.cos(self._f_beat / 2.0 * t)
+        d2main = -((self._f_main) ** 2) * np.cos(self._f_main * t + self._phase)
+        d2beat = -((self._f_beat / 2.0) ** 2) * np.sin(self._f_beat / 2.0 * t)
+
+        d2ydt2 = dbeat * dmain + d2beat * main + beat * d2main + dbeat * dmain
+
+        return d2ydt2  # type: ignore[no-any-return]
+
 
 # class LinearRampUp(DOF):
 #     """
