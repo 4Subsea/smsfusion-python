@@ -401,7 +401,7 @@ class Test_IMUSimulator:
 class Test_BeatDOF:
     @pytest.fixture
     def beat_dof(self):
-        dof = BeatDOF(amp=1.0, freq_main=1.0, freq_beat=0.1, freq_hz=False, offset=1.0)
+        dof = BeatDOF(amp=2.0, freq_main=1.0, freq_beat=0.1, freq_hz=False, offset=1.0)
         return dof
 
     def test__init__(self):
@@ -445,3 +445,18 @@ class Test_BeatDOF:
         y_expect = amp * beat * main + offset
     
         np.testing.assert_allclose(y, y_expect)
+
+    def test_dydt(self, beat_dof, t):
+        dydt = beat_dof.dydt(t)
+
+        amp = beat_dof._amp
+        w_main = beat_dof._w_main
+        w_beat = beat_dof._w_beat
+        phase = beat_dof._phase
+        main = np.cos(w_main * t + phase)
+        beat = np.sin(w_beat / 2.0 * t)
+        dmain = -w_main * np.sin(w_main * t + phase)
+        dbeat = (w_beat / 2.0) * np.cos(w_beat / 2.0 * t)
+        dydt_expect = amp  * (dbeat * main + beat * dmain)
+    
+        np.testing.assert_allclose(dydt, dydt_expect)
