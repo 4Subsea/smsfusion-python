@@ -228,7 +228,7 @@ class BeatDOF(DOF):
         beat = np.sin(self._w_beat / 2.0 * t)
         y = beat * main
         return y  # type: ignore[no-any-return]
-    
+
     def _dydt(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
         main = np.cos(self._f_main * t + self._phase)
         beat = np.sin(self._f_beat / 2.0 * t)
