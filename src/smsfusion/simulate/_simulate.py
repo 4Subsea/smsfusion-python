@@ -160,41 +160,55 @@ class ConstantDOF(DOF):
         return np.zeros_like(t)
 
 
-class LinearRampUp(DOF):
-    """
-    Linear ramp-up wrapper for DOF signals.
+# class LinearRampUp(DOF):
+#     """
+#     Linear ramp-up wrapper for DOF signals.
 
-    Parameters
-    ----------
-    dof : _DOF
-        The DOF signal to wrap with a linear ramp-up.
-    t_start : float, default 0.0
-        The start time of the ramp-up in seconds. Default is 0.0, i.e., the ramp-up
-        starts immediately.
-    ramp_length : float, default 1.0
-        The duration of the ramp-up in seconds. Default is 1.0 second.
-    """
+#     Parameters
+#     ----------
+#     dof : _DOF
+#         The DOF signal to wrap with a linear ramp-up.
+#     t_start : float, default 0.0
+#         The start time of the ramp-up in seconds. Default is 0.0, i.e., the ramp-up
+#         starts immediately.
+#     ramp_length : float, default 1.0
+#         The duration of the ramp-up in seconds. Default is 1.0 second.
+#     """
 
-    def __init__(self, dof: DOF, t_start=0.0, ramp_length=1.0):
-        self._dof = dof
-        self._t_start = t_start
-        self._ramp_length = ramp_length
+#     def __init__(self, dof: DOF, t_start=0.0, ramp_length=1.0):
+#         self._dof = dof
+#         self._t_start = t_start
+#         self._ramp_length = ramp_length
+#         self._t_end = t_start + ramp_length
 
-    def _ramp_up(self, t):
-        ramp_up = np.clip((t - self._t_start) / self._ramp_length, 0.0, 1.0)
-        return ramp_up
+#     def _y_ramp(self, t):
+#         ramp_up = np.clip((t - self._t_start) / self._ramp_length, 0.0, 1.0)
+#         return ramp_up
+    
+#     def _dydt_ramp(self, t):
 
-    def _y(self, t):
-        ramp_up = self._ramp_up(t)
-        return ramp_up * self._dof._y(t)
+#         # dydt_ramp = np.ones_like(t)
+#         # dydt_ramp = np.where(t < self._t_start, 0.0, dydt_ramp)
+#         # dydt_ramp = np.where(t > self._t_start + self._ramp_length, 0.0, dydt_ramp)
 
-    def _dydt(self, t):
-        ramp_up = self._ramp_up(t)
-        return ramp_up * self._dof._dydt(t)
+#         # dydt_ramp = np.where(
+#         #     (t >= self._t_start) & (t <= self._t_start + self._ramp_length),
+#         #     1.0 / self._ramp_length,
+#         #     0.0,
+#         # )
+#         # return dydt_ramp
 
-    def _d2ydt2(self, t):
-        ramp_up = self._ramp_up(t)
-        return ramp_up * self._dof._d2ydt2(t)
+#     def _y(self, t):
+#         ramp_up = self._ramp_up(t)
+#         return ramp_up * self._dof._y(t)
+
+#     def _dydt(self, t):
+#         ramp_up = self._ramp_up(t)
+#         return ramp_up * self._dof._dydt(t)
+
+#     def _d2ydt2(self, t):
+#         ramp_up = self._ramp_up(t)
+#         return ramp_up * self._dof._d2ydt2(t)
 
 
 class IMUSimulator:

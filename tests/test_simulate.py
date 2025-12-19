@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from smsfusion.simulate import ConstantDOF, SineDOF, LinearRampUp
+from smsfusion.simulate import ConstantDOF, SineDOF
 from smsfusion.simulate._simulate import DOF
 
 
@@ -174,53 +174,3 @@ class Test_SineDOF:
         np.testing.assert_allclose(y, y_expect)
         np.testing.assert_allclose(dydt, dydt_expect)
         np.testing.assert_allclose(dy2dt2, dy2dt2_expect)
-
-
-class Test_LinearRampUp:
-    @pytest.fixture
-    def dof(self):
-        return SineDOF(amp=1.0, freq=1.0, freq_hz=True)
-
-    @pytest.fixture
-    def dof_with_ramp(self, dof):
-        return LinearRampUp(dof, t_start=1.0, ramp_length=2.0)
-
-    def test__init__(self, dof):
-        dof_ramp = LinearRampUp(dof, t_start=0.5, ramp_length=3.0)
-        assert isinstance(dof_ramp, DOF)
-        assert dof_ramp._dof is dof
-        assert dof_ramp._t_start == 0.5
-        assert dof_ramp._ramp_length == 3.0
-
-    def test_y(self, dof_with_ramp, dof, t):
-        y = dof_with_ramp.y(t)
-
-        before_ramp = t < 1.0
-        during_ramp = (t >= 1.0) & (t < 3.0)
-        after_ramp = t >= 3.0
-
-        y_dof, dydt_dof, d2ydt2_dof = dof(t)
-        y_expect = np.where(
-            before_ramp, 0.0, np.where(during_ramp, (t - 1.0) / 2.0 * y_dof, y_dof)
-        )
-        dydt_expect = np.where(
-            before_ramp,
-            0.0,
-            np.where(
-                during_ramp,
-                ((t - 1.0) / 2.0) * dydt_dof,
-                dydt_dof,
-            ),
-        )
-        d2ydt2_expect = np.where(
-            before_ramp,
-            0.0,
-            np.where(
-                during_ramp,
-                ((t - 1.0) / 2.0) * d2ydt2_dof,
-                d2ydt2_dof,
-            ),
-        )
-        np.testing.assert_allclose(y, y_expect)
-        np.testing.assert_allclose(dof_with_ramp.dydt(t), dydt_expect)
-        np.testing.assert_allclose(dof_with_ramp.d2ydt2(t), d2ydt2_expect)
