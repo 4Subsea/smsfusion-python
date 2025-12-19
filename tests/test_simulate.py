@@ -400,12 +400,12 @@ class Test_IMUSimulator:
 
 class Test_BeatDOF:
     @pytest.fixture
-    def beat_dof(self):
+    def beat(self):
         dof = BeatDOF(amp=2.0, freq_main=1.0, freq_beat=0.1, freq_hz=False, offset=1.0)
         return dof
 
     def test__init__(self):
-        beat_dof = BeatDOF(
+        beat = BeatDOF(
             amp=3.0,
             freq_main=2.0,
             freq_beat=0.2,
@@ -415,12 +415,12 @@ class Test_BeatDOF:
             offset=5.0,
         )
 
-        assert isinstance(beat_dof, DOF)
-        assert beat_dof._amp == 3.0
-        assert beat_dof._w_main == pytest.approx(2.0 * np.pi * 2.0)
-        assert beat_dof._w_beat == pytest.approx(2.0 * np.pi * 0.2)
-        assert beat_dof._phase == pytest.approx((np.pi / 180.0) * 4.0)
-        assert beat_dof._offset == 5.0
+        assert isinstance(beat, DOF)
+        assert beat._amp == 3.0
+        assert beat._w_main == pytest.approx(2.0 * np.pi * 2.0)
+        assert beat._w_beat == pytest.approx(2.0 * np.pi * 0.2)
+        assert beat._phase == pytest.approx((np.pi / 180.0) * 4.0)
+        assert beat._offset == 5.0
 
     def test__init__default(self):
         beat_dof = BeatDOF()
@@ -432,14 +432,14 @@ class Test_BeatDOF:
         assert beat_dof._phase == pytest.approx(0.0)
         assert beat_dof._offset == 0.0
 
-    def test_y(self, beat_dof, t):
-        y = beat_dof.y(t)
+    def test_y(self, beat, t):
+        y = beat.y(t)
 
-        amp = beat_dof._amp
-        w_main = beat_dof._w_main
-        w_beat = beat_dof._w_beat
-        phase = beat_dof._phase
-        offset = beat_dof._offset
+        amp = beat._amp
+        w_main = beat._w_main
+        w_beat = beat._w_beat
+        phase = beat._phase
+        offset = beat._offset
 
         main = np.cos(w_main * t + phase)
         beat = np.sin(w_beat / 2.0 * t)
@@ -448,13 +448,13 @@ class Test_BeatDOF:
 
         np.testing.assert_allclose(y, y_expect)
 
-    def test_dydt(self, beat_dof, t):
-        dydt = beat_dof.dydt(t)
+    def test_dydt(self, beat, t):
+        dydt = beat.dydt(t)
 
-        amp = beat_dof._amp
-        w_main = beat_dof._w_main
-        w_beat = beat_dof._w_beat
-        phase = beat_dof._phase
+        amp = beat._amp
+        w_main = beat._w_main
+        w_beat = beat._w_beat
+        phase = beat._phase
 
         main = np.cos(w_main * t + phase)
         beat = np.sin(w_beat / 2.0 * t)
@@ -465,13 +465,13 @@ class Test_BeatDOF:
 
         np.testing.assert_allclose(dydt, dydt_expect)
 
-    def test_d2ydt2(self, beat_dof, t):
-        d2ydt2 = beat_dof.d2ydt2(t)
+    def test_d2ydt2(self, beat, t):
+        d2ydt2 = beat.d2ydt2(t)
 
-        amp = beat_dof._amp
-        w_main = beat_dof._w_main
-        w_beat = beat_dof._w_beat
-        phase = beat_dof._phase
+        amp = beat._amp
+        w_main = beat._w_main
+        w_beat = beat._w_beat
+        phase = beat._phase
 
         main = np.cos(w_main * t + phase)
         beat = np.sin(w_beat / 2.0 * t)
@@ -484,14 +484,14 @@ class Test_BeatDOF:
 
         np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
 
-    def test__call__(self, beat_dof, t):
-        y, dydt, d2ydt2 = beat_dof(t)
+    def test__call__(self, beat, t):
+        y, dydt, d2ydt2 = beat(t)
 
-        amp = beat_dof._amp
-        w_main = beat_dof._w_main
-        w_beat = beat_dof._w_beat
-        phase = beat_dof._phase
-        offset = beat_dof._offset
+        amp = beat._amp
+        w_main = beat._w_main
+        w_beat = beat._w_beat
+        phase = beat._phase
+        offset = beat._offset
 
         main = np.cos(w_main * t + phase)
         beat = np.sin(w_beat / 2.0 * t)
