@@ -552,17 +552,26 @@ def benchmark_full_pva_beat_202311A(
     within the frame.
     """
     duration = 1800.0  # 30 minutes
-    amplitude = (0.5, 0.5, 0.5, np.radians(5.0), np.radians(5.0), np.radians(5.0))
-    mean = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-    phase = np.radians(np.array([0.0, 30.0, 60.0, 90.0, 120.0, 150.0]))
 
     f_main = 0.1
     f_beat = 0.01
 
-    t, pos, vel, euler, acc, gyro = _benchmark_helper(
-        duration, amplitude, mean, phase, BeatSignal(f_main, f_beat), fs
+    amp_p = 0.5
+    amp_r = np.radians(5.0)
+    pos_x = BeatDOF(amp_p, f_main, f_beat, freq_hz=True, phase=0.0)
+    pos_y = BeatDOF(amp_p, f_main, f_beat, freq_hz=True, phase=30.0, phase_degrees=True)
+    pos_z = BeatDOF(amp_p, f_main, f_beat, freq_hz=True, phase=60.0, phase_degrees=True)
+    alpha = BeatDOF(amp_r, f_main, f_beat, freq_hz=True, phase=90.0)
+    beta = BeatDOF(amp_r, f_main, f_beat, freq_hz=True, phase=120.0, phase_degrees=True)
+    gamma = BeatDOF(
+        amp_r, f_main, f_beat, freq_hz=True, phase=150.0, phase_degrees=True
     )
-    return t, pos, vel, euler, acc, gyro
+    sim = IMUSimulator(pos_x, pos_y, pos_z, alpha, beta, gamma)
+
+    n = int(duration * fs)
+    t, pos, vel, euler, f, w = sim(fs, n, degrees=False)
+
+    return t, pos, vel, euler, f, w
 
 
 def benchmark_full_pva_chirp_202311A(
