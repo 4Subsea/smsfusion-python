@@ -195,6 +195,21 @@ class Test_IMUSimulator:
         assert sim._nav_frame == "ned"
         np.testing.assert_allclose(sim._g_n, np.array([0.0, 0.0, 9.80665]))
 
+    def test__init__float(self):
+        sim = IMUSimulator(1.0, 2.0, 3.0, 4.0, 5.0, 6.0)
+        assert isinstance(sim._pos_x, ConstantDOF)
+        assert isinstance(sim._pos_y, ConstantDOF)
+        assert isinstance(sim._pos_z, ConstantDOF)
+        assert isinstance(sim._alpha, ConstantDOF)
+        assert isinstance(sim._beta, ConstantDOF)
+        assert isinstance(sim._gamma, ConstantDOF)
+        assert sim._pos_x._value == 1.0
+        assert sim._pos_y._value == 2.0
+        assert sim._pos_z._value == 3.0
+        assert sim._alpha._value == 4.0
+        assert sim._beta._value == 5.0
+        assert sim._gamma._value == 6.0
+
     def test__init__(self):
         pos_x = SineDOF(1.0, 1.0)
         pos_y = ConstantDOF(2.0)
