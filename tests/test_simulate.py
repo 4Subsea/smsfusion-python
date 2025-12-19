@@ -177,6 +177,17 @@ class Test_SineDOF:
 
 class Test_IMUSimulator:
 
+    @pytest.fixture
+    def sim(self):
+        pos_x = SineDOF(1.0, 1.0)
+        pos_y = SineDOF(2.0, 0.5)
+        pos_z = SineDOF(3.0, 0.1)
+        alpha = SineDOF(4.0, 1.0)
+        beta = SineDOF(5.0, 0.5)
+        gamma = SineDOF(6.0, 0.1)
+        sim = IMUSimulator(pos_x, pos_y, pos_z, alpha, beta, gamma, degrees=True)
+        return sim
+
     def test__init__default(self):
         sim = IMUSimulator()
         assert isinstance(sim._pos_x, ConstantDOF)
@@ -239,3 +250,25 @@ class Test_IMUSimulator:
         assert sim._degrees is True
         assert sim._nav_frame == "enu"
         np.testing.assert_allclose(sim._g_n, np.array([0.0, 0.0, -9.84]))
+
+    def test__call__(self, sim):
+        fs = 10.24
+        n = 100
+        t, pos, vel, euler, f, w = sim(fs, n)
+
+        np.testing.assert_allclose(t, np.arange(n) / fs)
+
+        assert pos.shape == (n, 3)
+        np.testing.assert_allclose(pos[:, 0], sim._pos_x.y(t))
+        np.testing.assert_allclose(pos[:, 1], sim._pos_y.y(t))
+        np.testing.assert_allclose(pos[:, 2], sim._pos_z.y(t))
+
+        assert vel.shape == (n, 3)
+        np.testing.assert_allclose(vel[:, 0], sim._pos_x.dydt(t))
+        np.testing.assert_allclose(vel[:, 1], sim._pos_y.dydt(t))
+        np.testing.assert_allclose(vel[:, 2], sim._pos_z.dydt(t))
+
+        assert euler.shape == (n, 3)
+        np.testing.assert_allclose(euler[:, 0], sim._alpha.y(t))
+        np.testing.assert_allclose(euler[:, 1], sim._beta.y(t))
+        np.testing.assert_allclose(euler[:, 2], sim._gamma.y(t))
