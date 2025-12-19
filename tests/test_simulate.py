@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from smsfusion.simulate import ConstantDOF, SineDOF
+from smsfusion.simulate import ConstantDOF, SineDOF, IMUSimulator
 from smsfusion.simulate._simulate import DOF
 
 
@@ -174,3 +174,53 @@ class Test_SineDOF:
         np.testing.assert_allclose(y, y_expect)
         np.testing.assert_allclose(dydt, dydt_expect)
         np.testing.assert_allclose(dy2dt2, dy2dt2_expect)
+
+class Test_IMUSimulator:
+
+    def test__init__default(self):
+        sim = IMUSimulator()
+        assert isinstance(sim._pos_x, ConstantDOF)
+        assert isinstance(sim._pos_y, ConstantDOF)
+        assert isinstance(sim._pos_z, ConstantDOF)
+        assert isinstance(sim._alpha, ConstantDOF)
+        assert isinstance(sim._beta, ConstantDOF)
+        assert isinstance(sim._gamma, ConstantDOF)
+        assert sim._pos_x._value == 0.0
+        assert sim._pos_y._value == 0.0
+        assert sim._pos_z._value == 0.0
+        assert sim._alpha._value == 0.0
+        assert sim._beta._value == 0.0
+        assert sim._gamma._value == 0.0
+        assert sim._degrees is False
+        assert sim._nav_frame == "ned"
+        np.testing.assert_allclose(sim._g_n, np.array([0.0, 0.0, 9.80665]))
+
+    def test__init__(self):
+        pos_x = SineDOF(1.0, 1.0)
+        pos_y = ConstantDOF(2.0)
+        pos_z = SineDOF(0.5, 0.5)
+        alpha = ConstantDOF(10.0)
+        beta = SineDOF(5.0, 2.0)
+        gamma = ConstantDOF(-5.0)
+
+        sim = IMUSimulator(
+            pos_x=pos_x,
+            pos_y=pos_y,
+            pos_z=pos_z,
+            alpha=alpha,
+            beta=beta,
+            gamma=gamma,
+            degrees=True,
+            g=9.84,
+            nav_frame="ENU"
+        )
+
+        assert sim._pos_x is pos_x
+        assert sim._pos_y is pos_y
+        assert sim._pos_z is pos_z
+        assert sim._alpha is alpha
+        assert sim._beta is beta
+        assert sim._gamma is gamma
+        assert sim._degrees is True
+        assert sim._nav_frame == "enu"
+        np.testing.assert_allclose(sim._g_n, np.array([0.0, 0.0, -9.84]))
