@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from smsfusion.simulate import ConstantDOF, SineDOF, IMUSimulator
+import smsfusion as sf
+from smsfusion.simulate import ConstantDOF, IMUSimulator, SineDOF
 from smsfusion.simulate._simulate import DOF
 
 
@@ -175,6 +176,7 @@ class Test_SineDOF:
         np.testing.assert_allclose(dydt, dydt_expect)
         np.testing.assert_allclose(dy2dt2, dy2dt2_expect)
 
+
 class Test_IMUSimulator:
 
     @pytest.fixture
@@ -238,7 +240,7 @@ class Test_IMUSimulator:
             gamma=gamma,
             degrees=True,
             g=9.84,
-            nav_frame="ENU"
+            nav_frame="ENU",
         )
 
         assert sim._pos_x is pos_x
@@ -258,17 +260,44 @@ class Test_IMUSimulator:
 
         np.testing.assert_allclose(t, np.arange(n) / fs)
 
+        # Position
         assert pos.shape == (n, 3)
         np.testing.assert_allclose(pos[:, 0], sim._pos_x.y(t))
         np.testing.assert_allclose(pos[:, 1], sim._pos_y.y(t))
         np.testing.assert_allclose(pos[:, 2], sim._pos_z.y(t))
 
+        # Velocity
         assert vel.shape == (n, 3)
         np.testing.assert_allclose(vel[:, 0], sim._pos_x.dydt(t))
         np.testing.assert_allclose(vel[:, 1], sim._pos_y.dydt(t))
         np.testing.assert_allclose(vel[:, 2], sim._pos_z.dydt(t))
 
+        # Euler angles
         assert euler.shape == (n, 3)
         np.testing.assert_allclose(euler[:, 0], sim._alpha.y(t))
         np.testing.assert_allclose(euler[:, 1], sim._beta.y(t))
         np.testing.assert_allclose(euler[:, 2], sim._gamma.y(t))
+
+        # Specific force
+        assert f.shape == (n, 3)
+        acc_x = sim._pos_x.d2ydt2(t)
+        acc_y = sim._pos_y.d2ydt2(t)
+        acc_z = sim._pos_z.d2ydt2(t)
+        acc_expect = np.column_stack((acc_x, acc_y, acc_z))
+        for f_i, euler_i, acc_i in zip(f, euler, acc_expect):
+            R_nb_i = sf._transforms._rot_matrix_from_euler(np.radians(euler_i))
+            f_i_expect = R_nb_i.T.dot(acc_i - sim._g_n)
+            np.testing.assert_allclose(f_i, f_i_expect)
+
+        # Angular rate
+        assert w.shape == (n, 3)
+        alpha = np.radians(euler[:, 0])
+        beta = np.radians(euler[:, 1])
+        alpha_dot = sim._alpha.dydt(t)
+        beta_dot = sim._beta.dydt(t)
+        gamma_dot = sim._gamma.dydt(t)
+        w_x = alpha_dot - np.sin(beta) * gamma_dot
+        w_y = np.cos(alpha) * beta_dot + np.sin(alpha) * np.cos(beta) * gamma_dot
+        w_z = -np.sin(alpha) * beta_dot + np.cos(alpha) * np.cos(beta) * gamma_dot
+        w_b = np.column_stack([w_x, w_y, w_z])
+        np.testing.assert_allclose(w, w_b)
