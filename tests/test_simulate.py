@@ -510,6 +510,11 @@ class Test_BeatDOF:
 
 
 class Test_ChirpDOF:
+    @pytest.fixture
+    def chirp(self):
+        chirp = ChirpDOF(amp=2.0, f_max=0.25, f_os=0.01, freq_hz=True, offset=1.0)
+        return chirp
+
     def test__init__(self):
         chirp_dof = ChirpDOF(
             3.0, 2.0, 1.0, freq_hz=True, phase=4.0, phase_degrees=True, offset=5.0
@@ -531,3 +536,17 @@ class Test_ChirpDOF:
         assert chirp_dof._w_os == pytest.approx(2.0 * np.pi * 0.01)
         assert chirp_dof._phase == pytest.approx(0.0)
         assert chirp_dof._offset == 0.0
+
+    def test_y(self, chirp, t):
+        y = chirp.y(t)
+
+        amp = chirp._amp
+        w_max = chirp._w_max
+        w_os = chirp._w_os
+        phase = chirp._phase
+        offset = chirp._offset
+
+        phi = 2.0 * w_max / w_os * np.sin(w_os / 2.0 * t)
+        y_expect = amp * np.sin(phi + phase) + offset
+
+        np.testing.assert_allclose(y, y_expect)
