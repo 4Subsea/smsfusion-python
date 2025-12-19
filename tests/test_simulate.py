@@ -443,7 +443,7 @@ class Test_BeatDOF:
         main = np.cos(w_main * t + phase)
         beat = np.sin(w_beat / 2.0 * t)
         y_expect = amp * beat * main + offset
-    
+
         np.testing.assert_allclose(y, y_expect)
 
     def test_dydt(self, beat_dof, t):
@@ -457,6 +457,46 @@ class Test_BeatDOF:
         beat = np.sin(w_beat / 2.0 * t)
         dmain = -w_main * np.sin(w_main * t + phase)
         dbeat = (w_beat / 2.0) * np.cos(w_beat / 2.0 * t)
-        dydt_expect = amp  * (dbeat * main + beat * dmain)
-    
+        dydt_expect = amp * (dbeat * main + beat * dmain)
+
         np.testing.assert_allclose(dydt, dydt_expect)
+
+    def test_d2ydt2(self, beat_dof, t):
+        d2ydt2 = beat_dof.d2ydt2(t)
+
+        amp = beat_dof._amp
+        w_main = beat_dof._w_main
+        w_beat = beat_dof._w_beat
+        phase = beat_dof._phase
+        main = np.cos(w_main * t + phase)
+        beat = np.sin(w_beat / 2.0 * t)
+        dmain = -w_main * np.sin(w_main * t + phase)
+        dbeat = (w_beat / 2.0) * np.cos(w_beat / 2.0 * t)
+        d2main = -(w_main**2) * np.cos(w_main * t + phase)
+        d2beat = -(w_beat**2 / 4.0) * np.sin(w_beat / 2.0 * t)
+        d2ydt2_expect = amp * (d2beat * main + 2.0 * dbeat * dmain + beat * d2main)
+
+        np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
+
+    def test__call__(self, beat_dof, t):
+        y, dydt, d2ydt2 = beat_dof(t)
+
+        amp = beat_dof._amp
+        w_main = beat_dof._w_main
+        w_beat = beat_dof._w_beat
+        phase = beat_dof._phase
+        offset = beat_dof._offset
+        main = np.cos(w_main * t + phase)
+        beat = np.sin(w_beat / 2.0 * t)
+        dmain = -w_main * np.sin(w_main * t + phase)
+        dbeat = (w_beat / 2.0) * np.cos(w_beat / 2.0 * t)
+        d2main = -(w_main**2) * np.cos(w_main * t + phase)
+        d2beat = -(w_beat**2 / 4.0) * np.sin(w_beat / 2.0 * t)
+
+        y_expect = amp * beat * main + offset
+        dydt_expect = amp * (dbeat * main + beat * dmain)
+        d2ydt2_expect = amp * (d2beat * main + 2.0 * dbeat * dmain + beat * d2main)
+
+        np.testing.assert_allclose(y, y_expect)
+        np.testing.assert_allclose(dydt, dydt_expect)
+        np.testing.assert_allclose(d2ydt2, d2ydt2_expect)

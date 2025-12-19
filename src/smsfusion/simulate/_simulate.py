@@ -239,14 +239,15 @@ class BeatDOF(DOF):
         return dydt  # type: ignore[no-any-return]
 
     def _d2ydt2(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
-        main = np.cos(self._f_main * t + self._phase)
-        beat = np.sin(self._f_beat / 2.0 * t)
-        dmain = -self._f_main * np.sin(self._f_main * t + self._phase)
-        dbeat = self._f_beat / 2.0 * np.cos(self._f_beat / 2.0 * t)
-        d2main = -((self._f_main) ** 2) * np.cos(self._f_main * t + self._phase)
-        d2beat = -((self._f_beat / 2.0) ** 2) * np.sin(self._f_beat / 2.0 * t)
+        main = np.cos(self._w_main * t + self._phase)
+        beat = np.sin(self._w_beat / 2.0 * t)
+        dmain = -self._w_main * np.sin(self._w_main * t + self._phase)
+        dbeat = self._w_beat / 2.0 * np.cos(self._w_beat / 2.0 * t)
+        d2main = -((self._w_main) ** 2) * np.cos(self._w_main * t + self._phase)
+        d2beat = -((self._w_beat / 2.0) ** 2) * np.sin(self._w_beat / 2.0 * t)
 
         d2ydt2 = dbeat * dmain + d2beat * main + beat * d2main + dbeat * dmain
+        d2ydt2 *= self._amp
 
         return d2ydt2  # type: ignore[no-any-return]
 
