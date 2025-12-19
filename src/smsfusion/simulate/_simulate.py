@@ -160,7 +160,7 @@ class ConstantDOF(DOF):
 
     where,
 
-    - C  : Constant value of the signal.
+    - C : Constant value of the signal.
 
     Parameters
     ----------
@@ -187,23 +187,25 @@ class BeatDOF(DOF):
 
     Defined as:
 
-        y = sin(f_beat / 2.0 * t) * cos(f_main * t + phase)
+        y = A * sin(f_beat / 2.0 * t) * cos(f_main * t + phi)
 
     where,
 
-    - A  : Amplitude of the sine waves.
-    - w_main  : Angular frequency of the main sine wave.
-    - w_beat  : Angular frequency of the beat sine wave.
+    - A      : Amplitude of the sine waves.
+    - w_main : Angular frequency of the main sine wave.
+    - w_beat : Angular frequency of the beat sine wave.
+    - phi    : Phase offset of the main sine wave.
 
     Parameters
     ----------
-    amp : float, default 1.0
-        Amplitude of the sine waves. Default is 1.0.
-    freq1 : float, default 1.0
-        Frequency of the first sine wave in Hz. Default is 1.0 Hz.
-    freq2 : float, default 1.1
-        Frequency of the second sine wave in Hz. Default is 1.1 Hz.
+    f_main : float
+        The main frequency of the sinusoidal signal, y(t).
+    f_beat : float
+        The beating frequency, which controls the variation in amplitude.
+    freq_hz : bool, default True.
+        Whether the frequencies, ``f_main`` and ``f_beat``, are in Hz or rad/s (default).
     """
+
     pass
 
 
