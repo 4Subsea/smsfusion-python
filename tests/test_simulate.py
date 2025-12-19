@@ -420,3 +420,13 @@ class Test_BeatDOF:
         assert beat_dof._w_beat == pytest.approx(2.0 * np.pi * 0.2)
         assert beat_dof._phase == pytest.approx((np.pi / 180.0) * 4.0)
         assert beat_dof._offset == 5.0
+
+    def test__init__default(self):
+        beat_dof = BeatDOF()
+
+        assert isinstance(beat_dof, DOF)
+        assert beat_dof._amp == 1.0
+        assert beat_dof._w_main == pytest.approx(1.0)
+        assert beat_dof._w_beat == pytest.approx(0.1)
+        assert beat_dof._phase == pytest.approx(0.0)
+        assert beat_dof._offset == 0.0
