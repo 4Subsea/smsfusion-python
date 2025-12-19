@@ -1,3 +1,3 @@
-from ._simulate import ConstantDOF, IMUSimulator, SineDOF, BeatDOF
+from ._simulate import BeatDOF, ConstantDOF, IMUSimulator, SineDOF
 
 __all__ = ["IMUSimulator", "SineDOF", "ConstantDOF", "BeatDOF"]

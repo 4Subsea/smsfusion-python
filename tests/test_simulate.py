@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import smsfusion as sf
-from smsfusion.simulate import ConstantDOF, IMUSimulator, SineDOF, BeatDOF
+from smsfusion.simulate import BeatDOF, ConstantDOF, IMUSimulator, SineDOF
 from smsfusion.simulate._simulate import DOF
 
 
