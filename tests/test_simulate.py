@@ -49,6 +49,11 @@ class Test_ConstantDOF:
     def constant_dof(self):
         return ConstantDOF(value=5.0)
 
+    def test__init__(self):
+        constant_dof = ConstantDOF(value=123.0)
+        assert isinstance(constant_dof, DOF)
+        assert constant_dof._value == 123.0
+
     def test_y(self, constant_dof):
         t = np.linspace(0, 10, 100)
         y = constant_dof.y(t)
@@ -76,10 +81,21 @@ class Test_SineDOF:
     @pytest.fixture
     def sine_dof(self):
         return SineDOF(2.0, 1.0)
-    
+
     @pytest.fixture
     def t(self):
         return np.linspace(0, 10, 100)
+
+    def test__init__(self):
+        sine_dof = SineDOF(
+            amp=2.0, freq=3.0, freq_hz=True, phase=4.0, phase_degrees=True, offset=5.0
+        )
+
+        assert isinstance(sine_dof, DOF)
+        assert sine_dof._amp == 2.0
+        assert sine_dof._w == pytest.approx(2.0 * np.pi * 3.0)
+        assert sine_dof._phase == pytest.approx((np.pi / 180.0) * 4.0)
+        assert sine_dof._offset == 5.0
 
     def test_y(self, sine_dof, t):
         y = sine_dof.y(t)
