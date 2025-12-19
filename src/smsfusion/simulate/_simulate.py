@@ -101,7 +101,7 @@ class SineDOF(DOF):
     - A  : Amplitude of the sine wave.
     - w  : Angular frequency of the sine wave.
     - phi: Phase offset of the sine wave.
-    - B  : Offset of the sine wave.
+    - B  : Constant offset of the sine wave.
 
     Parameters
     ----------
@@ -187,7 +187,7 @@ class BeatDOF(DOF):
 
     Defined as:
 
-        y = A * sin(f_beat / 2.0 * t) * cos(f_main * t + phi)
+        y = A * sin(f_beat / 2.0 * t) * cos(f_main * t + phi) + B
 
     where,
 
@@ -195,6 +195,7 @@ class BeatDOF(DOF):
     - w_main : Angular frequency of the main sine wave.
     - w_beat : Angular frequency of the beat sine wave.
     - phi    : Phase offset of the main sine wave.
+    - B      : Constant offset of the beat signal.
 
     Parameters
     ----------
@@ -206,7 +207,21 @@ class BeatDOF(DOF):
         Whether the frequencies, ``f_main`` and ``f_beat``, are in Hz or rad/s (default).
     """
 
-    pass
+    def __init__(
+        self,
+        amp: float = 1.0,
+        freq_main: float = 1.0,
+        freq_beat: float = 0.1,
+        freq_hz: bool = False,
+        phase: float = 0.0,
+        phase_degrees: bool = False,
+        offset: float = 0.0,
+    ) -> None:
+        self._amp = amp
+        self._w_main = 2.0 * np.pi * freq_main if freq_hz else freq_main
+        self._w_beat = 2.0 * np.pi * freq_beat if freq_hz else freq_beat
+        self._phase = np.deg2rad(phase) if phase_degrees else phase
+        self._offset = offset
 
 
 # class LinearRampUp(DOF):
