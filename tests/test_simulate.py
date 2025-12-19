@@ -291,8 +291,7 @@ class Test_IMUSimulator:
 
         # Angular rate
         assert w.shape == (n, 3)
-        alpha = np.radians(euler[:, 0])
-        beta = np.radians(euler[:, 1])
+        alpha, beta = np.radians(euler[:, 0:2]).T
         alpha_dot = sim._alpha.dydt(t)
         beta_dot = sim._beta.dydt(t)
         gamma_dot = sim._gamma.dydt(t)

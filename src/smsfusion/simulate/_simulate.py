@@ -184,7 +184,7 @@ class ConstantDOF(DOF):
 #     def _y_ramp(self, t):
 #         ramp_up = np.clip((t - self._t_start) / self._ramp_length, 0.0, 1.0)
 #         return ramp_up
-    
+
 #     def _dydt_ramp(self, t):
 
 #         # dydt_ramp = np.ones_like(t)
