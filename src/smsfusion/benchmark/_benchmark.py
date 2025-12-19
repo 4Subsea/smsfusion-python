@@ -160,6 +160,7 @@ class ChirpSignal(_Signal):
     """
 
     def __init__(self, f_max: float, f_os: float, freq_hz: bool = True) -> None:
+        warn("`ChirpSignal` is deprecated, use `simulate.ChirpDOF` instead.")
         self._f_max = f_max
         self._f_os = f_os
 
