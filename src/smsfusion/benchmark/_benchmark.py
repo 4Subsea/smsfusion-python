@@ -8,7 +8,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from smsfusion._ins import gravity
 from smsfusion._transforms import _inv_angular_matrix_from_euler, _rot_matrix_from_euler
-from smsfusion.simulate import BeatDOF, IMUSimulator, ChirpDOF
+from smsfusion.simulate import BeatDOF, ChirpDOF, IMUSimulator
 
 
 class _Signal(abc.ABC):
@@ -650,14 +650,21 @@ def benchmark_full_pva_chirp_202311A(
     within the frame.
     """
     duration = 1800.0  # 30 minutes
-    amplitude = (0.5, 0.5, 0.5, np.radians(5.0), np.radians(5.0), np.radians(5.0))
-    mean = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-    phase = np.radians(np.array([0.0, 30.0, 60.0, 90.0, 120.0, 150.0]))
 
     f_max = 0.25
     f_os = 0.01
 
-    t, pos, vel, euler, acc, gyro = _benchmark_helper(
-        duration, amplitude, mean, phase, ChirpSignal(f_max, f_os), fs
-    )
-    return t, pos, vel, euler, acc, gyro
+    amp_p = 0.5
+    amp_r = np.radians(5.0)
+    pos_x = ChirpDOF(amp_p, f_max, f_os, freq_hz=True, phase=0.0)
+    pos_y = ChirpDOF(amp_p, f_max, f_os, freq_hz=True, phase=30.0, phase_degrees=True)
+    pos_z = ChirpDOF(amp_p, f_max, f_os, freq_hz=True, phase=60.0, phase_degrees=True)
+    alpha = ChirpDOF(amp_r, f_max, f_os, freq_hz=True, phase=90.0)
+    beta = ChirpDOF(amp_r, f_max, f_os, freq_hz=True, phase=120.0, phase_degrees=True)
+    gamma = ChirpDOF(amp_r, f_max, f_os, freq_hz=True, phase=150.0, phase_degrees=True)
+    sim = IMUSimulator(pos_x, pos_y, pos_z, alpha, beta, gamma)
+
+    n = int(duration * fs)
+    t, pos, vel, euler, f, w = sim(fs, n, degrees=False)
+
+    return t, pos, vel, euler, f, w
