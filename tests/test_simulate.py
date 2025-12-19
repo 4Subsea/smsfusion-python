@@ -486,6 +486,7 @@ class Test_BeatDOF:
         w_beat = beat_dof._w_beat
         phase = beat_dof._phase
         offset = beat_dof._offset
+
         main = np.cos(w_main * t + phase)
         beat = np.sin(w_beat / 2.0 * t)
         dmain = -w_main * np.sin(w_main * t + phase)

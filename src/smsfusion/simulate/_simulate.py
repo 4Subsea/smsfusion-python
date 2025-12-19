@@ -224,30 +224,45 @@ class BeatDOF(DOF):
         self._offset = offset
 
     def _y(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
-        main = np.cos(self._w_main * t + self._phase)
-        beat = np.sin(self._w_beat / 2.0 * t)
-        y = self._amp * beat * main + self._offset
+        amp = self._amp
+        w_main = self._w_main
+        w_beat = self._w_beat
+        phase = self._phase
+        offset = self._offset
+
+        main = np.cos(w_main * t + phase)
+        beat = np.sin(w_beat / 2.0 * t)
+        y = amp * beat * main + offset
         return y  # type: ignore[no-any-return]
 
     def _dydt(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
-        main = np.cos(self._w_main * t + self._phase)
-        beat = np.sin(self._w_beat / 2.0 * t)
-        dmain = -self._w_main * np.sin(self._w_main * t + self._phase)
-        dbeat = self._w_beat / 2.0 * np.cos(self._w_beat / 2.0 * t)
+        amp = self._amp
+        w_main = self._w_main
+        w_beat = self._w_beat
+        phase = self._phase
 
-        dydt = self._amp * (dbeat * main + beat * dmain)
+        main = np.cos(w_main * t + phase)
+        beat = np.sin(w_beat / 2.0 * t)
+        dmain = -w_main * np.sin(w_main * t + phase)
+        dbeat = w_beat / 2.0 * np.cos(w_beat / 2.0 * t)
+
+        dydt = amp * (dbeat * main + beat * dmain)
         return dydt  # type: ignore[no-any-return]
 
     def _d2ydt2(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
-        main = np.cos(self._w_main * t + self._phase)
-        beat = np.sin(self._w_beat / 2.0 * t)
-        dmain = -self._w_main * np.sin(self._w_main * t + self._phase)
-        dbeat = self._w_beat / 2.0 * np.cos(self._w_beat / 2.0 * t)
-        d2main = -((self._w_main) ** 2) * np.cos(self._w_main * t + self._phase)
-        d2beat = -((self._w_beat / 2.0) ** 2) * np.sin(self._w_beat / 2.0 * t)
 
-        d2ydt2 = dbeat * dmain + d2beat * main + beat * d2main + dbeat * dmain
-        d2ydt2 *= self._amp
+        amp = self._amp
+        w_main = self._w_main
+        w_beat = self._w_beat
+        phase = self._phase
+
+        main = np.cos(w_main * t + phase)
+        beat = np.sin(w_beat / 2.0 * t)
+        dmain = -w_main * np.sin(w_main * t + phase)
+        dbeat = w_beat / 2.0 * np.cos(w_beat / 2.0 * t)
+        d2main = -(w_main ** 2) * np.cos(w_main * t + phase)
+        d2beat = -((w_beat / 2.0) ** 2) * np.sin(w_beat / 2.0 * t)
+        d2ydt2 = amp * (dbeat * dmain + d2beat * main + beat * d2main + dbeat * dmain)
 
         return d2ydt2  # type: ignore[no-any-return]
 
