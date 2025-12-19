@@ -396,4 +396,3 @@ class Test_IMUSimulator:
         w_z = -np.sin(alpha) * beta_dot + np.cos(alpha) * np.cos(beta) * gamma_dot
         w_b = np.column_stack([w_x, w_y, w_z])
         np.testing.assert_allclose(w, w_b)
-

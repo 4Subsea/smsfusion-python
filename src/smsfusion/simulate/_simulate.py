@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 
 from smsfusion._transforms import _rot_matrix_from_euler
 
@@ -11,42 +12,62 @@ class DOF(ABC):
     """
 
     @abstractmethod
-    def _y(self, t):
+    def _y(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
         raise NotImplementedError("Not implemented.")
 
     @abstractmethod
-    def _dydt(self, t):
+    def _dydt(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
         raise NotImplementedError("Not implemented.")
 
     @abstractmethod
-    def _d2ydt2(self, t):
+    def _d2ydt2(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
         raise NotImplementedError("Not implemented.")
 
-    def y(self, t):
+    def y(self, t: ArrayLike) -> NDArray[np.float64]:
         """
         Generates y(t) signal.
+
+        Parameters
+        ----------
+        t : array_like, shape (n,)
+            Time vector in seconds.
         """
+        t = np.asarray_chkfinite(t)
         return self._y(t)
 
-    def dydt(self, t):
+    def dydt(self, t: ArrayLike) -> NDArray[np.float64]:
         """
         Generates dy(t)/dt signal.
+
+        Parameters
+        ----------
+        t : array_like, shape (n,)
+            Time vector in seconds.
         """
+        t = np.asarray_chkfinite(t)
         return self._dydt(t)
 
     def d2ydt2(self, t):
         """
         Generates d2y(t)/dt2 signal.
+
+        Parameters
+        ----------
+        t : array_like, shape (n,)
+            Time vector in seconds.
         """
+        t = np.asarray_chkfinite(t)
         return self._d2ydt2(t)
 
-    def __call__(self, t):
+    def __call__(
+        self, t: ArrayLike
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
         """
         Generates y(t), dy(t)/dt, and d2y(t)/dt2 signals.
 
         Parameters
         ----------
-        t : ndarray, shape (n,)
+        t : array_like, shape (n,)
             Time vector in seconds.
 
         Returns
@@ -102,27 +123,27 @@ class SineDOF(DOF):
 
     def __init__(
         self,
-        amp=1.0,
-        freq=1.0,
-        phase=0.0,
-        offset=0.0,
-        freq_hz=False,
-        phase_degrees=False,
-    ):
+        amp: float = 1.0,
+        freq: float = 1.0,
+        phase: float = 0.0,
+        offset: float = 0.0,
+        freq_hz: bool = False,
+        phase_degrees: bool = False,
+    ) -> None:
         self._amp = amp
         self._w = 2.0 * np.pi * freq if freq_hz else freq
         self._phase = np.deg2rad(phase) if phase_degrees else phase
         self._offset = offset
 
-    def _y(self, t):
+    def _y(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
         y = self._amp * np.sin(self._w * t + self._phase) + self._offset
         return y
 
-    def _dydt(self, t):
+    def _dydt(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
         dydt = self._amp * self._w * np.cos(self._w * t + self._phase)
         return dydt
 
-    def _d2ydt2(self, t):
+    def _d2ydt2(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
         d2ydt2 = -self._amp * self._w**2 * np.sin(self._w * t + self._phase)
         return d2ydt2
 
@@ -147,16 +168,16 @@ class ConstantDOF(DOF):
         Constant value of the signal. Default is 0.0.
     """
 
-    def __init__(self, value=0.0):
+    def __init__(self, value: float = 0.0) -> None:
         self._value = value
 
-    def _y(self, t):
+    def _y(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
         return np.full_like(t, self._value)
 
-    def _dydt(self, t):
+    def _dydt(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
         return np.zeros_like(t)
 
-    def _d2ydt2(self, t):
+    def _d2ydt2(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
         return np.zeros_like(t)
 
 
@@ -247,10 +268,10 @@ class IMUSimulator:
         alpha: float | DOF = 0.0,
         beta: float | DOF = 0.0,
         gamma: float | DOF = 0.0,
-        degrees=False,
-        g=9.80665,
-        nav_frame="NED",
-    ):
+        degrees: bool = False,
+        g: float = 9.80665,
+        nav_frame: str = "NED",
+    ) -> None:
         self._pos_x = pos_x if isinstance(pos_x, DOF) else ConstantDOF(pos_x)
         self._pos_y = pos_y if isinstance(pos_y, DOF) else ConstantDOF(pos_y)
         self._pos_z = pos_z if isinstance(pos_z, DOF) else ConstantDOF(pos_z)
@@ -267,7 +288,12 @@ class IMUSimulator:
         else:
             raise ValueError("Invalid navigation frame. Must be 'NED' or 'ENU'.")
 
-    def _specific_force_body(self, pos, acc, euler):
+    def _specific_force_body(
+        self,
+        pos: NDArray[np.float64],
+        acc: NDArray[np.float64],
+        euler: NDArray[np.float64],
+    ) -> NDArray[np.float64]:
         """
         Specific force in the body frame.
 
@@ -291,7 +317,9 @@ class IMUSimulator:
 
         return f_b
 
-    def _angular_velocity_body(self, euler, euler_dot):
+    def _angular_velocity_body(
+        self, euler: NDArray[np.float64], euler_dot: NDArray[np.float64]
+    ) -> NDArray[np.float64]:
         """
         Angular velocity in the body frame.
 
@@ -314,7 +342,7 @@ class IMUSimulator:
 
         return w_b
 
-    def __call__(self, fs: float, n: int, degrees=None):
+    def __call__(self, fs: float, n: int, degrees: bool | None = None):
         """
         Generate a length-n gyroscope signal and corresponding Euler angles.
 
