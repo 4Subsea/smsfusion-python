@@ -183,7 +183,7 @@ class ConstantDOF(DOF):
 
 class BeatDOF(DOF):
     """
-    1D beat signal DOF generator.
+    1D beating sinusoidal DOF signal generator.
 
     Defined as:
 
