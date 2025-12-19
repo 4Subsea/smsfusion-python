@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+from warnings import warn
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -87,6 +88,7 @@ class BeatSignal(_Signal):
     """
 
     def __init__(self, f_main: float, f_beat: float, freq_hz: bool = True) -> None:
+        warn("`BeatSignal`` is deprecated, use ``simulate.BeatDOF`` instead.")
         self._f_main = f_main
         self._f_beat = f_beat
 
