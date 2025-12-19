@@ -550,3 +550,33 @@ class Test_ChirpDOF:
         y_expect = amp * np.sin(phi + phase) + offset
 
         np.testing.assert_allclose(y, y_expect)
+
+    def test_dydt(self, chirp, t):
+        dydt = chirp.dydt(t)
+
+        amp = chirp._amp
+        w_max = chirp._w_max
+        w_os = chirp._w_os
+        phase = chirp._phase
+
+        phi = 2.0 * w_max / w_os * np.sin(w_os / 2.0 * t)
+        dphi_dt = w_max * np.cos(w_os / 2.0 * t)
+
+        dydt_expect = amp * dphi_dt * np.cos(phi + phase)
+
+        np.testing.assert_allclose(dydt, dydt_expect)
+
+    def test_d2ydt2(self, chirp, t):
+        d2ydt2 = chirp.d2ydt2(t)
+
+        amp = chirp._amp
+        w_max = chirp._w_max
+        w_os = chirp._w_os
+        phase = chirp._phase
+
+        phi = 2.0 * w_max / w_os * np.sin(w_os / 2.0 * t)
+        dphi = w_max * np.cos(w_os / 2.0 * t)
+        d2phi = -w_max * w_os / 2.0 * np.sin(w_os / 2.0 * t)
+        d2ydt2_expect = -amp * (dphi**2) * np.sin(phi + phase) + d2phi * np.cos(phi + phase)
+
+        np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
