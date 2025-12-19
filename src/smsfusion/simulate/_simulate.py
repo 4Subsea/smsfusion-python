@@ -107,28 +107,28 @@ class SineDOF(DOF):
     ----------
     amp : float, default 1.0
         Amplitude of the sine wave. Default is 1.0.
-    omega : float, default 1.0
-        Angular frequency of the sine wave in rad/s. Default is 1.0 rad/s.
-    phase : float, default 0.0
-        Phase offset of the sine wave. Default is 0.0.
-    offset : float, default 0.0
-        Offset of the sine wave. Default is 0.0.
+    freq : float, default 1.0
+        Frequency of the sine wave in rad/s. Default is 1.0 rad/s.
     freq_hz : bool, optional
         If True, interpret `omega` as frequency in Hz. If False, interpret as angular
         frequency in radians per second. Default is False.
+    phase : float, default 0.0
+        Phase offset of the sine wave. Default is 0.0.
     phase_degrees : bool, optional
         If True, interpret `phase` in degrees. If False, interpret in radians.
         Default is False.
+    offset : float, default 0.0
+        Offset of the sine wave. Default is 0.0.
     """
 
     def __init__(
         self,
         amp: float = 1.0,
         freq: float = 1.0,
-        phase: float = 0.0,
-        offset: float = 0.0,
         freq_hz: bool = False,
+        phase: float = 0.0,
         phase_degrees: bool = False,
+        offset: float = 0.0,
     ) -> None:
         self._amp = amp
         self._w = 2.0 * np.pi * freq if freq_hz else freq
@@ -179,6 +179,32 @@ class ConstantDOF(DOF):
 
     def _d2ydt2(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
         return np.zeros_like(t)
+
+
+class BeatDOF(DOF):
+    """
+    1D beat signal DOF generator.
+
+    Defined as:
+
+        y = sin(f_beat / 2.0 * t) * cos(f_main * t + phase)
+
+    where,
+
+    - A  : Amplitude of the sine waves.
+    - w_main  : Angular frequency of the main sine wave.
+    - w_beat  : Angular frequency of the beat sine wave.
+
+    Parameters
+    ----------
+    amp : float, default 1.0
+        Amplitude of the sine waves. Default is 1.0.
+    freq1 : float, default 1.0
+        Frequency of the first sine wave in Hz. Default is 1.0 Hz.
+    freq2 : float, default 1.1
+        Frequency of the second sine wave in Hz. Default is 1.1 Hz.
+    """
+    pass
 
 
 # class LinearRampUp(DOF):
