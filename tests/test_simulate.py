@@ -253,7 +253,7 @@ class Test_IMUSimulator:
         assert sim._nav_frame == "enu"
         np.testing.assert_allclose(sim._g_n, np.array([0.0, 0.0, -9.84]))
 
-    def test__call__(self, sim):
+    def test__call__default(self, sim):
         fs = 10.24
         n = 100
         t, pos, vel, euler, f, w = sim(fs, n)
@@ -300,3 +300,100 @@ class Test_IMUSimulator:
         w_z = -np.sin(alpha) * beta_dot + np.cos(alpha) * np.cos(beta) * gamma_dot
         w_b = np.column_stack([w_x, w_y, w_z])
         np.testing.assert_allclose(w, w_b)
+
+    def test__call__degrees(self, sim):
+        fs = 10.24
+        n = 100
+        t, pos, vel, euler, f, w = sim(fs, n, degrees=True)
+
+        np.testing.assert_allclose(t, np.arange(n) / fs)
+
+        # Position
+        assert pos.shape == (n, 3)
+        np.testing.assert_allclose(pos[:, 0], sim._pos_x.y(t))
+        np.testing.assert_allclose(pos[:, 1], sim._pos_y.y(t))
+        np.testing.assert_allclose(pos[:, 2], sim._pos_z.y(t))
+
+        # Velocity
+        assert vel.shape == (n, 3)
+        np.testing.assert_allclose(vel[:, 0], sim._pos_x.dydt(t))
+        np.testing.assert_allclose(vel[:, 1], sim._pos_y.dydt(t))
+        np.testing.assert_allclose(vel[:, 2], sim._pos_z.dydt(t))
+
+        # Euler angles
+        assert euler.shape == (n, 3)
+        np.testing.assert_allclose(euler[:, 0], sim._alpha.y(t))
+        np.testing.assert_allclose(euler[:, 1], sim._beta.y(t))
+        np.testing.assert_allclose(euler[:, 2], sim._gamma.y(t))
+
+        # Specific force
+        assert f.shape == (n, 3)
+        acc_x = sim._pos_x.d2ydt2(t)
+        acc_y = sim._pos_y.d2ydt2(t)
+        acc_z = sim._pos_z.d2ydt2(t)
+        acc_expect = np.column_stack((acc_x, acc_y, acc_z))
+        for f_i, euler_i, acc_i in zip(f, euler, acc_expect):
+            R_nb_i = sf._transforms._rot_matrix_from_euler(np.radians(euler_i))
+            f_i_expect = R_nb_i.T.dot(acc_i - sim._g_n)
+            np.testing.assert_allclose(f_i, f_i_expect)
+
+        # Angular rate
+        assert w.shape == (n, 3)
+        alpha, beta = np.radians(euler[:, 0:2]).T
+        alpha_dot = sim._alpha.dydt(t)
+        beta_dot = sim._beta.dydt(t)
+        gamma_dot = sim._gamma.dydt(t)
+        w_x = alpha_dot - np.sin(beta) * gamma_dot
+        w_y = np.cos(alpha) * beta_dot + np.sin(alpha) * np.cos(beta) * gamma_dot
+        w_z = -np.sin(alpha) * beta_dot + np.cos(alpha) * np.cos(beta) * gamma_dot
+        w_b = np.column_stack([w_x, w_y, w_z])
+        np.testing.assert_allclose(w, w_b)
+
+    def test__call__radians(self, sim):
+        fs = 10.24
+        n = 100
+        t, pos, vel, euler, f, w = sim(fs, n, degrees=False)  # radians
+
+        np.testing.assert_allclose(t, np.arange(n) / fs)
+
+        # Position
+        assert pos.shape == (n, 3)
+        np.testing.assert_allclose(pos[:, 0], sim._pos_x.y(t))
+        np.testing.assert_allclose(pos[:, 1], sim._pos_y.y(t))
+        np.testing.assert_allclose(pos[:, 2], sim._pos_z.y(t))
+
+        # Velocity
+        assert vel.shape == (n, 3)
+        np.testing.assert_allclose(vel[:, 0], sim._pos_x.dydt(t))
+        np.testing.assert_allclose(vel[:, 1], sim._pos_y.dydt(t))
+        np.testing.assert_allclose(vel[:, 2], sim._pos_z.dydt(t))
+
+        # Euler angles
+        assert euler.shape == (n, 3)
+        np.testing.assert_allclose(euler[:, 0], np.radians(sim._alpha.y(t)))
+        np.testing.assert_allclose(euler[:, 1], np.radians(sim._beta.y(t)))
+        np.testing.assert_allclose(euler[:, 2], np.radians(sim._gamma.y(t)))
+
+        # Specific force
+        assert f.shape == (n, 3)
+        acc_x = sim._pos_x.d2ydt2(t)
+        acc_y = sim._pos_y.d2ydt2(t)
+        acc_z = sim._pos_z.d2ydt2(t)
+        acc_expect = np.column_stack((acc_x, acc_y, acc_z))
+        for f_i, euler_i, acc_i in zip(f, euler, acc_expect):
+            R_nb_i = sf._transforms._rot_matrix_from_euler(euler_i)
+            f_i_expect = R_nb_i.T.dot(acc_i - sim._g_n)
+            np.testing.assert_allclose(f_i, f_i_expect)
+
+        # Angular rate
+        assert w.shape == (n, 3)
+        alpha, beta = euler[:, 0:2].T
+        alpha_dot = np.radians(sim._alpha.dydt(t))
+        beta_dot = np.radians(sim._beta.dydt(t))
+        gamma_dot = np.radians(sim._gamma.dydt(t))
+        w_x = alpha_dot - np.sin(beta) * gamma_dot
+        w_y = np.cos(alpha) * beta_dot + np.sin(alpha) * np.cos(beta) * gamma_dot
+        w_z = -np.sin(alpha) * beta_dot + np.cos(alpha) * np.cos(beta) * gamma_dot
+        w_b = np.column_stack([w_x, w_y, w_z])
+        np.testing.assert_allclose(w, w_b)
+
