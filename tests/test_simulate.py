@@ -210,7 +210,7 @@ class Test_IMUSimulator:
         assert sim._beta._value == 5.0
         assert sim._gamma._value == 6.0
 
-    def test__init__(self):
+    def test__init__dof(self):
         pos_x = SineDOF(1.0, 1.0)
         pos_y = ConstantDOF(2.0)
         pos_z = SineDOF(0.5, 0.5)
