@@ -355,6 +355,7 @@ class IMUSimulator:
         degrees : bool, optional
             Whether to return Euler angles and angular velocities in degrees and
             degrees per second (True) or radians and radians per second (False).
+            Defaults to the value specified at initialization.
 
         Returns
         -------
