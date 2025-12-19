@@ -577,7 +577,7 @@ class Test_ChirpDOF:
         phi = 2.0 * w_max / w_os * np.sin(w_os / 2.0 * t)
         dphi = w_max * np.cos(w_os / 2.0 * t)
         d2phi = -w_max * w_os / 2.0 * np.sin(w_os / 2.0 * t)
-        d2ydt2_expect = -amp * (dphi**2) * np.sin(phi + phase) + d2phi * np.cos(
+        d2ydt2_expect = -amp * (dphi**2) * np.sin(phi + phase) + amp * d2phi * np.cos(
             phi + phase
         )
 
@@ -598,7 +598,7 @@ class Test_ChirpDOF:
 
         y_expect = amp * np.sin(phi + phase) + offset
         dydt_expect = amp * dphi * np.cos(phi + phase)
-        d2ydt2_expect = -amp * (dphi**2) * np.sin(phi + phase) + d2phi * np.cos(
+        d2ydt2_expect = -amp * (dphi**2) * np.sin(phi + phase) + amp * d2phi * np.cos(
             phi + phase
         )
 
