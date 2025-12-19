@@ -670,7 +670,7 @@ def benchmark_full_pva_chirp_202311A(
     return t, pos, vel, euler, f, w
 
 
-def benchmark_full_pva_chirp_202311A2(
+def benchmark_full_pva_chirp_202311A_old(
     fs: float = 10.24,
 ) -> tuple[
     NDArray[np.float64],
