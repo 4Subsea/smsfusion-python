@@ -440,8 +440,10 @@ class Test_BeatDOF:
         w_beat = beat_dof._w_beat
         phase = beat_dof._phase
         offset = beat_dof._offset
+
         main = np.cos(w_main * t + phase)
         beat = np.sin(w_beat / 2.0 * t)
+
         y_expect = amp * beat * main + offset
 
         np.testing.assert_allclose(y, y_expect)
@@ -453,10 +455,12 @@ class Test_BeatDOF:
         w_main = beat_dof._w_main
         w_beat = beat_dof._w_beat
         phase = beat_dof._phase
+
         main = np.cos(w_main * t + phase)
         beat = np.sin(w_beat / 2.0 * t)
         dmain = -w_main * np.sin(w_main * t + phase)
         dbeat = (w_beat / 2.0) * np.cos(w_beat / 2.0 * t)
+
         dydt_expect = amp * (dbeat * main + beat * dmain)
 
         np.testing.assert_allclose(dydt, dydt_expect)
@@ -468,12 +472,14 @@ class Test_BeatDOF:
         w_main = beat_dof._w_main
         w_beat = beat_dof._w_beat
         phase = beat_dof._phase
+
         main = np.cos(w_main * t + phase)
         beat = np.sin(w_beat / 2.0 * t)
         dmain = -w_main * np.sin(w_main * t + phase)
         dbeat = (w_beat / 2.0) * np.cos(w_beat / 2.0 * t)
         d2main = -(w_main**2) * np.cos(w_main * t + phase)
         d2beat = -(w_beat**2 / 4.0) * np.sin(w_beat / 2.0 * t)
+
         d2ydt2_expect = amp * (d2beat * main + 2.0 * dbeat * dmain + beat * d2main)
 
         np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
