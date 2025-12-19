@@ -155,3 +155,13 @@ class Test_SineDOF:
         np.testing.assert_allclose(y, y_expect)
         np.testing.assert_allclose(dydt, dydt_expect)
         np.testing.assert_allclose(dy2dt2, dy2dt2_expect)
+
+    def test_offset(self, t):
+        sine_dof = SineDOF(offset=2.0)
+        y, dydt, dy2dt2 = sine_dof(t)
+        y_expect = 2.0 + np.sin(t)
+        dydt_expect = np.cos(t)
+        dy2dt2_expect = -np.sin(t)
+        np.testing.assert_allclose(y, y_expect)
+        np.testing.assert_allclose(dydt, dydt_expect)
+        np.testing.assert_allclose(dy2dt2, dy2dt2_expect)
