@@ -103,27 +103,27 @@ class SineDOF(DOF):
     def __init__(
         self,
         amp=1.0,
-        omega=1.0,
+        freq=1.0,
         phase=0.0,
         offset=0.0,
         freq_hz=False,
         phase_degrees=False,
     ):
         self._amp = amp
-        self._omega = 2 * np.pi * omega if freq_hz else omega
+        self._w = 2.0 * np.pi * freq if freq_hz else freq
         self._phase = np.deg2rad(phase) if phase_degrees else phase
         self._offset = offset
 
     def _y(self, t):
-        y = self._amp * np.sin(self._omega * t + self._phase) + self._offset
+        y = self._amp * np.sin(self._w * t + self._phase) + self._offset
         return y
 
     def _dydt(self, t):
-        dydt = self._amp * self._omega * np.cos(self._omega * t + self._phase)
+        dydt = self._amp * self._w * np.cos(self._w * t + self._phase)
         return dydt
 
     def _d2ydt2(self, t):
-        d2ydt2 = -self._amp * self._omega**2 * np.sin(self._omega * t + self._phase)
+        d2ydt2 = -self._amp * self._w**2 * np.sin(self._w * t + self._phase)
         return d2ydt2
 
 
