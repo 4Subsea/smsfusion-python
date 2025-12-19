@@ -226,7 +226,7 @@ class BeatDOF(DOF):
     def _y(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
         main = np.cos(self._w_main * t + self._phase)
         beat = np.sin(self._w_beat / 2.0 * t)
-        y = beat * main
+        y = beat * main + self._offset
         return y  # type: ignore[no-any-return]
 
     def _dydt(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
