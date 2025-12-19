@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import smsfusion as sf
-from smsfusion.simulate import BeatDOF, ConstantDOF, IMUSimulator, SineDOF
+from smsfusion.simulate import BeatDOF, ChirpDOF, ConstantDOF, IMUSimulator, SineDOF
 from smsfusion.simulate._simulate import DOF
 
 
@@ -507,3 +507,15 @@ class Test_BeatDOF:
         np.testing.assert_allclose(y, y_expect)
         np.testing.assert_allclose(dydt, dydt_expect)
         np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
+
+
+class Test_ChirpDOF:
+    def test__init__(self):
+        chirp_dof = ChirpDOF(
+            3.0, 2.0, 1.0, freq_hz=True, phase=4.0, phase_degrees=True, offset=5.0
+        )
+
+        assert isinstance(chirp_dof, DOF)
+        assert chirp_dof._amp == 3.0
+        assert chirp_dof._w_max == pytest.approx(2.0 * np.pi * 2.0)
+        assert chirp_dof._w_os == pytest.approx(2.0 * np.pi * 1.0)

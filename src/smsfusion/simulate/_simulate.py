@@ -205,6 +205,13 @@ class BeatDOF(DOF):
         The beating frequency, which controls the variation in amplitude.
     freq_hz : bool, default True.
         Whether the frequencies, ``f_main`` and ``f_beat``, are in Hz or rad/s (default).
+    phase : float, default 0.0
+        Phase offset of the beat signal. Default is 0.0.
+    phase_degrees : bool, optional
+        If True, interpret `phase` in degrees. If False, interpret in radians.
+        Default is False.
+    offset : float, default 0.0
+        Offset of the beat signal. Default is 0.0.
     """
 
     def __init__(
@@ -264,6 +271,93 @@ class BeatDOF(DOF):
         d2beat = -((w_beat / 2.0) ** 2) * np.sin(w_beat / 2.0 * t)
         d2ydt2 = amp * (dbeat * dmain + d2beat * main + beat * d2main + dbeat * dmain)
 
+        return d2ydt2  # type: ignore[no-any-return]
+
+
+class ChirpDOF(DOF):
+    """
+    1D chirp sinusoidal DOF signal generator.
+
+    This class creates a signal with a frequency that appears to vary in time.
+    The frequency oscillates between 0. and a maximum frequency at a specific
+    rate.
+
+    Defined as:
+
+        phi = 2 * f_max / f_os * sin(f_os * t)
+        y = sin(phi + phase)
+
+    where,
+
+    - f_max : Maximum frequency the signal ramps up to, before ramping down to zero.
+    - f_os  : Frequency oscillation rate.
+    - phase : Phase offset of the chirp signal.
+
+    Parameters
+    ----------
+    f_max : float
+        The maximum frequency of the chirp signal, y(t).
+    f_os : float
+        The frequency oscillation rate.
+    freq_hz : bool, default True.
+        Whether the frequencies, ``f_max`` and ``f_os``, are in Hz or rad/s (default).
+    phase : float, default 0.0
+        Phase offset of the chirp signal. Default is 0.0.
+    phase_degrees : bool, optional
+        If True, interpret `phase` in degrees. If False, interpret in radians.
+        Default is False.
+    offset : float, default 0.0
+        Offset of the chirp signal. Default is 0.0.
+    """
+
+    def __init__(
+        self,
+        amp: float = 1.0,
+        f_max: float = 0.25,
+        f_os: float = 0.01,
+        freq_hz: bool = True,
+        phase: float = 0.0,
+        phase_degrees: bool = False,
+        offset: float = 0.0,
+    ) -> None:
+        self._amp = amp
+        self._w_max = 2.0 * np.pi * f_max if freq_hz else f_max
+        self._w_os = 2.0 * np.pi * f_os if freq_hz else f_os
+        self._phase = np.deg2rad(phase) if phase_degrees else phase
+        self._offset = offset
+
+    def _y(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
+        amp = self._amp
+        w_max = self._w_max
+        w_os = self._w_os
+        phase = self._phase
+        offset = self._offset
+
+        phi = 2.0 * w_max / w_os * np.sin(w_os / 2.0 * t)
+        y = amp * np.sin(phi + phase) + offset
+        return y  # type: ignore[no-any-return]
+
+    def _dydt(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
+        amp = self._amp
+        w_max = self._w_max
+        w_os = self._w_os
+        phase = self._phase
+
+        phi = 2.0 * w_max / w_os * np.sin(w_os / 2.0 * t)
+        dphi = w_max * np.cos(w_os / 2.0 * t)
+        dydt = amp * dphi * np.cos(phi + phase)
+        return dydt  # type: ignore[no-any-return]
+
+    def _d2ydt2(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
+        amp = self._amp
+        w_max = self._w_max
+        w_os = self._w_os
+        phase = self._phase
+
+        phi = 2.0 * w_max / w_os * np.sin(w_os / 2.0 * t)
+        dphi = w_max * np.cos(w_os / 2.0 * t)
+        d2phi = -w_max * w_os / 2.0 * np.sin(w_os / 2.0 * t)
+        d2ydt2 = -amp * (dphi**2) * np.sin(phi + phase) + d2phi * np.cos(phi + phase)
         return d2ydt2  # type: ignore[no-any-return]
 
 
