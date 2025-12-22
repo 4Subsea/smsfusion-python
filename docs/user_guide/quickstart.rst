@@ -26,9 +26,9 @@ data from an IMU sensor, and ideally position and heading data from other aiding
 sensors. If you do not have access to such data, you can generate synthetic
 measurements using the code provided here.
 
-Using the :class:`~smsfusion.simulate.IMUSimulator` class, you can generate synthetic
-3D motion data and corresponding IMU accelerometer and gyroscope measurements..
-For example, you can simulate beating motion:
+Using the :class:`~smsfusion.simulate.IMUSimulator` class in the ``simulate`` module,
+you can generate synthetic 3D motion data and corresponding IMU accelerometer and
+gyroscope measurements. For example, you can simulate beating motion:
 
 
 .. code-block:: python
@@ -36,8 +36,6 @@ For example, you can simulate beating motion:
     from smsfusion.simulate import BeatDOF, IMUSimulator
 
 
-    fs = 10.24  # sampling rate in Hz
-    n = 10_000  # number of samples
     sim = IMUSimulator(
         pos_x=BeatDOF(0.5, phase=0.0, phase_degrees=True),
         pos_y=BeatDOF(0.5, phase=45.0, phase_degrees=True),
@@ -48,6 +46,7 @@ For example, you can simulate beating motion:
         degrees=False,
     )
 
+    fs = 10.24  # sampling rate in Hz
     t, pos, vel, euler, acc, gyro = sim(fs, 10_000, degrees=False)
     head = euler[:, 2]
 
