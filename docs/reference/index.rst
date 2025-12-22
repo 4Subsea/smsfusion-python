@@ -29,3 +29,8 @@ API reference
    noise.gauss_markov
    noise.random_walk
    noise.white_noise
+   simulate.BeatDOF
+   simulate.ChirpDOF
+   simulate.ConstantDOF
+   simulate.IMUSimulator
+   simulate.SineDOF
