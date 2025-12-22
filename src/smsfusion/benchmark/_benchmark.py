@@ -362,7 +362,7 @@ def benchmark_pure_attitude_beat_202311A(
     The generated signals are "beating" with maximum amplitudes corresponding to
     5 degrees. The main signal frequency is 0.1 Hz while the "beating" frequency
     is 0.01 Hz. The phases for roll, pitch, and yaw are 0.0, 45.0, and 90.0 degrees
-    respectively. See :class:`smsfusion.benchmark.BeatSignal` for details.
+    respectively. See :class:`smsfusion.simulate.BeatDOF` for details.
 
     Parameters
     ----------
@@ -433,7 +433,7 @@ def benchmark_pure_attitude_chirp_202311A(
     amplitudes corresponding to 5 degrees. The signal frequency oscillates
     between 0.0 Hz and 0.25 Hz every 100 seconds. The phases for roll, pitch,
     and yaw are 0.0, 45.0, and 90.0 degrees respectively. See
-    :class:`smsfusion.benchmark.ChirpSignal` for details.
+    :class:`smsfusion.simulate.ChirpDOF` for details.
 
     Parameters
     ----------
