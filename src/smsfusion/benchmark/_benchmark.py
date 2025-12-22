@@ -506,13 +506,13 @@ def benchmark_full_pva_beat_202311A(
 
     The generated position reference signals are characterized by:
 
-    * "Beating" signal. See ``BeatSignal`` for details.
+    * "Beating" signal. See ``smsfusion.simulate.BeatDOF`` for details.
     * Maximum amplitude of 0.5 m.
     * The phases for x-, y-, and z-axis are 0.0, 30.0, and 60.0 degrees respectively.
 
     The generated Euler reference signals are characterized by:
 
-    * "Beating" signal. See :class:`smsfusion.benchmark.BeatSignal` for details.
+    * "Beating" signal. See :class:`smsfusion.simulate.BeatDOF` for details.
     * Maximum amplitude of 5 degrees.
     * The phases for roll, pitch, and yaw are 90.0, 120.0, and 150.0 degrees respectively.
 
@@ -599,13 +599,13 @@ def benchmark_full_pva_chirp_202311A(
 
     The generated position reference signals are characterized by:
 
-    * "Chirp" signal. See :class:`smsfusion.benchmark.ChirpSignal` for details.
+    * "Chirp" signal. See :class:`smsfusion.simulate.ChirpDOF` for details.
     * Maximum amplitude of 0.5 m.
     * The phases for x-, y-, and z-axis are 0.0, 30.0, and 60.0 degrees respectively.
 
     The generated Euler reference signals are characterized by:
 
-    * "Chirp" signal. See :class:`smsfusion.benchmark.ChirpSignal` for details.
+    * "Chirp" signal. See :class:`smsfusion.simulate.ChirpDOF` for details.
     * Maximum amplitude of 5 degrees.
     * The phases for roll, pitch, and yaw are 90.0, 120.0, and 150.0 degrees respectively.
 
