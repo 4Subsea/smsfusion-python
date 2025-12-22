@@ -89,47 +89,28 @@ class BeatSignal(_Signal):
 
     def __init__(self, f_main: float, f_beat: float, freq_hz: bool = True) -> None:
         warn("`BeatSignal`` is deprecated, use ``simulate.BeatDOF`` instead.")
-        self._f_main = f_main
-        self._f_beat = f_beat
-
-        if freq_hz:
-            self._f_main = self._f_main * 2.0 * np.pi
-            self._f_beat = self._f_beat * 2.0 * np.pi
+        self._f_main = 2.0 * np.pi * f_main if freq_hz else f_main
+        self._f_beat = f_beat * 2.0 * np.pi if freq_hz else f_beat
 
     def _y(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         """
         Generate a unit amplitude beating signal.
         """
-        main = np.cos(self._f_main * t + phase)
-        beat = np.sin(self._f_beat / 2.0 * t)
-        y = beat * main
+        y = BeatDOF(1.0, self._f_main, self._f_beat, phase=phase)._y(t)
         return y  # type: ignore[no-any-return]
 
     def _dydt(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         """
         Generate the first time derivative of a unit amplitue beating signal.
         """
-        main = np.cos(self._f_main * t + phase)
-        beat = np.sin(self._f_beat / 2.0 * t)
-        dmain = -self._f_main * np.sin(self._f_main * t + phase)
-        dbeat = self._f_beat / 2.0 * np.cos(self._f_beat / 2.0 * t)
-
-        dydt = dbeat * main + beat * dmain
+        dydt = BeatDOF(1.0, self._f_main, self._f_beat, phase=phase)._dydt(t)
         return dydt  # type: ignore[no-any-return]
 
     def _d2ydt2(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         """
         Generate the second time derivative of a unit amplitue beating signal.
         """
-        main = np.cos(self._f_main * t + phase)
-        beat = np.sin(self._f_beat / 2.0 * t)
-        dmain = -self._f_main * np.sin(self._f_main * t + phase)
-        dbeat = self._f_beat / 2.0 * np.cos(self._f_beat / 2.0 * t)
-        d2main = -((self._f_main) ** 2) * np.cos(self._f_main * t + phase)
-        d2beat = -((self._f_beat / 2.0) ** 2) * np.sin(self._f_beat / 2.0 * t)
-
-        d2ydt2 = dbeat * dmain + d2beat * main + beat * d2main + dbeat * dmain
-
+        d2ydt2 = BeatDOF(1.0, self._f_main, self._f_beat, phase=phase)._d2ydt2(t)
         return d2ydt2  # type: ignore[no-any-return]
 
 
