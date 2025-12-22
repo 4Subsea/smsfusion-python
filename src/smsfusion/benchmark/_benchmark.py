@@ -142,19 +142,14 @@ class ChirpSignal(_Signal):
 
     def __init__(self, f_max: float, f_os: float, freq_hz: bool = True) -> None:
         warn("`ChirpSignal` is deprecated, use `simulate.ChirpDOF` instead.")
-        self._f_max = f_max
-        self._f_os = f_os
-
-        if freq_hz:
-            self._f_max *= 2.0 * np.pi
-            self._f_os *= 2.0 * np.pi
+        self._f_max = 2.0 * np.pi * f_max if freq_hz else f_max
+        self._f_os = 2.0 * np.pi * f_os if freq_hz else f_os
 
     def _y(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         """
         Generate a unit amplitude chirp signal with oscillating frequency.
         """
-        phi = 2.0 * self._f_max / self._f_os * np.sin(self._f_os / 2.0 * t)
-        y = np.sin(phi + phase)
+        y = ChirpDOF(1.0, self._f_max, self._f_os, phase=phase)._y(t)
         return y  # type: ignore[no-any-return]
 
     def _dydt(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
@@ -162,9 +157,7 @@ class ChirpSignal(_Signal):
         Generate the time derivative of a unit amplitude chirp signal with
         oscillating frequency.
         """
-        phi = 2.0 * self._f_max / self._f_os * np.sin(self._f_os / 2.0 * t)
-        dphi = self._f_max * np.cos(self._f_os / 2.0 * t)
-        dydt = dphi * np.cos(phi + phase)
+        dydt = ChirpDOF(1.0, self._f_max, self._f_os, phase=phase)._dydt(t)
         return dydt  # type: ignore[no-any-return]
 
     def _d2ydt2(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
@@ -172,10 +165,7 @@ class ChirpSignal(_Signal):
         Generate the second time derivative of a unit amplitude chirp signal with
         oscillating frequency.
         """
-        phi = 2.0 * self._f_max / self._f_os * np.sin(self._f_os / 2.0 * t)
-        dphi = self._f_max * np.cos(self._f_os / 2.0 * t)
-        d2phi = -self._f_max * self._f_os / 2.0 * np.sin(self._f_os / 2.0 * t)
-        d2ydt2 = -(dphi**2) * np.sin(phi + phase) + d2phi * np.cos(phi + phase)
+        d2ydt2 = ChirpDOF(1.0, self._f_max, self._f_os, phase=phase)._d2ydt2(t)
         return d2ydt2  # type: ignore[no-any-return]
 
 

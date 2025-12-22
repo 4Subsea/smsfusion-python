@@ -532,7 +532,7 @@ class Test_ChirpDOF:
 
         assert isinstance(chirp_dof, DOF)
         assert chirp_dof._amp == 1.0
-        assert chirp_dof._w_max == pytest.approx(2.0 * np.pi * 0.25)
+        assert chirp_dof._w_max == pytest.approx(np.pi / 2.0)
         assert chirp_dof._w_os == pytest.approx(2.0 * np.pi * 0.01)
         assert chirp_dof._phase == pytest.approx(0.0)
         assert chirp_dof._offset == 0.0

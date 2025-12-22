@@ -296,10 +296,10 @@ class ChirpDOF(DOF):
     Parameters
     ----------
     f_max : float
-        The maximum frequency of the chirp signal, y(t).
+        The maximum frequency of the chirp signal, y(t). Default is 0.25 Hz.
     f_os : float
-        The frequency oscillation rate.
-    freq_hz : bool, default True.
+        The frequency oscillation rate. Default is 0.01 Hz.
+    freq_hz : bool, default False.
         Whether the frequencies, ``f_max`` and ``f_os``, are in Hz or rad/s (default).
     phase : float, default 0.0
         Phase offset of the chirp signal. Default is 0.0.
@@ -313,8 +313,8 @@ class ChirpDOF(DOF):
     def __init__(
         self,
         amp: float = 1.0,
-        f_max: float = 0.25,
-        f_os: float = 0.01,
+        f_max: float = 0.5 * np.pi,
+        f_os: float = 0.02 * np.pi,
         freq_hz: bool = False,
         phase: float = 0.0,
         phase_degrees: bool = False,
