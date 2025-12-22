@@ -26,17 +26,29 @@ data from an IMU sensor, and ideally position and heading data from other aiding
 sensors. If you do not have access to such data, you can generate synthetic
 measurements using the code provided here.
 
-Using the ``benchmark`` module, you can generate synthetic 3D motion data with ``smsfusion``.
-For example, you can generate beating signals representing position, velocity and
-attitude (PVA) degrees of freedom using :func:`~smsfusion.benchmark.benchmark_full_pva_beat_202311A`:
+Using the :class:`~smsfusion.simulate.IMUSimulator` class, you can generate synthetic
+3D motion data and corresponding IMU accelerometer and gyroscope measurements..
+For example, you can simulate beating motion:
+
 
 .. code-block:: python
 
-    from smsfusion.benchmark import benchmark_full_pva_beat_202311A
+    from smsfusion.simulate import BeatDOF, IMUSimulator
 
 
     fs = 10.24  # sampling rate in Hz
-    t, pos, vel, euler, acc, gyro = benchmark_full_pva_beat_202311A(fs)
+    n = 10_000  # number of samples
+    sim = IMUSimulator(
+        pos_x=BeatDOF(0.5, phase=0.0, phase_degrees=True),
+        pos_y=BeatDOF(0.5, phase=45.0, phase_degrees=True),
+        pos_z=BeatDOF(0.5, phase=90.0, phase_degrees=True),
+        alpha=BeatDOF(0.1, phase=135.0, phase_degrees=True),
+        beta=BeatDOF(0.1, phase=180.0, phase_degrees=True),
+        gamma=BeatDOF(0.1, phase=225.0, phase_degrees=True),
+        degrees=False,
+    )
+
+    t, pos, vel, euler, acc, gyro = sim(fs, 10_000, degrees=False)
     head = euler[:, 2]
 
 Note that the generated position signals are in meters (m), velocity signals are in meters
