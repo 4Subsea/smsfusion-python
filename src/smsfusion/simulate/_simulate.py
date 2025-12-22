@@ -357,7 +357,9 @@ class ChirpDOF(DOF):
         phi = 2.0 * w_max / w_os * np.sin(w_os / 2.0 * t)
         dphi = w_max * np.cos(w_os / 2.0 * t)
         d2phi = -w_max * w_os / 2.0 * np.sin(w_os / 2.0 * t)
-        d2ydt2 = -amp * (dphi**2) * np.sin(phi + phase) + amp * d2phi * np.cos(phi + phase)
+        d2ydt2 = -amp * (dphi**2) * np.sin(phi + phase) + amp * d2phi * np.cos(
+            phi + phase
+        )
         return d2ydt2  # type: ignore[no-any-return]
 
 
