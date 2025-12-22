@@ -315,7 +315,7 @@ class ChirpDOF(DOF):
         amp: float = 1.0,
         f_max: float = 0.25,
         f_os: float = 0.01,
-        freq_hz: bool = True,
+        freq_hz: bool = False,
         phase: float = 0.0,
         phase_degrees: bool = False,
         offset: float = 0.0,
