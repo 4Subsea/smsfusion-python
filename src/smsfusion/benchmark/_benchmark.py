@@ -564,10 +564,10 @@ def benchmark_full_pva_beat_202311A(
 
     amp_p = 0.5
     amp_r = np.radians(5.0)
-    pos_x = BeatDOF(amp_p, f_main, f_beat, freq_hz=True, phase=0.0)
+    pos_x = BeatDOF(amp_p, f_main, f_beat, freq_hz=True, phase=0.0, phase_degrees=True)
     pos_y = BeatDOF(amp_p, f_main, f_beat, freq_hz=True, phase=30.0, phase_degrees=True)
     pos_z = BeatDOF(amp_p, f_main, f_beat, freq_hz=True, phase=60.0, phase_degrees=True)
-    alpha = BeatDOF(amp_r, f_main, f_beat, freq_hz=True, phase=90.0)
+    alpha = BeatDOF(amp_r, f_main, f_beat, freq_hz=True, phase=90.0, phase_degrees=True)
     beta = BeatDOF(amp_r, f_main, f_beat, freq_hz=True, phase=120.0, phase_degrees=True)
     gamma = BeatDOF(
         amp_r, f_main, f_beat, freq_hz=True, phase=150.0, phase_degrees=True
@@ -657,10 +657,10 @@ def benchmark_full_pva_chirp_202311A(
 
     amp_p = 0.5
     amp_r = np.radians(5.0)
-    pos_x = ChirpDOF(amp_p, f_max, f_os, freq_hz=True, phase=0.0)
+    pos_x = ChirpDOF(amp_p, f_max, f_os, freq_hz=True, phase=0.0, phase_degrees=True)
     pos_y = ChirpDOF(amp_p, f_max, f_os, freq_hz=True, phase=30.0, phase_degrees=True)
     pos_z = ChirpDOF(amp_p, f_max, f_os, freq_hz=True, phase=60.0, phase_degrees=True)
-    alpha = ChirpDOF(amp_r, f_max, f_os, freq_hz=True, phase=90.0)
+    alpha = ChirpDOF(amp_r, f_max, f_os, freq_hz=True, phase=90.0, phase_degrees=True)
     beta = ChirpDOF(amp_r, f_max, f_os, freq_hz=True, phase=120.0, phase_degrees=True)
     gamma = ChirpDOF(amp_r, f_max, f_os, freq_hz=True, phase=150.0, phase_degrees=True)
     sim = IMUSimulator(pos_x, pos_y, pos_z, alpha, beta, gamma)
