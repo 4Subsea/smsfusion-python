@@ -3,6 +3,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from ._ins import dhda_head, _signed_smallest_angle, h_head
+from ._transforms import _angular_matrix_from_quaternion
 from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
 
@@ -340,7 +341,32 @@ def _kalman_update_sequential(
         _kalman_update_scalar(x, P, z[i], var[i], H[i], I_)
 
 
-class VRU:
+@njit  # type: ignore[misc]
+def _project_cov_ahead(
+    P: NDArray[np.float64], phi: NDArray[np.float64], Q: NDArray[np.float64]
+) -> None:
+    """
+    Project the error covariance matrix estimate ahead.
+
+    Parameters
+    ----------
+    P : ndarray, shape (n, n)
+        State error covariance matrix to be projected ahead.
+    phi : ndarray, shape (n, n)
+        State transition matrix.
+    Q : ndarray, shape (n, n)
+        Process noise covariance matrix.
+
+    Returns
+    -------
+    ndarray, shape (n, n)
+        Projected error covariance matrix estimate.
+    """
+    P = phi @ P @ phi.T + Q
+    return P
+
+
+class VRUv2:
     """
     Vertical Reference Unit (VRU) using a multiplicative extended Kalman filter (MEKF).
 
@@ -497,3 +523,15 @@ class VRU:
         dz = _signed_smallest_angle(yaw_meas - h_head(self._q_nb))
         dhdx = self._dhdx_yaw(self._q_nb)
         _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I)
+
+    def _project_ahead(self) -> None:
+        """
+        Project state and covariance estimates ahead.
+        """
+
+        # Attitude (dead reckoning)
+        self._q_nb[:] += self._dt * _angular_matrix_from_quaternion(self._q_nb) @ self._w_b
+        self._q_nb[:] = _normalize(self._q_nb)
+
+        # Covariance
+        self._P[:, :] = _project_cov_ahead(self._P, self._phi, self._Q)
