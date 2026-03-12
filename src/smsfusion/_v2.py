@@ -1,10 +1,10 @@
 from typing import Self
 
-from numba import njit
 import numpy as np
+from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from ._ins import dhda_head, _signed_smallest_angle, h_head
+from ._ins import _dhda_head, _h_head, _signed_smallest_angle
 from ._transforms import _angular_matrix_from_quaternion
 from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
@@ -171,7 +171,7 @@ def _measurement_matrix(
     """
     dhdx = np.zeros((4, 6))
     dhdx[0:3, 0:3] = _skew_symmetric(vg_b)  # gravity ref vector
-    dhdx[3:4, 0:3] = dhda_head(q_nb)  # heading
+    dhdx[3:4, 0:3] = _dhda_head(q_nb)  # heading
     return dhdx
 
 
@@ -400,6 +400,7 @@ class VRUv2:
         will be expressed relative to this frame.
 
     """
+
     _I: NDArray[np.float64] = np.eye(6)
 
     def __init__(
@@ -472,7 +473,7 @@ class VRUv2:
         """
         Heading (yaw angle) part of the measurement matrix, shape (6,).
         """
-        self._dhdx[3:4, 0:3] = dhda_head(q_nb)
+        self._dhdx[3:4, 0:3] = _dhda_head(q_nb)
         return self._dhdx[3]
 
     def _reset(self) -> None:
@@ -522,7 +523,7 @@ class VRUv2:
             head_meas = (np.pi / 180.0) * head_meas
             head_var = (np.pi / 180.0) ** 2 * head_var
 
-        dz = _signed_smallest_angle(head_meas - h_head(self._q_nb))
+        dz = _signed_smallest_angle(head_meas - _h_head(self._q_nb))
         dhdx = self._dhdx_yaw(self._q_nb)
         _kalman_update_scalar(self._dx, self._P, dz, head_var, dhdx, self._I)
 
@@ -532,7 +533,9 @@ class VRUv2:
         """
 
         # Attitude (dead reckoning)
-        self._q_nb[:] += self._dt * _angular_matrix_from_quaternion(self._q_nb) @ self._w_b
+        self._q_nb[:] += (
+            self._dt * _angular_matrix_from_quaternion(self._q_nb) @ self._w_b
+        )
         self._q_nb[:] = _normalize(self._q_nb)
 
         # Covariance
