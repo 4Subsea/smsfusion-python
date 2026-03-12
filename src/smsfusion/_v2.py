@@ -6,7 +6,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from ._ins import _dhda_head, _h_head, _signed_smallest_angle
 from ._transforms import _angular_matrix_from_quaternion
-from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
+from ._vectorops import _normalize, _skew_symmetric
 
 
 def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
