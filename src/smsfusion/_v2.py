@@ -5,7 +5,8 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ._ins import _dhda_head, _h_head, _signed_smallest_angle
-from ._transforms import _angular_matrix_from_quaternion, _euler_from_quaternion
+from ._transforms import _angular_matrix_from_quaternion as T
+from ._transforms import _euler_from_quaternion
 from ._vectorops import _normalize, _skew_symmetric
 
 
@@ -24,8 +25,7 @@ def _nz2vg(nav_frame: str) -> float:
 @njit  # type: ignore[misc]
 def _vg_b(q_nb: NDArray[np.float64], nz2vg: float) -> NDArray[np.float64]:
     """
-    Gravity reference vector expressed in the body frame, computed from the attitude
-    quaternion, q_nb.
+    Gravity reference vector expressed in the body frame, computed from a unit quaternion.
 
     Parameters
     ----------
@@ -158,18 +158,16 @@ def _correct_quat_with_gibbs2(q: NDArray[np.float64], da: NDArray[np.float64]) -
 
         q = q ⊗ dq(da)
 
+    As described in ref [1]_, this correction can be simplified by doing it in two
+    steps: first a correction, followed by renormalization. The scaling factor becomes
+    obsolete due to the renormalization step.
+
     Parameters
     ----------
     q : ndarray, shape (4,)
         Unit quaternion [qw, qx, qy, qz] (modified in place).
     da : ndarray, shape (3,)
         Small attitude error parameterized as a scaled (2x) Gibbs vector.
-
-    Notes
-    -----
-    As described in ref [1]_, this correction can be simplified by doing it in two
-    steps: first a correction, followed by renormalization. The scaling factor becomes
-    obsolete due to the renormalization step.
 
     References
     ----------
@@ -343,9 +341,10 @@ def _project_cov_ahead(
     return P
 
 
-class VRUv2:
+class AHRSv2:
     """
-    Vertical Reference Unit (VRU) using a multiplicative extended Kalman filter (MEKF).
+    Attitude and Heading Reference System (AHRS) using a multiplicative extended
+    Kalman filter (MEKF).
 
     Parameters
     ----------
@@ -417,7 +416,7 @@ class VRUv2:
         Attitude expressed as a unit quaternion.
         """
         return self._q_nb.copy()
-    
+
     def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
         Attitude expressed as Euler angles (roll, pitch, yaw).
@@ -530,9 +529,7 @@ class VRUv2:
         """
 
         # Attitude (dead reckoning)
-        self._q_nb[:] += (
-            self._dt * _angular_matrix_from_quaternion(self._q_nb) @ self._w_b
-        )
+        self._q_nb[:] += self._dt * T(self._q_nb) @ self._w_b
         self._q_nb[:] = _normalize(self._q_nb)
 
         # Covariance
@@ -581,7 +578,7 @@ class VRUv2:
 
         Returns
         -------
-        MEKF
+        AHRS
             A reference to the instance itself after the update.
         """
 
