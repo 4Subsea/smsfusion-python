@@ -244,3 +244,28 @@ class VRU:
     def _vg_b(self):
         """Gravity reference vector (unit vector) expressed in the body frame."""
         return _vg_b(self._q_nb, self._nz2vg)
+
+    def quaternion(self) -> NDArray[np.float64]:
+        """
+        Return a copy of the attitude quaternion.
+        """
+        return self._q_nb.copy()
+
+    def bias_gyro(self) -> NDArray[np.float64]:
+        """
+        Return a copy of the gyroscope bias estimate (rad/s) expressed in the body frame.
+        """
+        return self._bg_b.copy()
+
+    def angular_rate(self) -> NDArray[np.float64]:
+        """
+        Return a copy of the bias corrected angular rate measurement (rad/s).
+        """
+        return self._w_b.copy()
+
+    @property
+    def P(self) -> NDArray[np.float64]:
+        """
+        Copy of the error covariance matrix estimate.
+        """
+        return self._P.copy()
