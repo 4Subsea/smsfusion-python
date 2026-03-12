@@ -1,3 +1,5 @@
+from typing import Self
+
 from numba import njit
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -535,3 +537,69 @@ class VRUv2:
 
         # Covariance
         self._P[:, :] = _project_cov_ahead(self._P, self._phi, self._Q)
+
+    def update(
+        self,
+        f: ArrayLike,
+        w: ArrayLike,
+        degrees: bool = False,
+        head: float | None = None,
+        head_var: float | None = None,
+        head_degrees: bool = False,
+        g_ref: bool = True,
+        g_var: ArrayLike | None = (0.001, 0.001, 0.001),
+    ) -> Self:
+        """
+        Update state estimates with IMU and aiding measurements.
+
+        Parameters
+        ----------
+        f : array_like, shape (3,)
+            Specific force (i.e., acceleration + gravity) measurement (fx, fy, fz)
+            in m/s^2.
+        w : array_like, shape (3,)
+            Angular rate measurement (wx, wy, wz) in rad/s (default) or deg/s. See
+            ``degrees`` parameter for units.
+        degrees : bool, optional
+            Specifies whether the unit of the rotation rate, ``w``, is deg/s or
+            rad/s. Defaults to rad/s.
+        head : float, optional
+            Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
+            assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
+            If ``None``, compass aiding is not used. See ``head_degrees`` for units.
+        head_var : float, optional
+            Variance of heading measurement noise. Units must be compatible with ``head``.
+             See ``head_degrees`` for units. Required for ``head``.
+        head_degrees : bool, default False
+            Specifies whether the unit of ``head`` and ``head_var`` are in degrees and degrees^2,
+            or radians and radians^2. Default is in radians and radians^2.
+        g_ref : bool, optional
+            Specifies whether the gravity reference vector is used as an aiding measurement.
+        g_var : array-like, optional
+            Variance of gravitational reference vector measurement noise. Required for
+            ``g_ref``.
+
+        Returns
+        -------
+        MEKF
+            A reference to the instance itself after the update.
+        """
+
+        if degrees:
+            w = np.radians(w)
+
+        # Project (a priori) state and covariance estimates ahead
+        self._project_ahead()
+
+        # Update (a posteriori) state and covariance estimates with aiding measurements
+        self._aiding_update_gref(-_normalize(f) if g_ref else None, g_var)
+        self._aiding_update_head(head, head_var, head_degrees)
+
+        # Reset state
+        self._reset()
+
+        # Update model
+        self._w_b[:] = w - self._bg_b
+        _update_state_transition(self._phi, self._dt, self._w_b)
+
+        return self
