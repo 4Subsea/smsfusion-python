@@ -2,7 +2,7 @@ from numba import njit
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from ._ins import dhda_head
+from ._ins import dhda_head, _signed_smallest_angle, h_head
 from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
 
@@ -209,6 +209,137 @@ def _correct_quat_with_gibbs2(q: NDArray[np.float64], da: NDArray[np.float64]) -
     q[:] = _normalize(q)
 
 
+@njit  # type: ignore[misc]
+def _kalman_gain(
+    P: NDArray[np.float64], h: NDArray[np.float64], r: float
+) -> NDArray[np.float64]:
+    """
+    Compute the Kalman gain for a scalar measurement.
+
+    Parameters
+    ----------
+    P : ndarray, shape (n, n)
+        State error covariance matrix.
+    h : ndarray, shape (n,)
+        Measurement matrix (row vector).
+    r : float
+        Scalar measurement noise variance.
+
+    Returns
+    -------
+    ndarray, shape (n,)
+        Kalman gain vector.
+    """
+
+    # Innovation covariance (inverse)
+    Ph = np.dot(P, h)
+    s_inv = 1.0 / (np.dot(h, Ph) + r)
+
+    # Kalman gain
+    k = Ph * s_inv
+
+    return k
+
+
+@njit  # type: ignore[misc]
+def _covariance_update(
+    P: NDArray[np.float64],
+    k: NDArray[np.float64],
+    h: NDArray[np.float64],
+    r: float,
+    I_: NDArray[np.float64],
+) -> None:
+    """
+    Compute the updated state error covariance matrix estimate (Joseph form).
+
+    Parameters
+    ----------
+    P : ndarray, shape (n, n)
+        State error covariance matrix to be updated in place.
+    k : ndarray, shape (n,)
+        Kalman gain vector.
+    h : ndarray, shape (n,)
+        Measurement matrix (row vector).
+    r : float
+        Scalar measurement noise variance.
+    I_ : ndarray, shape (n, n)
+        Identity matrix.
+    """
+    A = I_ - np.outer(k, h)
+    P = A @ P @ A.T + r * np.outer(k, k)
+    return P
+
+
+@njit  # type: ignore[misc]
+def _kalman_update_scalar(
+    x: NDArray[np.float64],
+    P: NDArray[np.float64],
+    z: float,
+    r: float,
+    h: NDArray[np.float64],
+    I_: NDArray[np.float64],
+) -> None:
+    """
+    Scalar Kalman filter measurement update.
+
+    Parameters
+    ----------
+    x : ndarray, shape (n,)
+        State estimate to be updated in place.
+    P : ndarray, shape (n, n)
+        State error covariance matrix to be updated in place.
+    z : float
+        Scalar measurement.
+    r : float
+        Scalar measurement noise variance.
+    h : ndarray, shape (n,)
+        Measurement matrix (row vector).
+    I_ : ndarray, shape (n, n)
+        Identity matrix.
+    """
+
+    # Kalman gain
+    k = _kalman_gain(P, h, r)
+
+    # Updated (a posteriori) state estimate
+    x[:] += k * (z - np.dot(h, x))
+
+    # Updated (a posteriori) covariance estimate (Joseph form)
+    P[:, :] = _covariance_update(P, k, h, r, I_)
+
+
+@njit  # type: ignore[misc]
+def _kalman_update_sequential(
+    x: NDArray[np.float64],
+    P: NDArray[np.float64],
+    z: NDArray[np.float64],
+    var: NDArray[np.float64],
+    H: NDArray[np.float64],
+    I_: NDArray[np.float64],
+) -> None:
+    """
+    Sequential (one-at-a-time) Kalman filter measurement update.
+
+    Parameters
+    ----------
+    x : ndarray, shape (n,)
+        State estimate to be updated in place.
+    P : ndarray, shape (n, n)
+        State error covariance matrix to be updated in place.
+    z : ndarray, shape (m,)
+        Measurement vector.
+    var : ndarray, shape (m,)
+        Measurement noise variances corresponding to each scalar measurement.
+    H : ndarray, shape (m, n)
+        Measurement matrix where each row corresponds to a scalar measurement model.
+    I_ : ndarray, shape (n, n)
+        Identity matrix.
+    """
+    m = z.shape[0]
+    for i in range(m):
+        _kalman_update_scalar(x, P, z[i], var[i], H[i], I_)
+
+
 class VRU:
     """
     Vertical Reference Unit (VRU) using a multiplicative extended Kalman filter (MEKF).
@@ -275,12 +406,7 @@ class VRU:
         # Discrete state-space model
         self._phi = _state_transition(self._dt, self._w_b, self._gbc)
         self._Q = _process_noise_cov(self._dt, self._arw, self._gbs, self._gbc)
-        self._dhdx = _measurement_matrix(self._q_nb, self._vg_b)
-
-    @property
-    def _vg_b(self):
-        """Gravity reference vector (unit vector) expressed in the body frame."""
-        return _vg_b(self._q_nb, self._nz2vg)
+        self._dhdx = _measurement_matrix(self._q_nb, _vg_b(self._q_nb, self._nz2vg))
 
     def quaternion(self) -> NDArray[np.float64]:
         """
@@ -332,3 +458,42 @@ class VRU:
         _correct_quat_with_gibbs2(self._q_nb, self._dx[0:3])
         self._bg_b[:] += self._dx[3:6]
         self._dx[:] = 0.0
+
+    def _aiding_update_gref(
+        self, vg_meas: ArrayLike | None, vg_var: ArrayLike | None
+    ) -> None:
+        """
+        Update with gravity reference vector aiding measurement.
+        """
+
+        if vg_meas is None:
+            return None
+
+        if vg_var is None:
+            raise ValueError("'vg_var' not provided.")
+
+        vg_b = _vg_b(self._q_nb, self._nz2vg)
+        dz = vg_meas - vg_b
+        dhdx = self._dhdx_gref(vg_b)
+        _kalman_update_sequential(self._dx, self._P, dz, vg_var, dhdx, self._I)
+
+    def _aiding_update_yaw(
+        self, yaw_meas: float | None, yaw_var: float | None, yaw_degrees: bool
+    ) -> None:
+        """
+        Update with heading aiding measurement.
+        """
+
+        if yaw_meas is None:
+            return None
+
+        if yaw_var is None:
+            raise ValueError("'yaw_var' not provided.")
+
+        if yaw_degrees:
+            yaw_meas = (np.pi / 180.0) * yaw_meas
+            yaw_var = (np.pi / 180.0) ** 2 * yaw_var
+
+        dz = _signed_smallest_angle(yaw_meas - h_head(self._q_nb))
+        dhdx = self._dhdx_yaw(self._q_nb)
+        _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I)
