@@ -172,6 +172,43 @@ def _measurement_matrix(
     return dhdx
 
 
+@njit  # type: ignore[misc]
+def _correct_quat_with_gibbs2(q: NDArray[np.float64], da: NDArray[np.float64]) -> None:
+    """
+    Corrects a unit quaternion, q, with a small attitude error, da, parameterized
+    as a scaled (2x) Gibbs vector:
+
+        q = q ⊗ dq(da)
+
+    Parameters
+    ----------
+    q : ndarray, shape (4,)
+        Unit quaternion [qw, qx, qy, qz] (modified in place).
+    da : ndarray, shape (3,)
+        Small attitude error parameterized as a scaled (2x) Gibbs vector.
+
+    Notes
+    -----
+    As described in ref [1]_, this correction can be simplified by doing it in two
+    steps: first a correction, followed by renormalization. The scaling factor becomes
+    obsolete due to the renormalization step.
+
+    References
+    ----------
+    Markley & Crassidis (2014), Fundamentals of Spacecraft Attitude Determination
+    and Control, Eq. (6.27)-(6.28).
+    """
+
+    qw, qx, qy, qz = q
+    dax, day, daz = da
+
+    q[0] -= 0.5 * (qx * dax + qy * day + qz * daz)
+    q[1] += 0.5 * (qw * dax + qy * daz - qz * day)
+    q[2] += 0.5 * (qw * day - qx * daz + qz * dax)
+    q[3] += 0.5 * (qw * daz + qx * day - qy * dax)
+    q[:] = _normalize(q)
+
+
 class VRU:
     """
     Vertical Reference Unit (VRU) using a multiplicative extended Kalman filter (MEKF).
@@ -269,3 +306,29 @@ class VRU:
         Copy of the error covariance matrix estimate.
         """
         return self._P.copy()
+
+    def _dhdx_gref(self, vg_b: NDArray[np.float64]) -> NDArray[np.float64]:
+        """
+        Gravity reference vector part of the measurement matrix, shape (3, 6).
+        """
+        self._dhdx[0:3, 0:3] = _skew_symmetric(vg_b)
+        return self._dhdx[0:3]
+
+    def _dhdx_yaw(self, q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
+        """
+        Heading (yaw angle) part of the measurement matrix, shape (6,).
+        """
+        self._dhdx[3:4, 0:3] = dhda_head(q_nb)
+        return self._dhdx[3]
+
+    def _reset(self) -> None:
+        """
+        Reset state.
+        """
+
+        if not self._dx.any():
+            return
+
+        _correct_quat_with_gibbs2(self._q_nb, self._dx[0:3])
+        self._bg_b[:] += self._dx[3:6]
+        self._dx[:] = 0.0
