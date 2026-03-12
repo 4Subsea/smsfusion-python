@@ -503,26 +503,26 @@ class VRUv2:
         dhdx = self._dhdx_gref(vg_b)
         _kalman_update_sequential(self._dx, self._P, dz, vg_var, dhdx, self._I)
 
-    def _aiding_update_yaw(
-        self, yaw_meas: float | None, yaw_var: float | None, yaw_degrees: bool
+    def _aiding_update_head(
+        self, head_meas: float | None, head_var: float | None, head_degrees: bool
     ) -> None:
         """
         Update with heading aiding measurement.
         """
 
-        if yaw_meas is None:
+        if head_meas is None:
             return None
 
-        if yaw_var is None:
-            raise ValueError("'yaw_var' not provided.")
+        if head_var is None:
+            raise ValueError("'head_var' not provided.")
 
-        if yaw_degrees:
-            yaw_meas = (np.pi / 180.0) * yaw_meas
-            yaw_var = (np.pi / 180.0) ** 2 * yaw_var
+        if head_degrees:
+            head_meas = (np.pi / 180.0) * head_meas
+            head_var = (np.pi / 180.0) ** 2 * head_var
 
-        dz = _signed_smallest_angle(yaw_meas - h_head(self._q_nb))
+        dz = _signed_smallest_angle(head_meas - h_head(self._q_nb))
         dhdx = self._dhdx_yaw(self._q_nb)
-        _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I)
+        _kalman_update_scalar(self._dx, self._P, dz, head_var, dhdx, self._I)
 
     def _project_ahead(self) -> None:
         """
