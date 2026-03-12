@@ -5,7 +5,7 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ._ins import _dhda_head, _h_head, _signed_smallest_angle
-from ._transforms import _angular_matrix_from_quaternion
+from ._transforms import _angular_matrix_from_quaternion, _euler_from_quaternion
 from ._vectorops import _normalize, _skew_symmetric
 
 
@@ -414,19 +414,41 @@ class VRUv2:
 
     def quaternion(self) -> NDArray[np.float64]:
         """
-        Return a copy of the attitude quaternion.
+        Attitude expressed as a unit quaternion.
         """
         return self._q_nb.copy()
+    
+    def euler(self, degrees: bool = False) -> NDArray[np.float64]:
+        """
+        Attitude expressed as Euler angles (roll, pitch, yaw).
+
+        Parameters
+        ----------
+        degrees : bool, default False
+            Whether to return the Euler angles in degrees or radians.
+
+        Returns
+        -------
+        numpy.ndarray, shape (3,)
+            Euler angles (roll, pitch, yaw).
+        """
+
+        theta = _euler_from_quaternion(self._q_nb)
+
+        if degrees:
+            theta = (180.0 / np.pi) * theta
+
+        return theta
 
     def bias_gyro(self) -> NDArray[np.float64]:
         """
-        Return a copy of the gyroscope bias estimate (rad/s) expressed in the body frame.
+        Gyroscope bias estimate (rad/s) expressed in the body frame.
         """
         return self._bg_b.copy()
 
     def angular_rate(self) -> NDArray[np.float64]:
         """
-        Return a copy of the bias corrected angular rate measurement (rad/s).
+        Bias corrected angular rate measurement (rad/s) expressed in the body frame.
         """
         return self._w_b.copy()
 
