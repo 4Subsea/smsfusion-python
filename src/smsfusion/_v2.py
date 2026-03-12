@@ -439,11 +439,19 @@ class AHRSv2:
 
         return theta
 
-    def bias_gyro(self) -> NDArray[np.float64]:
+    def bias_gyro(self, degrees=False) -> NDArray[np.float64]:
         """
         Gyroscope bias estimate (rad/s) expressed in the body frame.
+
+        Parameters
+        ----------
+        degrees : bool, optional
+            Whether to return the bias in deg/s or rad/s. Defaults to rad/s.
         """
-        return self._bg_b.copy()
+        bg_b = self._bg_b.copy()
+        if degrees:
+            bg_b = (180.0 / np.pi) * bg_b
+        return bg_b
 
     def angular_rate(self) -> NDArray[np.float64]:
         """
