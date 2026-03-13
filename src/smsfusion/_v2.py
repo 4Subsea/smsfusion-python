@@ -195,15 +195,21 @@ def _correct_quat_with_rotvec_new(
     Parameters
     ----------
     q : ndarray, shape (4,)
-        Unit quaternion [w, x, y, z] (scalar first), modified in place.
+        Unit quaternion.
     dtheta : ndarray, shape (3,)
-        Delta-Theta rotation vector (radians).
+        Rotation vector.
+
+    Returns
+    -------
+    ndarray, shape (4,)
+        Updated unit quaternion after applying the rotation vector correction.
 
     References
     ----------
     .. [1] https://www.vectornav.com/resources/inertial-navigation-primer/math-fundamentals/math-coning (Eq. 2.5.1)
     """
 
+    qw, qx, qy, qz = q
     rx, ry, rz = dtheta
 
     gamma = np.sqrt(rx**2 + ry**2 + rz**2) / 2.0
@@ -216,21 +222,12 @@ def _correct_quat_with_rotvec_new(
     cos_gamma = np.cos(gamma)
     p1, p2, p3 = psi
 
-    qw_new = cos_gamma * q[0] - p1 * q[1] - p2 * q[2] - p3 * q[3]
-    qx_new = p1 * q[0] + cos_gamma * q[1] + p3 * q[2] - p2 * q[3]
-    qy_new = p2 * q[0] - p3 * q[1] + cos_gamma * q[2] + p1 * q[3]
-    qz_new = p3 * q[0] + p2 * q[1] - p1 * q[2] + cos_gamma * q[3]
+    qw_new = cos_gamma * qw - p1 * qx - p2 * qy - p3 * qz
+    qx_new = p1 * qw + cos_gamma * qx + p3 * qy - p2 * qz
+    qy_new = p2 * qw - p3 * qx + cos_gamma * qy + p1 * qz
+    qz_new = p3 * qw + p2 * qx - p1 * qy + cos_gamma * qz
 
-    q[0] = qw_new
-    q[1] = qx_new
-    q[2] = qy_new
-    q[3] = qz_new
-
-    norm = np.sqrt(q[0] ** 2 + q[1] ** 2 + q[2] ** 2 + q[3] ** 2)
-    q[0] /= norm
-    q[1] /= norm
-    q[2] /= norm
-    q[3] /= norm
+    return _normalize(np.array((qw_new, qx_new, qy_new, qz_new)))
 
 
 @njit  # type: ignore[misc]
@@ -765,7 +762,7 @@ class AHRSv2:
         self._v_n[:] += self._R_nb @ dvel + self._dvel_g_corr
 
         # Attitude (dead reckoning)
-        _correct_quat_with_rotvec_new(self._q_nb, dtheta)
+        self._q_nb[:] = _correct_quat_with_rotvec_new(self._q_nb, dtheta)
 
         # Covariance
         self._P[:, :] = _project_cov_ahead(self._P, self._phi, self._Q)
