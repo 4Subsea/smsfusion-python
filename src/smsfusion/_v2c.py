@@ -12,6 +12,7 @@ from ._v2common import (
     _kalman_update_scalar,
     _kalman_update_sequential,
     _project_cov_ahead,
+    _correct_quat_with_rotvec
 )
 from ._vectorops import _normalize, _skew_symmetric
 
@@ -391,16 +392,15 @@ class AHRSv2c:
         self._v_n[:] += self._dvel
 
         # Attitude (dead reckoning)
-        self._q_nb[:] += self._dt * T(self._q_nb) @ self._w_b
-        self._q_nb[:] = _normalize(self._q_nb)
+        _correct_quat_with_rotvec(self._q_nb, self._dtheta)
 
         # Covariance
         self._P[:, :] = _project_cov_ahead(self._P, self._phi, self._Q)
 
     def update(
         self,
-        f: ArrayLike,
-        w: ArrayLike,
+        dvel: ArrayLike,
+        dtheta: ArrayLike,
         degrees: bool = False,
         head: float | None = None,
         head_var: float | None = None,
@@ -413,15 +413,13 @@ class AHRSv2c:
 
         Parameters
         ----------
-        f : array_like, shape (3,)
-            Specific force (i.e., acceleration + gravity) measurement (fx, fy, fz)
-            in m/s^2.
-        w : array_like, shape (3,)
-            Angular rate measurement (wx, wy, wz) in rad/s (default) or deg/s. See
-            ``degrees`` parameter for units.
+        dvel : array_like, shape (3,), optional
+            Initial velocity change vector (sculling integral).
+        dtheta : array_like, shape (3,), optional
+            Initial attitude change vector (coning integral).
         degrees : bool, optional
-            Specifies whether the unit of the rotation rate, ``w``, is deg/s or
-            rad/s. Defaults to rad/s.
+            Specifies whether the unit of the attitude change vector, ``dtheta``,
+            is degrees or radians. Defaults to radians.
         head : float, optional
             Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
             assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
@@ -440,7 +438,7 @@ class AHRSv2c:
         """
 
         if degrees:
-            w = np.radians(w)
+            dtheta = np.radians(dtheta)
 
         # Project (a priori) state and covariance estimates ahead
         self._project_ahead()
@@ -453,10 +451,9 @@ class AHRSv2c:
         self._reset()
 
         # Update model
-        self._f_b[:] = f
-        self._w_b[:] = w - self._bg_b
+        self._dvel[:] = dvel
+        self._dtheta[:] = dtheta
         self._R_nb[:] = _rot_matrix_from_quaternion(self._q_nb)
-        self._a_n[:] = self._R_nb @ self._f_b + self._g_n
-        _update_state_transition(self._phi, self._dt, self._f_b, self._w_b, self._R_nb)
+        _update_state_transition(self._phi, self._dvel, self._dtheta, self._R_nb)
 
         return self

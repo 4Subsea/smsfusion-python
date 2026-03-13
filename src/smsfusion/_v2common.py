@@ -2,7 +2,7 @@ import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 
-from ._vectorops import _normalize
+from ._vectorops import _normalize, _quaternion_product
 
 
 def _nz2vg(nav_frame: str) -> float:
@@ -72,6 +72,60 @@ def _correct_quat_with_gibbs2(q: NDArray[np.float64], da: NDArray[np.float64]) -
     q[2] += 0.5 * (qw * day - qx * daz + qz * dax)
     q[3] += 0.5 * (qw * daz + qx * day - qy * dax)
     q[:] = _normalize(q)
+
+
+@njit  # type: ignore[misc]
+def _quat_from_rotvec(r: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    Compute the unit quaternion from a rotation vector.
+
+    Parameters
+    ----------
+    r : numpy.ndarray, shape (3,)
+        Rotation vector (rx, ry, rz).
+
+    Returns
+    -------
+    numpy.ndarray, shape (4,)
+        Unit quaternion (qw, qx, qy, qz).
+    """
+    # TODO: add reference
+
+    rx, ry, rz = r
+
+    angle2 = rx**2 + ry**2 + rz**2
+
+    if angle2 < 1e-6:  # 2nd order approximation (avoids division by zero)
+        a = 0.25 * angle2
+        c = 1.0 - a / 2.0
+        s = 0.5 * (1.0 - a / 6.0)
+    else:
+        angle = np.sqrt(angle2)
+        half_angle = 0.5 * angle
+        c = np.cos(half_angle)
+        s = np.sin(half_angle) / angle
+
+    q = np.array([c, s * rx, s * ry, s * rz])
+
+    return _normalize(q)
+
+
+@njit  # type: ignore[misc]
+def _correct_quat_with_rotvec(q: NDArray[np.float64], dtheta: NDArray[np.float64]) -> None:
+    """
+    Corrects a unit quaternion, q, with a small attitude change vector, dtheta,
+    parameterized as a rotation vector:
+
+        q = q ⊗ dq(dtheta)
+
+    Parameters
+    ----------
+    q : ndarray, shape (4,)
+        Unit quaternion (modified in place).
+    dtheta : ndarray, shape (3,)
+        Small attitude change parameterized as a rotation vector.
+    """
+    q[:] = _normalize(_quaternion_product(q, _quat_from_rotvec(dtheta)))
 
 
 @njit  # type: ignore[misc]
