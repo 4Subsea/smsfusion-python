@@ -556,20 +556,6 @@ class AHRSv2:
             bg_b = (180.0 / np.pi) * bg_b
         return bg_b
 
-    # def angular_rate(self, degrees=False) -> NDArray[np.float64]:
-    #     """
-    #     Bias corrected angular rate measurement expressed in the body frame.
-
-    #     Parameters
-    #     ----------
-    #     degrees : bool, optional
-    #         Whether to return the angular rate in deg/s or rad/s. Defaults to rad/s.
-    #     """
-    #     w_b = self._w_b.copy()
-    #     if degrees:
-    #         w_b = (180.0 / np.pi) * w_b
-    #     return w_b
-
     @property
     def P(self) -> NDArray[np.float64]:
         """
