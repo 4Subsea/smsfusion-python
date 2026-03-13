@@ -140,45 +140,97 @@ def _correct_quat_with_rotvec(
 #     return np.array([qw_new, *qxyz_new])
 
 
+# @njit  # type: ignore[misc]
+# def _correct_quat_with_rotvec_new(
+#     q: NDArray[np.float64], dtheta: NDArray[np.float64]
+# ) -> None:
+#     """
+#     Corrects a unit quaternion, q, with a small attitude change vector, dtheta,
+#     parameterized as a rotation vector.:
+
+#         q = q ⊗ dq(dtheta)
+
+#     Parameters
+#     ----------
+#     q : ndarray, shape (4,)
+#         Unit quaternion (modified in place).
+#     dtheta : ndarray, shape (3,)
+#         Small attitude change parameterized as a rotation vector.
+#     """
+
+#     rx, ry, rz = dtheta
+
+#     norm = np.sqrt(rx**2 + ry**2 + rz**2)
+#     half_angle = norm / 2.0
+
+#     if half_angle >= 1e-5:
+#         psi = dtheta * np.sin(half_angle) / norm
+#     else:
+#         psi = 0.5 * dtheta
+
+#     cos_half_angle = np.cos(half_angle)
+
+#     qw_new = cos_half_angle * q[0] - psi @ q[1:]
+
+#     qxyz_new = (
+#         psi * q[0] + cos_half_angle * np.eye(3) @ q[1:] - _skew_symmetric(psi) @ q[1:]
+#     )
+
+#     q[0] = qw_new
+#     q[1] = qxyz_new[0]
+#     q[2] = qxyz_new[1]
+#     q[3] = qxyz_new[2]
+
+
 @njit  # type: ignore[misc]
 def _correct_quat_with_rotvec_new(
     q: NDArray[np.float64], dtheta: NDArray[np.float64]
 ) -> None:
     """
     Corrects a unit quaternion, q, with a small attitude change vector, dtheta,
-    parameterized as a rotation vector.:
+    parameterized as a rotation vector
 
-        q = q ⊗ dq(dtheta)
+        q_{k+1} = M(dtheta) @ q_k
 
     Parameters
     ----------
     q : ndarray, shape (4,)
-        Unit quaternion (modified in place).
+        Unit quaternion [w, x, y, z] (scalar first), modified in place.
     dtheta : ndarray, shape (3,)
-        Small attitude change parameterized as a rotation vector.
+        Delta-Theta rotation vector (radians).
+
+    References
+    ----------
+    .. [1] https://www.vectornav.com/resources/inertial-navigation-primer/math-fundamentals/math-coning (Eq. 2.5.1)
     """
 
     rx, ry, rz = dtheta
 
-    norm = np.sqrt(rx**2 + ry**2 + rz**2)
-    half_angle = norm / 2.0
+    gamma = np.sqrt(rx**2 + ry**2 + rz**2) / 2.0
 
-    if half_angle >= 1e-5:
-        psi = dtheta * np.sin(half_angle) / norm
+    if gamma >= 1e-5:
+        psi = np.sin(gamma) / (2.0 * gamma) * dtheta
     else:
         psi = 0.5 * dtheta
 
-    cos_half_angle = np.cos(half_angle)
+    cos_gamma = np.cos(gamma)
+    p1, p2, p3 = psi
 
-    qw_new = cos_half_angle * q[0] - psi @ q[1:]
-
-    qxyz_new = psi * q[0] + cos_half_angle * np.eye(3) @ q[1:] - _skew_symmetric(psi) @ q[1:]
+    qw_new = cos_gamma * q[0] - p1 * q[1] - p2 * q[2] - p3 * q[3]
+    qx_new = p1 * q[0] + cos_gamma * q[1] + p3 * q[2] - p2 * q[3]
+    qy_new = p2 * q[0] - p3 * q[1] + cos_gamma * q[2] + p1 * q[3]
+    qz_new = p3 * q[0] + p2 * q[1] - p1 * q[2] + cos_gamma * q[3]
 
     q[0] = qw_new
-    q[1] = qxyz_new[0]
-    q[2] = qxyz_new[1]
-    q[3] = qxyz_new[2]
+    q[1] = qx_new
+    q[2] = qy_new
+    q[3] = qz_new
 
+    norm = np.sqrt(q[0] ** 2 + q[1] ** 2 + q[2] ** 2 + q[3] ** 2)
+    q[0] /= norm
+    q[1] /= norm
+    q[2] /= norm
+    q[3] /= norm
 
 
 @njit  # type: ignore[misc]
