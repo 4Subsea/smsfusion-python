@@ -169,7 +169,6 @@ class AHRSv2d:
         fs: float,
         q_nb: ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg_b: ArrayLike = (0.0, 0.0, 0.0),
-        dtheta: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(6),
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
@@ -189,12 +188,11 @@ class AHRSv2d:
         # State and covariance estimates
         self._q_nb = np.asarray_chkfinite(q_nb).reshape(4).copy()
         self._bg_b = np.asarray_chkfinite(bg_b).reshape(3).copy()
-        self._dtheta = np.asarray_chkfinite(dtheta).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
         self._dx = np.zeros(6)
 
         # Discrete state-space model
-        self._phi = _state_transition(self._dt, self._dtheta, self._gbc)
+        self._phi = _state_transition(self._dt, np.zeros(3), self._gbc)
         self._Q = _process_noise_cov(self._dt, self._arw, self._gbs, self._gbc)
         self._dhdx = _measurement_matrix(self._q_nb, _vg_b(self._q_nb, self._nz2vg))
 
@@ -326,13 +324,13 @@ class AHRSv2d:
         dhdx = self._dhdx_yaw(self._q_nb)
         _kalman_update_scalar(self._dx, self._P, dz, head_var, dhdx, self._I)
 
-    def _project_ahead(self) -> None:
+    def _project_ahead(self, dtheta) -> None:
         """
         Project state and covariance estimates ahead.
         """
 
         # Attitude (dead reckoning)
-        _correct_quat_with_rotvec(self._q_nb, self._dtheta)
+        _correct_quat_with_rotvec(self._q_nb, dtheta)
 
         # Covariance
         self._P[:, :] = _project_cov_ahead(self._P, self._phi, self._Q)
@@ -382,11 +380,16 @@ class AHRSv2d:
             A reference to the instance itself after the update.
         """
 
+        dvel = np.asarray(dvel)
+        dtheta = np.asarray(dtheta)
+
         if degrees:
             dtheta = np.radians(dtheta)
 
+        dtheta -= self._dt * self._bg_b
+
         # Project (a priori) state and covariance estimates ahead
-        self._project_ahead()
+        self._project_ahead(dtheta)
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
         self._aiding_update_gref(-_normalize(dvel) if g_ref else None, g_var)
@@ -396,7 +399,6 @@ class AHRSv2d:
         self._reset()
 
         # Update model
-        self._dtheta[:] = dtheta - self._dt * self._bg_b
-        _update_state_transition(self._phi, self._dtheta)
+        _update_state_transition(self._phi, dtheta)
 
         return self
