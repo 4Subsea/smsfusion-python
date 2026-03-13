@@ -486,6 +486,6 @@ class AHRSv2b:
         self._w_b[:] = w - self._bg_b
         self._R_nb[:] = _rot_matrix_from_quaternion(self._q_nb)
         self._a_n[:] = self._R_nb @ self._f_b + self._g_n
-        _update_state_transition(self._phi, self._f_b, self._w_b, self._R_nb)
+        _update_state_transition(self._phi, self._dt, self._f_b, self._w_b, self._R_nb)
 
         return self
