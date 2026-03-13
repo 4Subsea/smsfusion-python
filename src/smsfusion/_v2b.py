@@ -251,7 +251,9 @@ class AHRSv2b:
         self._dx = np.zeros(6)
 
         # Discrete state-space model
-        self._phi = _state_transition(self._dt, self._f_b, self._w_b, self._gbc)
+        self._phi = _state_transition(
+            self._dt, self._f_b, self._w_b, self._R_nb, self._gbc
+        )
         self._Q = _process_noise_cov(
             self._dt, self._vrw, self._arw, self._gbs, self._gbc
         )

@@ -4,10 +4,12 @@ from ._ins import AHRS, VRU, AidedINS, FixedNED, StrapdownINS, gravity
 from ._smoothing import FixedIntervalSmoother
 from ._transforms import quaternion_from_euler
 from ._v2 import AHRSv2a
+from ._v2b import AHRSv2b
 
 __all__ = [
     "AHRS",
     "AHRSv2a",
+    "AHRSv2b",
     "AidedINS",
     "benchmark",
     "constants",
