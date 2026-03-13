@@ -387,7 +387,7 @@ class AHRSv2c:
         """
 
         # Velocity (dead reckoning)
-        self._v_n[:] += self._dvel
+        self._v_n[:] += self._R_nb @ self._dvel + self._dt * self._g_n
 
         # Attitude (dead reckoning)
         _correct_quat_with_rotvec(self._q_nb, self._dtheta)
