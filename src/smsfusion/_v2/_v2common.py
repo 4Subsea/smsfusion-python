@@ -2,7 +2,7 @@ import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 
-from ._vectorops import _normalize, _quaternion_product
+from .._vectorops import _normalize, _quaternion_product
 
 
 def _nz2vg(nav_frame: str) -> float:
