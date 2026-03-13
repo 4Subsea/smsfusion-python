@@ -171,10 +171,10 @@ class AHRSv2c:
         to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
     bg_b : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
-    dvel : array_like, shape (3,), optional
-        Initial velocity change vector (sculling integral).
-    dtheta : array_like, shape (3,), optional
-        Initial attitude change vector (coning integral).
+    dvel_prev : array_like, shape (3,), optional
+        Previous velocity change vector measurement (sculling integral).
+    dtheta_prev : array_like, shape (3,), optional
+        Previous attitude change vector measurement (coning integral).
     P : array_like, shape (6, 6), optional
         Initial (a priori) estimate of the error covariance matrix, **P**. If not
         given, a small diagonal matrix will be used.
@@ -206,8 +206,8 @@ class AHRSv2c:
         v_n: ArrayLike = (0.0, 0.0, 0.0),
         q_nb: ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg_b: ArrayLike = (0.0, 0.0, 0.0),
-        dvel: ArrayLike = (0.0, 0.0, 0.0),
-        dtheta: ArrayLike = (0.0, 0.0, 0.0),
+        dvel_prev: ArrayLike = (0.0, 0.0, 0.0),
+        dtheta_prev: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(9),
         acc_noise_density: float = 0.0007,
         gyro_noise_density: float = 0.0001,
@@ -239,15 +239,15 @@ class AHRSv2c:
         self._q_nb = np.asarray_chkfinite(q_nb).reshape(4).copy()
         self._R_nb = _rot_matrix_from_quaternion(self._q_nb)
         self._bg_b = np.asarray_chkfinite(bg_b).reshape(3).copy()
-        self._dvel = np.asarray_chkfinite(dvel).reshape(3).copy()
-        self._dtheta = np.asarray_chkfinite(dtheta).reshape(3).copy()
+        self._dvel_prev = np.asarray_chkfinite(dvel_prev).reshape(3).copy()
+        self._dtheta_prev = np.asarray_chkfinite(dtheta_prev).reshape(3).copy()
         self._v_n = np.asarray_chkfinite(v_n).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
         self._dx = np.zeros(9)
 
         # Discrete state-space model
         self._phi = _state_transition(
-            self._dt, self._dvel, self._dtheta, self._R_nb, self._gbc
+            self._dt, self._dvel_prev, self._dtheta_prev, self._R_nb, self._gbc
         )
         self._Q = _process_noise_cov(
             self._dt, self._vrw, self._arw, self._gbs, self._gbc
@@ -381,16 +381,16 @@ class AHRSv2c:
         dhdx = self._dhdx_yaw(self._q_nb)
         _kalman_update_scalar(self._dx, self._P, dz, head_var, dhdx, self._I)
 
-    def _project_ahead(self) -> None:
+    def _project_ahead(self, dvel, dtheta) -> None:
         """
         Project state and covariance estimates ahead.
         """
 
         # Velocity (dead reckoning)
-        self._v_n[:] += self._R_nb @ self._dvel + self._dt * self._g_n
+        self._v_n[:] += self._R_nb @ dvel + self._dt * self._g_n
 
         # Attitude (dead reckoning)
-        _correct_quat_with_rotvec(self._q_nb, self._dtheta)
+        _correct_quat_with_rotvec(self._q_nb, dtheta)
 
         # Covariance
         self._P[:, :] = _project_cov_ahead(self._P, self._phi, self._Q)
@@ -435,11 +435,16 @@ class AHRSv2c:
             A reference to the instance itself after the update.
         """
 
+        dvel = np.asarray(dvel)
+        dtheta = np.asarray(dtheta)
+
         if degrees:
             dtheta = np.radians(dtheta)
 
+        dtheta -= self._dt * self._bg_b
+
         # Project (a priori) state and covariance estimates ahead
-        self._project_ahead()
+        self._project_ahead(dvel, dtheta)
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
         self._aiding_update_vel(vel, vel_var)
@@ -449,9 +454,7 @@ class AHRSv2c:
         self._reset()
 
         # Update model
-        self._dvel[:] = dvel
-        self._dtheta[:] = dtheta - self._dt * self._bg_b
         self._R_nb[:] = _rot_matrix_from_quaternion(self._q_nb)
-        _update_state_transition(self._phi, self._dvel, self._dtheta, self._R_nb)
+        _update_state_transition(self._phi, dvel, dtheta, self._R_nb)
 
         return self
