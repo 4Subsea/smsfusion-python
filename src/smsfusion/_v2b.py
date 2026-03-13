@@ -212,7 +212,7 @@ class AHRSv2b:
         q_nb: ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg_b: ArrayLike = (0.0, 0.0, 0.0),
         w_b: ArrayLike = (0.0, 0.0, 0.0),
-        P: ArrayLike = 1e-6 * np.eye(6),
+        P: ArrayLike = 1e-6 * np.eye(9),
         acc_noise_density: float = 0.0007,
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
@@ -247,8 +247,8 @@ class AHRSv2b:
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
         self._w_b = np.asarray_chkfinite(w_b).reshape(3).copy()
         self._v_n = np.asarray_chkfinite(v_n).reshape(3).copy()
-        self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
-        self._dx = np.zeros(6)
+        self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
+        self._dx = np.zeros(9)
 
         # Discrete state-space model
         self._phi = _state_transition(
