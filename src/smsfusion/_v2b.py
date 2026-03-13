@@ -323,13 +323,6 @@ class AHRSv2b:
         """
         return self._P.copy()
 
-    # def _dhdx_gref(self, vg_b: NDArray[np.float64]) -> NDArray[np.float64]:
-    #     """
-    #     Gravity reference vector part of the measurement matrix, shape (3, 6).
-    #     """
-    #     self._dhdx[0:3, 0:3] = _skew_symmetric(vg_b)
-    #     return self._dhdx[0:3]
-
     def _dhdx_vel(self) -> NDArray[np.float64]:
         """
         Velocity part of the measurement matrix, shape (3, 6).
@@ -355,24 +348,6 @@ class AHRSv2b:
         self._v_n[:] += self._dx[VEL_IDX]
         self._bg_b[:] += self._dx[BG_IDX]
         self._dx[:] = 0.0
-
-    # def _aiding_update_gref(
-    #     self, vg_meas: ArrayLike | None, vg_var: ArrayLike | None
-    # ) -> None:
-    #     """
-    #     Update with gravity reference vector aiding measurement.
-    #     """
-
-    #     if vg_meas is None:
-    #         return None
-
-    #     if vg_var is None:
-    #         raise ValueError("'vg_var' not provided.")
-
-    #     vg_b = _vg_b(self._q_nb, self._nz2vg)
-    #     dz = vg_meas - vg_b
-    #     dhdx = self._dhdx_gref(vg_b)
-    #     _kalman_update_sequential(self._dx, self._P, dz, vg_var, dhdx, self._I)
 
     def _aiding_update_vel(
         self, vel_meas: ArrayLike | None, vel_var: ArrayLike | None
