@@ -388,7 +388,7 @@ class AHRSv2b:
 
         dz = vel_meas - self._v_n
         dhdx = self._dhdx_vel()
-        _kalman_update_sequential(self._dx, self._P, dz, vg_var, dhdx, self._I)
+        _kalman_update_sequential(self._dx, self._P, dz, vel_var, dhdx, self._I)
 
     def _aiding_update_head(
         self, head_meas: float | None, head_var: float | None, head_degrees: bool
