@@ -7,18 +7,25 @@ from numpy.typing import ArrayLike, NDArray
 from ._ins import _dhda_head, _h_head, _signed_smallest_angle
 from ._transforms import _angular_matrix_from_quaternion as T
 from ._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
+from ._v2 import (
+    _correct_quat_with_gibbs2,
+    _kalman_update_scalar,
+    _kalman_update_sequential,
+    _project_cov_ahead,
+)
 from ._vectorops import _normalize, _skew_symmetric
-
-from ._v2 import _kalman_update_scalar, _kalman_update_sequential, _project_cov_ahead, _correct_quat_with_gibbs2
 
 ATT_IDX = slice(0, 3)
 BG_IDX = slice(3, 6)
 VEL_IDX = slice(6, 9)
 
 
-
 def _state_transition(
-    dt: float, f_b: NDArray[np.float64], w_b: NDArray[np.float64], R_nb: NDArray[np.float64], gbc: float
+    dt: float,
+    f_b: NDArray[np.float64],
+    w_b: NDArray[np.float64],
+    R_nb: NDArray[np.float64],
+    gbc: float,
 ) -> NDArray[np.float64]:
     """
     State transition matrix.
@@ -42,7 +49,9 @@ def _state_transition(
         State transition matrix.
     """
     phi = np.eye(9)
-    phi[VEL_IDX, ATT_IDX] -= dt * R_nb @ _skew_symmetric(f_b)  # NB! update each time step
+    phi[VEL_IDX, ATT_IDX] -= (
+        dt * R_nb @ _skew_symmetric(f_b)
+    )  # NB! update each time step
     phi[ATT_IDX, ATT_IDX] -= dt * _skew_symmetric(w_b)  # NB! update each time step
     phi[ATT_IDX, BG_IDX] -= dt * np.eye(3)
     phi[BG_IDX, BG_IDX] -= dt * np.eye(3) / gbc
@@ -243,7 +252,9 @@ class AHRSv2b:
 
         # Discrete state-space model
         self._phi = _state_transition(self._dt, self._f_b, self._w_b, self._gbc)
-        self._Q = _process_noise_cov(self._dt, self._vrw, self._arw, self._gbs, self._gbc)
+        self._Q = _process_noise_cov(
+            self._dt, self._vrw, self._arw, self._gbs, self._gbc
+        )
         self._dhdx = _measurement_matrix(self._q_nb)
 
     def quaternion(self) -> NDArray[np.float64]:
