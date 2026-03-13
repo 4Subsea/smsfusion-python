@@ -104,6 +104,83 @@ def _correct_quat_with_rotvec(
     q[:] = _normalize(_quaternion_product(q, _quat_from_rotvec(dtheta)))
 
 
+# @njit  # type: ignore[misc]
+# def _correct_quat_with_rotvec_new(
+#     q: NDArray[np.float64], dtheta: NDArray[np.float64]
+# ) -> None:
+#     """
+#     Corrects a unit quaternion, q, with a small attitude change vector, dtheta,
+#     parameterized as a rotation vector.:
+
+#         q = q ⊗ dq(dtheta)
+
+#     Parameters
+#     ----------
+#     q : ndarray, shape (4,)
+#         Unit quaternion (modified in place).
+#     dtheta : ndarray, shape (3,)
+#         Small attitude change parameterized as a rotation vector.
+#     """
+
+#     rx, ry, rz = dtheta
+
+#     half_angle = np.sqrt(rx**2 + ry**2 + rz**2) / 2.0
+
+#     if half_angle >= 1e-5:
+#         psi = dtheta * np.sin(half_angle) / (2.0 * half_angle)
+#     else:
+#         psi = 0.5 * dtheta
+
+#     cos_half_angle = np.cos(half_angle)
+
+#     qw_new = cos_half_angle * q[0] - psi @ q[1:]
+
+#     qxyz_new = psi * q[0] + cos_half_angle * np.eye(3) @ q[1:] - _skew_symmetric(psi) @ q[1:]
+
+#     return np.array([qw_new, *qxyz_new])
+
+
+@njit  # type: ignore[misc]
+def _correct_quat_with_rotvec_new(
+    q: NDArray[np.float64], dtheta: NDArray[np.float64]
+) -> None:
+    """
+    Corrects a unit quaternion, q, with a small attitude change vector, dtheta,
+    parameterized as a rotation vector.:
+
+        q = q ⊗ dq(dtheta)
+
+    Parameters
+    ----------
+    q : ndarray, shape (4,)
+        Unit quaternion (modified in place).
+    dtheta : ndarray, shape (3,)
+        Small attitude change parameterized as a rotation vector.
+    """
+
+    rx, ry, rz = dtheta
+
+    norm = np.sqrt(rx**2 + ry**2 + rz**2)
+    half_angle = norm / 2.0
+
+    if half_angle >= 1e-5:
+        psi = dtheta * np.sin(half_angle) / norm
+    else:
+        psi = 0.5 * dtheta
+
+    cos_half_angle = np.cos(half_angle)
+
+    qw_new = cos_half_angle * q[0] - psi @ q[1:]
+
+    qxyz_new = psi * q[0] + cos_half_angle * np.eye(3) @ q[1:] - _skew_symmetric(psi) @ q[1:]
+
+    q[0] = qw_new
+    q[1] = qxyz_new[0]
+    q[2] = qxyz_new[1]
+    q[3] = qxyz_new[2]
+
+
+
 @njit  # type: ignore[misc]
 def _kalman_gain(
     P: NDArray[np.float64], h: NDArray[np.float64], r: float
@@ -636,7 +713,7 @@ class AHRSv2:
         self._v_n[:] += self._R_nb @ dvel + self._dvel_g_corr
 
         # Attitude (dead reckoning)
-        _correct_quat_with_rotvec(self._q_nb, dtheta)
+        _correct_quat_with_rotvec_new(self._q_nb, dtheta)
 
         # Covariance
         self._P[:, :] = _project_cov_ahead(self._P, self._phi, self._Q)
