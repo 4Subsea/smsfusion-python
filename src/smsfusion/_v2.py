@@ -395,6 +395,31 @@ def _measurement_matrix(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     return dhdx
 
 
+def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
+    """
+    Gravity vector expressed in the navigation frame ('NED' or 'ENU').
+
+    Parameters
+    ----------
+    g : float
+        Gravitational acceleration in m/s^2.
+    nav_frame : {'NED', 'ENU'}
+        Navigation frame in which the gravity vector is expressed.
+
+    Returns
+    -------
+    ndarray, shape (3,)
+        Gravity vector expressed in the navigation frame.
+    """
+    if nav_frame.lower() == "ned":
+        g_n = np.array([0.0, 0.0, g])
+    elif nav_frame.lower() == "enu":
+        g_n = np.array([0.0, 0.0, -g])
+    else:
+        raise ValueError(f"Unknown navigation frame: {nav_frame}.")
+    return g_n
+
+
 class AHRSv2:
     """
     Attitude and Heading Reference System (AHRS) using a multiplicative extended
@@ -460,13 +485,8 @@ class AHRSv2:
         self._dt = 1.0 / fs
         self._g = g
         self._nav_frame = nav_frame.lower()
-
-        if self._nav_frame == "ned":
-            self._g_n = np.array([0.0, 0.0, g])
-        elif self._nav_frame == "enu":
-            self._g_n = np.array([0.0, 0.0, -g])
-        else:
-            raise ValueError("Invalid navigation frame. Must be 'NED' or 'ENU'.")
+        self._g_n = _gravity_nav(self._g, self._nav_frame)
+        self._dvel_g_corr = self._dt * self._g_n
 
         # IMU noise parameters
         self._vrw = acc_noise_density  # velocity random walk
@@ -627,7 +647,7 @@ class AHRSv2:
         """
 
         # Velocity (dead reckoning)
-        self._v_n[:] += self._R_nb @ dvel + self._dt * self._g_n
+        self._v_n[:] += self._R_nb @ dvel + self._dvel_g_corr
 
         # Attitude (dead reckoning)
         _correct_quat_with_rotvec(self._q_nb, dtheta)
