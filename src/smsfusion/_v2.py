@@ -341,7 +341,7 @@ def _project_cov_ahead(
     return P
 
 
-class AHRSv2:
+class AHRSv2a:
     """
     Attitude and Heading Reference System (AHRS) using a multiplicative extended
     Kalman filter (MEKF).
