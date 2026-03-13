@@ -652,9 +652,9 @@ class AHRSv2:
         Parameters
         ----------
         dvel : array_like, shape (3,), optional
-            Initial velocity change vector (sculling integral).
+            Velocity change vector (sculling integral).
         dtheta : array_like, shape (3,), optional
-            Initial attitude change vector (coning integral).
+            Attitude change vector (coning integral).
         degrees : bool, optional
             Specifies whether the unit of the attitude change vector, ``dtheta``,
             is degrees or radians. Defaults to radians.
