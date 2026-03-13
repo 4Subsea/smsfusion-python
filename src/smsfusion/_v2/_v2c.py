@@ -450,7 +450,7 @@ class AHRSv2c:
 
         # Update model
         self._dvel[:] = dvel
-        self._dtheta[:] = dtheta
+        self._dtheta[:] = dtheta - self._dt * self._bg_b
         self._R_nb[:] = _rot_matrix_from_quaternion(self._q_nb)
         _update_state_transition(self._phi, self._dvel, self._dtheta, self._R_nb)
 
