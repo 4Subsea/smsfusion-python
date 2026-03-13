@@ -4,26 +4,300 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from .._ins import _dhda_head, _h_head, _signed_smallest_angle
-from .._transforms import _angular_matrix_from_quaternion as T
-from .._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
-from .._vectorops import _normalize, _skew_symmetric
-from ._v2common import (
-    _correct_quat_with_gibbs2,
-    _kalman_update_scalar,
-    _kalman_update_sequential,
-    _project_cov_ahead,
-)
+from ._ins import _dhda_head, _h_head, _signed_smallest_angle
+from ._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
+from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
 VEL_IDX = slice(0, 3)
 ATT_IDX = slice(3, 6)
 BG_IDX = slice(6, 9)
 
 
+def _nz2vg(nav_frame: str) -> float:
+    """
+    Gravity direction along the navigation frame's z-axis.
+    """
+    if nav_frame == "ned":
+        return 1.0
+    elif nav_frame == "enu":
+        return -1.0
+    else:
+        raise ValueError("Invalid navigation frame. Must be 'NED' or 'ENU'.")
+
+
+@njit  # type: ignore[misc]
+def _vg_b(q_nb: NDArray[np.float64], nz2vg: float) -> NDArray[np.float64]:
+    """
+    Gravity reference vector expressed in the body frame, computed from a unit quaternion.
+
+    Parameters
+    ----------
+    q_nb : numpy.ndarray, shape (4,)
+        Unit quaternion.
+    nz2vg : float
+        Gravity direction along the navigation frame's z-axis. Should be +1 for
+        NED and -1 for ENU.
+    """
+    qw, qx, qy, qz = q_nb
+
+    x = 2.0 * (qx * qz - qw * qy)
+    y = 2.0 * (qy * qz + qw * qx)
+    z = 1.0 - 2.0 * (qx**2 + qy**2)
+
+    return nz2vg * np.array([x, y, z])
+
+
+@njit  # type: ignore[misc]
+def _correct_quat_with_gibbs2(q: NDArray[np.float64], da: NDArray[np.float64]) -> None:
+    """
+    Corrects a unit quaternion, q, with a small attitude error, da, parameterized
+    as a scaled (2x) Gibbs vector:
+
+        q = q ⊗ dq(da)
+
+    As described in ref [1]_, this correction can be simplified by doing it in two
+    steps: first a correction, followed by renormalization. The scaling factor becomes
+    obsolete due to the renormalization step.
+
+    Parameters
+    ----------
+    q : ndarray, shape (4,)
+        Unit quaternion [qw, qx, qy, qz] (modified in place).
+    da : ndarray, shape (3,)
+        Small attitude error parameterized as a scaled (2x) Gibbs vector.
+
+    References
+    ----------
+    Markley & Crassidis (2014), Fundamentals of Spacecraft Attitude Determination
+    and Control, Eq. (6.27)-(6.28).
+    """
+
+    qw, qx, qy, qz = q
+    dax, day, daz = da
+
+    q[0] -= 0.5 * (qx * dax + qy * day + qz * daz)
+    q[1] += 0.5 * (qw * dax + qy * daz - qz * day)
+    q[2] += 0.5 * (qw * day - qx * daz + qz * dax)
+    q[3] += 0.5 * (qw * daz + qx * day - qy * dax)
+    q[:] = _normalize(q)
+
+
+@njit  # type: ignore[misc]
+def _quat_from_rotvec(r: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    Compute the unit quaternion from a rotation vector.
+
+    Parameters
+    ----------
+    r : numpy.ndarray, shape (3,)
+        Rotation vector (rx, ry, rz).
+
+    Returns
+    -------
+    numpy.ndarray, shape (4,)
+        Unit quaternion (qw, qx, qy, qz).
+    """
+    # TODO: add reference
+
+    rx, ry, rz = r
+
+    angle2 = rx**2 + ry**2 + rz**2
+
+    if angle2 < 1e-6:  # 2nd order approximation (avoids division by zero)
+        a = 0.25 * angle2
+        c = 1.0 - a / 2.0
+        s = 0.5 * (1.0 - a / 6.0)
+    else:
+        angle = np.sqrt(angle2)
+        half_angle = 0.5 * angle
+        c = np.cos(half_angle)
+        s = np.sin(half_angle) / angle
+
+    q = np.array([c, s * rx, s * ry, s * rz])
+
+    return _normalize(q)
+
+
+@njit  # type: ignore[misc]
+def _correct_quat_with_rotvec(
+    q: NDArray[np.float64], dtheta: NDArray[np.float64]
+) -> None:
+    """
+    Corrects a unit quaternion, q, with a small attitude change vector, dtheta,
+    parameterized as a rotation vector:
+
+        q = q ⊗ dq(dtheta)
+
+    Parameters
+    ----------
+    q : ndarray, shape (4,)
+        Unit quaternion (modified in place).
+    dtheta : ndarray, shape (3,)
+        Small attitude change parameterized as a rotation vector.
+    """
+    q[:] = _normalize(_quaternion_product(q, _quat_from_rotvec(dtheta)))
+
+
+@njit  # type: ignore[misc]
+def _kalman_gain(
+    P: NDArray[np.float64], h: NDArray[np.float64], r: float
+) -> NDArray[np.float64]:
+    """
+    Compute the Kalman gain for a scalar measurement.
+
+    Parameters
+    ----------
+    P : ndarray, shape (n, n)
+        State error covariance matrix.
+    h : ndarray, shape (n,)
+        Measurement matrix (row vector).
+    r : float
+        Scalar measurement noise variance.
+
+    Returns
+    -------
+    ndarray, shape (n,)
+        Kalman gain vector.
+    """
+
+    # Innovation covariance (inverse)
+    Ph = np.dot(P, h)
+    s_inv = 1.0 / (np.dot(h, Ph) + r)
+
+    # Kalman gain
+    k = Ph * s_inv
+
+    return k
+
+
+@njit  # type: ignore[misc]
+def _covariance_update(
+    P: NDArray[np.float64],
+    k: NDArray[np.float64],
+    h: NDArray[np.float64],
+    r: float,
+    I_: NDArray[np.float64],
+) -> None:
+    """
+    Compute the updated state error covariance matrix estimate (Joseph form).
+
+    Parameters
+    ----------
+    P : ndarray, shape (n, n)
+        State error covariance matrix to be updated in place.
+    k : ndarray, shape (n,)
+        Kalman gain vector.
+    h : ndarray, shape (n,)
+        Measurement matrix (row vector).
+    r : float
+        Scalar measurement noise variance.
+    I_ : ndarray, shape (n, n)
+        Identity matrix.
+    """
+    A = I_ - np.outer(k, h)
+    P = A @ P @ A.T + r * np.outer(k, k)
+    return P
+
+
+@njit  # type: ignore[misc]
+def _kalman_update_scalar(
+    x: NDArray[np.float64],
+    P: NDArray[np.float64],
+    z: float,
+    r: float,
+    h: NDArray[np.float64],
+    I_: NDArray[np.float64],
+) -> None:
+    """
+    Scalar Kalman filter measurement update.
+
+    Parameters
+    ----------
+    x : ndarray, shape (n,)
+        State estimate to be updated in place.
+    P : ndarray, shape (n, n)
+        State error covariance matrix to be updated in place.
+    z : float
+        Scalar measurement.
+    r : float
+        Scalar measurement noise variance.
+    h : ndarray, shape (n,)
+        Measurement matrix (row vector).
+    I_ : ndarray, shape (n, n)
+        Identity matrix.
+    """
+
+    # Kalman gain
+    k = _kalman_gain(P, h, r)
+
+    # Updated (a posteriori) state estimate
+    x[:] += k * (z - np.dot(h, x))
+
+    # Updated (a posteriori) covariance estimate (Joseph form)
+    P[:, :] = _covariance_update(P, k, h, r, I_)
+
+
+@njit  # type: ignore[misc]
+def _kalman_update_sequential(
+    x: NDArray[np.float64],
+    P: NDArray[np.float64],
+    z: NDArray[np.float64],
+    var: NDArray[np.float64],
+    H: NDArray[np.float64],
+    I_: NDArray[np.float64],
+) -> None:
+    """
+    Sequential (one-at-a-time) Kalman filter measurement update.
+
+    Parameters
+    ----------
+    x : ndarray, shape (n,)
+        State estimate to be updated in place.
+    P : ndarray, shape (n, n)
+        State error covariance matrix to be updated in place.
+    z : ndarray, shape (m,)
+        Measurement vector.
+    var : ndarray, shape (m,)
+        Measurement noise variances corresponding to each scalar measurement.
+    H : ndarray, shape (m, n)
+        Measurement matrix where each row corresponds to a scalar measurement model.
+    I_ : ndarray, shape (n, n)
+        Identity matrix.
+    """
+    m = z.shape[0]
+    for i in range(m):
+        _kalman_update_scalar(x, P, z[i], var[i], H[i], I_)
+
+
+@njit  # type: ignore[misc]
+def _project_cov_ahead(
+    P: NDArray[np.float64], phi: NDArray[np.float64], Q: NDArray[np.float64]
+) -> None:
+    """
+    Project the error covariance matrix estimate ahead.
+
+    Parameters
+    ----------
+    P : ndarray, shape (n, n)
+        State error covariance matrix to be projected ahead.
+    phi : ndarray, shape (n, n)
+        State transition matrix.
+    Q : ndarray, shape (n, n)
+        Process noise covariance matrix.
+
+    Returns
+    -------
+    ndarray, shape (n, n)
+        Projected error covariance matrix estimate.
+    """
+    P = phi @ P @ phi.T + Q
+    return P
+
+
 def _state_transition(
     dt: float,
-    f_b: NDArray[np.float64],
-    w_b: NDArray[np.float64],
+    dvel: NDArray[np.float64],
+    dtheta: NDArray[np.float64],
     R_nb: NDArray[np.float64],
     gbc: float,
 ) -> NDArray[np.float64]:
@@ -34,10 +308,10 @@ def _state_transition(
     ----------
     dt : float
         Time step in seconds.
-    f_b : ndarray, shape (3,)
-        Specific force measurement in body frame.
-    w_b : ndarray, shape (3,)
-        Angular rate measurement (bias corrected) in body frame.
+    dvel : ndarray, shape (3,)
+        Velocity change vector (sculling integral).
+    dtheta : ndarray, shape (3,)
+        Attitude change vector (coning integral).
     R_nb : ndarray, shape (3, 3)
         Rotation matrix from body to navigation frame.
     gbc : float
@@ -49,10 +323,8 @@ def _state_transition(
         State transition matrix.
     """
     phi = np.eye(9)
-    phi[VEL_IDX, ATT_IDX] -= (
-        dt * R_nb @ _skew_symmetric(f_b)
-    )  # NB! update each time step
-    phi[ATT_IDX, ATT_IDX] -= dt * _skew_symmetric(w_b)  # NB! update each time step
+    phi[VEL_IDX, ATT_IDX] -= R_nb @ _skew_symmetric(dvel)  # NB! update each time step
+    phi[ATT_IDX, ATT_IDX] -= _skew_symmetric(dtheta)  # NB! update each time step
     phi[ATT_IDX, BG_IDX] -= dt * np.eye(3)
     phi[BG_IDX, BG_IDX] -= dt * np.eye(3) / gbc
     return phi
@@ -61,9 +333,8 @@ def _state_transition(
 @njit  # type: ignore[misc]
 def _update_state_transition(
     phi: NDArray[np.float64],
-    dt: float,
-    f_b: NDArray[np.float64],
-    w_b: NDArray[np.float64],
+    dvel: NDArray[np.float64],
+    dtheta: NDArray[np.float64],
     R_nb: NDArray[np.float64],
 ) -> None:
     """
@@ -73,40 +344,38 @@ def _update_state_transition(
     ----------
     phi : ndarray, shape (9, 9)
         State transition matrix to be updated in place.
-    dt : float
-        Time step.
-    f_b : ndarray, shape (3,)
-        Specific force measurement in body frame.
-    w_b : ndarray, shape (3,)
-        Angular rate measurement (bias corrected) in body frame.
+    dvel : ndarray, shape (3,)
+        Velocity change vector (sculling integral).
+    dtheta : ndarray, shape (3,)
+        Attitude change vector (coning integral).
     R_nb : ndarray, shape (3, 3)
         Rotation matrix from body to navigation frame.
     """
-    wx, wy, wz = w_b
-    fx, fy, fz = f_b
+    dtx, dty, dtz = dtheta
+    dvx, dvy, dvz = dvel
 
     r00, r01, r02 = R_nb[0]
     r10, r11, r12 = R_nb[1]
     r20, r21, r22 = R_nb[2]
 
     # phi[3:6, 3:6] = np.eye(3) - dt * S(w_b)
-    phi[3, 4] = dt * wz
-    phi[3, 5] = -dt * wy
-    phi[4, 3] = -dt * wz
-    phi[4, 5] = dt * wx
-    phi[5, 3] = dt * wy
-    phi[5, 4] = -dt * wx
+    phi[3, 4] = dtz
+    phi[3, 5] = -dty
+    phi[4, 3] = -dtz
+    phi[4, 5] = dtx
+    phi[5, 3] = dty
+    phi[5, 4] = -dtx
 
     # phi[0:3, 3:6] = -dt * R_nb @ S(f_b)
-    phi[0, 3] = -dt * (fz * r01 - fy * r02)
-    phi[1, 3] = -dt * (fz * r11 - fy * r12)
-    phi[2, 3] = -dt * (fz * r21 - fy * r22)
-    phi[0, 4] = -dt * (-fz * r00 + fx * r02)
-    phi[1, 4] = -dt * (-fz * r10 + fx * r12)
-    phi[2, 4] = -dt * (-fz * r20 + fx * r22)
-    phi[0, 5] = -dt * (fy * r00 - fx * r01)
-    phi[1, 5] = -dt * (fy * r10 - fx * r11)
-    phi[2, 5] = -dt * (fy * r20 - fx * r21)
+    phi[0, 3] = -(dvz * r01 - dvy * r02)
+    phi[1, 3] = -(dvz * r11 - dvy * r12)
+    phi[2, 3] = -(dvz * r21 - dvy * r22)
+    phi[0, 4] = -(-dvz * r00 + dvx * r02)
+    phi[1, 4] = -(-dvz * r10 + dvx * r12)
+    phi[2, 4] = -(-dvz * r20 + dvx * r22)
+    phi[0, 5] = -(dvy * r00 - dvx * r01)
+    phi[1, 5] = -(dvy * r10 - dvx * r11)
+    phi[2, 5] = -(dvy * r20 - dvx * r21)
 
 
 def _process_noise_cov(
@@ -160,7 +429,7 @@ def _measurement_matrix(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     return dhdx
 
 
-class AHRSv2b:
+class AHRSv2:
     """
     Attitude and Heading Reference System (AHRS) using a multiplicative extended
     Kalman filter (MEKF).
@@ -176,9 +445,10 @@ class AHRSv2b:
         to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
     bg_b : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
-    w_b : array_like, shape (3,), optional
-        Initial angular rate estimate (wx, wy, wz) in rad/s expressed in the body frame.
-        Defaults to zero angular rate (stationary).
+    dvel_prev : array_like, shape (3,), optional
+        Previous velocity change vector measurement (sculling integral).
+    dtheta_prev : array_like, shape (3,), optional
+        Previous attitude change vector measurement (coning integral).
     P : array_like, shape (6, 6), optional
         Initial (a priori) estimate of the error covariance matrix, **P**. If not
         given, a small diagonal matrix will be used.
@@ -208,10 +478,10 @@ class AHRSv2b:
         self,
         fs: float,
         v_n: ArrayLike = (0.0, 0.0, 0.0),
-        a_n: ArrayLike = (0.0, 0.0, 0.0),
         q_nb: ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg_b: ArrayLike = (0.0, 0.0, 0.0),
-        w_b: ArrayLike = (0.0, 0.0, 0.0),
+        dvel_prev: ArrayLike = (0.0, 0.0, 0.0),
+        dtheta_prev: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(9),
         acc_noise_density: float = 0.0007,
         gyro_noise_density: float = 0.0001,
@@ -240,19 +510,18 @@ class AHRSv2b:
 
         # State and covariance estimates
         self._v_n = np.asarray_chkfinite(v_n).reshape(3).copy()
-        self._a_n = np.asarray_chkfinite(a_n).reshape(3).copy()
         self._q_nb = np.asarray_chkfinite(q_nb).reshape(4).copy()
         self._R_nb = _rot_matrix_from_quaternion(self._q_nb)
         self._bg_b = np.asarray_chkfinite(bg_b).reshape(3).copy()
-        self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
-        self._w_b = np.asarray_chkfinite(w_b).reshape(3).copy()
+        self._dvel_prev = np.asarray_chkfinite(dvel_prev).reshape(3).copy()
+        self._dtheta_prev = np.asarray_chkfinite(dtheta_prev).reshape(3).copy()
         self._v_n = np.asarray_chkfinite(v_n).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
         self._dx = np.zeros(9)
 
         # Discrete state-space model
         self._phi = _state_transition(
-            self._dt, self._f_b, self._w_b, self._R_nb, self._gbc
+            self._dt, self._dvel_prev, self._dtheta_prev, self._R_nb, self._gbc
         )
         self._Q = _process_noise_cov(
             self._dt, self._vrw, self._arw, self._gbs, self._gbc
@@ -301,19 +570,19 @@ class AHRSv2b:
             bg_b = (180.0 / np.pi) * bg_b
         return bg_b
 
-    def angular_rate(self, degrees=False) -> NDArray[np.float64]:
-        """
-        Bias corrected angular rate measurement expressed in the body frame.
+    # def angular_rate(self, degrees=False) -> NDArray[np.float64]:
+    #     """
+    #     Bias corrected angular rate measurement expressed in the body frame.
 
-        Parameters
-        ----------
-        degrees : bool, optional
-            Whether to return the angular rate in deg/s or rad/s. Defaults to rad/s.
-        """
-        w_b = self._w_b.copy()
-        if degrees:
-            w_b = (180.0 / np.pi) * w_b
-        return w_b
+    #     Parameters
+    #     ----------
+    #     degrees : bool, optional
+    #         Whether to return the angular rate in deg/s or rad/s. Defaults to rad/s.
+    #     """
+    #     w_b = self._w_b.copy()
+    #     if degrees:
+    #         w_b = (180.0 / np.pi) * w_b
+    #     return w_b
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -386,25 +655,24 @@ class AHRSv2b:
         dhdx = self._dhdx_yaw(self._q_nb)
         _kalman_update_scalar(self._dx, self._P, dz, head_var, dhdx, self._I)
 
-    def _project_ahead(self) -> None:
+    def _project_ahead(self, dvel, dtheta) -> None:
         """
         Project state and covariance estimates ahead.
         """
 
         # Velocity (dead reckoning)
-        self._v_n[:] += self._dt * self._a_n
+        self._v_n[:] += self._R_nb @ dvel + self._dt * self._g_n
 
         # Attitude (dead reckoning)
-        self._q_nb[:] += self._dt * T(self._q_nb) @ self._w_b
-        self._q_nb[:] = _normalize(self._q_nb)
+        _correct_quat_with_rotvec(self._q_nb, dtheta)
 
         # Covariance
         self._P[:, :] = _project_cov_ahead(self._P, self._phi, self._Q)
 
     def update(
         self,
-        f: ArrayLike,
-        w: ArrayLike,
+        dvel: ArrayLike,
+        dtheta: ArrayLike,
         degrees: bool = False,
         head: float | None = None,
         head_var: float | None = None,
@@ -417,15 +685,13 @@ class AHRSv2b:
 
         Parameters
         ----------
-        f : array_like, shape (3,)
-            Specific force (i.e., acceleration + gravity) measurement (fx, fy, fz)
-            in m/s^2.
-        w : array_like, shape (3,)
-            Angular rate measurement (wx, wy, wz) in rad/s (default) or deg/s. See
-            ``degrees`` parameter for units.
+        dvel : array_like, shape (3,), optional
+            Initial velocity change vector (sculling integral).
+        dtheta : array_like, shape (3,), optional
+            Initial attitude change vector (coning integral).
         degrees : bool, optional
-            Specifies whether the unit of the rotation rate, ``w``, is deg/s or
-            rad/s. Defaults to rad/s.
+            Specifies whether the unit of the attitude change vector, ``dtheta``,
+            is degrees or radians. Defaults to radians.
         head : float, optional
             Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
             assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
@@ -443,11 +709,16 @@ class AHRSv2b:
             A reference to the instance itself after the update.
         """
 
+        dvel = np.asarray(dvel)
+        dtheta = np.asarray(dtheta)
+
         if degrees:
-            w = np.radians(w)
+            dtheta = np.radians(dtheta)
+
+        dtheta -= self._dt * self._bg_b
 
         # Project (a priori) state and covariance estimates ahead
-        self._project_ahead()
+        self._project_ahead(dvel, dtheta)
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
         self._aiding_update_vel(vel, vel_var)
@@ -457,10 +728,7 @@ class AHRSv2b:
         self._reset()
 
         # Update model
-        self._f_b[:] = f
-        self._w_b[:] = w - self._bg_b
         self._R_nb[:] = _rot_matrix_from_quaternion(self._q_nb)
-        self._a_n[:] = self._R_nb @ self._f_b + self._g_n
-        _update_state_transition(self._phi, self._dt, self._f_b, self._w_b, self._R_nb)
+        _update_state_transition(self._phi, dvel, dtheta, self._R_nb)
 
         return self
