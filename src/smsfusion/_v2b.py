@@ -15,7 +15,6 @@ from ._v2common import (
 )
 from ._vectorops import _normalize, _skew_symmetric
 
-
 VEL_IDX = slice(0, 3)
 ATT_IDX = slice(3, 6)
 BG_IDX = slice(6, 9)

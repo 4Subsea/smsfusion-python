@@ -9,13 +9,12 @@ from ._transforms import _angular_matrix_from_quaternion as T
 from ._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
 from ._v2common import (
     _correct_quat_with_gibbs2,
+    _correct_quat_with_rotvec,
     _kalman_update_scalar,
     _kalman_update_sequential,
     _project_cov_ahead,
-    _correct_quat_with_rotvec
 )
 from ._vectorops import _normalize, _skew_symmetric
-
 
 VEL_IDX = slice(0, 3)
 ATT_IDX = slice(3, 6)

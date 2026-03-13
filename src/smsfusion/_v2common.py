@@ -111,7 +111,9 @@ def _quat_from_rotvec(r: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _correct_quat_with_rotvec(q: NDArray[np.float64], dtheta: NDArray[np.float64]) -> None:
+def _correct_quat_with_rotvec(
+    q: NDArray[np.float64], dtheta: NDArray[np.float64]
+) -> None:
     """
     Corrects a unit quaternion, q, with a small attitude change vector, dtheta,
     parameterized as a rotation vector:

@@ -7,8 +7,15 @@ from numpy.typing import ArrayLike, NDArray
 from ._ins import _dhda_head, _h_head, _signed_smallest_angle
 from ._transforms import _angular_matrix_from_quaternion as T
 from ._transforms import _euler_from_quaternion
+from ._v2common import (
+    _correct_quat_with_gibbs2,
+    _kalman_update_scalar,
+    _kalman_update_sequential,
+    _nz2vg,
+    _project_cov_ahead,
+    _vg_b,
+)
 from ._vectorops import _normalize, _skew_symmetric
-from ._v2common import _nz2vg, _vg_b, _correct_quat_with_gibbs2, _kalman_update_scalar, _kalman_update_sequential, _project_cov_ahead
 
 
 def _state_transition(
