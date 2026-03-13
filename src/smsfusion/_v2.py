@@ -13,40 +13,6 @@ ATT_IDX = slice(3, 6)
 BG_IDX = slice(6, 9)
 
 
-def _nz2vg(nav_frame: str) -> float:
-    """
-    Gravity direction along the navigation frame's z-axis.
-    """
-    if nav_frame == "ned":
-        return 1.0
-    elif nav_frame == "enu":
-        return -1.0
-    else:
-        raise ValueError("Invalid navigation frame. Must be 'NED' or 'ENU'.")
-
-
-@njit  # type: ignore[misc]
-def _vg_b(q_nb: NDArray[np.float64], nz2vg: float) -> NDArray[np.float64]:
-    """
-    Gravity reference vector expressed in the body frame, computed from a unit quaternion.
-
-    Parameters
-    ----------
-    q_nb : numpy.ndarray, shape (4,)
-        Unit quaternion.
-    nz2vg : float
-        Gravity direction along the navigation frame's z-axis. Should be +1 for
-        NED and -1 for ENU.
-    """
-    qw, qx, qy, qz = q_nb
-
-    x = 2.0 * (qx * qz - qw * qy)
-    y = 2.0 * (qy * qz + qw * qx)
-    z = 1.0 - 2.0 * (qx**2 + qy**2)
-
-    return nz2vg * np.array([x, y, z])
-
-
 @njit  # type: ignore[misc]
 def _correct_quat_with_gibbs2(q: NDArray[np.float64], da: NDArray[np.float64]) -> None:
     """
