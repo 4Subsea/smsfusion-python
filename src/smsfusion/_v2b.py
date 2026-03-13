@@ -15,9 +15,10 @@ from ._v2 import (
 )
 from ._vectorops import _normalize, _skew_symmetric
 
-ATT_IDX = slice(0, 3)
-BG_IDX = slice(3, 6)
-VEL_IDX = slice(6, 9)
+
+VEL_IDX = slice(0, 3)
+ATT_IDX = slice(3, 6)
+BG_IDX = slice(6, 9)
 
 
 def _state_transition(
@@ -339,7 +340,7 @@ class AHRSv2b:
         """
         Heading (yaw angle) part of the measurement matrix, shape (6,).
         """
-        self._dhdx[3:4, 0:3] = _dhda_head(q_nb)
+        self._dhdx[3:4, ATT_IDX] = _dhda_head(q_nb)
         return self._dhdx[3]
 
     def _reset(self) -> None:
