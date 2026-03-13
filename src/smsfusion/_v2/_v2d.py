@@ -397,6 +397,6 @@ class AHRSv2d:
 
         # Update model
         self._dtheta[:] = dtheta - self._dt * self._bg_b
-        _update_state_transition(self._phi, self._dt, self._dtheta)
+        _update_state_transition(self._phi, self._dtheta)
 
         return self
