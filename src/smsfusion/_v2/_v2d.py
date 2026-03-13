@@ -129,7 +129,7 @@ def _measurement_matrix(
     return dhdx
 
 
-class AHRSv2a:
+class AHRSv2d:
     """
     Attitude and Heading Reference System (AHRS) using a multiplicative extended
     Kalman filter (MEKF).
