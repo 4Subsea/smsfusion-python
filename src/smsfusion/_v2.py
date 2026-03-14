@@ -421,12 +421,12 @@ class AHRSv2:
     ----------
     fs : float
         Sampling rate in Hz.
-    v_n : array_like, shape (3,), optional
+    v : array_like, shape (3,), optional
         Initial velocity estimate in m/s.
-    q_nb : Attitude or array_like, shape (4,), optional
+    q : Attitude or array_like, shape (4,), optional
         Initial attitude estimate as a unit quaternion (qw, qx, qy, qz). Defaults
         to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
-    bg_b : array_like, shape (3,), optional
+    bg : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
     dvel : array_like, shape (3,), optional
         Initial velocity change vector measurement (sculling integral).
@@ -460,9 +460,9 @@ class AHRSv2:
     def __init__(
         self,
         fs: float,
-        v_n: ArrayLike = (0.0, 0.0, 0.0),
-        q_nb: ArrayLike = (1.0, 0.0, 0.0, 0.0),
-        bg_b: ArrayLike = (0.0, 0.0, 0.0),
+        v: ArrayLike = (0.0, 0.0, 0.0),
+        q: ArrayLike = (1.0, 0.0, 0.0, 0.0),
+        bg: ArrayLike = (0.0, 0.0, 0.0),
         dvel: ArrayLike = (0.0, 0.0, 0.0),
         dtheta: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(9),
@@ -487,10 +487,10 @@ class AHRSv2:
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
         # State and covariance estimates
-        self._v_n = np.asarray_chkfinite(v_n).reshape(3).copy()
-        self._q_nb = np.asarray_chkfinite(q_nb).reshape(4).copy()
+        self._v_n = np.asarray_chkfinite(v).reshape(3).copy()
+        self._q_nb = np.asarray_chkfinite(q).reshape(4).copy()
         self._R_nb = _rot_matrix_from_quaternion(self._q_nb)
-        self._bg_b = np.asarray_chkfinite(bg_b).reshape(3).copy()
+        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._dvel = np.asarray_chkfinite(dvel).reshape(3).copy()
         self._dtheta = np.asarray_chkfinite(dtheta).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
