@@ -547,6 +547,27 @@ class AHRSv2:
             bg_b = (180.0 / np.pi) * bg_b
         return bg_b
 
+    def dvel(self) -> NDArray[np.float64]:
+        """
+        Previous velocity change vector measurement (sculling integral).
+        """
+        return self._dvel.copy()
+
+    def dtheta(self, degrees=False) -> NDArray[np.float64]:
+        """
+        Previous attitude change vector measurement (coning integral).
+
+        Parameters
+        ----------
+        degrees : bool, optional
+            Whether to return the coning integral in degrees or radians. Defaults
+            to radians.
+        """
+        dtheta = self._dtheta.copy()
+        if degrees:
+            dtheta = (180.0 / np.pi) * dtheta
+        return dtheta
+
     @property
     def P(self) -> NDArray[np.float64]:
         """
