@@ -493,7 +493,6 @@ class AHRSv2:
         self._bg_b = np.asarray_chkfinite(bg_b).reshape(3).copy()
         self._dvel_prev = np.asarray_chkfinite(dvel_prev).reshape(3).copy()
         self._dtheta_prev = np.asarray_chkfinite(dtheta_prev).reshape(3).copy()
-        self._v_n = np.asarray_chkfinite(v_n).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
         self._dx = np.zeros(9)
 
