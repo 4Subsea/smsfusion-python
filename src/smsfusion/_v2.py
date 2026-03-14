@@ -691,6 +691,8 @@ class AHRSv2:
         self._reset()
 
         # Update model
+        self._dvel_prev[:] = dvel
+        self._dtheta_prev[:] = dtheta
         self._R_nb[:] = _rot_matrix_from_quaternion(self._q_nb)
         _update_state_transition(self._phi, dvel, dtheta, self._R_nb)
 
