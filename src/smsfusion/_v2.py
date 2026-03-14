@@ -6,7 +6,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from ._ins import _dhda_head, _h_head, _signed_smallest_angle
 from ._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
-from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
+from ._vectorops import _normalize, _skew_symmetric
 
 VEL_IDX = slice(0, 3)
 ATT_IDX = slice(3, 6)
@@ -14,12 +14,10 @@ BG_IDX = slice(6, 9)
 
 
 @njit  # type: ignore[misc]
-def _correct_quat_with_gibbs2(q: NDArray[np.float64], da: NDArray[np.float64]) -> None:
+def _correct_quaternion_with_gibbs2(q: NDArray[np.float64], da: NDArray[np.float64]) -> None:
     """
     Corrects a unit quaternion, q, with a small attitude error, da, parameterized
-    as a scaled (2x) Gibbs vector:
-
-        q = q ⊗ dq(da)
+    as a scaled (2x) Gibbs vector.
 
     As described in ref [1]_, this correction can be simplified by doing it in two
     steps: first a correction, followed by renormalization. The scaling factor becomes
@@ -49,7 +47,7 @@ def _correct_quat_with_gibbs2(q: NDArray[np.float64], da: NDArray[np.float64]) -
 
 
 @njit  # type: ignore[misc]
-def _update_quaternion(
+def _update_quaternion_with_rotvec(
     q: NDArray[np.float64], dtheta: NDArray[np.float64]
 ) -> NDArray[np.float64]:
     """
@@ -576,7 +574,7 @@ class AHRSv2:
         if not self._dx.any():
             return
 
-        _correct_quat_with_gibbs2(self._q_nb, self._dx[ATT_IDX])
+        _correct_quaternion_with_gibbs2(self._q_nb, self._dx[ATT_IDX])
         self._v_n[:] += self._dx[VEL_IDX]
         self._bg_b[:] += self._dx[BG_IDX]
         self._dx[:] = 0.0
@@ -628,7 +626,7 @@ class AHRSv2:
         self._v_n[:] += self._R_nb @ dvel + self._dvel_g_corr
 
         # Attitude (dead reckoning)
-        self._q_nb[:] = _update_quaternion(self._q_nb, dtheta)
+        self._q_nb[:] = _update_quaternion_with_rotvec(self._q_nb, dtheta)
 
         # Covariance
         self._P[:, :] = _project_cov_ahead(self._P, self._phi, self._Q)
