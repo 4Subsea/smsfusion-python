@@ -8,10 +8,6 @@ from ._ins import _dhda_head, _h_head, _signed_smallest_angle
 from ._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
 from ._vectorops import _normalize, _skew_symmetric
 
-VEL_IDX = slice(0, 3)
-ATT_IDX = slice(3, 6)
-BG_IDX = slice(6, 9)
-
 
 @njit  # type: ignore[misc]
 def _update_quaternion_with_gibbs2(
@@ -275,10 +271,10 @@ def _state_transition(
         State transition matrix.
     """
     phi = np.eye(9)
-    phi[VEL_IDX, ATT_IDX] -= R_nb @ _skew_symmetric(dvel)  # NB! update each time step
-    phi[ATT_IDX, ATT_IDX] -= _skew_symmetric(dtheta)  # NB! update each time step
-    phi[ATT_IDX, BG_IDX] -= dt * np.eye(3)
-    phi[BG_IDX, BG_IDX] -= dt * np.eye(3) / gbc
+    phi[0:3, 3:6] -= R_nb @ _skew_symmetric(dvel)  # NB! update each time step
+    phi[3:6, 3:6] -= _skew_symmetric(dtheta)  # NB! update each time step
+    phi[3:6, 6:9] -= dt * np.eye(3)
+    phi[6:9, 6:9] -= dt * np.eye(3) / gbc
     return phi
 
 
@@ -355,9 +351,9 @@ def _process_noise_cov(
         Process noise covariance matrix.
     """
     Q = np.zeros((9, 9))
-    Q[VEL_IDX, VEL_IDX] = dt * vrw**2 * np.eye(3)
-    Q[ATT_IDX, ATT_IDX] = dt * arw**2 * np.eye(3)
-    Q[BG_IDX, BG_IDX] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
+    Q[0:3, 0:3] = dt * vrw**2 * np.eye(3)
+    Q[3:6, 3:6] = dt * arw**2 * np.eye(3)
+    Q[6:9, 6:9] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
     return Q
 
 
@@ -376,8 +372,8 @@ def _measurement_matrix(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         Linearized measurement matrix.
     """
     dhdx = np.zeros((4, 9))
-    dhdx[0:3, VEL_IDX] = np.eye(3)  # velocity
-    dhdx[3:4, ATT_IDX] = _dhda_head(q_nb)  # heading
+    dhdx[0:3, 0:3] = np.eye(3)  # velocity
+    dhdx[3:4, 3:6] = _dhda_head(q_nb)  # heading
     return dhdx
 
 
@@ -579,7 +575,7 @@ class AHRSv2:
         """
         Heading (yaw angle) part of the measurement matrix, shape (6,).
         """
-        self._dhdx[3:4, ATT_IDX] = _dhda_head(q_nb)
+        self._dhdx[3:4, 3:6] = _dhda_head(q_nb)
         return self._dhdx[3]
 
     def _reset(self) -> None:
@@ -590,9 +586,9 @@ class AHRSv2:
         if not self._dx.any():
             return
 
-        _update_quaternion_with_gibbs2(self._q_nb, self._dx[ATT_IDX])
-        self._v_n[:] += self._dx[VEL_IDX]
-        self._bg_b[:] += self._dx[BG_IDX]
+        _update_quaternion_with_gibbs2(self._q_nb, self._dx[3:6])
+        self._v_n[:] += self._dx[0:3]
+        self._bg_b[:] += self._dx[6:9]
         self._dx[:] = 0.0
 
     def _aiding_update_vel(
