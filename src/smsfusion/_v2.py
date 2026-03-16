@@ -41,10 +41,10 @@ def _correct_quaternion_with_gibbs2(
     qw, qx, qy, qz = q
     dax, day, daz = da
 
-    q[0] -= 0.5 * (qx * dax + qy * day + qz * daz)
-    q[1] += 0.5 * (qw * dax + qy * daz - qz * day)
-    q[2] += 0.5 * (qw * day - qx * daz + qz * dax)
-    q[3] += 0.5 * (qw * daz + qx * day - qy * dax)
+    q[0] = qw - 0.5 * (qx * dax + qy * day + qz * daz)
+    q[1] = qx + 0.5 * (qw * dax + qy * daz - qz * day)
+    q[2] = qy + 0.5 * (qw * day - qx * daz + qz * dax)
+    q[3] = qz + 0.5 * (qw * daz + qx * day - qy * dax)
     q[:] = _normalize(q)
 
 
