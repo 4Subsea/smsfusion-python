@@ -232,7 +232,7 @@ def _project_cov_ahead(
     Parameters
     ----------
     P : ndarray, shape (n, n)
-        State error covariance matrix to be projected ahead.
+        State error covariance matrix to be projected ahead (in place).
     phi : ndarray, shape (n, n)
         State transition matrix.
     Q : ndarray, shape (n, n)
@@ -243,8 +243,7 @@ def _project_cov_ahead(
     ndarray, shape (n, n)
         Projected error covariance matrix estimate.
     """
-    P = phi @ P @ phi.T + Q
-    return P
+    P[:, :] = phi @ P @ phi.T + Q
 
 
 def _state_transition(
@@ -646,7 +645,7 @@ class AHRSv2:
         _update_quaternion_with_rotvec(self._q_nb, dtheta)
 
         # Covariance
-        self._P[:, :] = _project_cov_ahead(self._P, self._phi, self._Q)
+        _project_cov_ahead(self._P, self._phi, self._Q)
 
     def update(
         self,
