@@ -426,19 +426,20 @@ class AHRSv2:
         Initial (a priori) estimate of the error covariance matrix, **P**. If not
         given, a small diagonal matrix will be used.
     acc_noise_density : float, optional
-        Accelerometer noise density (velocity random walk) in m/s/√Hz. Defaults to
-        0.0007 (SMS Motion 2 noise level).
+        Accelerometer noise density (velocity random walk) in (m/s)/√Hz. Defaults to
+        0.0007 (m/s)/√Hz (SMS Motion 2 noise level).
     gyro_noise_density : float, optional
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
-        0.00005 (SMS Motion 2 noise level).
+        0.00005 (rad/s)/√Hz (SMS Motion 2 noise level).
     gyro_bias_stability : float, optional
-        Gyroscope bias stability in rad/s. Defaults to 0.00005 (SMS Motion 2 noise level).
+        Gyroscope bias stability in rad/s. Defaults to 0.00005 rad/s (SMS Motion 2
+        noise level).
     gyro_bias_corr_time : float, optional
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
-    g : float, default 9.80665
-        The gravitational acceleration m/s^2. Default is 'standard gravity' of 9.80665
-        m/s^2.
-    nav_frame : {'NED', 'ENU'}, default 'NED'
+    g : float, optional
+        The gravitational acceleration in m/s^2. Default is 'standard gravity' of
+        9.80665 m/s^2.
+    nav_frame : {'NED', 'ENU'}, optional
         Specifies the assumed inertial-like 'navigation' frame. Should be 'NED' (North-East-Down)
         (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
         will be expressed relative to this frame.
