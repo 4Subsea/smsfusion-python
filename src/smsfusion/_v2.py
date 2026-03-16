@@ -14,11 +14,11 @@ BG_IDX = slice(6, 9)
 
 
 @njit  # type: ignore[misc]
-def _correct_quaternion_with_gibbs2(
+def _update_quaternion_with_gibbs2(
     q: NDArray[np.float64], da: NDArray[np.float64]
 ) -> None:
     """
-    Corrects a unit quaternion, q, with a small attitude error, da, parameterized
+    Update/correct a unit quaternion, q, with a small attitude error, da, parameterized
     as a scaled (2x) Gibbs vector.
 
     As described in ref [1]_, this correction can be simplified by doing it in two
@@ -28,13 +28,13 @@ def _correct_quaternion_with_gibbs2(
     Parameters
     ----------
     q : ndarray, shape (4,)
-        Unit quaternion [qw, qx, qy, qz] (modified in place).
+        Unit quaternion (qw, qx, qy, qz) to be updated (in place).
     da : ndarray, shape (3,)
-        Small attitude error parameterized as a scaled (2x) Gibbs vector.
+        Attitude error correction parameterized as a scaled (2x) Gibbs vector.
 
     References
     ----------
-    Markley & Crassidis (2014), Fundamentals of Spacecraft Attitude Determination
+    .. [1] Markley & Crassidis (2014), Fundamentals of Spacecraft Attitude Determination
     and Control, Eq. (6.27)-(6.28).
     """
 
@@ -53,22 +53,15 @@ def _update_quaternion_with_rotvec(
     q: NDArray[np.float64], dtheta: NDArray[np.float64]
 ) -> NDArray[np.float64]:
     """
-    Corrects a unit quaternion, q, with a small attitude change vector, dtheta,
-    parameterized as a rotation vector
-
-        q_{k+1} = M(dtheta) @ q_k
+    Update a unit quaternion, q, with a small attitude increment, dtheta, parameterized
+    as a rotation vector.
 
     Parameters
     ----------
     q : ndarray, shape (4,)
-        Unit quaternion.
+        Unit quaternion (qw, qx, qy, qz) to be updated (in place).
     dtheta : ndarray, shape (3,)
-        Rotation vector.
-
-    Returns
-    -------
-    ndarray, shape (4,)
-        Updated unit quaternion after applying the rotation vector correction.
+        Attitude increment (rotation vector).
 
     References
     ----------
@@ -78,22 +71,24 @@ def _update_quaternion_with_rotvec(
     qw, qx, qy, qz = q
     rx, ry, rz = dtheta
 
-    gamma = np.sqrt(rx**2 + ry**2 + rz**2) / 2.0
+    gamma = 0.5 * np.sqrt(rx**2 + ry**2 + rz**2)
+    cos_gamma = np.cos(gamma)
 
     if gamma >= 1e-5:
-        psi = np.sin(gamma) / (2.0 * gamma) * dtheta
+        scale = np.sin(gamma) / (2.0 * gamma)
     else:
-        psi = 0.5 * dtheta
+        scale = 0.5
 
-    cos_gamma = np.cos(gamma)
-    p1, p2, p3 = psi
+    # Psi
+    p1 = scale * rx
+    p2 = scale * ry
+    p3 = scale * rz
 
-    qw_new = cos_gamma * qw - p1 * qx - p2 * qy - p3 * qz
-    qx_new = p1 * qw + cos_gamma * qx + p3 * qy - p2 * qz
-    qy_new = p2 * qw - p3 * qx + cos_gamma * qy + p1 * qz
-    qz_new = p3 * qw + p2 * qx - p1 * qy + cos_gamma * qz
-
-    return _normalize(np.array((qw_new, qx_new, qy_new, qz_new)))
+    q[0] = cos_gamma * qw - p1 * qx - p2 * qy - p3 * qz
+    q[1] = p1 * qw + cos_gamma * qx + p3 * qy - p2 * qz
+    q[2] = p2 * qw - p3 * qx + cos_gamma * qy + p1 * qz
+    q[3] = p3 * qw + p2 * qx - p1 * qy + cos_gamma * qz
+    q[:] = _normalize(q)
 
 
 @njit  # type: ignore[misc]
@@ -596,7 +591,7 @@ class AHRSv2:
         if not self._dx.any():
             return
 
-        _correct_quaternion_with_gibbs2(self._q_nb, self._dx[ATT_IDX])
+        _update_quaternion_with_gibbs2(self._q_nb, self._dx[ATT_IDX])
         self._v_n[:] += self._dx[VEL_IDX]
         self._bg_b[:] += self._dx[BG_IDX]
         self._dx[:] = 0.0
@@ -648,7 +643,7 @@ class AHRSv2:
         self._v_n[:] += self._R_nb @ dvel + self._dvel_g_corr
 
         # Attitude (dead reckoning)
-        self._q_nb[:] = _update_quaternion_with_rotvec(self._q_nb, dtheta)
+        _update_quaternion_with_rotvec(self._q_nb, dtheta)
 
         # Covariance
         self._P[:, :] = _project_cov_ahead(self._P, self._phi, self._Q)
