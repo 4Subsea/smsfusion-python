@@ -685,7 +685,11 @@ class AHRSv2:
         """
 
         self._dvel[:] = dvel
-        self._dtheta[:] = np.degrees(dtheta) if degrees else dtheta
+        self._dtheta[:] = dtheta
+
+        if degrees:
+            self._dtheta *= np.pi / 180.0
+
         self._dtheta -= self._dt * self._bg_b
 
         # Project (a priori) state and covariance estimates ahead
