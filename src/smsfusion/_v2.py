@@ -76,14 +76,14 @@ def _update_quaternion_with_rotvec(
         scale = 0.5
 
     # Psi
-    p1 = scale * rx
-    p2 = scale * ry
-    p3 = scale * rz
+    px = scale * rx
+    py = scale * ry
+    pz = scale * rz
 
-    q[0] = cos_gamma * qw - p1 * qx - p2 * qy - p3 * qz
-    q[1] = p1 * qw + cos_gamma * qx + p3 * qy - p2 * qz
-    q[2] = p2 * qw - p3 * qx + cos_gamma * qy + p1 * qz
-    q[3] = p3 * qw + p2 * qx - p1 * qy + cos_gamma * qz
+    q[0] = cos_gamma * qw - px * qx - py * qy - pz * qz
+    q[1] = px * qw + cos_gamma * qx + pz * qy - py * qz
+    q[2] = py * qw - pz * qx + cos_gamma * qy + px * qz
+    q[3] = pz * qw + py * qx - px * qy + cos_gamma * qz
     q[:] = _normalize(q)
 
 
