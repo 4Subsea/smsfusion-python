@@ -125,7 +125,7 @@ def _covariance_update(
     k: NDArray[np.float64],
     h: NDArray[np.float64],
     r: float,
-) -> None:
+) -> NDArray[np.float64]:
     """
     Compute the updated state error covariance matrix estimate (Joseph form).
 
@@ -139,6 +139,11 @@ def _covariance_update(
         Measurement matrix (row vector).
     r : float
         Scalar measurement noise variance.
+
+    Returns
+    -------
+    ndarray, shape (n, n)
+        Updated state error covariance matrix.
     """
     A = np.eye(k.size) - np.outer(k, h)
     P = A @ P @ A.T + r * np.outer(k, k)
