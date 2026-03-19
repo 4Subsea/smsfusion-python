@@ -412,19 +412,19 @@ class AHRSv2:
     fs : float
         Sampling rate in Hz.
     v : array_like, shape (3,), optional
-        Initial velocity estimate in m/s.
+        Initial velocity estimate in m/s. Defaults to zero velocity (stationary).
     q : Attitude or array_like, shape (4,), optional
         Initial attitude estimate as a unit quaternion (qw, qx, qy, qz). Defaults
         to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
     bg : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
     dvel : array_like, shape (3,), optional
-        Initial velocity change vector measurement (sculling integral).
+        Initial velocity change vector measurement (sculling integral). Defaults to zero.
     dtheta : array_like, shape (3,), optional
-        Initial attitude change vector measurement (coning integral).
+        Initial attitude change vector measurement (coning integral). Defaults to zero.
     P : array_like, shape (6, 6), optional
-        Initial (a priori) estimate of the error covariance matrix, **P**. If not
-        given, a small diagonal matrix will be used.
+        Initial (a priori) estimate of the error covariance matrix. Defaults to
+        a small diagonal matrix (1e-6 * np.eye(9)).
     acc_noise_density : float, optional
         Accelerometer noise density (velocity random walk) in (m/s)/√Hz. Defaults to
         0.0007 (m/s)/√Hz (SMS Motion 2 noise level).
