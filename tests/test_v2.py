@@ -13,50 +13,34 @@ from smsfusion.benchmark import (
 class Test_v2:
     @pytest.mark.parametrize(
         "benchmark_gen",
-        [benchmark_full_pva_beat_202311A], #, benchmark_full_pva_chirp_202311A],
+        [benchmark_full_pva_beat_202311A, benchmark_full_pva_chirp_202311A],
     )
     def test_benchmark(self, benchmark_gen):
         fs_imu = 100.0
         fs_aiding = 1.0
         fs_ratio = np.ceil(fs_imu / fs_aiding)
         warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
-        compass_noise_std = 0.5
+        compass_noise_std = np.radians(0.5)
         vel_noise_std = 0.1
 
         # Reference signals (without noise)
         t, _, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
 
         # IMU measurements (with noise)
-        err_acc_true = sf.constants.ERR_ACC_MOTION2
-        err_gyro_true = sf.constants.ERR_GYRO_MOTION2
         bg = np.array([0.01, -0.02, 0.015])
         noise_model = sf.noise.IMUNoise(
-            err_acc=err_acc_true, err_gyro=err_gyro_true, seed=0
+            err_acc=sf.constants.ERR_ACC_MOTION2, err_gyro=sf.constants.ERR_GYRO_MOTION2, seed=0
         )
         imu_noise = noise_model(fs_imu, len(t))
         acc_noise = acc_ref + imu_noise[:, :3]
         gyro_noise = gyro_ref + imu_noise[:, 3:] + bg
 
-        # Compass / heading (aiding) measurements
-        head_meas = euler_ref[:, 2] + sf.noise.white_noise(
-            compass_noise_std / np.sqrt(fs_aiding), fs_aiding, len(t), seed=1
+        # Aiding measurements (with noise)
+        rng = np.random.default_rng(seed=42)
+        head_meas = euler_ref[:, 2] + compass_noise_std * rng.standard_normal(
+            euler_ref.shape[0]
         )
-
-        # Velocity (aiding) measurements
-        vel_noise = np.column_stack(
-            [
-                sf.noise.white_noise(
-                    vel_noise_std / np.sqrt(fs_aiding), fs_aiding, len(t), seed=5
-                ),
-                sf.noise.white_noise(
-                    vel_noise_std / np.sqrt(fs_aiding), fs_aiding, len(t), seed=6
-                ),
-                sf.noise.white_noise(
-                    vel_noise_std / np.sqrt(fs_aiding), fs_aiding, len(t), seed=7
-                ),
-            ]
-        )
-        vel_meas = vel_ref + vel_noise
+        vel_meas = vel_ref + vel_noise_std * rng.standard_normal(vel_ref.shape)
 
         # MEKF
         v0 = vel_ref[0]
@@ -76,6 +60,16 @@ class Test_v2:
         for i, (f_i, w_i, v_i, h_i) in enumerate(
             zip(acc_noise, gyro_noise, vel_meas, head_meas)
         ):
+            # mekf.update(
+            #     f_i / fs_imu,
+            #     w_i / fs_imu,
+            #     degrees=False,
+            #     vel=v_i,
+            #     vel_var=vel_noise_std**2 * np.ones(3),
+            #     head=h_i,
+            #     head_var=compass_noise_std**2,
+            #     head_degrees=False,
+            # )
             if not (i % fs_ratio):  # with aiding
                 mekf.update(
                     f_i / fs_imu,
@@ -85,7 +79,7 @@ class Test_v2:
                     vel_var=vel_noise_std**2 * np.ones(3),
                     head=h_i,
                     head_var=compass_noise_std**2,
-                    head_degrees=True,
+                    head_degrees=False,
                 )
             else:  # without aiding
                 mekf.update(f_i / fs_imu, w_i / fs_imu, degrees=False)
