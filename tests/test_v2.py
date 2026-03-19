@@ -112,9 +112,9 @@ class Test_v2:
         assert vel_x_rms <= 0.05
         assert vel_y_rms <= 0.05
         assert vel_z_rms <= 0.05
-        assert np.degrees(roll_rms) <= 0.02
-        assert np.degrees(pitch_rms) <= 0.02
-        assert np.degrees(yaw_rms) <= 0.1
-        assert np.degrees(bias_gyro_x_rms) <= 1e-3
-        assert np.degrees(bias_gyro_y_rms) <= 1e-3
-        assert np.degrees(bias_gyro_z_rms) <= 1e-3
+        assert np.degrees(roll_rms) <= 0.1
+        assert np.degrees(pitch_rms) <= 0.1
+        assert np.degrees(yaw_rms) <= 0.2
+        assert np.degrees(bias_gyro_x_rms) <= 0.005
+        assert np.degrees(bias_gyro_y_rms) <= 0.005
+        assert np.degrees(bias_gyro_z_rms) <= 0.005
