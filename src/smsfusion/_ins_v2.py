@@ -125,7 +125,6 @@ def _covariance_update(
     k: NDArray[np.float64],
     h: NDArray[np.float64],
     r: float,
-    I_: NDArray[np.float64],
 ) -> None:
     """
     Compute the updated state error covariance matrix estimate (Joseph form).
@@ -140,10 +139,8 @@ def _covariance_update(
         Measurement matrix (row vector).
     r : float
         Scalar measurement noise variance.
-    I_ : ndarray, shape (n, n)
-        Identity matrix.
     """
-    A = I_ - np.outer(k, h)
+    A = np.eye(k.size) - np.outer(k, h)
     P = A @ P @ A.T + r * np.outer(k, k)
     return P
 
@@ -155,7 +152,6 @@ def _kalman_update_scalar(
     z: float,
     r: float,
     h: NDArray[np.float64],
-    I_: NDArray[np.float64],
 ) -> None:
     """
     Scalar Kalman filter measurement update.
@@ -172,8 +168,6 @@ def _kalman_update_scalar(
         Scalar measurement noise variance.
     h : ndarray, shape (n,)
         Measurement matrix (row vector).
-    I_ : ndarray, shape (n, n)
-        Identity matrix.
     """
 
     # Kalman gain
@@ -183,7 +177,7 @@ def _kalman_update_scalar(
     x[:] += k * (z - np.dot(h, x))
 
     # Updated (a posteriori) covariance estimate (Joseph form)
-    P[:, :] = _covariance_update(P, k, h, r, I_)
+    P[:, :] = _covariance_update(P, k, h, r)
 
 
 @njit  # type: ignore[misc]
@@ -193,7 +187,6 @@ def _kalman_update_sequential(
     z: NDArray[np.float64],
     var: NDArray[np.float64],
     H: NDArray[np.float64],
-    I_: NDArray[np.float64],
 ) -> None:
     """
     Sequential (one-at-a-time) Kalman filter measurement update.
@@ -210,12 +203,10 @@ def _kalman_update_sequential(
         Measurement noise variances corresponding to each scalar measurement.
     H : ndarray, shape (m, n)
         Measurement matrix where each row corresponds to a scalar measurement model.
-    I_ : ndarray, shape (n, n)
-        Identity matrix.
     """
     m = z.shape[0]
     for i in range(m):
-        _kalman_update_scalar(x, P, z[i], var[i], H[i], I_)
+        _kalman_update_scalar(x, P, z[i], var[i], H[i])
 
 
 @njit  # type: ignore[misc]
@@ -446,8 +437,6 @@ class AHRSv2:
 
     """
 
-    _I: NDArray[np.float64] = np.eye(9)
-
     def __init__(
         self,
         fs: float,
@@ -613,7 +602,7 @@ class AHRSv2:
 
         dz = vel_meas - self._v_n
         dhdx = self._dhdx_vel()
-        _kalman_update_sequential(self._dx, self._P, dz, vel_var, dhdx, self._I)
+        _kalman_update_sequential(self._dx, self._P, dz, vel_var, dhdx)
 
     def _aiding_update_head(
         self, head_meas: float | None, head_var: float | None, head_degrees: bool
@@ -634,7 +623,7 @@ class AHRSv2:
 
         dz = _signed_smallest_angle(head_meas - _h_head(self._q_nb))
         dhdx = self._dhdx_yaw(self._q_nb)
-        _kalman_update_scalar(self._dx, self._P, dz, head_var, dhdx, self._I)
+        _kalman_update_scalar(self._dx, self._P, dz, head_var, dhdx)
 
     def _project_ahead(self, dvel, dtheta) -> None:
         """
