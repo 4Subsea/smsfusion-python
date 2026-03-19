@@ -501,6 +501,12 @@ class AHRSv2:
         Attitude expressed as a unit quaternion.
         """
         return self._q_nb.copy()
+    
+    def velocity(self) -> NDArray[np.float64]:
+        """
+        Velocity expressed in the navigation frame.
+        """
+        return self._v_n.copy()
 
     def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
