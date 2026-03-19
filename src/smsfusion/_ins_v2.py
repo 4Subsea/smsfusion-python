@@ -224,11 +224,6 @@ def _project_cov_ahead(
         State transition matrix.
     Q : ndarray, shape (n, n)
         Process noise covariance matrix.
-
-    Returns
-    -------
-    ndarray, shape (n, n)
-        Projected error covariance matrix estimate.
     """
     P[:, :] = phi @ P @ phi.T + Q
 
