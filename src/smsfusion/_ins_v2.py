@@ -679,16 +679,16 @@ class AHRSv2:
             A reference to the instance itself after the update.
         """
 
-        self._dvel[:] = dvel
-        self._dtheta[:] = dtheta
+        dvel = np.asarray(dvel)
+        dtheta = np.asarray(dtheta)
 
         if degrees:
-            self._dtheta *= np.pi / 180.0
+            dtheta = np.radians(dtheta)
 
-        self._dtheta -= self._dt * self._bg_b
+        dtheta = dtheta - self._dt * self._bg_b
 
         # Project (a priori) state and covariance estimates ahead
-        self._project_ahead(self._dvel, self._dtheta)
+        self._project_ahead(dvel, dtheta)
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
         self._aiding_update_vel(vel, vel_var)
@@ -698,6 +698,8 @@ class AHRSv2:
         self._reset()
 
         # Update model
+        self._dvel[:] = dvel
+        self._dtheta[:] = dtheta
         self._R_nb[:] = _rot_matrix_from_quaternion(self._q_nb)
         _update_state_transition(self._phi, self._dvel, self._dtheta, self._R_nb)
 
