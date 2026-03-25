@@ -594,9 +594,6 @@ class AHRSv2:
         Update with velocity aiding measurement.
         """
 
-        if vel_meas is None:
-            return None
-
         if vel_var is None:
             raise ValueError("'vg_var' not provided.")
 
@@ -610,9 +607,6 @@ class AHRSv2:
         """
         Update with heading aiding measurement.
         """
-
-        if head_meas is None:
-            return None
 
         if head_var is None:
             raise ValueError("'head_var' not provided.")
@@ -691,8 +685,10 @@ class AHRSv2:
         self._project_ahead(dvel, dtheta)
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
-        self._aiding_update_vel(vel, vel_var)
-        self._aiding_update_head(head, head_var, head_degrees)
+        if vel is not None:
+            self._aiding_update_vel(vel, vel_var)
+        if head is not None:
+            self._aiding_update_head(head, head_var, head_degrees)
 
         # Reset state
         self._reset()
