@@ -62,16 +62,6 @@ class Test_v2:
         for i, (f_i, w_i, v_i, h_i) in enumerate(
             zip(acc_noise, gyro_noise, vel_meas, head_meas)
         ):
-            # mekf.update(
-            #     f_i / fs_imu,
-            #     w_i / fs_imu,
-            #     degrees=False,
-            #     vel=v_i,
-            #     vel_var=vel_noise_std**2 * np.ones(3),
-            #     head=h_i,
-            #     head_var=compass_noise_std**2,
-            #     head_degrees=False,
-            # )
             if not (i % fs_ratio):  # with aiding
                 mekf.update(
                     f_i / fs_imu,
