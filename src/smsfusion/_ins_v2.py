@@ -561,19 +561,6 @@ class AHRSv2:
         """
         return self._P.copy()
 
-    def _dhdx_vel(self) -> NDArray[np.float64]:
-        """
-        Velocity part of the measurement matrix, shape (3, 6).
-        """
-        return self._dhdx[0:3]
-
-    def _dhdx_yaw(self, q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
-        """
-        Heading (yaw angle) part of the measurement matrix, shape (6,).
-        """
-        self._dhdx[3:4, 3:6] = _dhda_head(q_nb)
-        return self._dhdx[3]
-
     def _reset(self) -> None:
         """
         Reset state.
@@ -598,8 +585,7 @@ class AHRSv2:
             raise ValueError("'vg_var' not provided.")
 
         dz = vel_meas - self._v_n
-        dhdx = self._dhdx_vel()
-        _kalman_update_sequential(self._dx, self._P, dz, vel_var, dhdx)
+        _kalman_update_sequential(self._dx, self._P, dz, vel_var, self._dhdx[0:3])
 
     def _aiding_update_head(
         self, head_meas: float | None, head_var: float | None, head_degrees: bool
@@ -615,9 +601,10 @@ class AHRSv2:
             head_meas = (np.pi / 180.0) * head_meas
             head_var = (np.pi / 180.0) ** 2 * head_var
 
+        self._dhdx[3, 3:6] = _dhda_head(self._q_nb)
+
         dz = _signed_smallest_angle(head_meas - _h_head(self._q_nb))
-        dhdx = self._dhdx_yaw(self._q_nb)
-        _kalman_update_scalar(self._dx, self._P, dz, head_var, dhdx)
+        _kalman_update_scalar(self._dx, self._P, dz, head_var, self._dhdx[3])
 
     def _project_ahead(self, dvel, dtheta) -> None:
         """

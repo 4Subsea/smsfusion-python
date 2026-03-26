@@ -29,7 +29,9 @@ class Test_v2:
         # IMU measurements (with noise)
         bg = np.array([0.01, -0.02, 0.015])
         noise_model = sf.noise.IMUNoise(
-            err_acc=sf.constants.ERR_ACC_MOTION2, err_gyro=sf.constants.ERR_GYRO_MOTION2, seed=0
+            err_acc=sf.constants.ERR_ACC_MOTION2,
+            err_gyro=sf.constants.ERR_GYRO_MOTION2,
+            seed=0,
         )
         imu_noise = noise_model(fs_imu, len(t))
         acc_noise = acc_ref + imu_noise[:, :3]
