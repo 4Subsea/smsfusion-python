@@ -582,7 +582,7 @@ class AHRSv2:
         """
 
         if vel_var is None:
-            raise ValueError("'vg_var' not provided.")
+            raise ValueError("'vel_var' not provided.")
 
         dz = vel_meas - self._v_n
         _kalman_update_sequential(self._dx, self._P, dz, vel_var, self._dhdx[0:3])
