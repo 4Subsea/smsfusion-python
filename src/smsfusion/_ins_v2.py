@@ -215,7 +215,7 @@ def _kalman_update_sequential(
 
 
 @njit  # type: ignore[misc]
-def _project_cov_ahead(
+def _project_covariance_ahead(
     P: NDArray[np.float64], phi: NDArray[np.float64], Q: NDArray[np.float64]
 ) -> None:
     """
@@ -234,7 +234,7 @@ def _project_cov_ahead(
 
 
 @njit  # type: ignore[misc]
-def _project_vel_ahead(dvel, v_n, R_nb, dvel_g_corr):
+def _project_velocity_ahead(dvel, v_n, R_nb, dvel_g_corr):
     """
     Project velocity estimate ahead (in place).
 
@@ -253,7 +253,7 @@ def _project_vel_ahead(dvel, v_n, R_nb, dvel_g_corr):
     v_n[:] += R_nb @ dvel + dvel_g_corr
 
 
-def _state_transition(
+def _state_transition_matrix(
     dt: float,
     dvel: NDArray[np.float64],
     dtheta: NDArray[np.float64],
@@ -290,7 +290,7 @@ def _state_transition(
 
 
 @njit  # type: ignore[misc]
-def _update_state_transition(
+def _update_state_transition_matrix(
     phi: NDArray[np.float64],
     dvel: NDArray[np.float64],
     dtheta: NDArray[np.float64],
@@ -337,7 +337,7 @@ def _update_state_transition(
     phi[2, 5] = -(dvy * r20 - dvx * r21)
 
 
-def _process_noise_cov(
+def _process_noise_covariance_matrix(
     dt: float, vrw: float, arw: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
     """
@@ -521,10 +521,10 @@ class AHRSv2:
         self._dx = np.zeros(9)
 
         # Discrete state-space model
-        self._phi = _state_transition(
+        self._phi = _state_transition_matrix(
             self._dt, self._dvel, self._dtheta, self._R_nb, self._gbc
         )
-        self._Q = _process_noise_cov(
+        self._Q = _process_noise_covariance_matrix(
             self._dt, self._vrw, self._arw, self._gbs, self._gbc
         )
         self._dhdx = _measurement_matrix(self._q_nb)
@@ -686,13 +686,13 @@ class AHRSv2:
         dtheta = dtheta - self._dt * self._bg_b
 
         # Project velocity estimate ahead (a priori)
-        _project_vel_ahead(dvel, self._v_n, self._R_nb, self._dvel_g_corr)
+        _project_velocity_ahead(dvel, self._v_n, self._R_nb, self._dvel_g_corr)
 
         # Project attitude estimate ahead (a priori)
         _update_quaternion_with_rotvec(self._q_nb, dtheta)
 
         # Project error covariance matrix estimate ahead (a priori)
-        _project_cov_ahead(self._P, self._phi, self._Q)
+        _project_covariance_ahead(self._P, self._phi, self._Q)
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
         if vel is not None:
@@ -707,6 +707,6 @@ class AHRSv2:
         self._dvel[:] = dvel
         self._dtheta[:] = dtheta
         self._R_nb[:] = _rot_matrix_from_quaternion(self._q_nb)
-        _update_state_transition(self._phi, self._dvel, self._dtheta, self._R_nb)
+        _update_state_transition_matrix(self._phi, self._dvel, self._dtheta, self._R_nb)
 
         return self
