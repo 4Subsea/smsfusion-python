@@ -236,7 +236,7 @@ def _project_cov_ahead(
 @njit  # type: ignore[misc]
 def _project_state_ahead(dvel, dtheta, v_n, q_nb, R_nb, dvel_g_corr):
     """
-    Project the state estimate ahead.
+    Project the state estimate ahead (in place).
 
     Parameters
     ----------
@@ -254,11 +254,6 @@ def _project_state_ahead(dvel, dtheta, v_n, q_nb, R_nb, dvel_g_corr):
         Current rotation matrix from body to navigation frame.
     dvel_g_corr : ndarray, shape (3,)
         Gravity correction term for the velocity change vector.
-
-    Returns
-    -------
-    None
-        The state estimates are updated in place.
     """
     # Velocity state estimate
     v_n[:] += R_nb @ dvel + dvel_g_corr
@@ -425,6 +420,30 @@ def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
     else:
         raise ValueError(f"Unknown navigation frame: {nav_frame}.")
     return g_n
+
+
+@njit  # type: ignore[misc]
+def _reset(v_n, q_nb, bg_b, dx) -> None:
+    """
+    Reset state, moving information from the error-state estimate to the nominal
+    state estimates.
+
+    Parameters
+    ----------
+    v_n : ndarray, shape (3,)
+        Velocity state estimate to be reset in place.
+    q_nb : ndarray, shape (4,)
+        Attitude state estimate parameterized as a unit quaternion to be reset in place.
+    bg_b : ndarray, shape (3,)
+        Gyroscope bias state estimate to be reset in place.
+    dx : ndarray, shape (9,)
+        Error state vector containing the corrections to be applied to the state
+        estimates. Will be reset to zero after applying the corrections.
+    """
+    _update_quaternion_with_gibbs2(q_nb, dx[3:6])
+    v_n[:] += dx[0:3]
+    bg_b[:] += dx[6:9]
+    dx[:] = 0.0
 
 
 class AHRSv2:
@@ -595,19 +614,6 @@ class AHRSv2:
         """
         return self._P.copy()
 
-    def _reset(self) -> None:
-        """
-        Reset state.
-        """
-
-        if not self._dx.any():
-            return
-
-        _update_quaternion_with_gibbs2(self._q_nb, self._dx[3:6])
-        self._v_n[:] += self._dx[0:3]
-        self._bg_b[:] += self._dx[6:9]
-        self._dx[:] = 0.0
-
     def _aiding_update_vel(
         self, vel_meas: ArrayLike | None, vel_var: ArrayLike | None
     ) -> None:
@@ -703,7 +709,7 @@ class AHRSv2:
             self._aiding_update_head(head, head_var, head_degrees)
 
         # Reset state
-        self._reset()
+        _reset(self._v_n, self._q_nb, self._bg_b, self._dx)
 
         # Update model
         self._dvel[:] = dvel
