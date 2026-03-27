@@ -127,12 +127,12 @@ def _covariance_update(
     r: float,
 ) -> NDArray[np.float64]:
     """
-    Compute the updated state error covariance matrix estimate (Joseph form).
+    Compute the updated error covariance matrix estimate (Joseph form).
 
     Parameters
     ----------
     P : ndarray, shape (n, n)
-        State error covariance matrix to be updated in place.
+        Error covariance matrix to be updated in place.
     k : ndarray, shape (n,)
         Kalman gain vector.
     h : ndarray, shape (n,)
@@ -166,7 +166,7 @@ def _kalman_update_scalar(
     x : ndarray, shape (n,)
         State estimate to be updated in place.
     P : ndarray, shape (n, n)
-        State error covariance matrix to be updated in place.
+        Error covariance matrix to be updated in place.
     z : float
         Scalar measurement.
     r : float
@@ -201,7 +201,7 @@ def _kalman_update_sequential(
     x : ndarray, shape (n,)
         State estimate to be updated in place.
     P : ndarray, shape (n, n)
-        State error covariance matrix to be updated in place.
+        Error covariance matrix to be updated in place.
     z : ndarray, shape (m,)
         Measurement vector.
     var : ndarray, shape (m,)
@@ -224,7 +224,7 @@ def _project_covariance_ahead(
     Parameters
     ----------
     P : ndarray, shape (n, n)
-        State error covariance matrix to be projected ahead (in place).
+        Error covariance matrix to be projected ahead (in place).
     phi : ndarray, shape (n, n)
         State transition matrix.
     Q : ndarray, shape (n, n)
