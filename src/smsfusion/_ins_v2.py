@@ -241,14 +241,14 @@ def _project_velocity_ahead(dvel, v_n, R_nb, dvel_g_corr):
     Parameters
     ----------
     dvel : ndarray, shape (3,)
-        Velocity change vector measurement (sculling integral).
+        Velocity increment measurement (sculling integral).
     v_n : ndarray, shape (3,)
-        Current velocity estimate expressed in the navigation frame. Will be projected
-        ahead (in place).
+        Current velocity estimate expressed in the navigation frame (projected ahead
+        in place).
     R_nb : ndarray, shape (3, 3)
         Current rotation matrix from body to navigation frame.
     dvel_g_corr : ndarray, shape (3,)
-        Gravity correction term for the velocity change vector.
+        Gravity correction.
     """
     v_n[:] += R_nb @ dvel + dvel_g_corr
 
@@ -268,9 +268,9 @@ def _state_transition_matrix(
     dt : float
         Time step in seconds.
     dvel : ndarray, shape (3,)
-        Velocity change vector (sculling integral).
+        Velocity increment measurement (sculling integral).
     dtheta : ndarray, shape (3,)
-        Attitude change vector (coning integral).
+        Attitude increment measurement (coning integral).
     R_nb : ndarray, shape (3, 3)
         Rotation matrix from body to navigation frame.
     gbc : float
@@ -304,9 +304,9 @@ def _update_state_transition_matrix(
     phi : ndarray, shape (9, 9)
         State transition matrix to be updated in place.
     dvel : ndarray, shape (3,)
-        Velocity change vector (sculling integral).
+        Velocity increment measurement (sculling integral).
     dtheta : ndarray, shape (3,)
-        Attitude change vector (coning integral).
+        Attitude increment measurement (coning integral).
     R_nb : ndarray, shape (3, 3)
         Rotation matrix from body to navigation frame.
     """
@@ -454,9 +454,9 @@ class AHRSv2:
     bg : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
     dvel : array_like, shape (3,), optional
-        Initial velocity change vector measurement (sculling integral). Defaults to zero.
+        Initial velocity increment (sculling integral). Defaults to zero (stationary).
     dtheta : array_like, shape (3,), optional
-        Initial attitude change vector measurement (coning integral). Defaults to zero.
+        Initial attitude increment (coning integral). Defaults to zero (stationary).
     P : array_like, shape (6, 6), optional
         Initial (a priori) estimate of the error covariance matrix. Defaults to
         a small diagonal matrix (1e-6 * np.eye(9)).
@@ -579,13 +579,13 @@ class AHRSv2:
 
     def dvel(self) -> NDArray[np.float64]:
         """
-        Previous velocity change vector measurement (sculling integral).
+        Previous velocity increment measurement (sculling integral).
         """
         return self._dvel.copy()
 
     def dtheta(self, degrees=False) -> NDArray[np.float64]:
         """
-        Previous attitude change vector measurement (coning integral).
+        Previous bias corrected attitude increment (coning integral).
 
         Parameters
         ----------
@@ -654,12 +654,12 @@ class AHRSv2:
         Parameters
         ----------
         dvel : array_like, shape (3,), optional
-            Velocity change vector (sculling integral) in m/s.
+            Velocity increment (sculling integral) in m/s.
         dtheta : array_like, shape (3,), optional
-            Attitude change vector (coning integral) in radians.
+            Attitude increment (coning integral) in radians.
         degrees : bool, optional
-            Specifies whether the unit of the attitude change vector, ``dtheta``,
-            is degrees or radians. Defaults to radians.
+            Specifies whether the unit of the attitude increment, ``dtheta``, is
+            degrees or radians. Defaults to radians.
         head : float, optional
             Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
             assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
