@@ -703,7 +703,7 @@ class AHRSv2:
         # Reset state
         _reset(self._v_n, self._q_nb, self._bg_b, self._dx)
 
-        # Update model
+        # Update state space model
         self._dvel[:] = dvel
         self._dtheta[:] = dtheta
         self._R_nb[:] = _rot_matrix_from_quaternion(self._q_nb)
