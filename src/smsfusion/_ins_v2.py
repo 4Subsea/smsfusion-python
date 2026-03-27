@@ -440,8 +440,8 @@ def _reset(v_n, q_nb, bg_b, dx) -> None:
         Error state vector containing the corrections to be applied to the state
         estimates. Will be reset to zero after applying the corrections.
     """
-    _update_quaternion_with_gibbs2(q_nb, dx[3:6])
     v_n[:] += dx[0:3]
+    _update_quaternion_with_gibbs2(q_nb, dx[3:6])
     bg_b[:] += dx[6:9]
     dx[:] = 0.0
 
