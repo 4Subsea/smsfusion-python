@@ -234,32 +234,23 @@ def _project_cov_ahead(
 
 
 @njit  # type: ignore[misc]
-def _project_state_ahead(dvel, dtheta, v_n, q_nb, R_nb, dvel_g_corr):
+def _project_vel_ahead(dvel, v_n, R_nb, dvel_g_corr):
     """
-    Project the state estimate ahead (in place).
+    Project velocity estimate ahead (in place).
 
     Parameters
     ----------
     dvel : ndarray, shape (3,)
         Velocity change vector measurement (sculling integral).
-    dtheta : ndarray, shape (3,)
-        Attitude change vector measurement (coning integral).
     v_n : ndarray, shape (3,)
         Current velocity estimate expressed in the navigation frame. Will be projected
-        ahead (in place).
-    q_nb : ndarray, shape (4,)
-        Current attitude estimate parameterized as a unit quaternion. Will be projected
         ahead (in place).
     R_nb : ndarray, shape (3, 3)
         Current rotation matrix from body to navigation frame.
     dvel_g_corr : ndarray, shape (3,)
         Gravity correction term for the velocity change vector.
     """
-    # Velocity state estimate
     v_n[:] += R_nb @ dvel + dvel_g_corr
-
-    # Attitude state estimate
-    _update_quaternion_with_rotvec(q_nb, dtheta)
 
 
 def _state_transition(
@@ -694,10 +685,11 @@ class AHRSv2:
 
         dtheta = dtheta - self._dt * self._bg_b
 
-        # Project state estimates ahead (a priori)
-        _project_state_ahead(
-            dvel, dtheta, self._v_n, self._q_nb, self._R_nb, self._dvel_g_corr
-        )
+        # Project velocity estimate ahead (a priori)
+        _project_vel_ahead(dvel, self._v_n, self._R_nb, self._dvel_g_corr)
+
+        # Project attitude estimate ahead (a priori)
+        _update_quaternion_with_rotvec(self._q_nb, dtheta)
 
         # Project error covariance matrix estimate ahead (a priori)
         _project_cov_ahead(self._P, self._phi, self._Q)
