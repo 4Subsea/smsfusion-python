@@ -660,13 +660,11 @@ class AHRSv2:
         R_nb = _rot_matrix_from_quaternion(self._q_nb)
         _update_state_transition_matrix(self._phi, dvel, dtheta, R_nb)
 
-        # Project velocity estimate ahead (a priori)
+        # Project (a priori) state estimates ahead
         _project_velocity_ahead(dvel, self._v_n, R_nb, self._dvel_g_corr)
-
-        # Project attitude estimate ahead (a priori)
         _update_quaternion_with_rotvec(self._q_nb, dtheta)
 
-        # Project error covariance matrix estimate ahead (a priori)
+        # Project (a priori) error covariance matrix estimate ahead
         _project_covariance_ahead(self._P, self._phi, self._Q)
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
