@@ -453,10 +453,6 @@ class AHRSv2:
         to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
     bg : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
-    dvel : array_like, shape (3,), optional
-        Initial velocity increment (sculling integral). Defaults to zero (stationary).
-    dtheta : array_like, shape (3,), optional
-        Initial attitude increment (coning integral). Defaults to zero (stationary).
     P : array_like, shape (6, 6), optional
         Initial (a priori) estimate of the error covariance matrix. Defaults to
         a small diagonal matrix (1e-6 * np.eye(9)).
@@ -487,8 +483,6 @@ class AHRSv2:
         v: ArrayLike = (0.0, 0.0, 0.0),
         q: ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
-        dvel: ArrayLike = (0.0, 0.0, 0.0),
-        dtheta: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(9),
         acc_noise_density: float = 0.0007,
         gyro_noise_density: float = 0.0001,
@@ -515,14 +509,12 @@ class AHRSv2:
         self._q_nb = np.asarray_chkfinite(q).reshape(4).copy()
         self._R_nb = _rot_matrix_from_quaternion(self._q_nb)
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
-        self._dvel = np.asarray_chkfinite(dvel).reshape(3).copy()
-        self._dtheta = np.asarray_chkfinite(dtheta).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
         self._dx = np.zeros(9)
 
         # Discrete state-space model
         self._phi = _state_transition_matrix(
-            self._dt, self._dvel, self._dtheta, self._R_nb, self._gbc
+            self._dt, np.zeros(3), np.zeros(3), self._R_nb, self._gbc
         )
         self._Q = _process_noise_covariance_matrix(
             self._dt, self._vrw, self._arw, self._gbs, self._gbc
@@ -576,27 +568,6 @@ class AHRSv2:
         if degrees:
             bg_b = (180.0 / np.pi) * bg_b
         return bg_b
-
-    def dvel(self) -> NDArray[np.float64]:
-        """
-        Previous velocity increment measurement (sculling integral).
-        """
-        return self._dvel.copy()
-
-    def dtheta(self, degrees=False) -> NDArray[np.float64]:
-        """
-        Previous bias corrected attitude increment (coning integral).
-
-        Parameters
-        ----------
-        degrees : bool, optional
-            Whether to return the coning integral in degrees or radians. Defaults
-            to radians.
-        """
-        dtheta = self._dtheta.copy()
-        if degrees:
-            dtheta = (180.0 / np.pi) * dtheta
-        return dtheta
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -685,8 +656,12 @@ class AHRSv2:
 
         dtheta = dtheta - self._dt * self._bg_b
 
+        # Update state-space model
+        R_nb = _rot_matrix_from_quaternion(self._q_nb)
+        _update_state_transition_matrix(self._phi, dvel, dtheta, R_nb)
+
         # Project velocity estimate ahead (a priori)
-        _project_velocity_ahead(dvel, self._v_n, self._R_nb, self._dvel_g_corr)
+        _project_velocity_ahead(dvel, self._v_n, R_nb, self._dvel_g_corr)
 
         # Project attitude estimate ahead (a priori)
         _update_quaternion_with_rotvec(self._q_nb, dtheta)
@@ -702,11 +677,5 @@ class AHRSv2:
 
         # Reset state
         _reset(self._v_n, self._q_nb, self._bg_b, self._dx)
-
-        # Update state space model
-        self._dvel[:] = dvel
-        self._dtheta[:] = dtheta
-        self._R_nb[:] = _rot_matrix_from_quaternion(self._q_nb)
-        _update_state_transition_matrix(self._phi, self._dvel, self._dtheta, self._R_nb)
 
         return self
