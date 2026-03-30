@@ -326,15 +326,15 @@ def _update_state_transition_matrix(
     phi[5, 4] = -dtx
 
     # phi[0:3, 3:6] = -dt * R_nb @ S(f_b)
-    phi[0, 3] = -(dvz * r01 - dvy * r02)
-    phi[1, 3] = -(dvz * r11 - dvy * r12)
-    phi[2, 3] = -(dvz * r21 - dvy * r22)
-    phi[0, 4] = -(-dvz * r00 + dvx * r02)
-    phi[1, 4] = -(-dvz * r10 + dvx * r12)
-    phi[2, 4] = -(-dvz * r20 + dvx * r22)
-    phi[0, 5] = -(dvy * r00 - dvx * r01)
-    phi[1, 5] = -(dvy * r10 - dvx * r11)
-    phi[2, 5] = -(dvy * r20 - dvx * r21)
+    phi[0, 3] = -dvz * r01 + dvy * r02
+    phi[1, 3] = -dvz * r11 + dvy * r12
+    phi[2, 3] = -dvz * r21 + dvy * r22
+    phi[0, 4] = dvz * r00 - dvx * r02
+    phi[1, 4] = dvz * r10 - dvx * r12
+    phi[2, 4] = dvz * r20 - dvx * r22
+    phi[0, 5] = -dvy * r00 + dvx * r01
+    phi[1, 5] = -dvy * r10 + dvx * r11
+    phi[2, 5] = -dvy * r20 + dvx * r21
 
 
 def _process_noise_covariance_matrix(
@@ -416,8 +416,7 @@ def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _reset(v_n, q_nb, bg_b, dx) -> None:
     """
-    Reset state, moving information from the error-state estimate to the nominal
-    state estimates.
+    Reset state.
 
     Parameters
     ----------
