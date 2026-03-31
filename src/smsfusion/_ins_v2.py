@@ -506,14 +506,17 @@ class AHRSv2:
         # State and covariance estimates
         self._v_n = np.asarray_chkfinite(v).reshape(3).copy()
         self._q_nb = np.asarray_chkfinite(q).reshape(4).copy()
-        self._R_nb = _rot_matrix_from_quaternion(self._q_nb)
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
         self._dx = np.zeros(9)
 
         # Discrete state-space model
         self._phi = _state_transition_matrix(
-            self._dt, np.zeros(3), np.zeros(3), self._R_nb, self._gbc
+            self._dt,
+            np.zeros(3),
+            np.zeros(3),
+            _rot_matrix_from_quaternion(self._q_nb),
+            self._gbc,
         )
         self._Q = _process_noise_covariance_matrix(
             self._dt, self._vrw, self._arw, self._gbs, self._gbc
