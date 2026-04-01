@@ -9,6 +9,20 @@ from ._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
 from ._vectorops import _normalize, _skew_symmetric
 
 
+P0 = (
+    (1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+    (0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+    (0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+    (0.0, 0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0),
+    (0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0),
+    (0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0),
+    (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0, 0.0),
+    (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0),
+    (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6),
+)
+
+
+
 @njit  # type: ignore[misc]
 def _update_quaternion_with_gibbs2(
     q: NDArray[np.float64], da: NDArray[np.float64]
@@ -482,7 +496,7 @@ class AHRSv2:
         v: ArrayLike = (0.0, 0.0, 0.0),
         q: ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
-        P: ArrayLike = 1e-6 * np.eye(9),
+        P: ArrayLike = P0,
         acc_noise_density: float = 0.0007,
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
