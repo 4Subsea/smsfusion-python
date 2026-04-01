@@ -121,12 +121,13 @@ def _kalman_gain(
         Kalman gain vector.
     """
 
-    # Innovation covariance (inverse)
     Ph = np.dot(P, h)
-    s_inv = 1.0 / (np.dot(h, Ph) + r)
+
+    # Innovation covariance
+    s = np.dot(h, Ph) + r
 
     # Kalman gain
-    k = Ph * s_inv
+    k = Ph / s
 
     return k
 
