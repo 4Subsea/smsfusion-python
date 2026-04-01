@@ -8,7 +8,6 @@ from ._ins import _dhda_head, _h_head, _signed_smallest_angle
 from ._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
 from ._vectorops import _normalize, _skew_symmetric
 
-
 P0 = (
     (1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
     (0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
@@ -20,7 +19,6 @@ P0 = (
     (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0),
     (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6),
 )
-
 
 
 @njit  # type: ignore[misc]
@@ -245,26 +243,6 @@ def _project_covariance_ahead(
         Process noise covariance matrix.
     """
     P[:, :] = phi @ P @ phi.T + Q
-
-
-@njit  # type: ignore[misc]
-def _project_velocity_ahead(dvel, v_n, R_nb, dvel_g_corr):
-    """
-    Project velocity estimate ahead (in place).
-
-    Parameters
-    ----------
-    dvel : ndarray, shape (3,)
-        Velocity increment measurement (sculling integral).
-    v_n : ndarray, shape (3,)
-        Current velocity estimate expressed in the navigation frame (projected ahead
-        in place).
-    R_nb : ndarray, shape (3, 3)
-        Current rotation matrix from body to navigation frame.
-    dvel_g_corr : ndarray, shape (3,)
-        Gravity correction.
-    """
-    v_n[:] += R_nb @ dvel + dvel_g_corr
 
 
 def _state_transition_matrix(
@@ -677,7 +655,7 @@ class AHRSv2:
         _update_state_transition_matrix(self._phi, dvel, dtheta, R_nb)
 
         # Project (a priori) state estimates ahead
-        _project_velocity_ahead(dvel, self._v_n, R_nb, self._dvel_g_corr)
+        self._v_n[:] += R_nb @ dvel + self._dvel_g_corr  # TODO: speed-up with njit?
         _update_quaternion_with_rotvec(self._q_nb, dtheta)
 
         # Project (a priori) error covariance matrix estimate ahead
