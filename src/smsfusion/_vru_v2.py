@@ -466,7 +466,7 @@ class VRUv2:
         # State and covariance estimates
         self._q_nb = np.asarray_chkfinite(q).reshape(4).copy()
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
-        self._P = np.asarray_chkfinite(P).reshape(3, 3).copy()
+        self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
         self._dx = np.zeros(6)
 
         # Discrete state-space model
@@ -479,7 +479,7 @@ class VRUv2:
             self._dt, self._arw, self._gbs, self._gbc
         )
 
-        self._dhdx = np.zeros((3, 3))
+        self._dhdx = np.zeros((3, 6))
 
     def quaternion(self) -> NDArray[np.float64]:
         """
@@ -530,7 +530,6 @@ class VRUv2:
         """
         return self._P.copy()
 
-    @njit  # type: ignore[misc]
     def _aiding_update_gref(
         self,
         dvel: NDArray[np.float64],
