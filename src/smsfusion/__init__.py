@@ -1,23 +1,23 @@
 from . import benchmark, calibrate, constants, noise
 from ._coning_sculling import ConingScullingAlg
-
-# from ._ins import _ahrs  # hidden
 from ._ins import AHRS, VRU, AHRSv2, AidedINS, FixedNED, StrapdownINS, VRUv2, gravity
 from ._smoothing import FixedIntervalSmoother
 from ._transforms import quaternion_from_euler
 
 __all__ = [
     "AHRS",
-    # "AidedINS",
+    "AHRSv2",
+    "AidedINS",
     "benchmark",
     "constants",
     "calibrate",
     "FixedIntervalSmoother",
-    # "FixedNED",
-    # "gravity",
+    "FixedNED",
+    "gravity",
     "noise",
-    # "StrapdownINS",
+    "StrapdownINS",
     "VRU",
+    "VRUv2",
     "quaternion_from_euler",
     "ConingScullingAlg",
 ]
