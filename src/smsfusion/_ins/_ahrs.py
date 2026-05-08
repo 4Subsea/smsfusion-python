@@ -4,9 +4,16 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from ._ins import _dhda_head, _h_head, _signed_smallest_angle
-from ._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
-from ._vectorops import _normalize, _skew_symmetric
+from smsfusion._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
+from smsfusion._vectorops import _skew_symmetric
+
+from ._aiding import _aiding_update_head, _aiding_update_vel
+from ._common import (
+    _dhda_head,
+    _project_covariance_ahead,
+    _update_quaternion_with_gibbs2,
+    _update_quaternion_with_rotvec,
+)
 
 P0 = (
     (1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
@@ -21,232 +28,7 @@ P0 = (
 )
 
 
-@njit  # type: ignore[misc]
-def _update_quaternion_with_gibbs2(
-    q: NDArray[np.float64], da: NDArray[np.float64]
-) -> None:
-    """
-    Update/correct a unit quaternion, q, with a small attitude error, da, parameterized
-    as a scaled (2x) Gibbs vector.
-
-    As described in ref [1]_, this correction can be simplified by doing it in two
-    steps: first a correction, followed by renormalization. The scaling factor becomes
-    obsolete due to the renormalization step.
-
-    Parameters
-    ----------
-    q : ndarray, shape (4,)
-        Unit quaternion (qw, qx, qy, qz) to be updated (in place).
-    da : ndarray, shape (3,)
-        Attitude error correction parameterized as a scaled (2x) Gibbs vector.
-
-    References
-    ----------
-    .. [1] Markley & Crassidis (2014), Fundamentals of Spacecraft Attitude Determination
-    and Control, Eq. (6.27)-(6.28).
-    """
-
-    qw, qx, qy, qz = q
-    dax, day, daz = da
-
-    q[0] = qw - 0.5 * (qx * dax + qy * day + qz * daz)
-    q[1] = qx + 0.5 * (qw * dax + qy * daz - qz * day)
-    q[2] = qy + 0.5 * (qw * day - qx * daz + qz * dax)
-    q[3] = qz + 0.5 * (qw * daz + qx * day - qy * dax)
-    q[:] = _normalize(q)
-
-
-@njit  # type: ignore[misc]
-def _update_quaternion_with_rotvec(
-    q: NDArray[np.float64], dtheta: NDArray[np.float64]
-) -> NDArray[np.float64]:
-    """
-    Update a unit quaternion, q, with a small attitude increment, dtheta, parameterized
-    as a rotation vector.
-
-    Parameters
-    ----------
-    q : ndarray, shape (4,)
-        Unit quaternion (qw, qx, qy, qz) to be updated (in place).
-    dtheta : ndarray, shape (3,)
-        Attitude increment (rotation vector).
-
-    References
-    ----------
-    .. [1] https://www.vectornav.com/resources/inertial-navigation-primer/math-fundamentals/math-coning (Eq. 2.5.1)
-    """
-
-    qw, qx, qy, qz = q
-    rx, ry, rz = dtheta
-
-    gamma = 0.5 * np.sqrt(rx**2 + ry**2 + rz**2)
-    cos_gamma = np.cos(gamma)
-
-    if gamma >= 1e-5:
-        scale = np.sin(gamma) / (2.0 * gamma)
-    else:
-        scale = 0.5
-
-    # Psi
-    px = scale * rx
-    py = scale * ry
-    pz = scale * rz
-
-    q[0] = cos_gamma * qw - px * qx - py * qy - pz * qz
-    q[1] = px * qw + cos_gamma * qx + pz * qy - py * qz
-    q[2] = py * qw - pz * qx + cos_gamma * qy + px * qz
-    q[3] = pz * qw + py * qx - px * qy + cos_gamma * qz
-    q[:] = _normalize(q)
-
-
-@njit  # type: ignore[misc]
-def _kalman_gain(
-    P: NDArray[np.float64], h: NDArray[np.float64], r: float
-) -> NDArray[np.float64]:
-    """
-    Compute the Kalman gain for a scalar measurement.
-
-    Parameters
-    ----------
-    P : ndarray, shape (n, n)
-        State error covariance matrix.
-    h : ndarray, shape (n,)
-        Measurement matrix (row vector).
-    r : float
-        Scalar measurement noise variance.
-
-    Returns
-    -------
-    ndarray, shape (n,)
-        Kalman gain vector.
-    """
-
-    Ph = np.dot(P, h)
-
-    # Innovation covariance
-    s = np.dot(h, Ph) + r
-
-    # Kalman gain
-    k = Ph / s
-
-    return k
-
-
-@njit  # type: ignore[misc]
-def _covariance_update(
-    P: NDArray[np.float64],
-    k: NDArray[np.float64],
-    h: NDArray[np.float64],
-    r: float,
-) -> NDArray[np.float64]:
-    """
-    Compute the updated error covariance matrix estimate (Joseph form).
-
-    Parameters
-    ----------
-    P : ndarray, shape (n, n)
-        Error covariance matrix to be updated in place.
-    k : ndarray, shape (n,)
-        Kalman gain vector.
-    h : ndarray, shape (n,)
-        Measurement matrix (row vector).
-    r : float
-        Scalar measurement noise variance.
-
-    Returns
-    -------
-    ndarray, shape (n, n)
-        Updated state error covariance matrix.
-    """
-    A = np.eye(k.size) - np.outer(k, h)
-    P = A @ P @ A.T + r * np.outer(k, k)
-    return P
-
-
-@njit  # type: ignore[misc]
-def _kalman_update_scalar(
-    x: NDArray[np.float64],
-    P: NDArray[np.float64],
-    z: float,
-    r: float,
-    h: NDArray[np.float64],
-) -> None:
-    """
-    Scalar Kalman filter measurement update.
-
-    Parameters
-    ----------
-    x : ndarray, shape (n,)
-        State estimate to be updated in place.
-    P : ndarray, shape (n, n)
-        Error covariance matrix to be updated in place.
-    z : float
-        Scalar measurement.
-    r : float
-        Scalar measurement noise variance.
-    h : ndarray, shape (n,)
-        Measurement matrix (row vector).
-    """
-
-    # Kalman gain
-    k = _kalman_gain(P, h, r)
-
-    # Updated (a posteriori) state estimate
-    x[:] += k * (z - np.dot(h, x))
-
-    # Updated (a posteriori) covariance estimate (Joseph form)
-    P[:, :] = _covariance_update(P, k, h, r)
-
-
-@njit  # type: ignore[misc]
-def _kalman_update_sequential(
-    x: NDArray[np.float64],
-    P: NDArray[np.float64],
-    z: NDArray[np.float64],
-    var: NDArray[np.float64],
-    H: NDArray[np.float64],
-) -> None:
-    """
-    Sequential (one-at-a-time) Kalman filter measurement update.
-
-    Parameters
-    ----------
-    x : ndarray, shape (n,)
-        State estimate to be updated in place.
-    P : ndarray, shape (n, n)
-        Error covariance matrix to be updated in place.
-    z : ndarray, shape (m,)
-        Measurement vector.
-    var : ndarray, shape (m,)
-        Measurement noise variances corresponding to each scalar measurement.
-    H : ndarray, shape (m, n)
-        Measurement matrix where each row corresponds to a scalar measurement model.
-    """
-    m = z.shape[0]
-    for i in range(m):
-        _kalman_update_scalar(x, P, z[i], var[i], H[i])
-
-
-@njit  # type: ignore[misc]
-def _project_covariance_ahead(
-    P: NDArray[np.float64], phi: NDArray[np.float64], Q: NDArray[np.float64]
-) -> None:
-    """
-    Project the error covariance matrix estimate ahead.
-
-    Parameters
-    ----------
-    P : ndarray, shape (n, n)
-        Error covariance matrix to be projected ahead (in place).
-    phi : ndarray, shape (n, n)
-        State transition matrix.
-    Q : ndarray, shape (n, n)
-        Process noise covariance matrix.
-    """
-    P[:, :] = phi @ P @ phi.T + Q
-
-
-def _state_transition_matrix(
+def _state_transition_matrix_init(
     dt: float,
     dvel: NDArray[np.float64],
     dtheta: NDArray[np.float64],
@@ -283,12 +65,12 @@ def _state_transition_matrix(
 
 
 @njit  # type: ignore[misc]
-def _update_state_transition_matrix(
+def _state_transition_matrix_update(
     phi: NDArray[np.float64],
     dvel: NDArray[np.float64],
     dtheta: NDArray[np.float64],
     R_nb: NDArray[np.float64],
-) -> None:
+) -> NDArray[np.float64]:
     """
     Update the state transition matrix in place.
 
@@ -328,6 +110,7 @@ def _update_state_transition_matrix(
     phi[0, 5] = -dvy * r00 + dvx * r01
     phi[1, 5] = -dvy * r10 + dvx * r11
     phi[2, 5] = -dvy * r20 + dvx * r21
+    return phi
 
 
 def _process_noise_covariance_matrix(
@@ -361,7 +144,7 @@ def _process_noise_covariance_matrix(
     return Q
 
 
-def _measurement_matrix(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
+def _measurement_matrix_init(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Measurement matrix.
 
@@ -407,7 +190,14 @@ def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _reset(v_n, q_nb, bg_b, dx) -> None:
+def _reset(
+    dx: NDArray[np.float64],
+    v_n: NDArray[np.float64],
+    q_nb: NDArray[np.float64],
+    bg_b: NDArray[np.float64],
+) -> tuple[
+    NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]
+]:
     """
     Reset state.
 
@@ -424,12 +214,13 @@ def _reset(v_n, q_nb, bg_b, dx) -> None:
         estimates. Will be reset to zero after applying the corrections.
     """
     v_n[:] += dx[0:3]
-    _update_quaternion_with_gibbs2(q_nb, dx[3:6])
+    q_nb = _update_quaternion_with_gibbs2(q_nb, dx[3:6])
     bg_b[:] += dx[6:9]
     dx[:] = 0.0
+    return dx, v_n, q_nb, bg_b
 
 
-class AHRSv2:
+class AHRS:
     """
     Attitude and Heading Reference System (AHRS) using a multiplicative extended
     Kalman filter (MEKF).
@@ -477,7 +268,7 @@ class AHRSv2:
         bg: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = P0,
         acc_noise_density: float = 0.0007,
-        gyro_noise_density: float = 0.0001,
+        gyro_noise_density: float = 0.00005,
         gyro_bias_stability: float = 0.00005,
         gyro_bias_corr_time: float = 50.0,
         g: float = 9.80665,
@@ -504,7 +295,7 @@ class AHRSv2:
         self._dx = np.zeros(9)
 
         # Discrete state-space model
-        self._phi = _state_transition_matrix(
+        self._phi = _state_transition_matrix_init(
             self._dt,
             np.zeros(3),
             np.zeros(3),
@@ -514,7 +305,7 @@ class AHRSv2:
         self._Q = _process_noise_covariance_matrix(
             self._dt, self._vrw, self._arw, self._gbs, self._gbc
         )
-        self._dhdx = _measurement_matrix(self._q_nb)
+        self._H = _measurement_matrix_init(self._q_nb)
 
     def quaternion(self) -> NDArray[np.float64]:
         """
@@ -571,48 +362,16 @@ class AHRSv2:
         """
         return self._P.copy()
 
-    def _aiding_update_vel(
-        self, vel_meas: ArrayLike | None, vel_var: ArrayLike | None
-    ) -> None:
-        """
-        Update with velocity aiding measurement.
-        """
-
-        if vel_var is None:
-            raise ValueError("'vel_var' not provided.")
-
-        dz = vel_meas - self._v_n
-        _kalman_update_sequential(self._dx, self._P, dz, vel_var, self._dhdx[0:3])
-
-    def _aiding_update_head(
-        self, head_meas: float | None, head_var: float | None, head_degrees: bool
-    ) -> None:
-        """
-        Update with heading aiding measurement.
-        """
-
-        if head_var is None:
-            raise ValueError("'head_var' not provided.")
-
-        if head_degrees:
-            head_meas = (np.pi / 180.0) * head_meas
-            head_var = (np.pi / 180.0) ** 2 * head_var
-
-        self._dhdx[3, 3:6] = _dhda_head(self._q_nb)
-
-        dz = _signed_smallest_angle(head_meas - _h_head(self._q_nb))
-        _kalman_update_scalar(self._dx, self._P, dz, head_var, self._dhdx[3])
-
     def update(
         self,
         dvel: ArrayLike,
         dtheta: ArrayLike,
         degrees: bool = False,
-        head: float | None = None,
-        head_var: float | None = None,
-        head_degrees: bool = False,
         vel: ArrayLike | None = (0.0, 0.0, 0.0),
-        vel_var: ArrayLike | None = (100.0, 100.0, 100.0),
+        vel_var: ArrayLike = (100.0, 100.0, 100.0),
+        head: float | None = None,
+        head_var: float = 0.001,
+        head_degrees: bool = False,
     ) -> Self:
         """
         Update state estimates with IMU and aiding measurements.
@@ -626,13 +385,17 @@ class AHRSv2:
         degrees : bool, optional
             Specifies whether the unit of the attitude increment, ``dtheta``, is
             degrees or radians. Defaults to radians.
+        vel : array-like, shape (3,), optional
+            Velocity aiding measurement in m/s. If ``None``, velocity aiding is not used.
+        vel_var : array-like, shape (3,), optional
+            Variance of velocity measurement noise in (m/s)^2. Ignored if ``vel`` is ``None``.
         head : float, optional
             Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
             assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
             If ``None``, compass aiding is not used. See ``head_degrees`` for units.
         head_var : float, optional
             Variance of heading measurement noise. Units must be compatible with ``head``.
-             See ``head_degrees`` for units. Required for ``head``.
+             See ``head_degrees`` for units. Ignored if ``head`` is ``None``.
         head_degrees : bool, default False
             Specifies whether the unit of ``head`` and ``head_var`` are in degrees and degrees^2,
             or radians and radians^2. Default is in radians and radians^2.
@@ -653,22 +416,42 @@ class AHRSv2:
 
         # Update state-space model
         R_nb = _rot_matrix_from_quaternion(self._q_nb)
-        _update_state_transition_matrix(self._phi, dvel, dtheta, R_nb)
+        self._phi = _state_transition_matrix_update(self._phi, dvel, dtheta, R_nb)
 
         # Project (a priori) state estimates ahead
-        self._v_n[:] += R_nb @ dvel + self._dvel_g_corr  # TODO: speed-up with njit?
-        _update_quaternion_with_rotvec(self._q_nb, dtheta)
+        self._v_n[:] += R_nb @ dvel + self._dvel_g_corr
+        self._q_nb = _update_quaternion_with_rotvec(self._q_nb, dtheta)
 
         # Project (a priori) error covariance matrix estimate ahead
-        _project_covariance_ahead(self._P, self._phi, self._Q)
+        self._P = _project_covariance_ahead(self._P, self._phi, self._Q)
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
         if vel is not None:
-            self._aiding_update_vel(vel, vel_var)
+            self._dx, self._P = _aiding_update_vel(
+                self._dx,
+                self._P,
+                self._H[0:3],
+                self._v_n,
+                np.asarray(vel),
+                np.asarray(vel_var),
+            )
+
         if head is not None:
-            self._aiding_update_head(head, head_var, head_degrees)
+            self._H[3, 3:6] = _dhda_head(self._q_nb)  # Update measurement matrix
+
+            self._dx, self._P = _aiding_update_head(
+                self._dx,
+                self._P,
+                self._H[3],
+                self._q_nb,
+                head,
+                head_var,
+                head_degrees,
+            )
 
         # Reset state
-        _reset(self._v_n, self._q_nb, self._bg_b, self._dx)
+        self._dx, self._v_n, self._q_nb, self._bg_b = _reset(
+            self._dx, self._v_n, self._q_nb, self._bg_b
+        )
 
         return self

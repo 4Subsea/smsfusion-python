@@ -6,15 +6,14 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from smsfusion.constants import ERR_ACC_MOTION2, ERR_GYRO_MOTION2, P0, X0
-
-from ._transforms import (
+from smsfusion._transforms import (
     _angular_matrix_from_quaternion,
     _euler_from_quaternion,
     _quaternion_from_euler,
     _rot_matrix_from_quaternion,
 )
-from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
+from smsfusion._vectorops import _normalize, _quaternion_product, _skew_symmetric
+from smsfusion.constants import ERR_ACC_MOTION2, ERR_GYRO_MOTION2, P0, X0
 
 
 def _roll_pitch_from_acc(f, nav_frame):

@@ -3,7 +3,7 @@ import pytest
 from scipy.signal import resample_poly
 
 import smsfusion as sf
-from smsfusion._ins_v2 import AHRSv2
+from smsfusion._ins._ahrs import AHRSv2
 from smsfusion.benchmark import (
     benchmark_full_pva_beat_202311A,
     benchmark_full_pva_chirp_202311A,
