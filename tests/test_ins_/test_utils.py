@@ -9,27 +9,35 @@ from smsfusion._transforms import _rot_matrix_from_quaternion, quaternion_from_e
     "euler",
     [
         np.radians([10.0, 45.0, 0.0]),
-        np.radians([0.0, 0.0, 0.0]),
-        np.radians([90.0, 0.0, 0.0]),
-        np.radians([180.0, 0.0, 0.0]),
+        np.radians([0.0, 0.0, -10.0]),
+        np.radians([90.0, 0.0, -45.0]),
+        np.radians([180.0, 0.0, 10.0]),
         np.radians([130.0, -28.0, 90.0]),
     ],
 )
-def test__roll_pitch_from_acc(euler):
+def test_euler_from_acc(euler):
     R_nm = _rot_matrix_from_quaternion(quaternion_from_euler(euler))  # body-to-nav
     g = _utils.gravity()
+    euler_degrees = np.degrees(euler)
 
     # North-East-Down (NED) frame
     g_ned = np.array([0.0, 0.0, -g])
     acc_ned = R_nm.T @ g_ned
-    roll_pitch_ned = _utils.roll_pitch_from_acc(acc_ned, nav_frame="NED")
-    np.testing.assert_allclose(roll_pitch_ned, euler[:2])
+    euler_ned = _utils.euler_from_acc(acc_ned, nav_frame="NED", yaw=euler[2])
+    np.testing.assert_allclose(euler_ned, euler)
+
+    euler_ned = _utils.euler_from_acc(acc_ned, nav_frame="NED", yaw=euler[2], degrees=True)
+    np.testing.assert_allclose(euler_ned, euler_degrees)
+
 
     # North-East-Up (ENU) frame
     g_enu = np.array([0.0, 0.0, g])
     acc_enu = R_nm.T @ g_enu
-    roll_pitch_enu = _utils.roll_pitch_from_acc(acc_enu, nav_frame="ENU")
-    np.testing.assert_allclose(roll_pitch_enu, euler[:2])
+    euler_enu = _utils.euler_from_acc(acc_enu, nav_frame="ENU", yaw=euler[2])
+    np.testing.assert_allclose(euler_enu, euler)
+
+    euler_enu = _utils.euler_from_acc(acc_enu, nav_frame="ENU", yaw=euler[2], degrees=True)
+    np.testing.assert_allclose(euler_enu, euler_degrees)
 
 
 @pytest.mark.parametrize(
