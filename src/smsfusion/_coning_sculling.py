@@ -13,8 +13,8 @@ class ConingScullingAlg:
 
     Can be used in a strapdown algorithm as:
 
-        vel[m+1] = vel[m] + R(q[m]) @ dvel[m] + dvel_corr
-        q[m+1] = q[m] ⊗ dq(dtheta[m])
+        vel[m+1] = vel[m] + R(q[m]) @ dvel[m+1] + dvel_corr
+        q[m+1] = q[m] ⊗ dq(dtheta[m+1])
 
     where,
 
@@ -23,11 +23,11 @@ class ConingScullingAlg:
 
     and,
 
-    - dvel[m] is the sculling integral, i.e., the velocity vector change (no gravity
+    - dvel[m+1] is the sculling integral, i.e., the velocity vector change (no gravity
       correction) from time step m to m+1.
-    - dtheta[m] is the coning integral, i.e., the rotation vector change from time
+    - dtheta[m+1] is the coning integral, i.e., the rotation vector change from time
       step m to m+1.
-    - dq(dtheta[m]) is the unit quaternion representation of the rotation increment
+    - dq(dtheta[m+1]) is the unit quaternion representation of the rotation increment
       over the interval [m, m+1].
     - R(q[m]) is the rotation matrix (body-to-nav) corresponding to the attitude
       quaternion q[m].
@@ -131,6 +131,7 @@ class ConingScullingAlg:
         the total change in velocity (no gravity correction) over all samples since
         initialization (or last reset).
         """
+        # Equation (7.2.2.2-23) in ref [2]_
         return self._vel + self._dvel_rot + self._dvel_scul
 
     def flush(self, degrees=False):
