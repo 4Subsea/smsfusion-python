@@ -306,7 +306,7 @@ class VRU:
         dtheta = np.asarray(dtheta)
 
         if degrees:
-            dtheta = np.radians(dtheta)
+            dtheta = (np.pi / 180.0) * dtheta
 
         dtheta = dtheta - self._dt * self._bg_b
 
