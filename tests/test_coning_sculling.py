@@ -284,38 +284,6 @@ class Test_ConingScullingAlg:
         np.testing.assert_allclose(dvel_out, dvel_expect)
         np.testing.assert_allclose(dtheta_out, np.zeros(3))
 
-    def test_dvel(self):
-        fs = 100.0
-        alg = sf.ConingScullingAlg(fs)
-
-        f = np.array([1.0, 2.0, 3.0])  # m/s^2
-        w = np.array([0.0, 0.0, 0.0])  # rad/s
-
-        for i in range(int(fs * 1.0)):  # 1 second
-            alg.update(f, w)
-
-        dvel_out = alg.dvel()
-
-        dvel_expect = np.array([1.0, 2.0, 3.0])
-        np.testing.assert_allclose(dvel_out, dvel_expect)
-
-    def test_dtheta(self):
-        fs = 100.0
-        alg = sf.ConingScullingAlg(fs)
-
-        f = np.array([0.0, 0.0, 0.0])  # m/s^2
-        w = np.array([np.radians(30.0), -np.radians(45.0), np.radians(60.0)])  # rad/s
-
-        for i in range(int(fs * 1.0)):  # 1 second
-            alg.update(f, w)
-
-        dtheta_out = alg.dtheta()
-
-        dtheta_expect = np.array(
-            [np.radians(30.0), -np.radians(45.0), np.radians(60.0)]
-        )
-        np.testing.assert_allclose(dtheta_out, dtheta_expect)
-
     def test_flush(self):
         fs = 100.0
         alg = sf.ConingScullingAlg(fs)
@@ -326,10 +294,12 @@ class Test_ConingScullingAlg:
         for i in range(int(fs * 1.0)):  # 1 second
             alg.update(f, w)
 
-        dtheta_expect = alg.dtheta()
-        dvel_expect = alg.dvel()
         dtheta_out, dvel_out = alg.flush()
-        np.testing.assert_allclose(dtheta_out, dtheta_expect)
-        np.testing.assert_allclose(dvel_out, dvel_expect)
-        assert np.allclose(alg.dtheta(), np.zeros(3))
-        assert np.allclose(alg.dvel(), np.zeros(3))
+        # Check that flush returns non-zero values
+        assert np.all(np.abs(dtheta_out) > 0.1)
+        assert np.all(np.abs(dvel_out) > 0.1)
+
+        # Flushing again should yield all zeros
+        dtheta_out, dvel_out = alg.flush()
+        np.testing.assert_allclose(dtheta_out, np.zeros(3))
+        np.testing.assert_allclose(dvel_out, np.zeros(3))

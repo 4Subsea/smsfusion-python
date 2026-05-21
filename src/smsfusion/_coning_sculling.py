@@ -106,33 +106,9 @@ class ConingScullingAlg:
         dv_prev[:] = dv
         dtheta_prev[:] = dtheta
 
-    def dtheta(self, degrees=False):
-        """
-        Peek at the accumulated 'body attitude change' vector. I.e., the rotation
-        vector describing the total rotation over all samples since initialization
-        (or last reset).
-
-        Parameters
-        ----------
-        degrees : bool, default False
-            Specifies whether the returned rotation vector should be in degrees
-            or radians (default).
-        """
-        dtheta = self._theta + self._dtheta_con
-        return np.degrees(dtheta) if degrees else dtheta
-
     @property
     def _dvel_rot(self):
         return 0.5 * _cross(self._theta, self._vel)
-
-    def dvel(self):
-        """
-        Peek at the accumulated specific force velocity change vector. I.e.,
-        the total change in velocity (no gravity correction) over all samples since
-        initialization (or last reset).
-        """
-        # Equation (7.2.2.2-23) in ref [2]_
-        return self._vel + self._dvel_rot + self._dvel_scul
 
     def flush(self, degrees=False):
         """
@@ -153,8 +129,16 @@ class ConingScullingAlg:
         dvel : ndarray, shape (3,)
             The accumulated specific force velocity change vector, see :meth:`dvel`.
         """
-        dtheta = self.dtheta(degrees=degrees)
-        dvel = self.dvel()
+        # The accumulated 'body attitude change' vector. I.e., the rotation vector
+        # describing the total rotation over all samples since initialization (or
+        # last reset).
+        dtheta = self._theta + self._dtheta_con
+        dtheta = np.degrees(dtheta) if degrees else dtheta
+
+        # The accumulated specific force velocity change vector. I.e., the total change
+        # in velocity (no gravity correction) over all samples since initialization
+        # (or last reset). Equation (7.2.2.2-23) in ref [2]_
+        dvel = self._vel + self._dvel_rot + self._dvel_scul
 
         self._theta[:] = np.zeros(3, dtype=float)
         self._dtheta_con[:] = np.zeros(3, dtype=float)
