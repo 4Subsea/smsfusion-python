@@ -1,5 +1,4 @@
 from pathlib import Path
-from turtle import down
 
 import numpy as np
 import pytest
@@ -77,14 +76,17 @@ class Test_ConingScullingAlg:
         np.testing.assert_allclose(alg._dvel_scul, np.zeros(3))
         np.testing.assert_allclose(alg._dv_prev, np.zeros(3))
 
-    def test_update(self, data_ag, data_dtheta_dvel):
+    @pytest.mark.parametrize(
+        "algorithm", [sf.ConingScullingAlg, sf.ConingScullingAlgCalibrated]
+    )
+    def test_update(self, data_ag, data_dtheta_dvel, algorithm):
         f, w = data_ag
         dvel_ref, dtheta_ref = data_dtheta_dvel
 
         fs_highfreq = 200.0
         fs_lowfreq = 10.0
         step = int(fs_highfreq / fs_lowfreq)
-        alg = sf.ConingScullingAlg(200.0)
+        alg = algorithm(200.0)
 
         dtheta_out = []
         dvel_out = []
@@ -303,3 +305,64 @@ class Test_ConingScullingAlg:
         dtheta_out, dvel_out = alg.flush()
         np.testing.assert_allclose(dtheta_out, np.zeros(3))
         np.testing.assert_allclose(dvel_out, np.zeros(3))
+
+    def test_verify_calibration(self, data_ag, data_dtheta_dvel):
+        """Tests that the algorithm with built-in calibration produces the same results as the
+        uncalibrated algorithm with manual calibration applied to the inputs.
+        """
+        rng = np.random.default_rng(seed=42)
+        FS_HIGH = 200.0
+        FS_LOW = 10.0
+        downsample_factor = int(FS_HIGH / FS_LOW)
+        # Calibration matrices and biases
+        A1, A2 = rng.random((3, 3)), rng.random((3, 3))
+        b_w, b_f = rng.random(3) * np.radians(0.1), rng.random(3)
+        W_w = A1 @ A1.T + np.eye(3)  # Positive semi-definite
+        W_f = A2 @ A2.T + np.eye(3)  # Positive semi-definite
+        W_f_inv, W_w_inv = np.linalg.inv(W_f), np.linalg.inv(W_w)
+
+        f_true, w_true = data_ag
+        dvel_true, dtheta_true = data_dtheta_dvel
+
+        # Generate measurements with scaling, misalignment and bias
+        f_meas = np.empty_like(f_true)
+        w_meas = np.empty_like(w_true)
+        for i in range(len(f_true)):
+            f_meas[i] = W_f_inv @ (f_true[i] - b_f)
+            w_meas[i] = W_w_inv @ (w_true[i] - b_w)
+
+        # Calculate dtheta and dvel when calibrating each measurement manually before feeding to the uncalibrated algorithm
+        alg_naive_calibration = sf.ConingScullingAlg(FS_HIGH)
+        dtheta_naive, dvel_naive = [], []
+        for i, (f_i, w_i) in enumerate(zip(f_meas, w_meas)):
+            # Apply calibration to measurements
+            f_i_naive = W_f @ (f_i) + b_f
+            w_i_naive = W_w @ (w_i) + b_w
+
+            alg_naive_calibration.update(f_i_naive, w_i_naive)
+            if (i != 0) and (i % downsample_factor == 0):
+                dtheta_i, dvel_i = alg_naive_calibration.flush()
+                dtheta_naive.append(dtheta_i)
+                dvel_naive.append(dvel_i)
+        dtheta_naive = np.array(dtheta_naive)
+        dvel_naive = np.array(dvel_naive)
+
+        # Calculate dtheta and dvel using the built-in calibration algorithm
+        alg_calibrated = sf.ConingScullingAlgCalibrated(
+            FS_HIGH, W_w=W_w, W_f=W_f, b_w=b_w, b_f=b_f
+        )
+        dtheta_calibrated, dvel_calibrated = [], []
+        for i, (f_i, w_i) in enumerate(zip(f_meas, w_meas)):
+            alg_calibrated.update(f_i, w_i)
+            if (i != 0) and (i % downsample_factor == 0):
+                dtheta_i, dvel_i = alg_calibrated.flush()
+                dtheta_calibrated.append(dtheta_i)
+                dvel_calibrated.append(dvel_i)
+        dtheta_calibrated = np.array(dtheta_calibrated)
+        dvel_calibrated = np.array(dvel_calibrated)
+
+        # Test that the different methods match
+        np.testing.assert_allclose(dtheta_calibrated, dtheta_true, atol=1e-8)
+        np.testing.assert_allclose(dvel_calibrated, dvel_true, atol=1e-8)
+        np.testing.assert_allclose(dtheta_naive, dtheta_true, atol=1e-8)
+        np.testing.assert_allclose(dvel_naive, dvel_true, atol=1e-8)
