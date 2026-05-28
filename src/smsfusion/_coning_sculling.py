@@ -170,6 +170,21 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
         Gyroscope bias vector (default: zero).
     b_f : array-like, shape (3,), optional
         Accelerometer bias vector (default: zero).
+    bias_alt : bool, default False
+        If set to ``True``, the bias definition of the alternative calibration model
+        is returned. See Notes.
+
+    Notes
+    -----
+    The calibration model is defined as::
+
+        xyz_ref = W @ xyz + bias
+
+    The alternative calibration model where biases are added first is defined as::
+
+        xyz_ref = W @ (xyz + bias)
+
+    The alternative model is enabled by setting ``bias_alt=True``.
     """
 
     def __init__(
@@ -179,13 +194,18 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
         W_f: np.ndarray = np.eye(3),
         b_w: np.ndarray = np.zeros(3),
         b_f: np.ndarray = np.zeros(3),
+        bias_alt: bool = False,
     ):
         W_w_det = _determinant_3_by_3(W_w)
         W_w_inv = _inverse_3_by_3(W_w, determinant=W_w_det)
         self.cof_W = W_w_inv.T * W_w_det
         self.W_star = W_w_inv @ W_f
-        self.b_f_star = _inverse_3_by_3(W_f) @ b_f
-        self.b_w_star = W_w_inv @ b_w
+        if bias_alt:
+            self.b_f_star = b_f
+            self.b_w_star = b_w
+        else:
+            self.b_f_star = _inverse_3_by_3(W_f) @ b_f
+            self.b_w_star = W_w_inv @ b_w
         self.W_w = W_w
         super().__init__(fs)
 

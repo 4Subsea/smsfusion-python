@@ -331,6 +331,13 @@ class Test_ConingScullingAlg:
             f_meas[i] = W_f_inv @ (f_true[i] - b_f)
             w_meas[i] = W_w_inv @ (w_true[i] - b_w)
 
+        # Generate measurements with scaling, misalignment and bias - alternative bias method
+        f_meas_alt = np.empty_like(f_true)
+        w_meas_alt = np.empty_like(w_true)
+        for i in range(len(f_true)):
+            f_meas_alt[i] = W_f_inv @ f_true[i] - b_f
+            w_meas_alt[i] = W_w_inv @ w_true[i] - b_w
+
         # Calculate dtheta and dvel when calibrating each measurement manually before feeding to the uncalibrated algorithm
         alg_naive_calibration = sf.ConingScullingAlg(FS_HIGH)
         dtheta_naive, dvel_naive = [], []
@@ -361,9 +368,25 @@ class Test_ConingScullingAlg:
         dtheta_calibrated = np.array(dtheta_calibrated)
         dvel_calibrated = np.array(dvel_calibrated)
 
+        # Calculate dtheta and dvel using the built-in calibration algorithm - alternative bias method
+        alg_calibrated_alt = sf.ConingScullingAlgCalibrated(
+            FS_HIGH, W_w=W_w, W_f=W_f, b_w=b_w, b_f=b_f, bias_alt=True
+        )
+        dtheta_calibrated_alt, dvel_calibrated_alt = [], []
+        for i, (f_i, w_i) in enumerate(zip(f_meas_alt, w_meas_alt)):
+            alg_calibrated_alt.update(f_i, w_i)
+            if (i != 0) and (i % downsample_factor == 0):
+                dtheta_i, dvel_i = alg_calibrated_alt.flush()
+                dtheta_calibrated_alt.append(dtheta_i)
+                dvel_calibrated_alt.append(dvel_i)
+        dtheta_calibrated_alt = np.array(dtheta_calibrated_alt)
+        dvel_calibrated_alt = np.array(dvel_calibrated_alt)
+
         # Test that the different methods match
         np.testing.assert_allclose(dtheta_calibrated, dtheta_true, atol=1e-8)
         np.testing.assert_allclose(dvel_calibrated, dvel_true, atol=1e-8)
+        np.testing.assert_allclose(dtheta_calibrated_alt, dtheta_true, atol=1e-8)
+        np.testing.assert_allclose(dvel_calibrated_alt, dvel_true, atol=1e-8)
         np.testing.assert_allclose(dtheta_naive, dtheta_true, atol=1e-8)
         np.testing.assert_allclose(dvel_naive, dvel_true, atol=1e-8)
 
