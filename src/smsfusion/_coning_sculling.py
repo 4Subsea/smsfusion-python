@@ -180,10 +180,11 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
         b_w: np.ndarray = np.zeros(3),
         b_f: np.ndarray = np.zeros(3),
     ):
-        W_w_inv = np.linalg.inv(W_w)
-        self.cof_W = W_w_inv.T * np.linalg.det(W_w)
+        W_w_det = _determinant_3_by_3(W_w)
+        W_w_inv = _inverse_3_by_3(W_w, determinant=W_w_det)
+        self.cof_W = W_w_inv.T * W_w_det
         self.W_star = W_w_inv @ W_f
-        self.b_f_star = np.linalg.inv(W_f) @ b_f
+        self.b_f_star = _inverse_3_by_3(W_f) @ b_f
         self.b_w_star = W_w_inv @ b_w
         self.W_w = W_w
         super().__init__(fs)
@@ -199,3 +200,75 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
 
         dvel = self.W_w @ self._vel + self.cof_W @ (self._dvel_rot + self._dvel_scul)
         return dtheta, dvel
+
+
+def _determinant_3_by_3(m: np.ndarray) -> float:
+    """
+    Calculates and returns the determinant of the matrix
+    ```python
+    m = [[a, b, c],
+         [d, e, f],
+         [g, h, i]]
+    ```
+
+    Parameters
+    ----------
+    m : array-like, shape (3, 3)
+        The matrix for which to calculate the determinant.
+
+    Returns
+    -------
+    det : float
+        The determinant of the input matrix m.
+    """
+    a, b, c = m[0]
+    d, e, f = m[1]
+    g, h, i = m[2]
+    A = e * i - f * h
+    B = -(d * i - f * g)
+    C = d * h - e * g
+
+    return a * A + b * B + c * C
+
+
+def _inverse_3_by_3(m: np.ndarray, determinant: float | None = None):
+    """
+    Calculates and returns the inverse of the matrix
+    ```python
+    m = [[a, b, c],
+         [d, e, f],
+         [g, h, i]]
+    ```
+
+    Parameters
+    ----------
+    m : array-like, shape (3, 3)
+        The matrix to be inverted.
+    determinant : float, optional
+        The determinant of the input matrix m. If not provided, it will be calculated
+        internally.
+
+    Returns
+    -------
+    inv_m : ndarray, shape (3, 3)
+        The inverse of the input matrix m.
+    """
+    if m.shape != (3, 3):
+        raise ValueError("Input matrix must be 3x3.")
+    a, b, c = m[0]
+    d, e, f = m[1]
+    g, h, i = m[2]
+    A = e * i - f * h
+    B = -(d * i - f * g)
+    C = d * h - e * g
+    D = -(b * i - c * h)
+    E = a * i - c * g
+    F = -(a * h - b * g)
+    G = b * f - c * e
+    H = -(a * f - c * d)
+    I = a * e - b * d
+    if determinant is None:
+        determinant = _determinant_3_by_3(m)
+    if determinant == 0:
+        raise ValueError("Input matrix is singular and cannot be inverted.")
+    return np.array([[A, D, G], [B, E, H], [C, F, I]]) / determinant
