@@ -90,3 +90,77 @@ def _skew_symmetric(a: NDArray[np.float64]) -> NDArray[np.float64]:
         Skew symmetric matrix.
     """
     return np.array([[0.0, -a[2], a[1]], [a[2], 0.0, -a[0]], [-a[1], a[0], 0.0]])
+
+
+@njit  # type: ignore[misc]
+def _determinant_3_by_3(m: np.ndarray) -> float:
+    """
+    Calculates and returns the determinant of the matrix
+    ```python
+    m = [[a, b, c],
+         [d, e, f],
+         [g, h, i]]
+    ```
+
+    Parameters
+    ----------
+    m : array-like, shape (3, 3)
+        The matrix for which to calculate the determinant.
+
+    Returns
+    -------
+    det : float
+        The determinant of the input matrix m.
+    """
+    a, b, c = m[0]
+    d, e, f = m[1]
+    g, h, i = m[2]
+    A = e * i - f * h
+    B = -(d * i - f * g)
+    C = d * h - e * g
+
+    return a * A + b * B + c * C
+
+
+@njit  # type: ignore[misc]
+def _inverse_3_by_3(m: np.ndarray, determinant: float | None = None):
+    """
+    Calculates and returns the inverse of the matrix
+    ```python
+    m = [[a, b, c],
+         [d, e, f],
+         [g, h, i]]
+    ```
+
+    Parameters
+    ----------
+    m : array-like, shape (3, 3)
+        The matrix to be inverted.
+    determinant : float, optional
+        The determinant of the input matrix m. If not provided, it will be calculated
+        internally.
+
+    Returns
+    -------
+    inv_m : ndarray, shape (3, 3)
+        The inverse of the input matrix m.
+    """
+    if m.shape != (3, 3):
+        raise ValueError("Input matrix must be 3x3.")
+    a, b, c = m[0]
+    d, e, f = m[1]
+    g, h, i = m[2]
+    A = e * i - f * h
+    B = -(d * i - f * g)
+    C = d * h - e * g
+    D = -(b * i - c * h)
+    E = a * i - c * g
+    F = -(a * h - b * g)
+    G = b * f - c * e
+    H = -(a * f - c * d)
+    I = a * e - b * d
+    if determinant is None:
+        determinant = _determinant_3_by_3(m)
+    if determinant == 0:
+        raise ValueError("Input matrix is singular and cannot be inverted.")
+    return np.array([[A, D, G], [B, E, H], [C, F, I]]) / determinant

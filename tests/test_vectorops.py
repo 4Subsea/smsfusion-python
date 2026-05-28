@@ -70,3 +70,25 @@ def test__skew_symmetric():
     out = _vectorops._skew_symmetric(a) @ b
     expected = np.cross(a, b)
     np.testing.assert_array_equal(out, expected)
+
+
+def test__inverse_and_determinant_3_by_3():
+    """Test matrix inversion and determinant against numpy"""
+    rng = np.random.default_rng(42)
+    for _ in range(5):
+        m = rng.random((3, 3))
+        det = _vectorops._determinant_3_by_3(m)
+        inv = _vectorops._inverse_3_by_3(m)
+        inv_with_det = _vectorops._inverse_3_by_3(m, determinant=det)
+        det_expected = np.linalg.det(m)
+        inv_expected = np.linalg.inv(m)
+        np.testing.assert_allclose(det, det_expected, rtol=1e-12, atol=1e-12)
+        np.testing.assert_allclose(inv, inv_expected, rtol=1e-12, atol=1e-12)
+        np.testing.assert_allclose(inv_with_det, inv_expected, rtol=1e-12, atol=1e-12)
+
+
+def test__inverse_3_by_3_singular():
+    """Test that the inverse function raises an error for singular matrices"""
+    singular_matrix = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    with pytest.raises(ValueError):
+        _vectorops._inverse_3_by_3(singular_matrix)

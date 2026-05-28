@@ -389,25 +389,3 @@ class Test_ConingScullingAlg:
         np.testing.assert_allclose(dvel_calibrated_alt, dvel_true, atol=1e-8)
         np.testing.assert_allclose(dtheta_naive, dtheta_true, atol=1e-8)
         np.testing.assert_allclose(dvel_naive, dvel_true, atol=1e-8)
-
-    def test__inverse_and_determinant_3_by_3(self):
-        """Test matrix inversion and determinant against numpy"""
-        rng = np.random.default_rng(42)
-        for _ in range(5):
-            m = rng.random((3, 3))
-            det = sf._coning_sculling._determinant_3_by_3(m)
-            inv = sf._coning_sculling._inverse_3_by_3(m)
-            inv_with_det = sf._coning_sculling._inverse_3_by_3(m, determinant=det)
-            det_expected = np.linalg.det(m)
-            inv_expected = np.linalg.inv(m)
-            np.testing.assert_allclose(det, det_expected, rtol=1e-12, atol=1e-12)
-            np.testing.assert_allclose(inv, inv_expected, rtol=1e-12, atol=1e-12)
-            np.testing.assert_allclose(
-                inv_with_det, inv_expected, rtol=1e-12, atol=1e-12
-            )
-
-    def test__inverse_3_by_3_singular(self):
-        """Test that the inverse function raises an error for singular matrices"""
-        singular_matrix = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-        with pytest.raises(ValueError):
-            sf._coning_sculling._inverse_3_by_3(singular_matrix)
