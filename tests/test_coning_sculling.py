@@ -389,3 +389,28 @@ class Test_ConingScullingAlg:
         np.testing.assert_allclose(dvel_calibrated_alt, dvel_true, atol=1e-8)
         np.testing.assert_allclose(dtheta_naive, dtheta_true, atol=1e-8)
         np.testing.assert_allclose(dvel_naive, dvel_true, atol=1e-8)
+
+    @pytest.mark.parametrize(
+        "w_singular, f_singular", [(True, False), (False, True), (True, True)]
+    )
+    def test_raises_singular_matrix(self, w_singular, f_singular):
+        fs = 100.0
+        if w_singular:
+            W_w = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]])
+        else:
+            W_w = np.eye(3)
+        if f_singular:
+            W_f = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]])
+        else:
+            W_f = np.eye(3)
+        b_w = np.zeros(3)
+        b_f = np.zeros(3)
+        with pytest.raises(ValueError, match="must be invertible"):
+            sf.ConingScullingAlgCalibrated(
+                fs, W_w=W_w, W_f=W_f, b_w=b_w, b_f=b_f, bias_alt=False
+            )
+        if w_singular:
+            with pytest.raises(ValueError, match="must be invertible"):
+                sf.ConingScullingAlgCalibrated(
+                    fs, W_w=W_w, W_f=W_f, b_w=b_w, b_f=b_f, bias_alt=True
+                )

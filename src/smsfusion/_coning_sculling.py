@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.typing import ArrayLike
 
-from smsfusion._vectorops import _cross, _determinant_3_by_3, _inverse_3_by_3
+from smsfusion._vectorops import _adjugate_and_det_3_by_3, _cross
 
 
 class ConingScullingAlg:
@@ -196,15 +196,21 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
         b_f: np.ndarray = np.zeros(3),
         bias_alt: bool = False,
     ):
-        W_w_det = _determinant_3_by_3(W_w)
-        W_w_inv = _inverse_3_by_3(W_w, determinant=W_w_det)
+        adj_W_w, W_w_det = _adjugate_and_det_3_by_3(W_w)
+        if W_w_det == 0:
+            raise ValueError("W_w must be invertible")
+        W_w_inv = adj_W_w / W_w_det
         self.cof_W = W_w_inv.T * W_w_det
         self.W_star = W_w_inv @ W_f
         if bias_alt:
             self.b_f_star = b_f
             self.b_w_star = b_w
         else:
-            self.b_f_star = _inverse_3_by_3(W_f) @ b_f
+            adj_W_f, W_f_det = _adjugate_and_det_3_by_3(W_f)
+            if W_f_det == 0:
+                raise ValueError("W_f must be invertible.")
+            W_f_inv = adj_W_f / W_f_det
+            self.b_f_star = W_f_inv @ b_f
             self.b_w_star = W_w_inv @ b_w
         self.W_w = W_w
         super().__init__(fs)
