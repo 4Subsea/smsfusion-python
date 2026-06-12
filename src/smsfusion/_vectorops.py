@@ -90,3 +90,47 @@ def _skew_symmetric(a: NDArray[np.float64]) -> NDArray[np.float64]:
         Skew symmetric matrix.
     """
     return np.array([[0.0, -a[2], a[1]], [a[2], 0.0, -a[0]], [-a[1], a[0], 0.0]])
+
+
+@njit  # type: ignore[misc]
+def _adjugate_and_det_3_by_3(
+    m: NDArray[np.float64],
+) -> tuple[NDArray[np.float64], float]:
+    """
+    Calculates and returns the adjugate matrix and determinant of the matrix
+    ```python
+    m = [[a, b, c],
+         [d, e, f],
+         [g, h, i]]
+    ```
+    If the determinant is non-zero, one can calculate the inverse of m as
+    ``inv(m) = adj(m) / det(m)``.
+
+    Parameters
+    ----------
+    m : numpy.ndarray, shape (3, 3)
+        The matrix for which to calculate the adjugate and determinant.
+
+    Returns
+    -------
+    adj_m : numpy.ndarray, shape (3, 3)
+        The adjugate of the input matrix m.
+    det_m : float
+        The determinant of the input matrix m.
+    """
+    a, b, c = m[0]
+    d, e, f = m[1]
+    g, h, i = m[2]
+    A = e * i - f * h
+    B = -(d * i - f * g)
+    C = d * h - e * g
+    D = -(b * i - c * h)
+    E = a * i - c * g
+    F = -(a * h - b * g)
+    G = b * f - c * e
+    H = -(a * f - c * d)
+    I_ = a * e - b * d
+    # Equations fetched from https://en.wikipedia.org/wiki/Invertible_matrix#Inversion_of_3_%C3%97_3_matrices
+    adj_m = np.array([[A, D, G], [B, E, H], [C, F, I_]])
+    det_m = a * A + b * B + c * C
+    return adj_m, det_m

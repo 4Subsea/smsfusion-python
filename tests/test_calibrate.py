@@ -62,8 +62,8 @@ class Test_calibrate:
     @pytest.mark.parametrize(
         "xyz_ref",
         [
-            np.random.default_rng().random(size=(400, 3)),
-            np.random.default_rng().random(size=(4000, 3)),
+            np.random.default_rng(23).random(size=(400, 3)),
+            np.random.default_rng(32).random(size=(4000, 3)),
         ],
     )
     def test_noisy(self, xyz_ref):

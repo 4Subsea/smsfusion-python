@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.typing import ArrayLike
 
-from smsfusion._vectorops import _cross
+from smsfusion._vectorops import _adjugate_and_det_3_by_3, _cross
 
 
 class ConingScullingAlg:
@@ -13,8 +13,8 @@ class ConingScullingAlg:
 
     Can be used in a strapdown algorithm as:
 
-        vel[m+1] = vel[m] + R(q[m]) @ dvel[m] + dvel_corr
-        q[m+1] = q[m] ⊗ dq(dtheta[m])
+        vel[m+1] = vel[m] + R(q[m]) @ dvel[m+1] + dvel_corr
+        q[m+1] = q[m] ⊗ dq(dtheta[m+1])
 
     where,
 
@@ -23,11 +23,11 @@ class ConingScullingAlg:
 
     and,
 
-    - dvel[m] is the sculling integral, i.e., the velocity vector change (no gravity
+    - dvel[m+1] is the sculling integral, i.e., the velocity vector change (no gravity
       correction) from time step m to m+1.
-    - dtheta[m] is the coning integral, i.e., the rotation vector change from time
+    - dtheta[m+1] is the coning integral, i.e., the rotation vector change from time
       step m to m+1.
-    - dq(dtheta[m]) is the unit quaternion representation of the rotation increment
+    - dq(dtheta[m+1]) is the unit quaternion representation of the rotation increment
       over the interval [m, m+1].
     - R(q[m]) is the rotation matrix (body-to-nav) corresponding to the attitude
       quaternion q[m].
@@ -106,32 +106,20 @@ class ConingScullingAlg:
         dv_prev[:] = dv
         dtheta_prev[:] = dtheta
 
-    def dtheta(self, degrees=False):
-        """
-        Peek at the accumulated 'body attitude change' vector. I.e., the rotation
-        vector describing the total rotation over all samples since initialization
-        (or last reset).
-
-        Parameters
-        ----------
-        degrees : bool, default False
-            Specifies whether the returned rotation vector should be in degrees
-            or radians (default).
-        """
-        dtheta = self._theta + self._dtheta_con
-        return np.degrees(dtheta) if degrees else dtheta
-
     @property
     def _dvel_rot(self):
         return 0.5 * _cross(self._theta, self._vel)
 
-    def dvel(self):
+    def _calc_dtheta_dvel(self, degrees=False):
         """
-        Peek at the accumulated specific force velocity change vector. I.e.,
-        the total change in velocity (no gravity correction) over all samples since
-        initialization (or last reset).
+        Calculate the coning and sculling corrected dtheta and dvel.
         """
-        return self._vel + self._dvel_rot + self._dvel_scul
+        dtheta = self._theta + self._dtheta_con
+        dtheta = np.degrees(dtheta) if degrees else dtheta
+        # Equation (7.2.2.2-23) in ref [2]_
+        dvel = self._vel + self._dvel_rot + self._dvel_scul
+
+        return dtheta, dvel
 
     def flush(self, degrees=False):
         """
@@ -148,15 +136,93 @@ class ConingScullingAlg:
         Returns
         -------
         dtheta : ndarray, shape (3,)
-            The accumulated 'body attitude change' vector, see :meth:`dtheta`.
+            The accumulated 'body attitude change' vector. I.e., the rotation vector
+            describing the total rotation over all samples since initialization (or
+            last reset).
         dvel : ndarray, shape (3,)
-            The accumulated specific force velocity change vector, see :meth:`dvel`.
+            The accumulated specific force velocity change vector. I.e., the total change
+            in velocity (no gravity correction) over all samples since initialization
+            (or last reset).
         """
-        dtheta = self.dtheta(degrees=degrees)
-        dvel = self.dvel()
+        dtheta, dvel = self._calc_dtheta_dvel(degrees)
 
         self._theta[:] = np.zeros(3, dtype=float)
         self._dtheta_con[:] = np.zeros(3, dtype=float)
         self._dvel_scul[:] = np.zeros(3, dtype=float)
         self._vel[:] = np.zeros(3, dtype=float)
+        return dtheta, dvel
+
+
+class ConingScullingAlgCalibrated(ConingScullingAlg):
+    """Extension of :class:`ConingScullingAlg` that applies a calibration matrix and
+    bias correction to the measurements while minimizing the number of operations. See
+    :class:`ConingScullingAlg` for full API and more algorithm details.
+
+    Parameters
+    ----------
+    fs : float
+        Sampling frequency of the measurements (Hz).
+    W_w : array-like, shape (3, 3), optional
+        Gyroscope calibration matrix (default: identity).
+    W_f : array-like, shape (3, 3), optional
+        Accelerometer calibration matrix (default: identity).
+    b_w : array-like, shape (3,), optional
+        Gyroscope bias vector (default: zero).
+    b_f : array-like, shape (3,), optional
+        Accelerometer bias vector (default: zero).
+    bias_alt : bool, default False
+        If set to ``True``, the bias definition of the alternative calibration model
+        is returned. See Notes.
+
+    Notes
+    -----
+    The calibration model is defined as::
+
+        xyz_ref = W @ xyz + bias
+
+    The alternative calibration model where biases are added first is defined as::
+
+        xyz_ref = W @ (xyz + bias)
+
+    The alternative model is enabled by setting ``bias_alt=True``.
+    """
+
+    def __init__(
+        self,
+        fs,
+        W_w: np.ndarray = np.eye(3),
+        W_f: np.ndarray = np.eye(3),
+        b_w: np.ndarray = np.zeros(3),
+        b_f: np.ndarray = np.zeros(3),
+        bias_alt: bool = False,
+    ):
+        adj_W_w, W_w_det = _adjugate_and_det_3_by_3(W_w)
+        if W_w_det == 0:
+            raise ValueError("W_w must be invertible")
+        W_w_inv = adj_W_w / W_w_det
+        self.cof_W = W_w_inv.T * W_w_det
+        self.W_star = W_w_inv @ W_f
+        if bias_alt:
+            self.b_f_star = b_f
+            self.b_w_star = b_w
+        else:
+            adj_W_f, W_f_det = _adjugate_and_det_3_by_3(W_f)
+            if W_f_det == 0:
+                raise ValueError("W_f must be invertible.")
+            W_f_inv = adj_W_f / W_f_det
+            self.b_f_star = W_f_inv @ b_f
+            self.b_w_star = W_w_inv @ b_w
+        self.W_w = W_w
+        super().__init__(fs)
+
+    def update(self, f, w, degrees=False):
+        f_adjusted = self.W_star @ (f + self.b_f_star)
+        w_adjusted = w + self.b_w_star
+        super().update(f_adjusted, w_adjusted, degrees)
+
+    def _calc_dtheta_dvel(self, degrees=False):
+        dtheta = self.W_w @ self._theta + self.cof_W @ self._dtheta_con
+        dtheta = np.degrees(dtheta) if degrees else dtheta
+
+        dvel = self.W_w @ self._vel + self.cof_W @ (self._dvel_rot + self._dvel_scul)
         return dtheta, dvel

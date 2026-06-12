@@ -70,3 +70,16 @@ def test__skew_symmetric():
     out = _vectorops._skew_symmetric(a) @ b
     expected = np.cross(a, b)
     np.testing.assert_array_equal(out, expected)
+
+
+def test__adjugate_and_det_3_by_3():
+    """Test matrix inversion against numpy"""
+    rng = np.random.default_rng(42)
+    for _ in range(5):
+        m = rng.random((3, 3))
+
+        adj, det = _vectorops._adjugate_and_det_3_by_3(m)
+        inv = adj / det
+
+        inv_expected = np.linalg.inv(m)
+        np.testing.assert_allclose(inv, inv_expected, rtol=1e-12, atol=1e-12)
