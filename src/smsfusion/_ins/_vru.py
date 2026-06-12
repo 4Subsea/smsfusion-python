@@ -310,14 +310,12 @@ class VRU:
 
         dtheta = dtheta - self._dt * self._bg_b
 
-        # Update state-space model
+        # Update state-space model and project (a priori) error covariance matrix estimate ahead
         self._phi = _state_transition_matrix_update(self._phi, dtheta)
+        self._P = _project_covariance_ahead(self._P, self._phi, self._Q)
 
         # Project (a priori) state estimates ahead
         self._q_nb = _update_quaternion_with_rotvec(self._q_nb, dtheta)
-
-        # Project (a priori) error covariance matrix estimate ahead
-        self._P = _project_covariance_ahead(self._P, self._phi, self._Q)
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
         if gref is True:
