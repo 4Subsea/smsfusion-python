@@ -383,10 +383,14 @@ class Test_IMUNoise:
 
 
 class Test_allan_var_overlapping:
-    def test_no_tqdm(self, monkeypatch):
-        import sys
 
-        monkeypatch.delitem(sys.modules, "tqdm", raising=False)
+    @staticmethod
+    def _tqdm_installed():
+        import importlib.util
+        return importlib.util.find_spec("tqdm") is not None
+
+    @pytest.mark.skipif(_tqdm_installed(), reason="tqdm is installed")
+    def test_no_tqdm(self):
         with pytest.raises(ImportError):
             y = np.random.random(1_000)
             tau, avar = allan_var(y, 10.0, progress=True)
