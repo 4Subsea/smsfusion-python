@@ -162,9 +162,6 @@ class VRU:
     P : array_like, shape (6, 6), optional
         Initial (a priori) estimate of the error covariance matrix. Defaults to
         a small diagonal matrix (1e-6 * np.eye(9)).
-    acc_noise_density : float, optional
-        Accelerometer noise density (velocity random walk) in (m/s)/√Hz. Defaults to
-        0.0007 (m/s)/√Hz (SMS Motion 2 noise level).
     gyro_noise_density : float, optional
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
         0.00005 (rad/s)/√Hz (SMS Motion 2 noise level).
@@ -186,7 +183,6 @@ class VRU:
         q: ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = P0,
-        acc_noise_density: float = 0.0007,
         gyro_noise_density: float = 0.00005,
         gyro_bias_stability: float = 0.00005,
         gyro_bias_corr_time: float = 50.0,
@@ -198,7 +194,6 @@ class VRU:
         self._nz2vg = _nz2vg(self._nav_frame)
 
         # IMU noise parameters
-        self._vrw = acc_noise_density  # velocity random walk
         self._arw = gyro_noise_density  # angular random walk
         self._gbs = gyro_bias_stability  # gyro bias stability
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time

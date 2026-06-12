@@ -3,7 +3,7 @@ import pytest
 from scipy.signal import resample_poly
 
 import smsfusion as sf
-from smsfusion._ins._vru import VRU, _state_transition_matrix_init, _state_transition_matrix_update
+from smsfusion._ins._vru import VRU, _state_transition_matrix_init, _state_transition_matrix_update, _measurement_matrix_init, _reset, _process_noise_covariance_matrix
 from smsfusion.benchmark import (
     benchmark_pure_attitude_beat_202311A,
     benchmark_pure_attitude_chirp_202311A
@@ -48,6 +48,38 @@ def test_state_transition_matrix_update():
     ])
 
     np.testing.assert_almost_equal(phi_out, phi_expected)
+
+
+def test_measurement_matrix_init():
+    np.testing.assert_array_equal(_measurement_matrix_init(), np.zeros((3, 6)))
+
+
+def test_process_noise_covariance_matrix():
+    dt = 0.1
+    arw = 0.00005
+    gbs = 0.00005
+    gbc = 50.0
+    Q_out = _process_noise_covariance_matrix(dt, arw, gbs, gbc)
+    Q_expect = np.array([
+        [dt * arw**2, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [0.0, dt * arw**2, 0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, dt * arw**2, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, dt * (2.0 * gbs**2 / gbc), 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0, dt * (2.0 * gbs**2 / gbc), 0.0],
+        [0.0, 0.0, 0.0, 0.0, 0.0, dt * (2.0 * gbs**2 / gbc)],
+    ])
+
+
+def test_reset():
+    q_nb = np.array([1.0, 0.0, 0.0, 0.0])
+    bg_b = np.zeros(3)
+    dx = np.array([0.01, 0.0, 0.0, 0.1, -0.1, 0.2])
+
+    dx, q_nb, bg_b = _reset(dx, q_nb, bg_b)
+
+    np.testing.assert_allclose(dx, np.zeros_like(dx))
+    np.testing.assert_allclose(bg_b, np.array([0.1, -0.1, 0.2]))
+    np.testing.assert_allclose(q_nb, np.array([np.cos(0.01/2), np.sin(0.01/2), 0.0, 0.0]), atol=1e-6)
 
 
 def test_vru_init():
@@ -115,7 +147,6 @@ def test_vru_benchmark(benchmark_gen):
     mekf = VRU(
         fs_imu,
         q=q0,
-        acc_noise_density=sf.constants.ERR_ACC_MOTION2["N"],
         gyro_noise_density=sf.constants.ERR_GYRO_MOTION2["N"],
         gyro_bias_stability=sf.constants.ERR_GYRO_MOTION2["B"],
         gyro_bias_corr_time=sf.constants.ERR_GYRO_MOTION2["tau_cb"],
