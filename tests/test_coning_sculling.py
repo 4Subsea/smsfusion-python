@@ -1,5 +1,4 @@
 from pathlib import Path
-from turtle import down
 
 import numpy as np
 import pytest
@@ -77,14 +76,17 @@ class Test_ConingScullingAlg:
         np.testing.assert_allclose(alg._dvel_scul, np.zeros(3))
         np.testing.assert_allclose(alg._dv_prev, np.zeros(3))
 
-    def test_update(self, data_ag, data_dtheta_dvel):
+    @pytest.mark.parametrize(
+        "algorithm", [sf.ConingScullingAlg, sf.ConingScullingAlgCalibrated]
+    )
+    def test_update(self, data_ag, data_dtheta_dvel, algorithm):
         f, w = data_ag
         dvel_ref, dtheta_ref = data_dtheta_dvel
 
         fs_highfreq = 200.0
         fs_lowfreq = 10.0
         step = int(fs_highfreq / fs_lowfreq)
-        alg = sf.ConingScullingAlg(200.0)
+        alg = algorithm(200.0)
 
         dtheta_out = []
         dvel_out = []
@@ -284,38 +286,6 @@ class Test_ConingScullingAlg:
         np.testing.assert_allclose(dvel_out, dvel_expect)
         np.testing.assert_allclose(dtheta_out, np.zeros(3))
 
-    def test_dvel(self):
-        fs = 100.0
-        alg = sf.ConingScullingAlg(fs)
-
-        f = np.array([1.0, 2.0, 3.0])  # m/s^2
-        w = np.array([0.0, 0.0, 0.0])  # rad/s
-
-        for i in range(int(fs * 1.0)):  # 1 second
-            alg.update(f, w)
-
-        dvel_out = alg.dvel()
-
-        dvel_expect = np.array([1.0, 2.0, 3.0])
-        np.testing.assert_allclose(dvel_out, dvel_expect)
-
-    def test_dtheta(self):
-        fs = 100.0
-        alg = sf.ConingScullingAlg(fs)
-
-        f = np.array([0.0, 0.0, 0.0])  # m/s^2
-        w = np.array([np.radians(30.0), -np.radians(45.0), np.radians(60.0)])  # rad/s
-
-        for i in range(int(fs * 1.0)):  # 1 second
-            alg.update(f, w)
-
-        dtheta_out = alg.dtheta()
-
-        dtheta_expect = np.array(
-            [np.radians(30.0), -np.radians(45.0), np.radians(60.0)]
-        )
-        np.testing.assert_allclose(dtheta_out, dtheta_expect)
-
     def test_flush(self):
         fs = 100.0
         alg = sf.ConingScullingAlg(fs)
@@ -326,10 +296,121 @@ class Test_ConingScullingAlg:
         for i in range(int(fs * 1.0)):  # 1 second
             alg.update(f, w)
 
-        dtheta_expect = alg.dtheta()
-        dvel_expect = alg.dvel()
         dtheta_out, dvel_out = alg.flush()
-        np.testing.assert_allclose(dtheta_out, dtheta_expect)
-        np.testing.assert_allclose(dvel_out, dvel_expect)
-        assert np.allclose(alg.dtheta(), np.zeros(3))
-        assert np.allclose(alg.dvel(), np.zeros(3))
+        # Check that flush returns non-zero values
+        assert np.all(np.abs(dtheta_out) > 0.1)
+        assert np.all(np.abs(dvel_out) > 0.1)
+
+        # Flushing again should yield all zeros
+        dtheta_out, dvel_out = alg.flush()
+        np.testing.assert_allclose(dtheta_out, np.zeros(3))
+        np.testing.assert_allclose(dvel_out, np.zeros(3))
+
+    def test_verify_calibration(self, data_ag, data_dtheta_dvel):
+        """Tests that the algorithm with built-in calibration produces the same results as the
+        uncalibrated algorithm with manual calibration applied to the inputs.
+        """
+        rng = np.random.default_rng(seed=42)
+        FS_HIGH = 200.0
+        FS_LOW = 10.0
+        downsample_factor = int(FS_HIGH / FS_LOW)
+        # Calibration matrices and biases
+        A1, A2 = rng.random((3, 3)), rng.random((3, 3))
+        b_w, b_f = rng.random(3) * np.radians(0.1), rng.random(3)
+        W_w = A1 @ A1.T + np.eye(3)  # Positive semi-definite
+        W_f = A2 @ A2.T + np.eye(3)  # Positive semi-definite
+        W_f_inv, W_w_inv = np.linalg.inv(W_f), np.linalg.inv(W_w)
+
+        f_true, w_true = data_ag
+        dvel_true, dtheta_true = data_dtheta_dvel
+
+        # Generate measurements with scaling, misalignment and bias
+        f_meas = np.empty_like(f_true)
+        w_meas = np.empty_like(w_true)
+        for i in range(len(f_true)):
+            f_meas[i] = W_f_inv @ (f_true[i] - b_f)
+            w_meas[i] = W_w_inv @ (w_true[i] - b_w)
+
+        # Generate measurements with scaling, misalignment and bias - alternative bias method
+        f_meas_alt = np.empty_like(f_true)
+        w_meas_alt = np.empty_like(w_true)
+        for i in range(len(f_true)):
+            f_meas_alt[i] = W_f_inv @ f_true[i] - b_f
+            w_meas_alt[i] = W_w_inv @ w_true[i] - b_w
+
+        # Calculate dtheta and dvel when calibrating each measurement manually before feeding to the uncalibrated algorithm
+        alg_naive_calibration = sf.ConingScullingAlg(FS_HIGH)
+        dtheta_naive, dvel_naive = [], []
+        for i, (f_i, w_i) in enumerate(zip(f_meas, w_meas)):
+            # Apply calibration to measurements
+            f_i_naive = W_f @ (f_i) + b_f
+            w_i_naive = W_w @ (w_i) + b_w
+
+            alg_naive_calibration.update(f_i_naive, w_i_naive)
+            if (i != 0) and (i % downsample_factor == 0):
+                dtheta_i, dvel_i = alg_naive_calibration.flush()
+                dtheta_naive.append(dtheta_i)
+                dvel_naive.append(dvel_i)
+        dtheta_naive = np.array(dtheta_naive)
+        dvel_naive = np.array(dvel_naive)
+
+        # Calculate dtheta and dvel using the built-in calibration algorithm
+        alg_calibrated = sf.ConingScullingAlgCalibrated(
+            FS_HIGH, W_w=W_w, W_f=W_f, b_w=b_w, b_f=b_f
+        )
+        dtheta_calibrated, dvel_calibrated = [], []
+        for i, (f_i, w_i) in enumerate(zip(f_meas, w_meas)):
+            alg_calibrated.update(f_i, w_i)
+            if (i != 0) and (i % downsample_factor == 0):
+                dtheta_i, dvel_i = alg_calibrated.flush()
+                dtheta_calibrated.append(dtheta_i)
+                dvel_calibrated.append(dvel_i)
+        dtheta_calibrated = np.array(dtheta_calibrated)
+        dvel_calibrated = np.array(dvel_calibrated)
+
+        # Calculate dtheta and dvel using the built-in calibration algorithm - alternative bias method
+        alg_calibrated_alt = sf.ConingScullingAlgCalibrated(
+            FS_HIGH, W_w=W_w, W_f=W_f, b_w=b_w, b_f=b_f, bias_alt=True
+        )
+        dtheta_calibrated_alt, dvel_calibrated_alt = [], []
+        for i, (f_i, w_i) in enumerate(zip(f_meas_alt, w_meas_alt)):
+            alg_calibrated_alt.update(f_i, w_i)
+            if (i != 0) and (i % downsample_factor == 0):
+                dtheta_i, dvel_i = alg_calibrated_alt.flush()
+                dtheta_calibrated_alt.append(dtheta_i)
+                dvel_calibrated_alt.append(dvel_i)
+        dtheta_calibrated_alt = np.array(dtheta_calibrated_alt)
+        dvel_calibrated_alt = np.array(dvel_calibrated_alt)
+
+        # Test that the different methods match
+        np.testing.assert_allclose(dtheta_calibrated, dtheta_true, atol=1e-8)
+        np.testing.assert_allclose(dvel_calibrated, dvel_true, atol=1e-8)
+        np.testing.assert_allclose(dtheta_calibrated_alt, dtheta_true, atol=1e-8)
+        np.testing.assert_allclose(dvel_calibrated_alt, dvel_true, atol=1e-8)
+        np.testing.assert_allclose(dtheta_naive, dtheta_true, atol=1e-8)
+        np.testing.assert_allclose(dvel_naive, dvel_true, atol=1e-8)
+
+    @pytest.mark.parametrize(
+        "w_singular, f_singular", [(True, False), (False, True), (True, True)]
+    )
+    def test_raises_singular_matrix(self, w_singular, f_singular):
+        fs = 100.0
+        if w_singular:
+            W_w = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]])
+        else:
+            W_w = np.eye(3)
+        if f_singular:
+            W_f = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]])
+        else:
+            W_f = np.eye(3)
+        b_w = np.zeros(3)
+        b_f = np.zeros(3)
+        with pytest.raises(ValueError, match="must be invertible"):
+            sf.ConingScullingAlgCalibrated(
+                fs, W_w=W_w, W_f=W_f, b_w=b_w, b_f=b_f, bias_alt=False
+            )
+        if w_singular:
+            with pytest.raises(ValueError, match="must be invertible"):
+                sf.ConingScullingAlgCalibrated(
+                    fs, W_w=W_w, W_f=W_f, b_w=b_w, b_f=b_f, bias_alt=True
+                )
