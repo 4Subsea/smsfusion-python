@@ -69,6 +69,7 @@ def test_process_noise_covariance_matrix():
         [0.0, 0.0, 0.0, 0.0, 0.0, dt * (2.0 * gbs**2 / gbc)],
     ])
 
+    np.testing.assert_allclose(Q_out, Q_expect)
 
 def test_reset():
     q_nb = np.array([1.0, 0.0, 0.0, 0.0])
