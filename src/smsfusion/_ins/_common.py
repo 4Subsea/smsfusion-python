@@ -44,7 +44,7 @@ def _dhda_head(q: NDArray[np.float64]) -> NDArray[np.float64]:
     return dhda  # type: ignore[no-any-return]
 
 
-@njit
+@njit  # type: ignore[misc]
 def _h_head(q: NDArray[np.float64]) -> float:
     """
     Compute yaw angle from unit quaternion.
@@ -73,7 +73,7 @@ def _h_head(q: NDArray[np.float64]) -> float:
     return np.arctan2(u_y, u_x)  # type: ignore[no-any-return]
 
 
-@njit
+@njit  # type: ignore[misc]
 def _signed_smallest_angle(angle: float, degrees: bool = True) -> float:
     """
     Convert the given angle to the smallest angle between [-180., 180) degrees.
@@ -324,6 +324,7 @@ def _project_covariance_ahead(
     return P
 
 
+@njit  # type: ignore[misc]
 def _nz2vg(nav_frame: str) -> float:
     """
     Gravity direction along the navigation frame's z-axis. Transforms the z-axis

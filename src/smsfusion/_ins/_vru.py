@@ -26,6 +26,7 @@ P0 = (
 )
 
 
+@njit  # type: ignore[misc]
 def _state_transition_matrix_init(
     dt: float,
     dtheta: NDArray[np.float64],
@@ -82,6 +83,7 @@ def _state_transition_matrix_update(
     return phi
 
 
+@njit  # type: ignore[misc]
 def _process_noise_covariance_matrix(
     dt: float, arw: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
@@ -110,6 +112,7 @@ def _process_noise_covariance_matrix(
     return Q
 
 
+@njit  # type: ignore[misc]
 def _measurement_matrix_init() -> NDArray[np.float64]:
     """
     Measurement matrix.

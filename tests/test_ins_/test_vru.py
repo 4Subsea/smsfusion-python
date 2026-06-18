@@ -122,10 +122,10 @@ def test_vru_methods():
 
 
 @pytest.mark.parametrize(
-    "benchmark_gen",
-    [benchmark_pure_attitude_beat_202311A, benchmark_pure_attitude_chirp_202311A],
+    "benchmark_gen, degrees",
+    [(benchmark_pure_attitude_beat_202311A, False), (benchmark_pure_attitude_chirp_202311A, True)],
 )
-def test_vru_benchmark(benchmark_gen):
+def test_vru_benchmark(benchmark_gen, degrees):
     fs_imu = 100.0
     warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
 
@@ -143,6 +143,9 @@ def test_vru_benchmark(benchmark_gen):
     acc_noise = acc_ref + imu_noise[:, :3]
     gyro_noise = gyro_ref + imu_noise[:, 3:] + bg
 
+    if degrees:
+        gyro_noise = np.degrees(gyro_noise)
+
     # MEKF
     q0 = sf.quaternion_from_euler(euler_ref[0], degrees=False)
     mekf = VRU(
@@ -158,13 +161,14 @@ def test_vru_benchmark(benchmark_gen):
     for i, (f_i, w_i) in enumerate(
         zip(acc_noise, gyro_noise)
     ):
+
         dvel = f_i / fs_imu
         dtheta = w_i / fs_imu
 
         mekf.update(
             dvel,
             dtheta,
-            degrees=False,
+            degrees=degrees,
             gref=True
         )
 

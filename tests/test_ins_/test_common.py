@@ -194,3 +194,28 @@ def test__update_quaternion_with_gibbs2(quaternion, da, quaternion_update_expect
     np.testing.assert_allclose(
         quaternion_update, quaternion_update_expected, atol=1e-10
     )
+
+
+@pytest.mark.parametrize(
+    "q_nb,nav_frame_factor",
+    [
+        (np.array([1.0, 0.0, 0.0, 0.0]), 1.0),
+        (np.array([1.0, 0.0, 0.0, 0.0]), -1.0),
+        (np.array([np.cos(0.1/2), np.sin(0.1/2), 0.0, 0.0]), -1.0),
+        (np.array([np.cos(0.1/2), np.sin(0.1/2), 0.0, 0.0]), 1.0),
+        (np.array([np.cos(0.1/2), 0.0, np.sin(0.1/2), 0.0]), -1.0),
+        (np.array([np.cos(0.1/2), 0.0, np.sin(0.1/2), 0.0]), 1.0),
+        (np.array([np.cos(0.1/2), 0.0, 0.0, np.sin(0.1/2)]), -1.0),
+        (np.array([np.cos(0.1/2), 0.0, 0.0, np.sin(0.1/2)]), 1.0)
+    ]
+)
+def test__nz_b_from_quat(q_nb, nav_frame_factor):
+    out = _common._nz_b_from_quat(q_nb, nav_frame_factor=nav_frame_factor)
+
+    expect = Rotation.from_quat(q_nb, scalar_first=True).apply(nav_frame_factor * np.array([0.0, 0.0, 1.0]), inverse=True)
+    np.testing.assert_allclose(out, expect)
+
+
+def test__nz2vg():
+    assert _common._nz2vg("NED") == 1.0
+    assert _common._nz2vg("ENU") == -1.0

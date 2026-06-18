@@ -39,6 +39,12 @@ def test_euler_from_acc(euler):
     euler_enu = _utils.euler_from_acc(acc_enu, nav_frame="ENU", yaw=euler[2], degrees=True)
     np.testing.assert_allclose(euler_enu, euler_degrees)
 
+def test_euler_from_acc_invalid_frame():
+ 
+    acc_ned = np.array([0.0, 0.0, 1])
+    with pytest.raises(ValueError):
+        _utils.euler_from_acc(acc_ned, nav_frame="STAR")
+
 
 @pytest.mark.parametrize(
     "mu, g_expect",
