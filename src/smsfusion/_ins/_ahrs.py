@@ -155,7 +155,7 @@ def _measurement_matrix_init(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Returns
     -------
-    ndarray, shape (4, 6)
+    ndarray, shape (4, 9)
         Linearized measurement matrix.
     """
     dhdx = np.zeros((4, 9))
