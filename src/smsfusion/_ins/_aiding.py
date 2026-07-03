@@ -14,6 +14,33 @@ from ._common import (
 
 
 @njit  # type: ignore[misc]
+def _aiding_update_pos(
+    dx: NDArray[np.float64],
+    P: NDArray[np.float64],
+    H: NDArray[np.float64],
+    pos_n: NDArray[np.float64],
+    pos_meas: NDArray[np.float64],
+    pos_var: NDArray[np.float64],
+    R_nb: NDArray[np.float64],
+    lever_arm: NDArray[np.float64],
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """
+    Update with position aiding measurement.
+    """
+
+    if pos_var is None:
+        raise ValueError("'pos_var' not provided.")
+
+    if not lever_arm.any():
+        dz = pos_meas - (pos_n + R_nb @ lever_arm)
+    else:
+        dz = pos_meas - pos_n
+
+    dx, P = _kalman_update_sequential(dx, P, dz, pos_var, H)
+    return dx, P
+
+
+@njit  # type: ignore[misc]
 def _aiding_update_vel(
     dx: NDArray[np.float64],
     P: NDArray[np.float64],

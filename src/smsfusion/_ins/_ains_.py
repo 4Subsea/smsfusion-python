@@ -7,7 +7,7 @@ from numpy.typing import ArrayLike, NDArray
 from smsfusion._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
 from smsfusion._vectorops import _skew_symmetric
 
-from ._aiding import _aiding_update_head, _aiding_update_vel
+from ._aiding import _aiding_update_head, _aiding_update_vel, _aiding_update_pos
 from ._common import (
     _dhda_head,
     _project_covariance_ahead,
@@ -16,15 +16,18 @@ from ._common import (
 )
 
 P0 = (
-    (1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
-    (0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
-    (0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
-    (0.0, 0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0),
-    (0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0),
-    (0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0),
-    (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0, 0.0),
-    (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0),
-    (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6),
+    (1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+    (0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+    (0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+    (0.0, 0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+    (0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+    (0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+    (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0),
+    (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0),
+    (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0),
+    (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0, 0.0),
+    (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0),
+    (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6),
 )
 
 
@@ -53,14 +56,15 @@ def _state_transition_matrix_init(
 
     Returns
     -------
-    ndarray, shape (9, 9)
+    ndarray, shape (12, 12)
         State transition matrix.
     """
-    phi = np.eye(9)
-    phi[0:3, 3:6] -= R_nb @ _skew_symmetric(dvel)  # NB! update each time step
-    phi[3:6, 3:6] -= _skew_symmetric(dtheta)  # NB! update each time step
-    phi[3:6, 6:9] -= dt * np.eye(3)
-    phi[6:9, 6:9] -= dt * np.eye(3) / gbc
+    phi = np.eye(12)
+    phi[0:3, 3:6] += dt * np.eye(3)
+    phi[3:6, 6:9] -= R_nb @ _skew_symmetric(dvel)  # NB! update each time step
+    phi[6:9, 6:9] -= _skew_symmetric(dtheta)  # NB! update each time step
+    phi[6:9, 9:12] -= dt * np.eye(3)
+    phi[9:12, 9:12] -= dt * np.eye(3) / gbc
     return phi
 
 
@@ -76,7 +80,7 @@ def _state_transition_matrix_update(
 
     Parameters
     ----------
-    phi : ndarray, shape (9, 9)
+    phi : ndarray, shape (12, 12)
         State transition matrix to be updated in place.
     dvel : ndarray, shape (3,)
         Velocity increment measurement (sculling integral).
@@ -92,24 +96,24 @@ def _state_transition_matrix_update(
     r10, r11, r12 = R_nb[1]
     r20, r21, r22 = R_nb[2]
 
-    # phi[3:6, 3:6] = np.eye(3) - dt * S(w_b)
-    phi[3, 4] = dtz
-    phi[3, 5] = -dty
-    phi[4, 3] = -dtz
-    phi[4, 5] = dtx
-    phi[5, 3] = dty
-    phi[5, 4] = -dtx
+    # phi[6:9, 6:9] = np.eye(3) - dt * S(w_b)
+    phi[6, 7] = dtz
+    phi[6, 8] = -dty
+    phi[7, 6] = -dtz
+    phi[7, 8] = dtx
+    phi[8, 6] = dty
+    phi[8, 7] = -dtx
 
-    # phi[0:3, 3:6] = -dt * R_nb @ S(f_b)
-    phi[0, 3] = -dvz * r01 + dvy * r02
-    phi[1, 3] = -dvz * r11 + dvy * r12
-    phi[2, 3] = -dvz * r21 + dvy * r22
-    phi[0, 4] = dvz * r00 - dvx * r02
-    phi[1, 4] = dvz * r10 - dvx * r12
-    phi[2, 4] = dvz * r20 - dvx * r22
-    phi[0, 5] = -dvy * r00 + dvx * r01
-    phi[1, 5] = -dvy * r10 + dvx * r11
-    phi[2, 5] = -dvy * r20 + dvx * r21
+    # phi[3:6, 6:9] = -dt * R_nb @ S(f_b)
+    phi[3, 6] = -dvz * r01 + dvy * r02
+    phi[4, 6] = -dvz * r11 + dvy * r12
+    phi[5, 6] = -dvz * r21 + dvy * r22
+    phi[3, 7] = dvz * r00 - dvx * r02
+    phi[4, 7] = dvz * r10 - dvx * r12
+    phi[5, 7] = dvz * r20 - dvx * r22
+    phi[3, 8] = -dvy * r00 + dvx * r01
+    phi[4, 8] = -dvy * r10 + dvx * r11
+    phi[5, 8] = -dvy * r20 + dvx * r21
     return phi
 
 
@@ -134,17 +138,20 @@ def _process_noise_covariance_matrix(
 
     Returns
     -------
-    Q : ndarray, shape (9, 9)
+    Q : ndarray, shape (12, 12)
         Process noise covariance matrix.
     """
-    Q = np.zeros((9, 9))
-    Q[0:3, 0:3] = dt * vrw**2 * np.eye(3)
-    Q[3:6, 3:6] = dt * arw**2 * np.eye(3)
-    Q[6:9, 6:9] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
+    Q = np.zeros((12, 12))
+    Q[3:6, 0:3] = dt * vrw**2 * np.eye(3)
+    Q[6:9, 3:6] = dt * arw**2 * np.eye(3)
+    Q[9:12, 6:9] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
     return Q
 
 
-def _measurement_matrix_init(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
+
+def _measurement_matrix_init(
+        q_nb: NDArray[np.float64],
+        lever_arm: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Measurement matrix.
 
@@ -152,15 +159,22 @@ def _measurement_matrix_init(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     ----------
     q_nb : ndarray, shape (4,)
         Unit quaternion.
+    lever_arm : ndarray, shape(3,)
+        Lever-arm vector describing the location of position aiding (in meters) relative
+        to the IMU expressed in the IMU's measurement frame. For instance, the location
+        of the GNSS antenna relative to the IMU. By default it is assumed that the
+        aiding position coincides with the IMU's origin.
 
     Returns
     -------
-    ndarray, shape (4, 9)
+    ndarray, shape (7, 12)
         Linearized measurement matrix.
     """
-    dhdx = np.zeros((4, 9))
-    dhdx[0:3, 0:3] = np.eye(3)  # velocity
-    dhdx[3:4, 3:6] = _dhda_head(q_nb)  # heading
+    dhdx = np.zeros((7, 12))
+    dhdx[0:3, 0:3] = np.eye(3)  # position
+    dhdx[0:3, 6:9] = -_rot_matrix_from_quaternion(q_nb) @ _skew_symmetric(lever_arm)  # position lever arm
+    dhdx[3:6, 3:6] = np.eye(3)  # velocity
+    dhdx[6:7, 6:9] = _dhda_head(q_nb)  # heading
     return dhdx
 
 
@@ -192,17 +206,20 @@ def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _reset(
     dx: NDArray[np.float64],
+    p_n: NDArray[np.float64],
     v_n: NDArray[np.float64],
     q_nb: NDArray[np.float64],
     bg_b: NDArray[np.float64],
 ) -> tuple[
-    NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]
+    NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]
 ]:
     """
     Reset state.
 
     Parameters
     ----------
+    p_n : ndarray, shape (3,)
+        Position state estimate to be reset in place.
     v_n : ndarray, shape (3,)
         Velocity state estimate to be reset in place.
     q_nb : ndarray, shape (4,)
@@ -213,25 +230,28 @@ def _reset(
         Error state vector containing the corrections to be applied to the state
         estimates. Will be reset to zero after applying the corrections.
     """
-    v_n[:] += dx[0:3]
-    q_nb = _update_quaternion_with_gibbs2(q_nb, dx[3:6])
-    bg_b[:] += dx[6:9]
+    p_n[:] += dx[0:3]
+    v_n[:] += dx[3:6]
+    q_nb = _update_quaternion_with_gibbs2(q_nb, dx[6:9])
+    bg_b[:] += dx[9:12]
     dx[:] = 0.0
-    return dx, v_n, q_nb, bg_b
+    return dx, p_n, v_n, q_nb, bg_b
 
 
-class AHRS:
+class AINS:
     """
-    Attitude and Heading Reference System (AHRS) using a multiplicative extended
+    Aided inertial navigation system (AINS) using a multiplicative extended
     Kalman filter (MEKF).
 
     Parameters
     ----------
     fs : float
         Sampling rate in Hz.
+    pos : array_like, shape (3,), optional
+        Initial position estimate in m from origin. Defaults to origin (0.0, 0.0, 0.0).
     vel : array_like, shape (3,), optional
         Initial velocity estimate in m/s. Defaults to zero velocity (stationary).
-    q : Attitude or array_like, shape (4,), optional
+    q : array_like, shape (4,), optional
         Initial attitude estimate as a unit quaternion (qw, qx, qy, qz). Defaults
         to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
     bg : array_like, shape (3,), optional
@@ -257,12 +277,18 @@ class AHRS:
         Specifies the assumed inertial-like 'navigation' frame. Should be 'NED' (North-East-Down)
         (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
         will be expressed relative to this frame.
+    lever_arm : array-like, shape (3,), default (0.0, 0.0, 0.0)
+        Lever-arm vector describing the location of position aiding (in meters) relative
+        to the IMU expressed in the IMU's measurement frame. For instance, the location
+        of the GNSS antenna relative to the IMU. By default it is assumed that the
+        aiding position coincides with the IMU's origin.
 
     """
 
     def __init__(
         self,
         fs: float,
+        pos: ArrayLike = (0.0, 0.0, 0.0),
         vel: ArrayLike = (0.0, 0.0, 0.0),
         q: ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
@@ -273,6 +299,7 @@ class AHRS:
         gyro_bias_corr_time: float = 50.0,
         g: float = 9.80665,
         nav_frame: str = "NED",
+        lever_arm: ArrayLike = (0.0, 0.0, 0.0)
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
@@ -280,6 +307,7 @@ class AHRS:
         self._nav_frame = nav_frame.lower()
         self._g_n = _gravity_nav(self._g, self._nav_frame)
         self._dvel_g_corr = self._dt * self._g_n
+        self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
 
         # IMU noise parameters
         self._vrw = acc_noise_density  # velocity random walk
@@ -288,11 +316,12 @@ class AHRS:
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
         # State and covariance estimates
+        self._p_n = np.asarray_chkfinite(pos).reshape(3).copy()
         self._v_n = np.asarray_chkfinite(vel).reshape(3).copy()
         self._q_nb = np.asarray_chkfinite(q).reshape(4).copy()
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
-        self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
-        self._dx = np.zeros(9)
+        self._P = np.asarray_chkfinite(P).reshape(12, 12).copy()
+        self._dx = np.zeros(12)
 
         # Discrete state-space model
         self._phi = _state_transition_matrix_init(
@@ -305,7 +334,13 @@ class AHRS:
         self._Q = _process_noise_covariance_matrix(
             self._dt, self._vrw, self._arw, self._gbs, self._gbc
         )
-        self._H = _measurement_matrix_init(self._q_nb)
+        self._H = _measurement_matrix_init(self._q_nb, self._lever_arm)
+
+    def position(self) -> NDArray[np.float64]:
+        """
+        Position expressed in the navigation frame.
+        """
+        return self._p_n.copy()
 
     def velocity(self) -> NDArray[np.float64]:
         """
@@ -367,7 +402,9 @@ class AHRS:
         dvel: ArrayLike,
         dtheta: ArrayLike,
         degrees: bool = False,
-        vel: ArrayLike | None = (0.0, 0.0, 0.0),
+        pos: ArrayLike | None = None,
+        pos_var: ArrayLike = (1.0e6, 1.0e6, 1.0e6),
+        vel: ArrayLike | None = None,
         vel_var: ArrayLike = (100.0, 100.0, 100.0),
         head: float | None = None,
         head_var: float = 0.001,
@@ -385,6 +422,10 @@ class AHRS:
         degrees : bool, optional
             Specifies whether the unit of the attitude increment, ``dtheta``, is
             degrees or radians. Defaults to radians.
+        pos : array-like, shape (3,), optional
+            Position aiding measurement in m. If ``None``, position aiding ins not used.
+        pos_var : array-like, shape (3,), optional
+            Variance of position measurement noise in m^2. Ignored if ``pos`` is ``None``. 
         vel : array-like, shape (3,), optional
             Velocity aiding measurement in m/s. If ``None``, velocity aiding is not used.
         vel_var : array-like, shape (3,), optional
@@ -402,7 +443,7 @@ class AHRS:
 
         Returns
         -------
-        AHRS
+        AINS
             A reference to the instance itself after the update.
         """
 
@@ -419,6 +460,7 @@ class AHRS:
         self._phi = _state_transition_matrix_update(self._phi, dvel, dtheta, R_nb)
 
         # Project (a priori) state estimates ahead
+        self._p_n[:] += self._dt * self._v_n
         self._v_n[:] += R_nb @ dvel + self._dvel_g_corr
         self._q_nb = _update_quaternion_with_rotvec(self._q_nb, dtheta)
 
@@ -426,11 +468,23 @@ class AHRS:
         self._P = _project_covariance_ahead(self._P, self._phi, self._Q)
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
+        if pos is not None:
+            self._dx, self._P = _aiding_update_pos(
+                self._dx,
+                self._P,
+                self._H[0:3],
+                self._p_n,
+                np.asarray(vel),
+                np.asarray(vel_var),
+                R_nb,
+                self._lever_arm
+            )
+
         if vel is not None:
             self._dx, self._P = _aiding_update_vel(
                 self._dx,
                 self._P,
-                self._H[0:3],
+                self._H[3:6],
                 self._v_n,
                 np.asarray(vel),
                 np.asarray(vel_var),
@@ -442,7 +496,7 @@ class AHRS:
             self._dx, self._P = _aiding_update_head(
                 self._dx,
                 self._P,
-                self._H[3],
+                self._H[6],
                 self._q_nb,
                 head,
                 head_var,
@@ -450,8 +504,8 @@ class AHRS:
             )
 
         # Reset state
-        self._dx, self._v_n, self._q_nb, self._bg_b = _reset(
-            self._dx, self._v_n, self._q_nb, self._bg_b
+        self._dx, self._p_n, self._v_n, self._q_nb, self._bg_b = _reset(
+            self._dx, self._p_n, self._v_n, self._q_nb, self._bg_b
         )
 
         return self
