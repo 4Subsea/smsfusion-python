@@ -74,7 +74,7 @@ def _state_transition_matrix_update(
     dvel: NDArray[np.float64],
     dtheta: NDArray[np.float64],
     R_nb: NDArray[np.float64],
-) -> NDArray[np.float64]:
+) -> None:
     """
     Update the state transition matrix in place.
 
@@ -168,12 +168,12 @@ def _measurement_matrix_init(
     ndarray, shape (7, 12)
         Linearized measurement matrix.
     """
-    dhdx = np.zeros((7, 12))
-    dhdx[0:3, 0:3] = np.eye(3)  # position
-    dhdx[0:3, 6:9] = -_rot_matrix_from_quaternion(q_nb) @ _skew_symmetric(lever_arm)
-    dhdx[3:6, 3:6] = np.eye(3)  # velocity
-    dhdx[6:7, 6:9] = _dhda_head(q_nb)  # heading
-    return dhdx
+    H = np.zeros((7, 12))
+    H[0:3, 0:3] = np.eye(3)  # position
+    H[0:3, 6:9] = -_rot_matrix_from_quaternion(q_nb) @ _skew_symmetric(lever_arm)
+    H[3:6, 3:6] = np.eye(3)  # velocity
+    H[6:7, 6:9] = _dhda_head(q_nb)  # heading
+    return H
 
 
 def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
@@ -208,15 +208,9 @@ def _reset(
     v_n: NDArray[np.float64],
     q_nb: NDArray[np.float64],
     bg_b: NDArray[np.float64],
-) -> tuple[
-    NDArray[np.float64],
-    NDArray[np.float64],
-    NDArray[np.float64],
-    NDArray[np.float64],
-    NDArray[np.float64],
-]:
+) -> None:
     """
-    Reset state.
+    Reset state (in place).
 
     Parameters
     ----------

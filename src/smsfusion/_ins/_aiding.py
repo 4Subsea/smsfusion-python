@@ -88,10 +88,6 @@ def _aiding_update_gref(
     """
     Update state and covariance with gravity reference vector aiding measurement.
     """
-
-    if gref_var is None:
-        raise ValueError("gref_var is not provided; required for gref aiding.")
-
     dz = -_normalize(dvel) - vg_b
     dx, P = _kalman_update_sequential(dx, P, dz, gref_var, H)
     return dx, P
