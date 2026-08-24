@@ -262,7 +262,9 @@ def test_ains_benchmark(benchmark_gen, gyro_degrees):
     )
 
     pos_est, vel_est, euler_est, bias_gyro_est = [], [], [], []
-    for f_i, w_i, h_i, p_i, v_i in zip(acc_imu, gyro_imu, head_meas, pos_meas, vel_meas):
+    for f_i, w_i, h_i, p_i, v_i in zip(
+        acc_imu, gyro_imu, head_meas, pos_meas, vel_meas
+    ):
 
         dvel_i = f_i / fs_imu
         dtheta_i = w_i / fs_imu
@@ -299,23 +301,26 @@ def test_ains_benchmark(benchmark_gen, gyro_degrees):
     euler_ref = euler_ref[:-1, :]
     bias_gyro_ref = np.tile(bg, (len(bias_gyro_est), 1))
 
-    px_std, py_std, pz_std = np.std((pos_est - pos_ref)[warmup:], axis=0)
-    vx_std, vy_std, vz_std = np.std((vel_est - vel_ref)[warmup:], axis=0)
-    roll_std, pitch_std, yaw_std = np.std((euler_est - euler_ref)[warmup:], axis=0)
-    bgx_std, bgy_std, bgz_std = np.std((bias_gyro_est - bias_gyro_ref)[warmup:], axis=0)
+    def rmse(ref, est):
+        return np.sqrt(np.mean((ref - est) ** 2, axis=0))
 
-    assert px_std <= 0.2
-    assert py_std <= 0.2
-    assert pz_std <= 0.2
-    assert vx_std <= 0.1
-    assert vy_std <= 0.1
-    assert vz_std <= 0.1
-    assert np.degrees(roll_std) <= 0.5
-    assert np.degrees(pitch_std) <= 0.5
-    assert np.degrees(yaw_std) <= 0.5
-    assert np.degrees(bgx_std) <= 0.01
-    assert np.degrees(bgy_std) <= 0.01
-    assert np.degrees(bgz_std) <= 0.01
+    px_rmse, py_rmse, pz_rmse = rmse(pos_ref[warmup:], pos_est[warmup:])
+    vx_rmse, vy_rmse, vz_rmse = rmse(vel_ref[warmup:], vel_est[warmup:])
+    roll_rmse, pitch_rmse, yaw_rmse = rmse(euler_ref[warmup:], euler_est[warmup:])
+    bgx_rmse, bgy_rmse, bgz_rmse = rmse(bias_gyro_ref[warmup:], bias_gyro_est[warmup:])
+
+    assert px_rmse <= 0.2
+    assert py_rmse <= 0.2
+    assert pz_rmse <= 0.2
+    assert vx_rmse <= 0.1
+    assert vy_rmse <= 0.1
+    assert vz_rmse <= 0.1
+    assert np.degrees(roll_rmse) <= 0.5
+    assert np.degrees(pitch_rmse) <= 0.5
+    assert np.degrees(yaw_rmse) <= 0.5
+    assert np.degrees(bgx_rmse) <= 0.01
+    assert np.degrees(bgy_rmse) <= 0.01
+    assert np.degrees(bgz_rmse) <= 0.01
 
 
 # @pytest.mark.parametrize(
