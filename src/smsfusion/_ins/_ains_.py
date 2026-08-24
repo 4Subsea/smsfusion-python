@@ -142,9 +142,9 @@ def _process_noise_covariance_matrix(
         Process noise covariance matrix.
     """
     Q = np.zeros((12, 12))
-    Q[3:6, 0:3] = dt * vrw**2 * np.eye(3)
-    Q[6:9, 3:6] = dt * arw**2 * np.eye(3)
-    Q[9:12, 6:9] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
+    Q[3:6, 3:6] = dt * vrw**2 * np.eye(3)
+    Q[6:9, 6:9] = dt * arw**2 * np.eye(3)
+    Q[9:12, 9:12] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
     return Q
 
 
