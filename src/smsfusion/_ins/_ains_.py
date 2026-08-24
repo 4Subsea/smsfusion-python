@@ -138,7 +138,7 @@ def _process_noise_covariance_matrix(
 
     Returns
     -------
-    Q : ndarray, shape (12, 12)
+    ndarray, shape (12, 12)
         Process noise covariance matrix.
     """
     Q = np.zeros((12, 12))
