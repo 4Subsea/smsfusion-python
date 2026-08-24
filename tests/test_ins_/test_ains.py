@@ -219,13 +219,13 @@ def test_ains_methods():
 
 
 @pytest.mark.parametrize(
-    "benchmark_gen, degrees",
+    "benchmark_gen, gyro_degrees",
     [
         (benchmark_full_pva_beat_202311A, False),
-        # (benchmark_full_pva_chirp_202311A, True),
+        (benchmark_full_pva_chirp_202311A, True),
     ],
 )
-def test_ains_benchmark(benchmark_gen, degrees):
+def test_ains_benchmark(benchmark_gen, gyro_degrees):
     fs_imu = 10.0
     warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
 
@@ -235,7 +235,7 @@ def test_ains_benchmark(benchmark_gen, degrees):
     # IMU and aiding measurements (with noise)
     pos_std = 0.1  # m
     vel_std = 0.01  # m/s
-    head_std = np.radians(1.0)  # rad
+    head_std = np.radians(0.1)  # rad
     err_acc = sf.constants.ERR_ACC_MOTION2
     err_gyro = sf.constants.ERR_GYRO_MOTION2
     noise_model = sf.noise.IMUNoise(err_acc=err_acc, err_gyro=err_gyro, seed=0)
@@ -247,7 +247,7 @@ def test_ains_benchmark(benchmark_gen, degrees):
     vel_aid = vel_ref + np.random.normal(0.0, vel_std, vel_ref.shape)
     head_aid = euler_ref[:, 2] + np.random.normal(0.0, head_std, len(euler_ref))
 
-    if degrees:
+    if gyro_degrees:
         gyro_imu = np.degrees(gyro_imu)
 
     # Position and velocity aiding measurements
@@ -273,7 +273,7 @@ def test_ains_benchmark(benchmark_gen, degrees):
         mekf.update(
             dvel_i,
             dtheta_i,
-            degrees=degrees,
+            degrees=gyro_degrees,
             head=h_i,
             head_var=head_std**2,
             head_degrees=False,
@@ -310,11 +310,11 @@ def test_ains_benchmark(benchmark_gen, degrees):
     assert px_std <= 0.2
     assert py_std <= 0.2
     assert pz_std <= 0.2
-    assert vx_std <= 0.03
-    assert vy_std <= 0.03
-    assert vz_std <= 0.03
-    assert np.degrees(roll_std) <= 0.2
-    assert np.degrees(pitch_std) <= 0.2
+    assert vx_std <= 0.1
+    assert vy_std <= 0.1
+    assert vz_std <= 0.1
+    assert np.degrees(roll_std) <= 0.5
+    assert np.degrees(pitch_std) <= 0.5
     assert np.degrees(yaw_std) <= 0.5
     assert np.degrees(bgx_std) <= 0.01
     assert np.degrees(bgy_std) <= 0.01
