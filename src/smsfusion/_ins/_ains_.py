@@ -171,9 +171,7 @@ def _measurement_matrix_init(
     """
     dhdx = np.zeros((7, 12))
     dhdx[0:3, 0:3] = np.eye(3)  # position
-    dhdx[0:3, 6:9] = -_rot_matrix_from_quaternion(q_nb) @ _skew_symmetric(
-        lever_arm
-    )  # position lever arm
+    dhdx[0:3, 6:9] = -_rot_matrix_from_quaternion(q_nb) @ _skew_symmetric(lever_arm)
     dhdx[3:6, 3:6] = np.eye(3)  # velocity
     dhdx[6:7, 6:9] = _dhda_head(q_nb)  # heading
     return dhdx
