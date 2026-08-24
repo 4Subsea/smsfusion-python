@@ -459,7 +459,9 @@ class AINS:
 
         # Update state-space model
         R_nb = _rot_matrix_from_quaternion(self._q_nb)
-        self._phi = _state_transition_matrix_update(self._phi, dvel, dtheta, R_nb)
+        _state_transition_matrix_update(
+            self._phi, dvel, dtheta, R_nb
+        )  # -> update phi (in place)
 
         # Project (a priori) state estimates ahead
         self._p_n[:] += self._dt * self._v_n
@@ -467,11 +469,11 @@ class AINS:
         self._q_nb = _update_quaternion_with_rotvec(self._q_nb, dtheta)
 
         # Project (a priori) error covariance matrix estimate ahead
-        self._P = _project_covariance_ahead(self._P, self._phi, self._Q)
+        _project_covariance_ahead(self._P, self._phi, self._Q)  # -> update P (in place)
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
         if pos is not None:
-            self._dx, self._P = _aiding_update_pos(
+            _aiding_update_pos(
                 self._dx,
                 self._P,
                 self._H[0:3],
@@ -480,22 +482,22 @@ class AINS:
                 np.asarray(pos_var),
                 R_nb,
                 self._lever_arm,
-            )
+            )  # -> update dx and P (in place)
 
         if vel is not None:
-            self._dx, self._P = _aiding_update_vel(
+            _aiding_update_vel(
                 self._dx,
                 self._P,
                 self._H[3:6],
                 self._v_n,
                 np.asarray(vel),
                 np.asarray(vel_var),
-            )
+            )  # -> update dx and P (in place)
 
         if head is not None:
             self._H[6:7, 6:9] = _dhda_head(self._q_nb)  # Update measurement matrix
 
-            self._dx, self._P = _aiding_update_head(
+            _aiding_update_head(
                 self._dx,
                 self._P,
                 self._H[6],
@@ -503,7 +505,7 @@ class AINS:
                 head,
                 head_var,
                 head_degrees,
-            )
+            )  # -> update dx and P (in place)
 
         # Reset state (in place)
         # Moves information from the error state vector to the nominal state vectors,
