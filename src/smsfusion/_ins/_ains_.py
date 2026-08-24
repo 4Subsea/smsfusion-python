@@ -479,8 +479,8 @@ class AINS:
                 self._P,
                 self._H[0:3],
                 self._p_n,
-                np.asarray(vel),
-                np.asarray(vel_var),
+                np.asarray(pos),
+                np.asarray(pos_var),
                 R_nb,
                 self._lever_arm,
             )
