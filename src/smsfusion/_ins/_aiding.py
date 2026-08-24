@@ -1,11 +1,10 @@
 import numpy as np
 from numba import njit
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import NDArray
 
-from smsfusion._vectorops import _normalize, _skew_symmetric
+from smsfusion._vectorops import _normalize
 
 from ._common import (
-    _dhda_head,
     _h_head,
     _kalman_update_scalar,
     _kalman_update_sequential,
