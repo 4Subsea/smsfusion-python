@@ -223,7 +223,7 @@ def test_ains_methods():
         (benchmark_pure_attitude_chirp_202311A, True),
     ],
 )
-def test_ahrs_no_head_aiding_benchmark(benchmark_gen, degrees):
+def test_ains_no_head_aiding_benchmark(benchmark_gen, degrees):
     fs_imu = 100.0
     warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
 
@@ -246,7 +246,7 @@ def test_ahrs_no_head_aiding_benchmark(benchmark_gen, degrees):
 
     # MEKF
     q0 = sf.quaternion_from_euler(euler_ref[0], degrees=False)
-    mekf = AHRS(
+    mekf = AINS(
         fs_imu,
         q=q0,
         gyro_noise_density=sf.constants.ERR_GYRO_MOTION2["N"],
@@ -265,6 +265,8 @@ def test_ahrs_no_head_aiding_benchmark(benchmark_gen, degrees):
             dvel,
             dtheta,
             degrees=degrees,
+            pos=np.zeros(3),
+            vel=np.zeros(3),
         )
 
         euler_out.append(mekf.euler(degrees=False))
