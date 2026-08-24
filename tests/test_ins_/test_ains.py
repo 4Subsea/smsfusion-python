@@ -205,7 +205,7 @@ def test_ains_methods():
     quaternion_init = sf.quaternion_from_euler(euler_init, degrees=True)
     bg_init = np.array([0.01, -0.01, 0.02])
 
-    mekf = AINS(10.0, pos=pos_init, vel=vel_init, q=quaternion_init, bg=bg_init)
+    mekf = AINS(10.0, p0=pos_init, v0=vel_init, q0=quaternion_init, bg0=bg_init)
 
     np.testing.assert_allclose(mekf.position(), pos_init)
     np.testing.assert_allclose(mekf.velocity(), vel_init)
@@ -251,9 +251,9 @@ def test_ains_benchmark(benchmark_gen, gyro_degrees):
     # MEKF
     mekf = AINS(
         fs_imu,
-        pos=pos_ref[0],
-        vel=vel_ref[0],
-        q=sf.quaternion_from_euler(euler_ref[0], degrees=False),
+        p0=pos_ref[0],
+        v0=vel_ref[0],
+        q0=sf.quaternion_from_euler(euler_ref[0], degrees=False),
         gyro_noise_density=err_gyro["N"],
         gyro_bias_stability=err_gyro["B"],
         gyro_bias_corr_time=err_gyro["tau_cb"],

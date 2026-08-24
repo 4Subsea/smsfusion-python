@@ -248,16 +248,16 @@ class AINS:
     ----------
     fs : float
         Sampling rate in Hz.
-    pos : array_like, shape (3,), optional
-        Initial position estimate in m from origin. Defaults to origin (0.0, 0.0, 0.0).
-    vel : array_like, shape (3,), optional
+    p0 : array_like, shape (3,), optional
+        Initial position estimate in m. Defaults to origin (0.0, 0.0, 0.0).
+    v0 : array_like, shape (3,), optional
         Initial velocity estimate in m/s. Defaults to zero velocity (stationary).
-    q : array_like, shape (4,), optional
+    q0 : array_like, shape (4,), optional
         Initial attitude estimate as a unit quaternion (qw, qx, qy, qz). Defaults
         to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
-    bg : array_like, shape (3,), optional
+    bg0 : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
-    P : array_like, shape (6, 6), optional
+    P0 : array_like, shape (6, 6), optional
         Initial (a priori) estimate of the error covariance matrix. Defaults to
         a small diagonal matrix (1e-6 * np.eye(9)).
     acc_noise_density : float, optional
@@ -278,22 +278,21 @@ class AINS:
         Specifies the assumed inertial-like 'navigation' frame. Should be 'NED' (North-East-Down)
         (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
         will be expressed relative to this frame.
-    lever_arm : array-like, shape (3,), default (0.0, 0.0, 0.0)
+    lever_arm : array-like, shape (3,), optional
         Lever-arm vector describing the location of position aiding (in meters) relative
         to the IMU expressed in the IMU's measurement frame. For instance, the location
         of the GNSS antenna relative to the IMU. By default it is assumed that the
         aiding position coincides with the IMU's origin.
-
     """
 
     def __init__(
         self,
         fs: float,
-        pos: ArrayLike = (0.0, 0.0, 0.0),
-        vel: ArrayLike = (0.0, 0.0, 0.0),
-        q: ArrayLike = (1.0, 0.0, 0.0, 0.0),
-        bg: ArrayLike = (0.0, 0.0, 0.0),
-        P: ArrayLike = P0,
+        p0: ArrayLike = (0.0, 0.0, 0.0),
+        v0: ArrayLike = (0.0, 0.0, 0.0),
+        q0: ArrayLike = (1.0, 0.0, 0.0, 0.0),
+        bg0: ArrayLike = (0.0, 0.0, 0.0),
+        P0: ArrayLike = P0,
         acc_noise_density: float = 0.0007,
         gyro_noise_density: float = 0.00005,
         gyro_bias_stability: float = 0.00005,
@@ -317,11 +316,11 @@ class AINS:
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
         # State and covariance estimates
-        self._p_n = np.asarray_chkfinite(pos).reshape(3).copy()
-        self._v_n = np.asarray_chkfinite(vel).reshape(3).copy()
-        self._q_nb = np.asarray_chkfinite(q).reshape(4).copy()
-        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
-        self._P = np.asarray_chkfinite(P).reshape(12, 12).copy()
+        self._p_n = np.asarray_chkfinite(p0).reshape(3).copy()
+        self._v_n = np.asarray_chkfinite(v0).reshape(3).copy()
+        self._q_nb = np.asarray_chkfinite(q0).reshape(4).copy()
+        self._bg_b = np.asarray_chkfinite(bg0).reshape(3).copy()
+        self._P = np.asarray_chkfinite(P0).reshape(12, 12).copy()
         self._dx = np.zeros(12)
 
         # Discrete state-space model
