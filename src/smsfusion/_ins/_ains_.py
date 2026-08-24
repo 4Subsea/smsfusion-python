@@ -495,7 +495,7 @@ class AINS:
             )
 
         if head is not None:
-            self._H[6:7, 6:9] = _dhda_head(self._q_nb)  # update measurement matrix
+            self._H[6, 6:9] = _dhda_head(self._q_nb)  # update measurement matrix
 
             _aiding_update_head(  # -> update dx and P (in place)
                 self._dx,
