@@ -243,29 +243,26 @@ def test_ains_benchmark(benchmark_gen, gyro_degrees):
     imu_noise = noise_model(fs_imu, len(t))
     acc_imu = acc_ref + imu_noise[:, :3]
     gyro_imu = gyro_ref + imu_noise[:, 3:] + bg
-    pos_aid = pos_ref + np.random.normal(0.0, pos_std, pos_ref.shape)
-    vel_aid = vel_ref + np.random.normal(0.0, vel_std, vel_ref.shape)
-    head_aid = euler_ref[:, 2] + np.random.normal(0.0, head_std, len(euler_ref))
+    pos_meas = pos_ref + np.random.normal(0.0, pos_std, pos_ref.shape)
+    vel_meas = vel_ref + np.random.normal(0.0, vel_std, vel_ref.shape)
+    head_meas = euler_ref[:, 2] + np.random.normal(0.0, head_std, len(euler_ref))
 
     if gyro_degrees:
         gyro_imu = np.degrees(gyro_imu)
 
-    # Position and velocity aiding measurements
-
     # MEKF
-    q0 = sf.quaternion_from_euler(euler_ref[0], degrees=False)
     mekf = AINS(
         fs_imu,
         pos=pos_ref[0],
         vel=vel_ref[0],
-        q=q0,
-        gyro_noise_density=sf.constants.ERR_GYRO_MOTION2["N"],
-        gyro_bias_stability=sf.constants.ERR_GYRO_MOTION2["B"],
-        gyro_bias_corr_time=sf.constants.ERR_GYRO_MOTION2["tau_cb"],
+        q=sf.quaternion_from_euler(euler_ref[0], degrees=False),
+        gyro_noise_density=err_gyro["N"],
+        gyro_bias_stability=err_gyro["B"],
+        gyro_bias_corr_time=err_gyro["tau_cb"],
     )
 
     pos_est, vel_est, euler_est, bias_gyro_est = [], [], [], []
-    for f_i, w_i, h_i, p_i, v_i in zip(acc_imu, gyro_imu, head_aid, pos_aid, vel_aid):
+    for f_i, w_i, h_i, p_i, v_i in zip(acc_imu, gyro_imu, head_meas, pos_meas, vel_meas):
 
         dvel_i = f_i / fs_imu
         dtheta_i = w_i / fs_imu
