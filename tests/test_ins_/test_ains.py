@@ -162,15 +162,17 @@ def test_process_noise_covariance_matrix():
 
 
 def test_reset():
-    v_n = np.array([0.0, 0.1, 0.0])
+    p_n = np.array([1.0, 0.0, 0.0])
+    v_n = np.array([0.0, 2.0, 0.0])
     q_nb = np.array([1.0, 0.0, 0.0, 0.0])
     bg_b = np.zeros(3)
-    dx = np.array([0.1, 0.0, 0.0, 0.01, 0.0, 0.0, 0.1, -0.1, 0.2])
+    dx = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.01, 0.0, 0.0, 0.1, -0.1, 0.2])
 
-    dx, v_n, q_nb, bg_b = _reset(dx, v_n, q_nb, bg_b)
+    dx, p_n, v_n, q_nb, bg_b = _reset(dx, p_n, v_n, q_nb, bg_b)
 
     np.testing.assert_allclose(dx, np.zeros_like(dx))
-    np.testing.assert_allclose(v_n, np.array([0.1, 0.1, 0.0]))
+    np.testing.assert_allclose(p_n, np.array([1.1, 0.2, 0.3]))
+    np.testing.assert_allclose(v_n, np.array([0.4, 2.5, 0.6]))
     np.testing.assert_allclose(bg_b, np.array([0.1, -0.1, 0.2]))
     np.testing.assert_allclose(
         q_nb, np.array([np.cos(0.01 / 2), np.sin(0.01 / 2), 0.0, 0.0]), atol=1e-6
