@@ -256,12 +256,15 @@ def test_ains_benchmark(benchmark_gen, degrees):
     q0 = sf.quaternion_from_euler(euler_ref[0], degrees=False)
     mekf = AINS(
         fs_imu,
+        pos=pos_ref[0],
+        vel=vel_ref[0],
         q=q0,
         gyro_noise_density=sf.constants.ERR_GYRO_MOTION2["N"],
         gyro_bias_stability=sf.constants.ERR_GYRO_MOTION2["B"],
         gyro_bias_corr_time=sf.constants.ERR_GYRO_MOTION2["tau_cb"],
     )
 
+    pos_est, vel_est, euler_est, bias_gyro_est = [], [], [], []
     for i, (f_i, w_i, h_i, p_i, v_i) in enumerate(
         zip(acc_imu, gyro_imu, head_aid, pos_aid, vel_aid)
     ):
@@ -280,6 +283,43 @@ def test_ains_benchmark(benchmark_gen, degrees):
             vel=v_i,
             vel_var=vel_std**2 * np.ones(3),
         )
+        pos_est.append(mekf.position())
+        vel_est.append(mekf.velocity())
+        euler_est.append(mekf.euler(degrees=False))
+        bias_gyro_est.append(mekf.bias_gyro())
+
+    pos_est = np.array(pos_est)
+    vel_est = np.array(vel_est)
+    euler_est = np.array(euler_est)
+    bias_gyro_est = np.array(bias_gyro_est)
+
+    # Half-sample shift (compensates for the delay introduced by Euler integration)
+    pos_est = resample_poly(pos_est, 2, 1)[1:-1:2]
+    vel_est = resample_poly(vel_est, 2, 1)[1:-1:2]
+    euler_est = resample_poly(euler_est, 2, 1)[1:-1:2]
+    bias_gyro_est = resample_poly(bias_gyro_est, 2, 1)[1:-1:2]
+    pos_ref = pos_ref[:-1, :]
+    vel_ref = vel_ref[:-1, :]
+    euler_ref = euler_ref[:-1, :]
+    bias_gyro_ref = np.tile(bg, (len(bias_gyro_est), 1))
+
+    px_std, py_std, pz_std = np.std((pos_est - pos_ref)[warmup:], axis=0)
+    vx_std, vy_std, vz_std = np.std((vel_est - vel_ref)[warmup:], axis=0)
+    roll_std, pitch_std, yaw_std = np.std((euler_est - euler_ref)[warmup:], axis=0)
+    bgx_std, bgy_std, bgz_std = np.std((bias_gyro_est - bias_gyro_ref)[warmup:], axis=0)
+
+    assert px_std <= 1.0
+    assert py_std <= 1.0
+    assert pz_std <= 1.0
+    assert vx_std <= 0.5
+    assert vy_std <= 0.5
+    assert vz_std <= 0.5
+    assert np.degrees(roll_std) <= 0.5
+    assert np.degrees(pitch_std) <= 0.5
+    assert np.degrees(yaw_std) <= 1.0
+    assert np.degrees(bgx_std) <= 0.1
+    assert np.degrees(bgy_std) <= 0.1
+    assert np.degrees(bgz_std) <= 0.1
 
 
 # @pytest.mark.parametrize(
