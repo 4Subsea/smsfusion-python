@@ -179,12 +179,13 @@ def test_reset():
     )
 
 
-def test_ahrs_init():
-    mekf = AHRS(10.0)
+def test_ains_init():
+    mekf = AINS(10.0)
+    np.testing.assert_allclose(mekf.position(), np.zeros(3))
     np.testing.assert_allclose(mekf.velocity(), np.zeros(3))
     np.testing.assert_allclose(mekf.quaternion(), np.array([1.0, 0.0, 0.0, 0.0]))
     np.testing.assert_allclose(mekf.bias_gyro(), np.zeros(3))
-    np.testing.assert_allclose(mekf.P, np.array(sf._ins._ahrs.P0))
+    np.testing.assert_allclose(mekf.P, np.array(sf._ins._ains.P0))
     assert mekf._g == 9.80665
     assert mekf._nav_frame == "ned"
 
