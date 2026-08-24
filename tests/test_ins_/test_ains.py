@@ -276,6 +276,7 @@ def test_ains_benchmark(benchmark_gen, degrees):
             degrees=degrees,
             head=h_i,
             head_var=head_std**2,
+            head_degrees=False,
             pos=p_i,
             pos_var=pos_std**2 * np.ones(3),
             vel=v_i,
@@ -306,9 +307,9 @@ def test_ains_benchmark(benchmark_gen, degrees):
     roll_std, pitch_std, yaw_std = np.std((euler_est - euler_ref)[warmup:], axis=0)
     bgx_std, bgy_std, bgz_std = np.std((bias_gyro_est - bias_gyro_ref)[warmup:], axis=0)
 
-    assert px_std <= 1.0
-    assert py_std <= 1.0
-    assert pz_std <= 1.0
+    assert px_std <= 0.5
+    assert py_std <= 0.5
+    assert pz_std <= 0.5
     assert vx_std <= 0.5
     assert vy_std <= 0.5
     assert vz_std <= 0.5
