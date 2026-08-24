@@ -420,17 +420,19 @@ class AINS:
             Position aiding measurement in m. If ``None``, position aiding ins not used.
         pos_var : array-like, shape (3,), optional
             Variance of position measurement noise in m^2. Ignored if ``pos`` is ``None``.
+            Defaults to (1e6, 1e6, 1e6) m^2.
         vel : array-like, shape (3,), optional
             Velocity aiding measurement in m/s. If ``None``, velocity aiding is not used.
         vel_var : array-like, shape (3,), optional
             Variance of velocity measurement noise in (m/s)^2. Ignored if ``vel`` is ``None``.
+            Defaults to (100.0, 100.0, 100.0) (m/s)^2.
         head : float, optional
             Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
             assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
             If ``None``, compass aiding is not used. See ``head_degrees`` for units.
         head_var : float, optional
             Variance of heading measurement noise. Units must be compatible with ``head``.
-             See ``head_degrees`` for units. Ignored if ``head`` is ``None``.
+            See ``head_degrees`` for units. Ignored if ``head`` is ``None``.
         head_degrees : bool, default False
             Specifies whether the unit of ``head`` and ``head_var`` are in degrees and degrees^2,
             or radians and radians^2. Default is in radians and radians^2.
