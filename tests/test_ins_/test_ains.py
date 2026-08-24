@@ -307,18 +307,18 @@ def test_ains_benchmark(benchmark_gen, degrees):
     roll_std, pitch_std, yaw_std = np.std((euler_est - euler_ref)[warmup:], axis=0)
     bgx_std, bgy_std, bgz_std = np.std((bias_gyro_est - bias_gyro_ref)[warmup:], axis=0)
 
-    assert px_std <= 0.5
-    assert py_std <= 0.5
-    assert pz_std <= 0.5
-    assert vx_std <= 0.5
-    assert vy_std <= 0.5
-    assert vz_std <= 0.5
-    assert np.degrees(roll_std) <= 0.5
-    assert np.degrees(pitch_std) <= 0.5
-    assert np.degrees(yaw_std) <= 1.0
-    assert np.degrees(bgx_std) <= 0.1
-    assert np.degrees(bgy_std) <= 0.1
-    assert np.degrees(bgz_std) <= 0.1
+    assert px_std <= 0.2
+    assert py_std <= 0.2
+    assert pz_std <= 0.2
+    assert vx_std <= 0.03
+    assert vy_std <= 0.03
+    assert vz_std <= 0.03
+    assert np.degrees(roll_std) <= 0.2
+    assert np.degrees(pitch_std) <= 0.2
+    assert np.degrees(yaw_std) <= 0.5
+    assert np.degrees(bgx_std) <= 0.01
+    assert np.degrees(bgy_std) <= 0.01
+    assert np.degrees(bgz_std) <= 0.01
 
 
 # @pytest.mark.parametrize(
