@@ -191,14 +191,14 @@ def test_ains_init():
 
 
 @pytest.mark.parametrize("nav_frame, scale", (["NED", 1.0], ["ENU", -1.0]))
-def test_ahrs_nav_frame(nav_frame, scale):
+def test_ains_nav_frame(nav_frame, scale):
     mekf = AINS(10.0, nav_frame=nav_frame)
 
     assert mekf._nav_frame == nav_frame.lower()
     np.testing.assert_allclose(mekf._g_n, np.array([0.0, 0.0, mekf._g * scale]))
 
 
-def test_ahrs_methods():
+def test_ains_methods():
     pos_init = np.array([0.1, 10.0, -0.2])
     vel_init = np.array([0.0, 0.1, -0.2])
     euler_init = np.array([10.0, 20.0, 30.0])
@@ -207,7 +207,7 @@ def test_ahrs_methods():
 
     mekf = AINS(10.0, pos=pos_init, vel=vel_init, q=quaternion_init, bg=bg_init)
 
-    np.testing.assert_allclose(mekf.position(), vel_init)
+    np.testing.assert_allclose(mekf.position(), pos_init)
     np.testing.assert_allclose(mekf.velocity(), vel_init)
     np.testing.assert_allclose(mekf.euler(), np.radians(euler_init))
     np.testing.assert_allclose(mekf.euler(degrees=True), euler_init)
