@@ -451,9 +451,8 @@ class AINS:
 
         dtheta = dtheta - self._dt * self._bg_b
 
-        R_nb = _rot_matrix_from_quaternion(self._q_nb)
-
         # Update state-space model -> update phi (in place)
+        R_nb = _rot_matrix_from_quaternion(self._q_nb)
         _state_transition_matrix_update(self._phi, dvel, dtheta, R_nb)
 
         # Project (a priori) state estimates ahead
