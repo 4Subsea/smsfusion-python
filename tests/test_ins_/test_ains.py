@@ -265,9 +265,7 @@ def test_ains_benchmark(benchmark_gen, degrees):
     )
 
     pos_est, vel_est, euler_est, bias_gyro_est = [], [], [], []
-    for i, (f_i, w_i, h_i, p_i, v_i) in enumerate(
-        zip(acc_imu, gyro_imu, head_aid, pos_aid, vel_aid)
-    ):
+    for f_i, w_i, h_i, p_i, v_i in zip(acc_imu, gyro_imu, head_aid, pos_aid, vel_aid):
 
         dvel_i = f_i / fs_imu
         dtheta_i = w_i / fs_imu
