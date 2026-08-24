@@ -309,9 +309,9 @@ def test_ains_benchmark(benchmark_gen, gyro_degrees):
     roll_rmse, pitch_rmse, yaw_rmse = rmse(euler_ref[warmup:], euler_est[warmup:])
     bgx_rmse, bgy_rmse, bgz_rmse = rmse(bias_gyro_ref[warmup:], bias_gyro_est[warmup:])
 
-    assert px_rmse <= 0.2
-    assert py_rmse <= 0.2
-    assert pz_rmse <= 0.2
+    assert px_rmse <= 0.1
+    assert py_rmse <= 0.1
+    assert pz_rmse <= 0.1
     assert vx_rmse <= 0.1
     assert vy_rmse <= 0.1
     assert vz_rmse <= 0.1
