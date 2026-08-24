@@ -54,12 +54,12 @@ def test_state_transition_matrix_update():
     R_nb = np.eye(3)
     gbc = 0.01
 
-    phi_init = _state_transition_matrix_init(dt, dvel, dtheta, R_nb, gbc)
+    phi = _state_transition_matrix_init(dt, dvel, dtheta, R_nb, gbc)
 
     dtheta_update = np.ones(3) * 0.01
     dvel_update = np.ones(3) * 0.1
-    phi_out = _state_transition_matrix_update(
-        phi_init, dvel=dvel_update, dtheta=dtheta_update, R_nb=R_nb
+    _state_transition_matrix_update(
+        phi, dvel=dvel_update, dtheta=dtheta_update, R_nb=R_nb
     )
 
     phi_expected = np.array(
@@ -79,7 +79,7 @@ def test_state_transition_matrix_update():
         ]
     )
 
-    np.testing.assert_almost_equal(phi_out, phi_expected)
+    np.testing.assert_almost_equal(phi, phi_expected)
 
 
 def test_measurement_matrix_init():

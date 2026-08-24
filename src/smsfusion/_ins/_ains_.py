@@ -114,7 +114,6 @@ def _state_transition_matrix_update(
     phi[3, 8] = -dvy * r00 + dvx * r01
     phi[4, 8] = -dvy * r10 + dvx * r11
     phi[5, 8] = -dvy * r20 + dvx * r21
-    return phi
 
 
 def _process_noise_covariance_matrix(
@@ -457,16 +456,15 @@ class AINS:
 
         dtheta = dtheta - self._dt * self._bg_b
 
-        # Update state-space model
         R_nb = _rot_matrix_from_quaternion(self._q_nb)
-        _state_transition_matrix_update(
-            self._phi, dvel, dtheta, R_nb
-        )  # -> update phi (in place)
+
+        # Update state-space model -> update phi (in place)
+        _state_transition_matrix_update(self._phi, dvel, dtheta, R_nb)
 
         # Project (a priori) state estimates ahead
         self._p_n[:] += self._dt * self._v_n
         self._v_n[:] += R_nb @ dvel + self._dvel_g_corr
-        self._q_nb = _update_quaternion_with_rotvec(self._q_nb, dtheta)
+        _update_quaternion_with_rotvec(self._q_nb, dtheta)  # -> update q_nb (in place)
 
         # Project (a priori) error covariance matrix estimate ahead
         _project_covariance_ahead(self._P, self._phi, self._Q)  # -> update P (in place)
@@ -507,9 +505,7 @@ class AINS:
                 head_degrees,
             )  # -> update dx and P (in place)
 
-        # Reset state (in place)
-        # Moves information from the error state vector to the nominal state vectors,
-        # and resets the error state vector to zero
+        # Reset state -> update p_n, v_n, q_nb, bg_b and dx (in place)
         _reset(self._dx, self._p_n, self._v_n, self._q_nb, self._bg_b)
 
         return self
