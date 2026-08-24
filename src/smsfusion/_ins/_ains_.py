@@ -471,6 +471,8 @@ class AINS:
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
         if pos is not None:
+
+            # -> update dx and P (in place)
             _aiding_update_pos(
                 self._dx,
                 self._P,
@@ -483,6 +485,8 @@ class AINS:
             )  # -> update dx and P (in place)
 
         if vel is not None:
+
+            # -> update dx and P (in place)
             _aiding_update_vel(
                 self._dx,
                 self._P,
@@ -490,11 +494,12 @@ class AINS:
                 self._v_n,
                 np.asarray(vel),
                 np.asarray(vel_var),
-            )  # -> update dx and P (in place)
+            )
 
         if head is not None:
             self._H[6:7, 6:9] = _dhda_head(self._q_nb)  # Update measurement matrix
 
+            # -> update dx and P (in place)
             _aiding_update_head(
                 self._dx,
                 self._P,
@@ -503,9 +508,10 @@ class AINS:
                 head,
                 head_var,
                 head_degrees,
-            )  # -> update dx and P (in place)
+            )
 
-        # Reset state -> update p_n, v_n, q_nb, bg_b and dx (in place)
+        # Reset state
+        # -> update p_n, v_n, q_nb, bg_b and dx (in place)
         _reset(self._dx, self._p_n, self._v_n, self._q_nb, self._bg_b)
 
         return self
