@@ -471,6 +471,8 @@ class AINS:
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
         if pos is not None:
+            if pos_var is None:
+                raise ValueError("'pos_var' is required for position aiding.")
 
             _aiding_update_pos(  # -> update dx and P (in place)
                 self._dx,
@@ -484,6 +486,8 @@ class AINS:
             )
 
         if vel is not None:
+            if vel_var is None:
+                raise ValueError("'vel_var' is required for velocity aiding.")
 
             _aiding_update_vel(  # -> update dx and P (in place)
                 self._dx,
@@ -495,6 +499,9 @@ class AINS:
             )
 
         if head is not None:
+            if head_var is None:
+                raise ValueError("'head_var' is required for heading aiding.")
+
             self._H[6, 6:9] = _dhda_head(self._q_nb)  # update measurement matrix
 
             _aiding_update_head(  # -> update dx and P (in place)

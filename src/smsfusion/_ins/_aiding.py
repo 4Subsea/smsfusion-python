@@ -28,10 +28,7 @@ def _aiding_update_pos(
     Update with position aiding measurement.
     """
 
-    if pos_var is None:
-        raise ValueError("'pos_var' not provided.")
-
-    if not lever_arm.any():
+    if lever_arm.any():
         dz = pos_meas - (pos_n + R_nb @ lever_arm)
     else:
         dz = pos_meas - pos_n
@@ -52,10 +49,6 @@ def _aiding_update_vel(
     """
     Update with velocity aiding measurement.
     """
-
-    if vel_var is None:
-        raise ValueError("'vel_var' not provided.")
-
     dz = vel_meas - vel_n
     dx, P = _kalman_update_sequential(dx, P, dz, vel_var, H)
     return dx, P
@@ -74,9 +67,6 @@ def _aiding_update_head(
     """
     Update with heading aiding measurement.
     """
-
-    if head_var is None:
-        raise ValueError("'head_var' not provided.")
 
     if head_degrees:
         head_meas = (np.pi / 180.0) * head_meas
