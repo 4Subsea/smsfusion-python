@@ -26,9 +26,10 @@ def test_euler_from_acc(euler):
     euler_ned = _utils.euler_from_acc(acc_ned, nav_frame="NED", yaw=euler[2])
     np.testing.assert_allclose(euler_ned, euler)
 
-    euler_ned = _utils.euler_from_acc(acc_ned, nav_frame="NED", yaw=euler[2], degrees=True)
+    euler_ned = _utils.euler_from_acc(
+        acc_ned, nav_frame="NED", yaw=euler[2], degrees=True
+    )
     np.testing.assert_allclose(euler_ned, euler_degrees)
-
 
     # North-East-Up (ENU) frame
     g_enu = np.array([0.0, 0.0, g])
@@ -36,11 +37,14 @@ def test_euler_from_acc(euler):
     euler_enu = _utils.euler_from_acc(acc_enu, nav_frame="ENU", yaw=euler[2])
     np.testing.assert_allclose(euler_enu, euler)
 
-    euler_enu = _utils.euler_from_acc(acc_enu, nav_frame="ENU", yaw=euler[2], degrees=True)
+    euler_enu = _utils.euler_from_acc(
+        acc_enu, nav_frame="ENU", yaw=euler[2], degrees=True
+    )
     np.testing.assert_allclose(euler_enu, euler_degrees)
 
+
 def test_euler_from_acc_invalid_frame():
- 
+
     acc_ned = np.array([0.0, 0.0, 1])
     with pytest.raises(ValueError):
         _utils.euler_from_acc(acc_ned, nav_frame="STAR")

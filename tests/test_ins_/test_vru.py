@@ -3,10 +3,17 @@ import pytest
 from scipy.signal import resample_poly
 
 import smsfusion as sf
-from smsfusion._ins._vru import VRU, _state_transition_matrix_init, _state_transition_matrix_update, _measurement_matrix_init, _reset, _process_noise_covariance_matrix
+from smsfusion._ins._vru import (
+    VRU,
+    _measurement_matrix_init,
+    _process_noise_covariance_matrix,
+    _reset,
+    _state_transition_matrix_init,
+    _state_transition_matrix_update,
+)
 from smsfusion.benchmark import (
     benchmark_pure_attitude_beat_202311A,
-    benchmark_pure_attitude_chirp_202311A
+    benchmark_pure_attitude_chirp_202311A,
 )
 
 
@@ -16,14 +23,16 @@ def test_state_transition_matrix_init():
     gbc = 0.01
 
     phi_out = _state_transition_matrix_init(dt, dtheta, gbc)
-    phi_expected = np.array([
-        [1.0, 0.02, -0.02, -dt, 0.0, 0.0],
-        [-0.02, 1.0, 0.02, 0.0, -dt, 0.0],
-        [0.02, -0.02, 1.0, 0.0, 0.0, -dt],
-        [0.0, 0.0, 0.0, 1.0 - dt / gbc, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 1.0 - dt / gbc, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 1.0 - dt / gbc],
-    ])
+    phi_expected = np.array(
+        [
+            [1.0, 0.02, -0.02, -dt, 0.0, 0.0],
+            [-0.02, 1.0, 0.02, 0.0, -dt, 0.0],
+            [0.02, -0.02, 1.0, 0.0, 0.0, -dt],
+            [0.0, 0.0, 0.0, 1.0 - dt / gbc, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 1.0 - dt / gbc, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 1.0 - dt / gbc],
+        ]
+    )
 
     np.testing.assert_almost_equal(phi_out, phi_expected)
 
@@ -38,14 +47,16 @@ def test_state_transition_matrix_update():
     dtheta_update = np.ones(3) * 0.01
     phi_out = _state_transition_matrix_update(phi_init, dtheta=dtheta_update)
 
-    phi_expected = np.array([
-        [1.0, 0.01, -0.01, -dt, 0.0, 0.0],
-        [-0.01, 1.0, 0.01, 0.0, -dt, 0.0],
-        [0.01, -0.01, 1.0, 0.0, 0.0, -dt],
-        [0.0, 0.0, 0.0, 1.0 - dt / gbc, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 1.0 - dt / gbc, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 1.0 - dt / gbc],
-    ])
+    phi_expected = np.array(
+        [
+            [1.0, 0.01, -0.01, -dt, 0.0, 0.0],
+            [-0.01, 1.0, 0.01, 0.0, -dt, 0.0],
+            [0.01, -0.01, 1.0, 0.0, 0.0, -dt],
+            [0.0, 0.0, 0.0, 1.0 - dt / gbc, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 1.0 - dt / gbc, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 1.0 - dt / gbc],
+        ]
+    )
 
     np.testing.assert_almost_equal(phi_out, phi_expected)
 
@@ -60,16 +71,19 @@ def test_process_noise_covariance_matrix():
     gbs = 0.00005
     gbc = 50.0
     Q_out = _process_noise_covariance_matrix(dt, arw, gbs, gbc)
-    Q_expect = np.array([
-        [dt * arw**2, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, dt * arw**2, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, dt * arw**2, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, dt * (2.0 * gbs**2 / gbc), 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, dt * (2.0 * gbs**2 / gbc), 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, dt * (2.0 * gbs**2 / gbc)],
-    ])
+    Q_expect = np.array(
+        [
+            [dt * arw**2, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, dt * arw**2, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, dt * arw**2, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, dt * (2.0 * gbs**2 / gbc), 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, dt * (2.0 * gbs**2 / gbc), 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, dt * (2.0 * gbs**2 / gbc)],
+        ]
+    )
 
     np.testing.assert_allclose(Q_out, Q_expect)
+
 
 def test_reset():
     q_nb = np.array([1.0, 0.0, 0.0, 0.0])
@@ -80,13 +94,13 @@ def test_reset():
 
     np.testing.assert_allclose(dx, np.zeros_like(dx))
     np.testing.assert_allclose(bg_b, np.array([0.1, -0.1, 0.2]))
-    np.testing.assert_allclose(q_nb, np.array([np.cos(0.01/2), np.sin(0.01/2), 0.0, 0.0]), atol=1e-6)
+    np.testing.assert_allclose(
+        q_nb, np.array([np.cos(0.01 / 2), np.sin(0.01 / 2), 0.0, 0.0]), atol=1e-6
+    )
 
 
 def test_vru_init():
-    mekf = VRU(
-        10.0
-        )
+    mekf = VRU(10.0)
 
     np.testing.assert_allclose(mekf.quaternion(), np.array([1.0, 0.0, 0.0, 0.0]))
     np.testing.assert_allclose(mekf.bias_gyro(), np.zeros(3))
@@ -95,10 +109,7 @@ def test_vru_init():
 
 @pytest.mark.parametrize("nav_frame, scale", (["NED", 1.0], ["ENU", -1.0]))
 def test_vru_nav_frame(nav_frame, scale):
-    mekf = VRU(
-        10.0,
-        nav_frame=nav_frame
-        )
+    mekf = VRU(10.0, nav_frame=nav_frame)
 
     assert mekf._nz2vg == scale
 
@@ -108,11 +119,7 @@ def test_vru_methods():
     quaternion_init = sf.quaternion_from_euler(euler_init, degrees=True)
     bg_init = np.array([0.01, -0.01, 0.02])
 
-    mekf = VRU(
-        10.0,
-        q=quaternion_init,
-        bg=bg_init
-        )
+    mekf = VRU(10.0, q=quaternion_init, bg=bg_init)
 
     np.testing.assert_allclose(mekf.euler(), np.radians(euler_init))
     np.testing.assert_allclose(mekf.euler(degrees=True), euler_init)
@@ -123,7 +130,10 @@ def test_vru_methods():
 
 @pytest.mark.parametrize(
     "benchmark_gen, degrees",
-    [(benchmark_pure_attitude_beat_202311A, False), (benchmark_pure_attitude_chirp_202311A, True)],
+    [
+        (benchmark_pure_attitude_beat_202311A, False),
+        (benchmark_pure_attitude_chirp_202311A, True),
+    ],
 )
 def test_vru_benchmark(benchmark_gen, degrees):
     fs_imu = 100.0
@@ -158,19 +168,12 @@ def test_vru_benchmark(benchmark_gen, degrees):
 
     # Apply filter
     euler_out, bias_gyro_out = [], []
-    for i, (f_i, w_i) in enumerate(
-        zip(acc_noise, gyro_noise)
-    ):
+    for i, (f_i, w_i) in enumerate(zip(acc_noise, gyro_noise)):
 
         dvel = f_i / fs_imu
         dtheta = w_i / fs_imu
 
-        mekf.update(
-            dvel,
-            dtheta,
-            degrees=degrees,
-            gref=True
-        )
+        mekf.update(dvel, dtheta, degrees=degrees, gref=True)
 
         euler_out.append(mekf.euler(degrees=False))
         bias_gyro_out.append(mekf.bias_gyro(degrees=False))

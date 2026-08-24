@@ -18,17 +18,12 @@ from scipy.signal import resample_poly
 from scipy.spatial.transform import Rotation
 
 import smsfusion as sf
-from smsfusion._ins import (
+from smsfusion._ins import (  # INSMixin,; _dhda_head,; _h_head,; _roll_pitch_from_acc,; _signed_smallest_angle,
     AHRS,
     VRU,
     AidedINS,
     FixedNED,
-    # INSMixin,
     StrapdownINS,
-    # _dhda_head,
-    # _h_head,
-    # _roll_pitch_from_acc,
-    # _signed_smallest_angle,
     gravity,
 )
 from smsfusion._transforms import (

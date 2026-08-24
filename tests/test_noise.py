@@ -387,6 +387,7 @@ class Test_allan_var_overlapping:
     @staticmethod
     def _tqdm_installed():
         import importlib.util
+
         return importlib.util.find_spec("tqdm") is not None
 
     @pytest.mark.skipif(_tqdm_installed(), reason="tqdm is installed")

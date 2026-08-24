@@ -7,7 +7,7 @@ from numpy.typing import ArrayLike, NDArray
 from smsfusion._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
 from smsfusion._vectorops import _skew_symmetric
 
-from ._aiding import _aiding_update_head, _aiding_update_vel, _aiding_update_pos
+from ._aiding import _aiding_update_head, _aiding_update_pos, _aiding_update_vel
 from ._common import (
     _dhda_head,
     _project_covariance_ahead,
@@ -148,10 +148,9 @@ def _process_noise_covariance_matrix(
     return Q
 
 
-
 def _measurement_matrix_init(
-        q_nb: NDArray[np.float64],
-        lever_arm: NDArray[np.float64]) -> NDArray[np.float64]:
+    q_nb: NDArray[np.float64], lever_arm: NDArray[np.float64]
+) -> NDArray[np.float64]:
     """
     Measurement matrix.
 
@@ -172,7 +171,9 @@ def _measurement_matrix_init(
     """
     dhdx = np.zeros((7, 12))
     dhdx[0:3, 0:3] = np.eye(3)  # position
-    dhdx[0:3, 6:9] = -_rot_matrix_from_quaternion(q_nb) @ _skew_symmetric(lever_arm)  # position lever arm
+    dhdx[0:3, 6:9] = -_rot_matrix_from_quaternion(q_nb) @ _skew_symmetric(
+        lever_arm
+    )  # position lever arm
     dhdx[3:6, 3:6] = np.eye(3)  # velocity
     dhdx[6:7, 6:9] = _dhda_head(q_nb)  # heading
     return dhdx
@@ -211,7 +212,11 @@ def _reset(
     q_nb: NDArray[np.float64],
     bg_b: NDArray[np.float64],
 ) -> tuple[
-    NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
 ]:
     """
     Reset state.
@@ -299,7 +304,7 @@ class AINS:
         gyro_bias_corr_time: float = 50.0,
         g: float = 9.80665,
         nav_frame: str = "NED",
-        lever_arm: ArrayLike = (0.0, 0.0, 0.0)
+        lever_arm: ArrayLike = (0.0, 0.0, 0.0),
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
@@ -425,7 +430,7 @@ class AINS:
         pos : array-like, shape (3,), optional
             Position aiding measurement in m. If ``None``, position aiding ins not used.
         pos_var : array-like, shape (3,), optional
-            Variance of position measurement noise in m^2. Ignored if ``pos`` is ``None``. 
+            Variance of position measurement noise in m^2. Ignored if ``pos`` is ``None``.
         vel : array-like, shape (3,), optional
             Velocity aiding measurement in m/s. If ``None``, velocity aiding is not used.
         vel_var : array-like, shape (3,), optional
@@ -477,7 +482,7 @@ class AINS:
                 np.asarray(vel),
                 np.asarray(vel_var),
                 R_nb,
-                self._lever_arm
+                self._lever_arm,
             )
 
         if vel is not None:
