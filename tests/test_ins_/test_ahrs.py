@@ -143,7 +143,7 @@ def test_ahrs_methods():
 
     mekf = AHRS(
         10.0,
-        v=vel_init,
+        vel=vel_init,
         q=quaternion_init,
         bg=bg_init
         )
