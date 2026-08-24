@@ -235,10 +235,9 @@ def _reset(
     """
     p_n[:] += dx[0:3]
     v_n[:] += dx[3:6]
-    q_nb = _update_quaternion_with_gibbs2(q_nb, dx[6:9])
+    _update_quaternion_with_gibbs2(q_nb, dx[6:9])
     bg_b[:] += dx[9:12]
     dx[:] = 0.0
-    return dx, p_n, v_n, q_nb, bg_b
 
 
 class AINS:
@@ -506,9 +505,9 @@ class AINS:
                 head_degrees,
             )
 
-        # Reset state
-        self._dx, self._p_n, self._v_n, self._q_nb, self._bg_b = _reset(
-            self._dx, self._p_n, self._v_n, self._q_nb, self._bg_b
-        )
+        # Reset state (in place)
+        # Moves information from the error state vector to the nominal state vectors,
+        # and resets the error state vector to zero
+        _reset(self._dx, self._p_n, self._v_n, self._q_nb, self._bg_b)
 
         return self

@@ -168,7 +168,7 @@ def test_reset():
     bg_b = np.zeros(3)
     dx = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.01, 0.0, 0.0, 0.1, -0.1, 0.2])
 
-    dx, p_n, v_n, q_nb, bg_b = _reset(dx, p_n, v_n, q_nb, bg_b)
+    _reset(dx, p_n, v_n, q_nb, bg_b)
 
     np.testing.assert_allclose(dx, np.zeros_like(dx))
     np.testing.assert_allclose(p_n, np.array([1.1, 0.2, 0.3]))
