@@ -2,6 +2,8 @@ import numpy as np
 import pytest
 from scipy.signal import resample_poly
 
+from smsfusion._vectorops import _skew_symmetric
+from smsfusion._transforms import _rot_matrix_from_quaternion
 import smsfusion as sf
 from smsfusion._ins._ains_ import AINS, _state_transition_matrix_init, _state_transition_matrix_update, _measurement_matrix_init, _reset, _process_noise_covariance_matrix
 from smsfusion.benchmark import (
@@ -74,13 +76,15 @@ def test_state_transition_matrix_update():
 
 def test_measurement_matrix_init():
     q_nb = np.array([1.0, 0.0, 0.0, 0.0])
+    lever_arm = np.array([2.0, 3.0, 4.0])
 
-    expect = np.zeros((4, 9))
+    expect = np.zeros((7, 12))
     expect[0:3, 0:3] = np.eye(3)
-    expect[3, 3:6] = np.array([0.0, 0.0, 1.0])
-    # kappa -> zero due to unit quat
+    expect[0:3, 6:9] = -_rot_matrix_from_quaternion(q_nb) @ _skew_symmetric(lever_arm)
+    expect[3:6, 3:6] = np.eye(3)
+    expect[6, 6:9] = np.array([0.0, 0.0, 1.0]) # kappa -> zero due to unit quat
 
-    np.testing.assert_array_equal(_measurement_matrix_init(q_nb), expect)
+    np.testing.assert_array_equal(_measurement_matrix_init(q_nb, lever_arm), expect)
 
 
 def test_process_noise_covariance_matrix():
