@@ -7,15 +7,17 @@ from numpy.typing import ArrayLike, NDArray
 from smsfusion._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
 from smsfusion._vectorops import _skew_symmetric
 
-from ._aiding import _aiding_update_head, _aiding_update_vel
+from ._aiding import _aiding_update_gref, _aiding_update_head, _aiding_update_vel
 from ._common import (
     _dhda_head,
+    _gref_b_from_quat,
+    _nz2vg,
     _project_covariance_ahead,
     _update_quaternion_with_gibbs2,
     _update_quaternion_with_rotvec,
 )
 
-P0 = (
+_P0 = (
     (1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
     (0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
     (0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
@@ -144,7 +146,9 @@ def _process_noise_covariance_matrix(
     return Q
 
 
-def _measurement_matrix_init(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
+def _measurement_matrix_init(
+    q_nb: NDArray[np.float64], nav_frame_factor: float
+) -> NDArray[np.float64]:
     """
     Measurement matrix.
 
@@ -152,16 +156,21 @@ def _measurement_matrix_init(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     ----------
     q_nb : ndarray, shape (4,)
         Unit quaternion.
+    nav_frame_factor: float
+        Gravity direction along the navigation frame's z-axis. +1.0 for 'NED' and
+        -1.0 for 'ENU'.
 
     Returns
     -------
-    ndarray, shape (4, 9)
+    ndarray, shape (7, 9)
         Linearized measurement matrix.
     """
-    dhdx = np.zeros((4, 9))
-    dhdx[0:3, 0:3] = np.eye(3)  # velocity
-    dhdx[3:4, 3:6] = _dhda_head(q_nb)  # heading
-    return dhdx
+    vg_b = _gref_b_from_quat(q_nb, nav_frame_factor)  # gravity reference vector
+    H = np.zeros((7, 9))
+    H[0:3, 0:3] = np.eye(3)  # velocity
+    H[3:4, 3:6] = _dhda_head(q_nb)  # heading
+    H[4:7, 3:6] = _skew_symmetric(vg_b)  # gravity reference vector
+    return H
 
 
 def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
@@ -195,11 +204,9 @@ def _reset(
     v_n: NDArray[np.float64],
     q_nb: NDArray[np.float64],
     bg_b: NDArray[np.float64],
-) -> tuple[
-    NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]
-]:
+) -> None:
     """
-    Reset state.
+    Reset state (in place).
 
     Parameters
     ----------
@@ -214,29 +221,51 @@ def _reset(
         estimates. Will be reset to zero after applying the corrections.
     """
     v_n[:] += dx[0:3]
-    q_nb = _update_quaternion_with_gibbs2(q_nb, dx[3:6])
+    _update_quaternion_with_gibbs2(q_nb, dx[3:6])
     bg_b[:] += dx[6:9]
     dx[:] = 0.0
-    return dx, v_n, q_nb, bg_b
+
+
+@njit  # type: ignore[misc]
+def _project_state_ahead(
+    v_n: NDArray[np.float64],
+    q_nb: NDArray[np.float64],
+    R_nb: NDArray[np.float64],
+    dvel: NDArray[np.float64],
+    dtheta: NDArray[np.float64],
+    dvel_g_corr: NDArray[np.float64],
+) -> None:
+    """
+    Project state estimates ahead (in place).
+
+    References
+    ----------
+    .. [1] https://www.vectornav.com/resources/inertial-navigation-primer/math-fundamentals/math-coning (Eq. 3-5)
+    """
+    dvel_corr = R_nb @ dvel + dvel_g_corr
+    v_n[:] += dvel_corr
+    _update_quaternion_with_rotvec(q_nb, dtheta)  # -> update q_nb (in place)
 
 
 class AHRS:
     """
-    Attitude and Heading Reference System (AHRS) using a multiplicative extended
-    Kalman filter (MEKF).
+    Attitude and Heading Reference System (AHRS).
+
+    This class provides velocity, attitude and gyro bias estimation using a multiplicative
+    extended Kalman filter (MEKF).
 
     Parameters
     ----------
     fs : float
         Sampling rate in Hz.
-    vel : array_like, shape (3,), optional
+    v0 : array_like, shape (3,), optional
         Initial velocity estimate in m/s. Defaults to zero velocity (stationary).
-    q : Attitude or array_like, shape (4,), optional
+    q0 : array_like, shape (4,), optional
         Initial attitude estimate as a unit quaternion (qw, qx, qy, qz). Defaults
         to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
-    bg : array_like, shape (3,), optional
+    bg0 : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
-    P : array_like, shape (6, 6), optional
+    P0 : array_like, shape (9, 9), optional
         Initial (a priori) estimate of the error covariance matrix. Defaults to
         a small diagonal matrix (1e-6 * np.eye(9)).
     acc_noise_density : float, optional
@@ -257,16 +286,15 @@ class AHRS:
         Specifies the assumed inertial-like 'navigation' frame. Should be 'NED' (North-East-Down)
         (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
         will be expressed relative to this frame.
-
     """
 
     def __init__(
         self,
         fs: float,
-        vel: ArrayLike = (0.0, 0.0, 0.0),
-        q: ArrayLike = (1.0, 0.0, 0.0, 0.0),
-        bg: ArrayLike = (0.0, 0.0, 0.0),
-        P: ArrayLike = P0,
+        v0: ArrayLike = (0.0, 0.0, 0.0),
+        q0: ArrayLike = (1.0, 0.0, 0.0, 0.0),
+        bg0: ArrayLike = (0.0, 0.0, 0.0),
+        P0: ArrayLike = _P0,
         acc_noise_density: float = 0.0007,
         gyro_noise_density: float = 0.00005,
         gyro_bias_stability: float = 0.00005,
@@ -276,8 +304,9 @@ class AHRS:
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
-        self._g = g
         self._nav_frame = nav_frame.lower()
+        self._nz2vg = _nz2vg(self._nav_frame)
+        self._g = g
         self._g_n = _gravity_nav(self._g, self._nav_frame)
         self._dvel_g_corr = self._dt * self._g_n
 
@@ -288,10 +317,10 @@ class AHRS:
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
         # State and covariance estimates
-        self._v_n = np.asarray_chkfinite(vel).reshape(3).copy()
-        self._q_nb = np.asarray_chkfinite(q).reshape(4).copy()
-        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
-        self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
+        self._v_n = np.asarray_chkfinite(v0).reshape(3).copy()
+        self._q_nb = np.asarray_chkfinite(q0).reshape(4).copy()
+        self._bg_b = np.asarray_chkfinite(bg0).reshape(3).copy()
+        self._P = np.asarray_chkfinite(P0).reshape(9, 9).copy()
         self._dx = np.zeros(9)
 
         # Discrete state-space model
@@ -305,28 +334,29 @@ class AHRS:
         self._Q = _process_noise_covariance_matrix(
             self._dt, self._vrw, self._arw, self._gbs, self._gbc
         )
-        self._H = _measurement_matrix_init(self._q_nb)
+        self._H = _measurement_matrix_init(self._q_nb, self._nz2vg)
 
     def velocity(self) -> NDArray[np.float64]:
         """
-        Velocity expressed in the navigation frame.
+        Copy of the velocity estimate in m/s.
         """
         return self._v_n.copy()
 
     def quaternion(self) -> NDArray[np.float64]:
         """
-        Attitude expressed as a unit quaternion.
+        Copy of the attitude estimate expressed as a unit quaternion.
         """
         return self._q_nb.copy()
 
     def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
-        Attitude expressed as Euler angles (roll, pitch, yaw).
+        Copy of the attitude estimate expressed as Euler angles (roll, pitch, yaw).
 
         Parameters
         ----------
-        degrees : bool, default False
-            Whether to return the Euler angles in degrees or radians.
+        degrees : bool, optional
+            Whether to return the Euler angles in degrees or radians. Defaults to
+            radians.
 
         Returns
         -------
@@ -343,7 +373,8 @@ class AHRS:
 
     def bias_gyro(self, degrees=False) -> NDArray[np.float64]:
         """
-        Gyroscope bias estimate (rad/s) expressed in the body frame.
+        Copy of the gyroscope bias estimate in rad/s or deg/s depending on the
+        ``degrees`` flag.
 
         Parameters
         ----------
@@ -367,42 +398,54 @@ class AHRS:
         dvel: ArrayLike,
         dtheta: ArrayLike,
         degrees: bool = False,
-        vel: ArrayLike | None = (0.0, 0.0, 0.0),
-        vel_var: ArrayLike = (100.0, 100.0, 100.0),
+        vel: ArrayLike | None = None,
+        vel_var: ArrayLike | None = None,
         head: float | None = None,
-        head_var: float = 0.001,
+        head_var: float | None = None,
         head_degrees: bool = False,
+        gref: bool = False,
+        gref_var: ArrayLike | None = None,
     ) -> Self:
         """
         Update state estimates with IMU and aiding measurements.
 
         Parameters
         ----------
-        dvel : array_like, shape (3,), optional
+        dvel : array_like, shape (3,)
             Velocity increment (sculling integral) in m/s.
-        dtheta : array_like, shape (3,), optional
-            Attitude increment (coning integral) in radians.
+        dtheta : array_like, shape (3,)
+            Attitude increment (coning integral) in radians or degrees depending
+            on the ``degrees`` flag.
         degrees : bool, optional
             Specifies whether the unit of the attitude increment, ``dtheta``, is
             degrees or radians. Defaults to radians.
         vel : array-like, shape (3,), optional
-            Velocity aiding measurement in m/s. If ``None``, velocity aiding is not used.
+            Velocity aiding measurement in m/s. If ``None``, velocity aiding is
+            not used.
         vel_var : array-like, shape (3,), optional
-            Variance of velocity measurement noise in (m/s)^2. Ignored if ``vel`` is ``None``.
+            Variance of velocity measurement noise in (m/s)^2. Ignored if ``vel``
+            is ``None``.
         head : float, optional
-            Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
-            assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
-            If ``None``, compass aiding is not used. See ``head_degrees`` for units.
+            Heading measurement in radians or degrees depending on the ``head_degrees``
+            flag. I.e., the yaw angle of the 'body' frame relative to the assumed
+            'navigation' frame ('NED' or 'ENU') specified during initialization.
+            If ``None``, compass aiding is not used.
         head_var : float, optional
-            Variance of heading measurement noise. Units must be compatible with ``head``.
-             See ``head_degrees`` for units. Ignored if ``head`` is ``None``.
+            Variance of heading measurement noise in radians^2 or degrees^2 depending
+            on the ``head_degrees`` flag. Ignored if ``head`` is ``None``.
         head_degrees : bool, default False
-            Specifies whether the unit of ``head`` and ``head_var`` are in degrees and degrees^2,
-            or radians and radians^2. Default is in radians and radians^2.
+            Specifies whether the unit of ``head`` and ``head_var`` are in degrees
+            and degrees^2, or radians and radians^2. Defaults to radians and radians^2.
+        gref : bool, optional
+            Specifies whether to use accelerometer measurements (dvel) and the known
+            direction of gravity as aiding. Defaults to ``False``.
+        gref_var : array_like, shape (3,), optional
+            Variance of gravity reference vector measurement noise (dimensionless).
+            Required for gravity reference vector aiding.
 
         Returns
         -------
-        AHRS
+        AINS
             A reference to the instance itself after the update.
         """
 
@@ -416,18 +459,27 @@ class AHRS:
 
         # Update state-space model
         R_nb = _rot_matrix_from_quaternion(self._q_nb)
-        self._phi = _state_transition_matrix_update(self._phi, dvel, dtheta, R_nb)
+        _state_transition_matrix_update(self._phi, dvel, dtheta, R_nb)  # -> update phi
 
         # Project (a priori) state estimates ahead
-        self._v_n[:] += R_nb @ dvel + self._dvel_g_corr
-        self._q_nb = _update_quaternion_with_rotvec(self._q_nb, dtheta)
+        _project_state_ahead(  # -> update v_n, q_nb (in place)
+            self._v_n,
+            self._q_nb,
+            R_nb,
+            dvel,
+            dtheta,
+            self._dvel_g_corr,
+        )
 
         # Project (a priori) error covariance matrix estimate ahead
-        self._P = _project_covariance_ahead(self._P, self._phi, self._Q)
+        _project_covariance_ahead(self._P, self._phi, self._Q)  # -> update P (in place)
 
-        # Update (a posteriori) state and covariance estimates with aiding measurements
+        # Update (a posteriori) estimates with velocity aiding
         if vel is not None:
-            self._dx, self._P = _aiding_update_vel(
+            if vel_var is None:
+                raise ValueError("'vel_var' is required for velocity aiding.")
+
+            _aiding_update_vel(  # -> update dx and P (in place)
                 self._dx,
                 self._P,
                 self._H[0:3],
@@ -436,10 +488,14 @@ class AHRS:
                 np.asarray(vel_var),
             )
 
+        # Update (a posteriori) estimates with heading aiding
         if head is not None:
-            self._H[3, 3:6] = _dhda_head(self._q_nb)  # Update measurement matrix
+            if head_var is None:
+                raise ValueError("'head_var' is required for heading aiding.")
 
-            self._dx, self._P = _aiding_update_head(
+            self._H[3, 6:9] = _dhda_head(self._q_nb)
+
+            _aiding_update_head(  # -> update dx and P (in place)
                 self._dx,
                 self._P,
                 self._H[3],
@@ -449,9 +505,24 @@ class AHRS:
                 head_degrees,
             )
 
-        # Reset state
-        self._dx, self._v_n, self._q_nb, self._bg_b = _reset(
-            self._dx, self._v_n, self._q_nb, self._bg_b
-        )
+        # Update (a posteriori) estimates with gravity reference vector aiding
+        if gref is True:
+            if gref_var is None:
+                raise ValueError("'gref_var' is required for gravity reference aiding.")
+
+            vg_b = _gref_b_from_quat(self._q_nb, self._nz2vg)
+            self._H[4:7, 3:6] = _skew_symmetric(vg_b)
+
+            _aiding_update_gref(  # -> update dx and P (in place)
+                self._dx,
+                self._P,
+                self._H[4:7],
+                vg_b,
+                dvel,
+                np.asarray(gref_var),
+            )
+
+        # Reset state -> update v_n, q_nb, bg_b and dx (in place)
+        _reset(self._dx, self._v_n, self._q_nb, self._bg_b)
 
         return self

@@ -59,9 +59,7 @@ def test_state_transition_matrix_update():
 
     dtheta_update = np.ones(3) * 0.01
     dvel_update = np.ones(3) * 0.1
-    _state_transition_matrix_update(
-        phi, dvel=dvel_update, dtheta=dtheta_update, R_nb=R_nb
-    )
+    _state_transition_matrix_update(phi, dvel_update, dtheta_update, R_nb)
 
     phi_expected = np.array(
         [
