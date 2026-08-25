@@ -457,9 +457,9 @@ class AINS:
 
         dtheta = dtheta - self._dt * self._bg_b
 
-        # Update state-space model -> update phi (in place)
+        # Update state-space model
         R_nb = _rot_matrix_from_quaternion(self._q_nb)
-        _state_transition_matrix_update(self._phi, dvel, dtheta, R_nb)
+        _state_transition_matrix_update(self._phi, dvel, dtheta, R_nb)  # -> update phi
 
         # Project (a priori) state estimates ahead
         self._p_n[:] += self._dt * self._v_n
@@ -502,7 +502,7 @@ class AINS:
             if head_var is None:
                 raise ValueError("'head_var' is required for heading aiding.")
 
-            self._H[6, 6:9] = _dhda_head(self._q_nb)  # update measurement matrix
+            self._H[6, 6:9] = _dhda_head(self._q_nb)
 
             _aiding_update_head(  # -> update dx and P (in place)
                 self._dx,
