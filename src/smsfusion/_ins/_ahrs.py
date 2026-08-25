@@ -72,7 +72,7 @@ def _state_transition_matrix_update(
     dvel: NDArray[np.float64],
     dtheta: NDArray[np.float64],
     R_nb: NDArray[np.float64],
-) -> NDArray[np.float64]:
+) -> None:
     """
     Update the state transition matrix in place.
 
@@ -112,7 +112,6 @@ def _state_transition_matrix_update(
     phi[0, 5] = -dvy * r00 + dvx * r01
     phi[1, 5] = -dvy * r10 + dvx * r11
     phi[2, 5] = -dvy * r20 + dvx * r21
-    return phi
 
 
 def _process_noise_covariance_matrix(
@@ -221,7 +220,7 @@ def _reset(
         estimates. Will be reset to zero after applying the corrections.
     """
     v_n[:] += dx[0:3]
-    _update_quaternion_with_gibbs2(q_nb, dx[3:6])
+    _update_quaternion_with_gibbs2(q_nb, dx[3:6])  # -> update q_nb (in place)
     bg_b[:] += dx[6:9]
     dx[:] = 0.0
 

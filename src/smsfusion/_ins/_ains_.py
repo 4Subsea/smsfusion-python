@@ -239,7 +239,7 @@ def _reset(
     """
     p_n[:] += dx[0:3]
     v_n[:] += dx[3:6]
-    _update_quaternion_with_gibbs2(q_nb, dx[6:9])
+    _update_quaternion_with_gibbs2(q_nb, dx[6:9])  # -> update q_nb (in place)
     bg_b[:] += dx[9:12]
     dx[:] = 0.0
 
