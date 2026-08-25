@@ -246,7 +246,7 @@ def test_ahrs_benchmark(benchmark_gen, degrees):
     t, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
 
     # IMU measurements (with noise)
-    bg = np.array([0.01, -0.02, 0.0])
+    bg = np.array([0.01, -0.02, 0.03])
     noise_model = sf.noise.IMUNoise(
         err_acc=sf.constants.ERR_ACC_MOTION2,
         err_gyro=sf.constants.ERR_GYRO_MOTION2,
