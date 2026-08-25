@@ -444,7 +444,7 @@ class AHRS:
 
         Returns
         -------
-        AINS
+        AHRS
             A reference to the instance itself after the update.
         """
 
