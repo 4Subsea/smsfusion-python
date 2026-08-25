@@ -274,7 +274,7 @@ class AINS:
         will be expressed relative to this frame.
     lever_arm : array-like, shape (3,), optional
         Lever-arm vector describing the location of position aiding (in meters) relative
-        to the IMU expressed in the IMU's measurement frame. For instance, the location
+        to the IMU expressed in the IMU/body reference frame. For instance, the location
         of the GNSS antenna relative to the IMU. By default it is assumed that the
         aiding position coincides with the IMU's origin.
     """
