@@ -484,8 +484,9 @@ class AINS:
         _state_transition_matrix_update(self._phi, dvel, dtheta, R_nb)  # -> update phi
 
         # Project (a priori) state estimates ahead
-        self._p_n[:] += self._dt * self._v_n
-        self._v_n[:] += R_nb @ dvel + self._dvel_g_corr
+        dv_n_corr = R_nb @ dvel + self._dvel_g_corr  # corrected velocity increment
+        self._p_n[:] += self._dt * self._v_n + 0.5 * self._dt * dv_n_corr
+        self._v_n[:] += dv_n_corr
         _update_quaternion_with_rotvec(self._q_nb, dtheta)  # -> update q_nb (in place)
 
         # Project (a priori) error covariance matrix estimate ahead
