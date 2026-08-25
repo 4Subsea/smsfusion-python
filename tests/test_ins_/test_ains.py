@@ -259,15 +259,25 @@ def test_ains_methods():
     quaternion_init = sf.quaternion_from_euler(euler_init, degrees=True)
     bg_init = np.array([0.01, -0.01, 0.02])
 
-    mekf = AINS(10.0, p0=pos_init, v0=vel_init, q0=quaternion_init, bg0=bg_init)
+    mekf = AINS(
+        10.0,
+        p0=pos_init,
+        v0=vel_init,
+        q0=quaternion_init,
+        bg0=bg_init,
+        P0=0.1 * np.eye(12),
+    )
 
     np.testing.assert_allclose(mekf.position(), pos_init)
     np.testing.assert_allclose(mekf.velocity(), vel_init)
     np.testing.assert_allclose(mekf.euler(), np.radians(euler_init))
+    np.testing.assert_allclose(mekf.euler(degrees=False), np.radians(euler_init))
     np.testing.assert_allclose(mekf.euler(degrees=True), euler_init)
     np.testing.assert_allclose(mekf.quaternion(), quaternion_init)
     np.testing.assert_allclose(mekf.bias_gyro(), bg_init)
+    np.testing.assert_allclose(mekf.bias_gyro(degrees=False), bg_init)
     np.testing.assert_allclose(mekf.bias_gyro(degrees=True), np.degrees(bg_init))
+    np.testing.assert_allclose(mekf.P, 0.1 * np.eye(12))
 
 
 @pytest.mark.parametrize(
