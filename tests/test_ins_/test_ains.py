@@ -301,7 +301,7 @@ def test_ains_benchmark(benchmark_gen, gyro_degrees):
     err_acc = sf.constants.ERR_ACC_MOTION2
     err_gyro = sf.constants.ERR_GYRO_MOTION2
     noise_model = sf.noise.IMUNoise(err_acc=err_acc, err_gyro=err_gyro, seed=0)
-    bg = np.array([0.01, -0.02, 0.0])
+    bg = np.array([0.01, -0.02, 0.03])  # rad/s
     imu_noise = noise_model(fs_imu, len(t))
     acc_imu = acc_ref + imu_noise[:, :3]
     gyro_imu = gyro_ref + imu_noise[:, 3:] + bg
