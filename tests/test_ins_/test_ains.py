@@ -179,15 +179,23 @@ def test_reset():
     )
 
 
-def test_ains_init():
+def test_ains_init_default():
     mekf = AINS(10.0)
+    assert mekf._fs == pytest.approx(10.0)
+    assert mekf._dt == pytest.approx(0.1)
+    assert mekf._g == 9.80665
+    assert mekf._nav_frame == "ned"
+    assert mekf._vrw == pytest.approx(0.0007)
+    assert mekf._arw == pytest.approx(0.00005)
+    assert mekf._gbs == pytest.approx(0.00005)
+    assert mekf._gbc == pytest.approx(50.0)
+    np.testing.assert_allclose(mekf._lever_arm, np.zeros(3))
     np.testing.assert_allclose(mekf.position(), np.zeros(3))
     np.testing.assert_allclose(mekf.velocity(), np.zeros(3))
     np.testing.assert_allclose(mekf.quaternion(), np.array([1.0, 0.0, 0.0, 0.0]))
     np.testing.assert_allclose(mekf.bias_gyro(), np.zeros(3))
     np.testing.assert_allclose(mekf.P, np.array(sf._ins._ains.P0))
-    assert mekf._g == 9.80665
-    assert mekf._nav_frame == "ned"
+    np.testing.assert_allclose(mekf._dx, np.zeros(12))
 
 
 @pytest.mark.parametrize("nav_frame, scale", (["NED", 1.0], ["ENU", -1.0]))
