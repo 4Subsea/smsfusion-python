@@ -9,8 +9,8 @@ from smsfusion._vectorops import _skew_symmetric
 
 from ._aiding import _aiding_update_gref
 from ._common import (
+    _gref_b_from_quat,
     _nz2vg,
-    _nz_b_from_quat,
     _project_covariance_ahead,
     _update_quaternion_with_gibbs2,
     _update_quaternion_with_rotvec,
@@ -317,7 +317,7 @@ class VRU:
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
         if gref is True:
-            vg_b = _nz_b_from_quat(self._q_nb, self._nz2vg)
+            vg_b = _gref_b_from_quat(self._q_nb, self._nz2vg)
             self._H[0:3, 0:3] = _skew_symmetric(vg_b)  # Update measurement matrix
 
             self._dx, self._P = _aiding_update_gref(

@@ -209,8 +209,8 @@ def test__update_quaternion_with_gibbs2(quaternion, da, quaternion_update_expect
         (np.array([np.cos(0.1 / 2), 0.0, 0.0, np.sin(0.1 / 2)]), 1.0),
     ],
 )
-def test__nz_b_from_quat(q_nb, nav_frame_factor):
-    out = _common._nz_b_from_quat(q_nb, nav_frame_factor=nav_frame_factor)
+def test__gref_b_from_quat(q_nb, nav_frame_factor):
+    out = _common._gref_b_from_quat(q_nb, nav_frame_factor=nav_frame_factor)
 
     expect = Rotation.from_quat(q_nb, scalar_first=True).apply(
         nav_frame_factor * np.array([0.0, 0.0, 1.0]), inverse=True

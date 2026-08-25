@@ -350,15 +350,12 @@ def _nz2vg(nav_frame: str) -> float:
 
 
 @njit  # type: ignore[misc]
-def _nz_b_from_quat(
+def _gref_b_from_quat(
     q_nb: NDArray[np.float64], nav_frame_factor: float = 1.0
 ) -> NDArray[np.float64]:
     """
-    Unit vector describing the z-axis of frame {n} expressed in frame {b}, computed
-    from a unit quaternion, q_nb.
-
-    Note that this vector corresponds to the third row of the rotation matrix which
-    transforms a vector from {b} to {n}.
+    Compute the gravity reference vector (unit vector) expressed in the body frame
+    from a unit quaternion.
 
     Parameters
     ----------
@@ -371,7 +368,7 @@ def _nz_b_from_quat(
     Returns
     -------
     numpy.ndarray, shape (3,)
-        The z-axis (unit vector) of frame {n} expressed in frame {b}.
+        Gravity reference vector expressed in the body frame (unit vector).
     """
 
     x = 2.0 * (q_nb[1] * q_nb[3] - q_nb[0] * q_nb[2])
