@@ -7,9 +7,16 @@ from numpy.typing import ArrayLike, NDArray
 from smsfusion._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
 from smsfusion._vectorops import _skew_symmetric
 
-from ._aiding import _aiding_update_head, _aiding_update_pos, _aiding_update_vel
+from ._aiding import (
+    _aiding_update_gref,
+    _aiding_update_head,
+    _aiding_update_pos,
+    _aiding_update_vel,
+)
 from ._common import (
     _dhda_head,
+    _gref_b_from_quat,
+    _nz2vg,
     _project_covariance_ahead,
     _update_quaternion_with_gibbs2,
     _update_quaternion_with_rotvec,
@@ -148,7 +155,7 @@ def _process_noise_covariance_matrix(
 
 
 def _measurement_matrix_init(
-    q_nb: NDArray[np.float64], lever_arm: NDArray[np.float64]
+    q_nb: NDArray[np.float64], lever_arm: NDArray[np.float64], nav_frame_factor: float
 ) -> NDArray[np.float64]:
     """
     Measurement matrix.
@@ -161,17 +168,22 @@ def _measurement_matrix_init(
         Lever-arm vector describing the location of position aiding (in meters) relative
         to the IMU expressed in the IMU/body reference frame. For instance, the location
         of the GNSS antenna relative to the IMU.
+    nav_frame_factor: float
+        Gravity direction along the navigation frame's z-axis. +1.0 for 'NED' and
+        -1.0 for 'ENU'.
 
     Returns
     -------
     ndarray, shape (7, 12)
         Linearized measurement matrix.
     """
-    H = np.zeros((7, 12))
+    vg_b = _gref_b_from_quat(q_nb, nav_frame_factor)  # gravity reference vector
+    H = np.zeros((10, 12))
     H[0:3, 0:3] = np.eye(3)  # position
     H[0:3, 6:9] = -_rot_matrix_from_quaternion(q_nb) @ _skew_symmetric(lever_arm)
     H[3:6, 3:6] = np.eye(3)  # velocity
     H[6:7, 6:9] = _dhda_head(q_nb)  # heading
+    H[7:10, 6:9] = _skew_symmetric(vg_b)  # gravity reference vector
     return H
 
 
@@ -298,8 +310,9 @@ class AINS:
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
-        self._g = g
         self._nav_frame = nav_frame.lower()
+        self._nz2vg = _nz2vg(self._nav_frame)
+        self._g = g
         self._g_n = _gravity_nav(self._g, self._nav_frame)
         self._dvel_g_corr = self._dt * self._g_n
         self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
@@ -329,7 +342,7 @@ class AINS:
         self._Q = _process_noise_covariance_matrix(
             self._dt, self._vrw, self._arw, self._gbs, self._gbc
         )
-        self._H = _measurement_matrix_init(self._q_nb, self._lever_arm)
+        self._H = _measurement_matrix_init(self._q_nb, self._lever_arm, self._nz2vg)
 
     def position(self) -> NDArray[np.float64]:
         """
@@ -406,6 +419,8 @@ class AINS:
         head: float | None = None,
         head_var: float | None = None,
         head_degrees: bool = False,
+        gref: bool = False,
+        gref_var: ArrayLike | None = None,
     ) -> Self:
         """
         Update state estimates with IMU and aiding measurements.
@@ -443,6 +458,12 @@ class AINS:
         head_degrees : bool, default False
             Specifies whether the unit of ``head`` and ``head_var`` are in degrees
             and degrees^2, or radians and radians^2. Defaults to radians and radians^2.
+        gref : bool, optional
+            Specifies whether to use accelerometer measurements (dvel) and the known
+            direction of gravity as aiding. Defaults to ``False``.
+        gref_var : array_like, shape (3,), optional
+            Variance of gravity reference vector measurement noise (dimensionless).
+            Required for gravity reference vector aiding.
 
         Returns
         -------
@@ -470,7 +491,7 @@ class AINS:
         # Project (a priori) error covariance matrix estimate ahead
         _project_covariance_ahead(self._P, self._phi, self._Q)  # -> update P (in place)
 
-        # Update (a posteriori) state and covariance estimates with aiding measurements
+        # Update (a posteriori) estimates with position aiding
         if pos is not None:
             if pos_var is None:
                 raise ValueError("'pos_var' is required for position aiding.")
@@ -486,6 +507,7 @@ class AINS:
                 self._lever_arm,
             )
 
+        # Update (a posteriori) estimates with velocity aiding
         if vel is not None:
             if vel_var is None:
                 raise ValueError("'vel_var' is required for velocity aiding.")
@@ -499,6 +521,7 @@ class AINS:
                 np.asarray(vel_var),
             )
 
+        # Update (a posteriori) estimates with heading aiding
         if head is not None:
             if head_var is None:
                 raise ValueError("'head_var' is required for heading aiding.")
@@ -513,6 +536,23 @@ class AINS:
                 head,
                 head_var,
                 head_degrees,
+            )
+
+        # Update (a posteriori) estimates with gravity reference vector aiding
+        if gref is True:
+            if gref_var is None:
+                raise ValueError("'gref_var' is required for gravity reference aiding.")
+
+            vg_b = _gref_b_from_quat(self._q_nb, self._nz2vg)
+            self._H[7:10, 6:9] = _skew_symmetric(vg_b)
+
+            _aiding_update_gref(  # -> update dx and P (in place)
+                self._dx,
+                self._P,
+                self._H[7:10],
+                vg_b,
+                dvel,
+                np.asarray(gref_var),
             )
 
         # Reset state -> update p_n, v_n, q_nb, bg_b and dx (in place)

@@ -11,6 +11,7 @@ from smsfusion._ins._ains_ import (
     _state_transition_matrix_init,
     _state_transition_matrix_update,
 )
+from smsfusion._ins._common import _gref_b_from_quat
 from smsfusion._transforms import _rot_matrix_from_quaternion
 from smsfusion._vectorops import _skew_symmetric
 from smsfusion.benchmark import (
@@ -85,14 +86,18 @@ def test_state_transition_matrix_update():
 def test_measurement_matrix_init():
     q_nb = np.array([1.0, 0.0, 0.0, 0.0])
     lever_arm = np.array([2.0, 3.0, 4.0])
+    nz2vg = 1.0
 
-    expect = np.zeros((7, 12))
+    expect = np.zeros((10, 12))
     expect[0:3, 0:3] = np.eye(3)
     expect[0:3, 6:9] = -_rot_matrix_from_quaternion(q_nb) @ _skew_symmetric(lever_arm)
     expect[3:6, 3:6] = np.eye(3)
     expect[6, 6:9] = np.array([0.0, 0.0, 1.0])  # kappa -> zero due to unit quat
+    expect[7:10, 6:9] = _skew_symmetric(_gref_b_from_quat(q_nb, nz2vg))
 
-    np.testing.assert_array_equal(_measurement_matrix_init(q_nb, lever_arm), expect)
+    np.testing.assert_array_equal(
+        _measurement_matrix_init(q_nb, lever_arm, nz2vg), expect
+    )
 
 
 def test_process_noise_covariance_matrix():
@@ -403,3 +408,80 @@ class Test_AINS:
         assert np.degrees(bgx_rmse) <= 0.01
         assert np.degrees(bgy_rmse) <= 0.01
         assert np.degrees(bgz_rmse) <= 0.01
+
+    @pytest.mark.parametrize(
+        "benchmark_gen, gyro_degrees",
+        [
+            (benchmark_full_pva_beat_202311A, False),
+            (benchmark_full_pva_chirp_202311A, True),
+        ],
+    )
+    def test_benchmark_no_aiding(self, benchmark_gen, gyro_degrees):
+        fs_imu = 10.0
+        warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
+
+        # Reference signals (without noise)
+        t, pos_ref, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
+
+        # IMU and aiding measurements (with noise)
+        err_acc = sf.constants.ERR_ACC_MOTION2
+        err_gyro = sf.constants.ERR_GYRO_MOTION2
+        noise_model = sf.noise.IMUNoise(err_acc=err_acc, err_gyro=err_gyro, seed=0)
+        bg = np.array([0.01, -0.02, 0.0])  # rad/s
+        imu_noise = noise_model(fs_imu, len(t))
+        acc_imu = acc_ref + imu_noise[:, :3]
+        gyro_imu = gyro_ref + imu_noise[:, 3:] + bg
+
+        if gyro_degrees:
+            gyro_imu = np.degrees(gyro_imu)
+
+        # MEKF
+        mekf = AINS(
+            fs_imu,
+            p0=pos_ref[0],
+            v0=vel_ref[0],
+            q0=sf.quaternion_from_euler(euler_ref[0], degrees=False),
+            gyro_noise_density=err_gyro["N"],
+            gyro_bias_stability=err_gyro["B"],
+            gyro_bias_corr_time=err_gyro["tau_cb"],
+        )
+
+        euler_est, bias_gyro_est = [], []
+        for f_i, w_i in zip(acc_imu, gyro_imu):
+
+            dvel_i = f_i / fs_imu
+            dtheta_i = w_i / fs_imu
+
+            mekf.update(
+                dvel_i,
+                dtheta_i,
+                degrees=gyro_degrees,
+                pos=np.zeros(3),
+                pos_var=1_000_000.0 * np.ones(3),
+                vel=np.zeros(3),
+                vel_var=100.0 * np.ones(3),
+                gref=True,
+                gref_var=(0.001, 0.001, 0.001),
+            )
+            euler_est.append(mekf.euler(degrees=False))
+            bias_gyro_est.append(mekf.bias_gyro())
+
+        euler_est = np.array(euler_est)
+        bias_gyro_est = np.array(bias_gyro_est)
+
+        # Half-sample shift (compensates for the delay introduced by Euler integration)
+        euler_est = resample_poly(euler_est, 2, 1)[1:-1:2]
+        bias_gyro_est = resample_poly(bias_gyro_est, 2, 1)[1:-1:2]
+        euler_ref = euler_ref[:-1, :]
+        bias_gyro_ref = np.tile(bg, (len(bias_gyro_est), 1))
+
+        def rmse(ref, est):
+            return np.sqrt(np.mean((ref - est) ** 2, axis=0))
+
+        roll_rmse, pitch_rmse, _ = rmse(euler_ref[warmup:], euler_est[warmup:])
+        bgx_rmse, bgy_rmse, _ = rmse(bias_gyro_ref[warmup:], bias_gyro_est[warmup:])
+
+        assert np.degrees(roll_rmse) <= 0.5
+        assert np.degrees(pitch_rmse) <= 0.5
+        assert np.degrees(bgx_rmse) <= 0.01
+        assert np.degrees(bgy_rmse) <= 0.01
