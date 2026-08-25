@@ -179,6 +179,50 @@ def test_reset():
     )
 
 
+def test_ains_init():
+
+    p0 = np.random.random(3)
+    v0 = np.random.random(3)
+    q0 = sf.quaternion_from_euler(np.random.random(3), degrees=False)
+    bg0 = np.random.random(3)
+    vrw = 0.0001
+    arw = 0.0002
+    gbs = 0.0003
+    gbc = 123.0
+
+    mekf = AINS(
+        51.2,
+        p0=p0,
+        v0=v0,
+        q0=q0,
+        bg0=bg0,
+        P0=0.1 * np.eye(12),
+        acc_noise_density=vrw,
+        gyro_noise_density=arw,
+        gyro_bias_stability=gbs,
+        gyro_bias_corr_time=gbc,
+        g=9.81,
+        nav_frame="enu",
+        lever_arm=np.array([0.1, 0.2, 0.3]),
+    )
+
+    assert mekf._fs == pytest.approx(51.2)
+    assert mekf._dt == pytest.approx(1.0 / 51.2)
+    assert mekf._g == 9.81
+    assert mekf._nav_frame == "enu"
+    assert mekf._vrw == pytest.approx(vrw)
+    assert mekf._arw == pytest.approx(arw)
+    assert mekf._gbs == pytest.approx(gbs)
+    assert mekf._gbc == pytest.approx(gbc)
+    np.testing.assert_allclose(mekf._lever_arm, np.array([0.1, 0.2, 0.3]))
+    np.testing.assert_allclose(mekf.position(), p0)
+    np.testing.assert_allclose(mekf.velocity(), v0)
+    np.testing.assert_allclose(mekf.quaternion(), q0)
+    np.testing.assert_allclose(mekf.bias_gyro(), bg0)
+    np.testing.assert_allclose(mekf.P, 0.1 * np.eye(12))
+    np.testing.assert_allclose(mekf._dx, np.zeros(12))
+
+
 def test_ains_init_default():
     mekf = AINS(10.0)
     assert mekf._fs == pytest.approx(10.0)
