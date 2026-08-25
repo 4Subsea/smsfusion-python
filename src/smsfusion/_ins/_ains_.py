@@ -15,7 +15,7 @@ from ._common import (
     _update_quaternion_with_rotvec,
 )
 
-P0 = (
+_P0 = (
     (1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
     (0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
     (0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
@@ -287,7 +287,7 @@ class AINS:
         v0: ArrayLike = (0.0, 0.0, 0.0),
         q0: ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg0: ArrayLike = (0.0, 0.0, 0.0),
-        P0: ArrayLike = P0,
+        P0: ArrayLike = _P0,
         acc_noise_density: float = 0.0007,
         gyro_noise_density: float = 0.00005,
         gyro_bias_stability: float = 0.00005,
