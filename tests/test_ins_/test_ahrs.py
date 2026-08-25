@@ -12,7 +12,6 @@ from smsfusion._ins._ahrs import (
     _state_transition_matrix_update,
 )
 from smsfusion._ins._common import _gref_b_from_quat
-from smsfusion._transforms import _rot_matrix_from_quaternion
 from smsfusion._vectorops import _skew_symmetric
 from smsfusion.benchmark import (
     benchmark_full_pva_beat_202311A,
@@ -244,10 +243,9 @@ class Test_AHRS:
         warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
 
         # Reference signals (without noise)
-        t, pos_ref, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
+        t, _, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
 
         # IMU and aiding measurements (with noise)
-        pos_std = 0.1  # m
         vel_std = 0.01  # m/s
         head_std = np.radians(0.1)  # rad
         err_acc = sf.constants.ERR_ACC_MOTION2
@@ -273,7 +271,7 @@ class Test_AHRS:
             gyro_bias_corr_time=err_gyro["tau_cb"],
         )
 
-        pos_est, vel_est, euler_est, bias_gyro_est = [], [], [], []
+        vel_est, euler_est, bias_gyro_est = [], [], []
         for f_i, w_i, h_i, v_i in zip(acc_imu, gyro_imu, head_meas, vel_meas):
 
             dvel_i = f_i / fs_imu
@@ -336,7 +334,7 @@ class Test_AHRS:
         warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
 
         # Reference signals (without noise)
-        t, pos_ref, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
+        t, _, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
 
         # IMU and aiding measurements (with noise)
         err_acc = sf.constants.ERR_ACC_MOTION2
