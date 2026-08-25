@@ -332,30 +332,31 @@ class AINS:
 
     def position(self) -> NDArray[np.float64]:
         """
-        Position expressed in the navigation frame.
+        Copy of the position estimate in meters.
         """
         return self._p_n.copy()
 
     def velocity(self) -> NDArray[np.float64]:
         """
-        Velocity expressed in the navigation frame.
+        Copy of the velocity estimate in m/s.
         """
         return self._v_n.copy()
 
     def quaternion(self) -> NDArray[np.float64]:
         """
-        Attitude expressed as a unit quaternion.
+        Copy of the attitude estimate expressed as a unit quaternion.
         """
         return self._q_nb.copy()
 
     def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
-        Attitude expressed as Euler angles (roll, pitch, yaw).
+        Copy of the attitude estimate expressed as Euler angles (roll, pitch, yaw).
 
         Parameters
         ----------
-        degrees : bool, default False
-            Whether to return the Euler angles in degrees or radians.
+        degrees : bool, optional
+            Whether to return the Euler angles in degrees or radians. Defaults to
+            radians.
 
         Returns
         -------
@@ -372,7 +373,8 @@ class AINS:
 
     def bias_gyro(self, degrees=False) -> NDArray[np.float64]:
         """
-        Gyroscope bias estimate (rad/s) expressed in the body frame.
+        Copy of the gyroscope bias estimate in rad/s or deg/s depending on the
+        ``degrees`` flag.
 
         Parameters
         ----------
@@ -409,33 +411,37 @@ class AINS:
 
         Parameters
         ----------
-        dvel : array_like, shape (3,), optional
+        dvel : array_like, shape (3,)
             Velocity increment (sculling integral) in m/s.
-        dtheta : array_like, shape (3,), optional
-            Attitude increment (coning integral) in radians.
+        dtheta : array_like, shape (3,)
+            Attitude increment (coning integral) in radians or degrees depending
+            on the ``degrees`` flag.
         degrees : bool, optional
             Specifies whether the unit of the attitude increment, ``dtheta``, is
             degrees or radians. Defaults to radians.
         pos : array-like, shape (3,), optional
-            Position aiding measurement in m. If ``None``, position aiding ins not used.
+            Position aiding measurement in meters. If ``None``, position aiding
+            is not used.
         pos_var : array-like, shape (3,), optional
-            Variance of position measurement noise in m^2. Ignored if ``pos`` is ``None``.
-            Defaults to (1e6, 1e6, 1e6) m^2.
+            Variance of position measurement noise in m^2. Ignored if ``pos`` is
+            ``None``. Defaults to (1e6, 1e6, 1e6) m^2.
         vel : array-like, shape (3,), optional
-            Velocity aiding measurement in m/s. If ``None``, velocity aiding is not used.
+            Velocity aiding measurement in m/s. If ``None``, velocity aiding is
+            not used.
         vel_var : array-like, shape (3,), optional
-            Variance of velocity measurement noise in (m/s)^2. Ignored if ``vel`` is ``None``.
-            Defaults to (100.0, 100.0, 100.0) (m/s)^2.
+            Variance of velocity measurement noise in (m/s)^2. Ignored if ``vel``
+            is ``None``. Defaults to (100.0, 100.0, 100.0) (m/s)^2.
         head : float, optional
-            Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
-            assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
-            If ``None``, compass aiding is not used. See ``head_degrees`` for units.
+            Heading measurement in radians or degrees depending on the ``head_degrees``
+            flag. I.e., the yaw angle of the 'body' frame relative to the assumed
+            'navigation' frame ('NED' or 'ENU') specified during initialization.
+            If ``None``, compass aiding is not used.
         head_var : float, optional
-            Variance of heading measurement noise. Units must be compatible with ``head``.
-            See ``head_degrees`` for units. Ignored if ``head`` is ``None``.
+            Variance of heading measurement noise in radians^2 or degrees^2 depending
+            on the ``head_degrees`` flag. Ignored if ``head`` is ``None``.
         head_degrees : bool, default False
-            Specifies whether the unit of ``head`` and ``head_var`` are in degrees and degrees^2,
-            or radians and radians^2. Default is in radians and radians^2.
+            Specifies whether the unit of ``head`` and ``head_var`` are in degrees
+            and degrees^2, or radians and radians^2. Defaults to radians and radians^2.
 
         Returns
         -------
