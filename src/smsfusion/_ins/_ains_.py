@@ -159,9 +159,8 @@ def _measurement_matrix_init(
         Unit quaternion.
     lever_arm : ndarray, shape(3,)
         Lever-arm vector describing the location of position aiding (in meters) relative
-        to the IMU expressed in the IMU's measurement frame. For instance, the location
-        of the GNSS antenna relative to the IMU. By default it is assumed that the
-        aiding position coincides with the IMU's origin.
+        to the IMU expressed in the IMU/body reference frame. For instance, the location
+        of the GNSS antenna relative to the IMU.
 
     Returns
     -------
