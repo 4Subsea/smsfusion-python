@@ -288,9 +288,9 @@ class AINS:
         to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
     bg0 : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
-    P0 : array_like, shape (6, 6), optional
+    P0 : array_like, shape (12, 12), optional
         Initial (a priori) estimate of the error covariance matrix. Defaults to
-        a small diagonal matrix (1e-6 * np.eye(9)).
+        a small diagonal matrix (1e-6 * np.eye(12)).
     acc_noise_density : float, optional
         Accelerometer noise density (velocity random walk) in (m/s)/√Hz. Defaults to
         0.0007 (m/s)/√Hz (SMS Motion 2 noise level).
