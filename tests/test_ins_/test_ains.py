@@ -179,207 +179,241 @@ def test_reset():
     )
 
 
-def test_ains_init():
+class Test_AINS:
 
-    p0 = np.random.random(3)
-    v0 = np.random.random(3)
-    q0 = sf.quaternion_from_euler(np.random.random(3), degrees=False)
-    bg0 = np.random.random(3)
-    vrw = 0.0001
-    arw = 0.0002
-    gbs = 0.0003
-    gbc = 123.0
+    def test_init(self):
 
-    mekf = AINS(
-        51.2,
-        p0=p0,
-        v0=v0,
-        q0=q0,
-        bg0=bg0,
-        P0=0.1 * np.eye(12),
-        acc_noise_density=vrw,
-        gyro_noise_density=arw,
-        gyro_bias_stability=gbs,
-        gyro_bias_corr_time=gbc,
-        g=9.81,
-        nav_frame="enu",
-        lever_arm=np.array([0.1, 0.2, 0.3]),
-    )
+        p0 = np.random.random(3)
+        v0 = np.random.random(3)
+        q0 = sf.quaternion_from_euler(np.random.random(3), degrees=False)
+        bg0 = np.random.random(3)
+        vrw = 0.0001
+        arw = 0.0002
+        gbs = 0.0003
+        gbc = 123.0
 
-    assert mekf._fs == pytest.approx(51.2)
-    assert mekf._dt == pytest.approx(1.0 / 51.2)
-    assert mekf._g == 9.81
-    assert mekf._nav_frame == "enu"
-    assert mekf._vrw == pytest.approx(vrw)
-    assert mekf._arw == pytest.approx(arw)
-    assert mekf._gbs == pytest.approx(gbs)
-    assert mekf._gbc == pytest.approx(gbc)
-    np.testing.assert_allclose(mekf._g_n, np.array([0.0, 0.0, -9.81]))
-    np.testing.assert_allclose(mekf._lever_arm, np.array([0.1, 0.2, 0.3]))
-    np.testing.assert_allclose(mekf.position(), p0)
-    np.testing.assert_allclose(mekf.velocity(), v0)
-    np.testing.assert_allclose(mekf.quaternion(), q0)
-    np.testing.assert_allclose(mekf.bias_gyro(), bg0)
-    np.testing.assert_allclose(mekf.P, 0.1 * np.eye(12))
-    np.testing.assert_allclose(mekf._dx, np.zeros(12))
-
-
-def test_ains_init_default():
-    mekf = AINS(10.0)
-    assert mekf._fs == pytest.approx(10.0)
-    assert mekf._dt == pytest.approx(0.1)
-    assert mekf._g == 9.80665
-    assert mekf._nav_frame == "ned"
-    assert mekf._vrw == pytest.approx(0.0007)
-    assert mekf._arw == pytest.approx(0.00005)
-    assert mekf._gbs == pytest.approx(0.00005)
-    assert mekf._gbc == pytest.approx(50.0)
-    np.testing.assert_allclose(mekf._g_n, np.array([0.0, 0.0, 9.80665]))
-    np.testing.assert_allclose(mekf._lever_arm, np.zeros(3))
-    np.testing.assert_allclose(mekf.position(), np.zeros(3))
-    np.testing.assert_allclose(mekf.velocity(), np.zeros(3))
-    np.testing.assert_allclose(mekf.quaternion(), np.array([1.0, 0.0, 0.0, 0.0]))
-    np.testing.assert_allclose(mekf.bias_gyro(), np.zeros(3))
-    np.testing.assert_allclose(mekf.P, np.array(sf._ins._ains.P0))
-    np.testing.assert_allclose(mekf._dx, np.zeros(12))
-
-
-@pytest.mark.parametrize("nav_frame, scale", (["NED", 1.0], ["ENU", -1.0]))
-def test_ains_nav_frame(nav_frame, scale):
-    mekf = AINS(10.0, nav_frame=nav_frame)
-
-    assert mekf._nav_frame == nav_frame.lower()
-    np.testing.assert_allclose(mekf._g_n, np.array([0.0, 0.0, mekf._g * scale]))
-
-
-def test_ains_methods():
-    pos_init = np.array([0.1, 10.0, -0.2])
-    vel_init = np.array([0.0, 0.1, -0.2])
-    euler_init = np.array([10.0, 20.0, 30.0])
-    quaternion_init = sf.quaternion_from_euler(euler_init, degrees=True)
-    bg_init = np.array([0.01, -0.01, 0.02])
-
-    mekf = AINS(
-        10.0,
-        p0=pos_init,
-        v0=vel_init,
-        q0=quaternion_init,
-        bg0=bg_init,
-        P0=0.1 * np.eye(12),
-    )
-
-    np.testing.assert_allclose(mekf.position(), pos_init)
-    np.testing.assert_allclose(mekf.velocity(), vel_init)
-    np.testing.assert_allclose(mekf.euler(), np.radians(euler_init))
-    np.testing.assert_allclose(mekf.euler(degrees=False), np.radians(euler_init))
-    np.testing.assert_allclose(mekf.euler(degrees=True), euler_init)
-    np.testing.assert_allclose(mekf.quaternion(), quaternion_init)
-    np.testing.assert_allclose(mekf.bias_gyro(), bg_init)
-    np.testing.assert_allclose(mekf.bias_gyro(degrees=False), bg_init)
-    np.testing.assert_allclose(mekf.bias_gyro(degrees=True), np.degrees(bg_init))
-    np.testing.assert_allclose(mekf.P, 0.1 * np.eye(12))
-
-
-@pytest.mark.parametrize(
-    "benchmark_gen, gyro_degrees",
-    [
-        (benchmark_full_pva_beat_202311A, False),
-        (benchmark_full_pva_chirp_202311A, True),
-    ],
-)
-def test_ains_benchmark(benchmark_gen, gyro_degrees):
-    fs_imu = 10.0
-    warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
-
-    # Reference signals (without noise)
-    t, pos_ref, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
-
-    # IMU and aiding measurements (with noise)
-    pos_std = 0.1  # m
-    vel_std = 0.01  # m/s
-    head_std = np.radians(0.1)  # rad
-    err_acc = sf.constants.ERR_ACC_MOTION2
-    err_gyro = sf.constants.ERR_GYRO_MOTION2
-    noise_model = sf.noise.IMUNoise(err_acc=err_acc, err_gyro=err_gyro, seed=0)
-    bg = np.array([0.01, -0.02, 0.03])  # rad/s
-    imu_noise = noise_model(fs_imu, len(t))
-    acc_imu = acc_ref + imu_noise[:, :3]
-    gyro_imu = gyro_ref + imu_noise[:, 3:] + bg
-    pos_meas = pos_ref + np.random.normal(0.0, pos_std, pos_ref.shape)
-    vel_meas = vel_ref + np.random.normal(0.0, vel_std, vel_ref.shape)
-    head_meas = euler_ref[:, 2] + np.random.normal(0.0, head_std, len(euler_ref))
-
-    if gyro_degrees:
-        gyro_imu = np.degrees(gyro_imu)
-
-    # MEKF
-    mekf = AINS(
-        fs_imu,
-        p0=pos_ref[0],
-        v0=vel_ref[0],
-        q0=sf.quaternion_from_euler(euler_ref[0], degrees=False),
-        gyro_noise_density=err_gyro["N"],
-        gyro_bias_stability=err_gyro["B"],
-        gyro_bias_corr_time=err_gyro["tau_cb"],
-    )
-
-    pos_est, vel_est, euler_est, bias_gyro_est = [], [], [], []
-    for f_i, w_i, h_i, p_i, v_i in zip(
-        acc_imu, gyro_imu, head_meas, pos_meas, vel_meas
-    ):
-
-        dvel_i = f_i / fs_imu
-        dtheta_i = w_i / fs_imu
-
-        mekf.update(
-            dvel_i,
-            dtheta_i,
-            degrees=gyro_degrees,
-            head=h_i,
-            head_var=head_std**2,
-            head_degrees=False,
-            pos=p_i,
-            pos_var=pos_std**2 * np.ones(3),
-            vel=v_i,
-            vel_var=vel_std**2 * np.ones(3),
+        mekf = AINS(
+            51.2,
+            p0=p0,
+            v0=v0,
+            q0=q0,
+            bg0=bg0,
+            P0=0.1 * np.eye(12),
+            acc_noise_density=vrw,
+            gyro_noise_density=arw,
+            gyro_bias_stability=gbs,
+            gyro_bias_corr_time=gbc,
+            g=9.81,
+            nav_frame="enu",
+            lever_arm=np.array([0.1, 0.2, 0.3]),
         )
-        pos_est.append(mekf.position())
-        vel_est.append(mekf.velocity())
-        euler_est.append(mekf.euler(degrees=False))
-        bias_gyro_est.append(mekf.bias_gyro())
 
-    pos_est = np.array(pos_est)
-    vel_est = np.array(vel_est)
-    euler_est = np.array(euler_est)
-    bias_gyro_est = np.array(bias_gyro_est)
+        assert mekf._fs == pytest.approx(51.2)
+        assert mekf._dt == pytest.approx(1.0 / 51.2)
+        assert mekf._g == 9.81
+        assert mekf._nav_frame == "enu"
+        assert mekf._vrw == pytest.approx(vrw)
+        assert mekf._arw == pytest.approx(arw)
+        assert mekf._gbs == pytest.approx(gbs)
+        assert mekf._gbc == pytest.approx(gbc)
+        np.testing.assert_allclose(mekf._g_n, np.array([0.0, 0.0, -9.81]))
+        np.testing.assert_allclose(mekf._lever_arm, np.array([0.1, 0.2, 0.3]))
+        np.testing.assert_allclose(mekf.position(), p0)
+        np.testing.assert_allclose(mekf.velocity(), v0)
+        np.testing.assert_allclose(mekf.quaternion(), q0)
+        np.testing.assert_allclose(mekf.bias_gyro(), bg0)
+        np.testing.assert_allclose(mekf.P, 0.1 * np.eye(12))
+        np.testing.assert_allclose(mekf._dx, np.zeros(12))
 
-    # Half-sample shift (compensates for the delay introduced by Euler integration)
-    pos_est = resample_poly(pos_est, 2, 1)[1:-1:2]
-    vel_est = resample_poly(vel_est, 2, 1)[1:-1:2]
-    euler_est = resample_poly(euler_est, 2, 1)[1:-1:2]
-    bias_gyro_est = resample_poly(bias_gyro_est, 2, 1)[1:-1:2]
-    pos_ref = pos_ref[:-1, :]
-    vel_ref = vel_ref[:-1, :]
-    euler_ref = euler_ref[:-1, :]
-    bias_gyro_ref = np.tile(bg, (len(bias_gyro_est), 1))
+    def test_init_default(self):
+        mekf = AINS(10.0)
+        assert mekf._fs == pytest.approx(10.0)
+        assert mekf._dt == pytest.approx(0.1)
+        assert mekf._g == 9.80665
+        assert mekf._nav_frame == "ned"
+        assert mekf._vrw == pytest.approx(0.0007)
+        assert mekf._arw == pytest.approx(0.00005)
+        assert mekf._gbs == pytest.approx(0.00005)
+        assert mekf._gbc == pytest.approx(50.0)
+        np.testing.assert_allclose(mekf._g_n, np.array([0.0, 0.0, 9.80665]))
+        np.testing.assert_allclose(mekf._lever_arm, np.zeros(3))
+        np.testing.assert_allclose(mekf.position(), np.zeros(3))
+        np.testing.assert_allclose(mekf.velocity(), np.zeros(3))
+        np.testing.assert_allclose(mekf.quaternion(), np.array([1.0, 0.0, 0.0, 0.0]))
+        np.testing.assert_allclose(mekf.bias_gyro(), np.zeros(3))
+        np.testing.assert_allclose(mekf.P, np.array(sf._ins._ains.P0))
+        np.testing.assert_allclose(mekf._dx, np.zeros(12))
 
-    def rmse(ref, est):
-        return np.sqrt(np.mean((ref - est) ** 2, axis=0))
+    @pytest.mark.parametrize("nav_frame, scale", (["NED", 1.0], ["ENU", -1.0]))
+    def test_nav_frame(self, nav_frame, scale):
+        mekf = AINS(10.0, nav_frame=nav_frame)
+        assert mekf._nav_frame == nav_frame.lower()
+        np.testing.assert_allclose(mekf._g_n, np.array([0.0, 0.0, mekf._g * scale]))
 
-    px_rmse, py_rmse, pz_rmse = rmse(pos_ref[warmup:], pos_est[warmup:])
-    vx_rmse, vy_rmse, vz_rmse = rmse(vel_ref[warmup:], vel_est[warmup:])
-    roll_rmse, pitch_rmse, yaw_rmse = rmse(euler_ref[warmup:], euler_est[warmup:])
-    bgx_rmse, bgy_rmse, bgz_rmse = rmse(bias_gyro_ref[warmup:], bias_gyro_est[warmup:])
+    def test_position(self):
+        p0 = np.array([1.0, 2.0, 3.0])
+        mekf = AINS(10.0, p0=p0)
+        np.testing.assert_allclose(mekf.position(), p0)
 
-    assert px_rmse <= 0.1
-    assert py_rmse <= 0.1
-    assert pz_rmse <= 0.1
-    assert vx_rmse <= 0.1
-    assert vy_rmse <= 0.1
-    assert vz_rmse <= 0.1
-    assert np.degrees(roll_rmse) <= 0.5
-    assert np.degrees(pitch_rmse) <= 0.5
-    assert np.degrees(yaw_rmse) <= 0.5
-    assert np.degrees(bgx_rmse) <= 0.01
-    assert np.degrees(bgy_rmse) <= 0.01
-    assert np.degrees(bgz_rmse) <= 0.01
+    def test_velocity(self):
+        v0 = np.array([1.0, 2.0, 3.0])
+        mekf = AINS(10.0, v0=v0)
+        np.testing.assert_allclose(mekf.velocity(), v0)
+
+    def test_quaternion(self):
+        euler = np.array([10.0, 20.0, 30.0])
+        q0 = sf.quaternion_from_euler(euler, degrees=True)
+        mekf = AINS(10.0, q0=q0)
+        np.testing.assert_allclose(mekf.quaternion(), q0)
+
+    def test_euler(self):
+        euler = np.array([10.0, 20.0, 30.0])
+        mekf = AINS(10.0, q0=sf.quaternion_from_euler(euler, degrees=True))
+        np.testing.assert_allclose(mekf.euler(), np.radians(euler))
+        np.testing.assert_allclose(mekf.euler(degrees=True), euler)
+        np.testing.assert_allclose(mekf.euler(degrees=False), np.radians(euler))
+
+    def test_bias_gyro(self):
+        bg0 = np.array([0.01, -0.02, 0.03])
+        mekf = AINS(10.0, bg0=bg0)
+        np.testing.assert_allclose(mekf.bias_gyro(), bg0)
+        np.testing.assert_allclose(mekf.bias_gyro(degrees=False), bg0)
+        np.testing.assert_allclose(mekf.bias_gyro(degrees=True), np.degrees(bg0))
+
+    def test_P(self):
+        P0 = 0.1 * np.eye(12)
+        mekf = AINS(10.0, P0=P0)
+        np.testing.assert_allclose(mekf.P, P0)
+
+    def test_methods(self):
+        pos_init = np.array([0.1, 10.0, -0.2])
+        vel_init = np.array([0.0, 0.1, -0.2])
+        euler_init = np.array([10.0, 20.0, 30.0])
+        quaternion_init = sf.quaternion_from_euler(euler_init, degrees=True)
+        bg_init = np.array([0.01, -0.01, 0.02])
+
+        mekf = AINS(
+            10.0,
+            p0=pos_init,
+            v0=vel_init,
+            q0=quaternion_init,
+            bg0=bg_init,
+            P0=0.1 * np.eye(12),
+        )
+
+        np.testing.assert_allclose(mekf.position(), pos_init)
+        np.testing.assert_allclose(mekf.velocity(), vel_init)
+        np.testing.assert_allclose(mekf.euler(), np.radians(euler_init))
+        np.testing.assert_allclose(mekf.euler(degrees=False), np.radians(euler_init))
+        np.testing.assert_allclose(mekf.euler(degrees=True), euler_init)
+        np.testing.assert_allclose(mekf.quaternion(), quaternion_init)
+        np.testing.assert_allclose(mekf.bias_gyro(), bg_init)
+        np.testing.assert_allclose(mekf.bias_gyro(degrees=False), bg_init)
+        np.testing.assert_allclose(mekf.bias_gyro(degrees=True), np.degrees(bg_init))
+        np.testing.assert_allclose(mekf.P, 0.1 * np.eye(12))
+
+    @pytest.mark.parametrize(
+        "benchmark_gen, gyro_degrees",
+        [
+            (benchmark_full_pva_beat_202311A, False),
+            (benchmark_full_pva_chirp_202311A, True),
+        ],
+    )
+    def test_benchmark(self, benchmark_gen, gyro_degrees):
+        fs_imu = 10.0
+        warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
+
+        # Reference signals (without noise)
+        t, pos_ref, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
+
+        # IMU and aiding measurements (with noise)
+        pos_std = 0.1  # m
+        vel_std = 0.01  # m/s
+        head_std = np.radians(0.1)  # rad
+        err_acc = sf.constants.ERR_ACC_MOTION2
+        err_gyro = sf.constants.ERR_GYRO_MOTION2
+        noise_model = sf.noise.IMUNoise(err_acc=err_acc, err_gyro=err_gyro, seed=0)
+        bg = np.array([0.01, -0.02, 0.03])  # rad/s
+        imu_noise = noise_model(fs_imu, len(t))
+        acc_imu = acc_ref + imu_noise[:, :3]
+        gyro_imu = gyro_ref + imu_noise[:, 3:] + bg
+        pos_meas = pos_ref + np.random.normal(0.0, pos_std, pos_ref.shape)
+        vel_meas = vel_ref + np.random.normal(0.0, vel_std, vel_ref.shape)
+        head_meas = euler_ref[:, 2] + np.random.normal(0.0, head_std, len(euler_ref))
+
+        if gyro_degrees:
+            gyro_imu = np.degrees(gyro_imu)
+
+        # MEKF
+        mekf = AINS(
+            fs_imu,
+            p0=pos_ref[0],
+            v0=vel_ref[0],
+            q0=sf.quaternion_from_euler(euler_ref[0], degrees=False),
+            gyro_noise_density=err_gyro["N"],
+            gyro_bias_stability=err_gyro["B"],
+            gyro_bias_corr_time=err_gyro["tau_cb"],
+        )
+
+        pos_est, vel_est, euler_est, bias_gyro_est = [], [], [], []
+        for f_i, w_i, h_i, p_i, v_i in zip(
+            acc_imu, gyro_imu, head_meas, pos_meas, vel_meas
+        ):
+
+            dvel_i = f_i / fs_imu
+            dtheta_i = w_i / fs_imu
+
+            mekf.update(
+                dvel_i,
+                dtheta_i,
+                degrees=gyro_degrees,
+                head=h_i,
+                head_var=head_std**2,
+                head_degrees=False,
+                pos=p_i,
+                pos_var=pos_std**2 * np.ones(3),
+                vel=v_i,
+                vel_var=vel_std**2 * np.ones(3),
+            )
+            pos_est.append(mekf.position())
+            vel_est.append(mekf.velocity())
+            euler_est.append(mekf.euler(degrees=False))
+            bias_gyro_est.append(mekf.bias_gyro())
+
+        pos_est = np.array(pos_est)
+        vel_est = np.array(vel_est)
+        euler_est = np.array(euler_est)
+        bias_gyro_est = np.array(bias_gyro_est)
+
+        # Half-sample shift (compensates for the delay introduced by Euler integration)
+        pos_est = resample_poly(pos_est, 2, 1)[1:-1:2]
+        vel_est = resample_poly(vel_est, 2, 1)[1:-1:2]
+        euler_est = resample_poly(euler_est, 2, 1)[1:-1:2]
+        bias_gyro_est = resample_poly(bias_gyro_est, 2, 1)[1:-1:2]
+        pos_ref = pos_ref[:-1, :]
+        vel_ref = vel_ref[:-1, :]
+        euler_ref = euler_ref[:-1, :]
+        bias_gyro_ref = np.tile(bg, (len(bias_gyro_est), 1))
+
+        def rmse(ref, est):
+            return np.sqrt(np.mean((ref - est) ** 2, axis=0))
+
+        px_rmse, py_rmse, pz_rmse = rmse(pos_ref[warmup:], pos_est[warmup:])
+        vx_rmse, vy_rmse, vz_rmse = rmse(vel_ref[warmup:], vel_est[warmup:])
+        roll_rmse, pitch_rmse, yaw_rmse = rmse(euler_ref[warmup:], euler_est[warmup:])
+        bgx_rmse, bgy_rmse, bgz_rmse = rmse(
+            bias_gyro_ref[warmup:], bias_gyro_est[warmup:]
+        )
+
+        assert px_rmse <= 0.1
+        assert py_rmse <= 0.1
+        assert pz_rmse <= 0.1
+        assert vx_rmse <= 0.1
+        assert vy_rmse <= 0.1
+        assert vz_rmse <= 0.1
+        assert np.degrees(roll_rmse) <= 0.5
+        assert np.degrees(pitch_rmse) <= 0.5
+        assert np.degrees(yaw_rmse) <= 0.5
+        assert np.degrees(bgx_rmse) <= 0.01
+        assert np.degrees(bgy_rmse) <= 0.01
+        assert np.degrees(bgz_rmse) <= 0.01
