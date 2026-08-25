@@ -99,8 +99,8 @@ def _update_quaternion_with_rotvec(
     q: NDArray[np.float64], dtheta: NDArray[np.float64]
 ) -> NDArray[np.float64]:
     """
-    Update (inplace) a unit quaternion, q, with a small attitude increment, dtheta,
-    parameterized as a rotation vector.
+    Update a unit quaternion, q, with a small attitude increment, dtheta, parameterized
+    as a rotation vector.
 
     Parameters
     ----------
