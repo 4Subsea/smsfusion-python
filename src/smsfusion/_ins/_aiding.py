@@ -24,7 +24,7 @@ def _aiding_update_pos(
     lever_arm: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
-    Update with position aiding measurement.
+    Update error state (dx) and error covariance (P) with position aiding measurement.
     """
 
     if lever_arm.any():
@@ -46,7 +46,7 @@ def _aiding_update_vel(
     vel_var: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
-    Update with velocity aiding measurement.
+    Update error state (dx) and error covariance (P) with velocity aiding measurement.
     """
     dz = vel_meas - vel_n
     dx, P = _kalman_update_sequential(dx, P, dz, vel_var, H)
@@ -64,7 +64,7 @@ def _aiding_update_head(
     head_degrees: bool,
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
-    Update with heading aiding measurement.
+    Update error state (dx) and error covariance (P) with heading aiding measurement.
     """
 
     if head_degrees:
@@ -85,7 +85,8 @@ def _aiding_update_gref(
     gref_var: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
-    Update state and covariance with gravity reference vector aiding measurement.
+    Update error state (dx) and error covariance (P) with gravity reference vector
+    aiding measurement.
     """
     dz = -_normalize(dvel) - vg_b
     dx, P = _kalman_update_sequential(dx, P, dz, gref_var, H)
