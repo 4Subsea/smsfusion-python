@@ -235,8 +235,10 @@ def _reset(
 
 class AINS:
     """
-    Aided inertial navigation system (AINS) using a multiplicative extended Kalman
-    filter (MEKF).
+    Aided inertial navigation system (AINS).
+    
+    This class provides position, velocity, attitude and gyro bias estimation using
+    a multiplicative extended Kalman filter (MEKF).
 
     Parameters
     ----------
