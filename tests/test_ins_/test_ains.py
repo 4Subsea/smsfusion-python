@@ -187,6 +187,7 @@ class Test_AINS:
         v0 = np.random.random(3)
         q0 = sf.quaternion_from_euler(np.random.random(3), degrees=False)
         bg0 = np.random.random(3)
+        P0 = 0.1 * np.eye(12)
         vrw = 0.0001
         arw = 0.0002
         gbs = 0.0003
@@ -198,7 +199,7 @@ class Test_AINS:
             v0=v0,
             q0=q0,
             bg0=bg0,
-            P0=0.1 * np.eye(12),
+            P0=P0,
             acc_noise_density=vrw,
             gyro_noise_density=arw,
             gyro_bias_stability=gbs,
@@ -222,8 +223,15 @@ class Test_AINS:
         np.testing.assert_allclose(mekf.velocity(), v0)
         np.testing.assert_allclose(mekf.quaternion(), q0)
         np.testing.assert_allclose(mekf.bias_gyro(), bg0)
-        np.testing.assert_allclose(mekf.P, 0.1 * np.eye(12))
+        np.testing.assert_allclose(mekf.P, P0)
         np.testing.assert_allclose(mekf._dx, np.zeros(12))
+
+        # Check that the initial values are copied
+        assert mekf._p_n is not p0  # copy
+        assert mekf._v_n is not v0  # copy
+        assert mekf._q_nb is not q0  # copy
+        assert mekf._bg_b is not bg0  # copy
+        assert mekf._P is not P0  # copy
 
     def test_init_default(self):
         mekf = AINS(10.0)
@@ -254,17 +262,20 @@ class Test_AINS:
         p0 = np.array([1.0, 2.0, 3.0])
         mekf = AINS(10.0, p0=p0)
         np.testing.assert_allclose(mekf.position(), p0)
+        assert mekf.position() is not mekf._p_n  # copy
 
     def test_velocity(self):
         v0 = np.array([1.0, 2.0, 3.0])
         mekf = AINS(10.0, v0=v0)
         np.testing.assert_allclose(mekf.velocity(), v0)
+        assert mekf.velocity() is not mekf._v_n  # copy
 
     def test_quaternion(self):
         euler = np.array([10.0, 20.0, 30.0])
         q0 = sf.quaternion_from_euler(euler, degrees=True)
         mekf = AINS(10.0, q0=q0)
         np.testing.assert_allclose(mekf.quaternion(), q0)
+        assert mekf.quaternion() is not mekf._q_nb  # copy
 
     def test_euler(self):
         euler = np.array([10.0, 20.0, 30.0])
@@ -279,11 +290,13 @@ class Test_AINS:
         np.testing.assert_allclose(mekf.bias_gyro(), bg0)
         np.testing.assert_allclose(mekf.bias_gyro(degrees=False), bg0)
         np.testing.assert_allclose(mekf.bias_gyro(degrees=True), np.degrees(bg0))
+        assert mekf.bias_gyro(degrees=False) is not mekf._bg_b  # copy
 
     def test_P(self):
         P0 = 0.1 * np.eye(12)
         mekf = AINS(10.0, P0=P0)
         np.testing.assert_allclose(mekf.P, P0)
+        assert mekf.P is not mekf._P  # copy
 
     @pytest.mark.parametrize(
         "benchmark_gen, gyro_degrees",
