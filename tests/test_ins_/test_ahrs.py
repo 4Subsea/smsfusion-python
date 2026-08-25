@@ -329,7 +329,7 @@ class Test_AHRS:
             (benchmark_full_pva_chirp_202311A, True),
         ],
     )
-    def test_benchmark_no_aiding(self, benchmark_gen, gyro_degrees):
+    def test_benchmark_with_gref_aiding(self, benchmark_gen, gyro_degrees):
         fs_imu = 10.0
         warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
 
