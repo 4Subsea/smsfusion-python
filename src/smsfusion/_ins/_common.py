@@ -111,7 +111,7 @@ def _update_quaternion_with_rotvec(
 
     References
     ----------
-    .. [1] https://www.vectornav.com/resources/inertial-navigation-primer/math-fundamentals/math-coning (Eq. 2.5.1)
+    .. [1] https://www.vectornav.com/resources/inertial-navigation-primer/math-fundamentals/math-coning (Eq. 1)
     """
 
     qw, qx, qy, qz = q

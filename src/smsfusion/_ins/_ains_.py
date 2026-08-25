@@ -244,6 +244,30 @@ def _reset(
     dx[:] = 0.0
 
 
+@njit  # type: ignore[misc]
+def _project_state_ahead(
+    p_n: NDArray[np.float64],
+    v_n: NDArray[np.float64],
+    q_nb: NDArray[np.float64],
+    R_nb: NDArray[np.float64],
+    dvel: NDArray[np.float64],
+    dtheta: NDArray[np.float64],
+    dt: float,
+    dvel_g_corr: NDArray[np.float64],
+) -> None:
+    """
+    Project state estimates ahead (in place).
+
+    References
+    ----------
+    .. [1] https://www.vectornav.com/resources/inertial-navigation-primer/math-fundamentals/math-coning (Eq. 3-5)
+    """
+    dvel_corr = R_nb @ dvel + dvel_g_corr
+    p_n[:] += dt * v_n + 0.5 * dt * dvel_corr
+    v_n[:] += dvel_corr
+    _update_quaternion_with_rotvec(q_nb, dtheta)  # -> update q_nb (in place)
+
+
 class AINS:
     """
     Aided inertial navigation system (AINS).
@@ -484,10 +508,16 @@ class AINS:
         _state_transition_matrix_update(self._phi, dvel, dtheta, R_nb)  # -> update phi
 
         # Project (a priori) state estimates ahead
-        dv_n_corr = R_nb @ dvel + self._dvel_g_corr  # corrected velocity increment
-        self._p_n[:] += self._dt * self._v_n + 0.5 * self._dt * dv_n_corr
-        self._v_n[:] += dv_n_corr
-        _update_quaternion_with_rotvec(self._q_nb, dtheta)  # -> update q_nb (in place)
+        _project_state_ahead(  # -> update p_n, v_n, q_nb (in place)
+            self._p_n,
+            self._v_n,
+            self._q_nb,
+            R_nb,
+            dvel,
+            dtheta,
+            self._dt,
+            self._dvel_g_corr,
+        )
 
         # Project (a priori) error covariance matrix estimate ahead
         _project_covariance_ahead(self._P, self._phi, self._Q)  # -> update P (in place)
