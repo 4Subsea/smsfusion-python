@@ -199,7 +199,6 @@ class VRU:
         q0: ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg0: ArrayLike = (0.0, 0.0, 0.0),
         P0: ArrayLike = _P0,
-        acc_noise_density: float = 0.0007,
         gyro_noise_density: float = 0.00005,
         gyro_bias_stability: float = 0.00005,
         gyro_bias_corr_time: float = 50.0,
@@ -211,7 +210,6 @@ class VRU:
         self._nz2vg = _nz2vg(self._nav_frame)
 
         # IMU noise parameters
-        self._vrw = acc_noise_density  # velocity random walk
         self._arw = gyro_noise_density  # angular random walk
         self._gbs = gyro_bias_stability  # gyro bias stability
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
