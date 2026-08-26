@@ -76,6 +76,7 @@ def _aiding_update_head(
     return dx, P
 
 
+@njit  # type: ignore[misc]
 def _aiding_update_gref(
     dx: NDArray[np.float64],
     P: NDArray[np.float64],
