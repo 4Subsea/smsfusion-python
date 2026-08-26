@@ -103,7 +103,7 @@ def _state_transition_matrix_update(
     r10, r11, r12 = R_nb[1]
     r20, r21, r22 = R_nb[2]
 
-    # phi[6:9, 6:9] = np.eye(3) - dt * S(w_b)
+    # Equivalent to: phi[6:9, 6:9] = np.eye(3) - S(dtheta)
     phi[6, 7] = dtz
     phi[6, 8] = -dty
     phi[7, 6] = -dtz
@@ -111,7 +111,7 @@ def _state_transition_matrix_update(
     phi[8, 6] = dty
     phi[8, 7] = -dtx
 
-    # phi[3:6, 6:9] = -dt * R_nb @ S(f_b)
+    # Equivalent to: phi[3:6, 6:9] = -R_nb @ S(dvel)
     phi[3, 6] = -dvz * r01 + dvy * r02
     phi[4, 6] = -dvz * r11 + dvy * r12
     phi[5, 6] = -dvz * r21 + dvy * r22
