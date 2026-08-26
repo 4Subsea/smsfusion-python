@@ -436,10 +436,10 @@ class AINS:
         dvel: ArrayLike,
         dtheta: ArrayLike,
         degrees: bool = False,
-        pos: ArrayLike | None = None,
-        pos_var: ArrayLike | None = None,
-        vel: ArrayLike | None = None,
-        vel_var: ArrayLike | None = None,
+        pos: ArrayLike | None = (0.0, 0.0, 0.0),
+        pos_var: ArrayLike | None = (1_000_000.0, 1_000_000.0, 1_000_000.0),
+        vel: ArrayLike | None = (0.0, 0.0, 0.0),
+        vel_var: ArrayLike | None = (100.0, 100.0, 100.0),
         head: float | None = None,
         head_var: float | None = None,
         head_degrees: bool = False,
@@ -461,16 +461,16 @@ class AINS:
             degrees or radians. Defaults to radians.
         pos : array-like, shape (3,), optional
             Position aiding measurement in meters. If ``None``, position aiding
-            is not used.
+            is not used. Defaults to (0.0, 0.0, 0.0) (i.e., origin).
         pos_var : array-like, shape (3,), optional
             Variance of position measurement noise in m^2. Ignored if ``pos`` is
-            ``None``.
+            ``None``. Defaults to (1_000_000.0, 1_000_000.0, 1_000_000.0).
         vel : array-like, shape (3,), optional
             Velocity aiding measurement in m/s. If ``None``, velocity aiding is
-            not used.
+            not used. Defaults to (0.0, 0.0, 0.0) (i.e., zero velocity).
         vel_var : array-like, shape (3,), optional
             Variance of velocity measurement noise in (m/s)^2. Ignored if ``vel``
-            is ``None``.
+            is ``None``. Defaults to (100.0, 100.0, 100.0).
         head : float, optional
             Heading measurement in radians or degrees depending on the ``head_degrees``
             flag. I.e., the yaw angle of the 'body' frame relative to the assumed

@@ -423,7 +423,7 @@ class AHRS:
             not used. Defaults to zero velocity (stationary).
         vel_var : array-like, shape (3,), optional
             Variance of velocity measurement noise in (m/s)^2. Ignored if ``vel``
-            is ``None``. Defaults to (100.0, 100.0, 100.0) (m/s)^2.
+            is ``None``. Defaults to (100.0, 100.0, 100.0).
         head : float, optional
             Heading measurement in radians or degrees depending on the ``head_degrees``
             flag. I.e., the yaw angle of the 'body' frame relative to the assumed
