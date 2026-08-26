@@ -3,7 +3,7 @@ import pytest
 from scipy.signal import resample_poly
 
 import smsfusion as sf
-from smsfusion._ins._ains_ import (
+from smsfusion._ins._ains import (
     AINS,
     _measurement_matrix_init,
     _process_noise_covariance_matrix,
@@ -252,7 +252,7 @@ class Test_AINS:
         np.testing.assert_allclose(mekf.velocity(), np.zeros(3))
         np.testing.assert_allclose(mekf.quaternion(), np.array([1.0, 0.0, 0.0, 0.0]))
         np.testing.assert_allclose(mekf.bias_gyro(), np.zeros(3))
-        np.testing.assert_allclose(mekf.P, np.array(sf._ins._ains_._P0))
+        np.testing.assert_allclose(mekf.P, np.array(sf._ins._ains._P0))
         np.testing.assert_allclose(mekf._dx, np.zeros(12))
 
     @pytest.mark.parametrize("nav_frame, scale", (["NED", 1.0], ["ENU", -1.0]))
