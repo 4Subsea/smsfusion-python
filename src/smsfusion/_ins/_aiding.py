@@ -22,9 +22,10 @@ def _aiding_update_pos(
     pos_var: NDArray[np.float64],
     R_nb: NDArray[np.float64],
     lever_arm: NDArray[np.float64],
-) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+) -> None:
     """
-    Update error state (dx) and error covariance (P) with position aiding measurement.
+    Update (in place) the error state (dx) and the error covariance (P) with position
+    aiding measurement.
     """
 
     if lever_arm.any():
@@ -32,8 +33,7 @@ def _aiding_update_pos(
     else:
         dz = pos_meas - pos_n
 
-    dx, P = _kalman_update_sequential(dx, P, dz, pos_var, H)
-    return dx, P
+    _kalman_update_sequential(dx, P, dz, pos_var, H)  # -> update dx and P (in place)
 
 
 @njit  # type: ignore[misc]
@@ -44,13 +44,13 @@ def _aiding_update_vel(
     vel_n: NDArray[np.float64],
     vel_meas: NDArray[np.float64],
     vel_var: NDArray[np.float64],
-) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+) -> None:
     """
-    Update error state (dx) and error covariance (P) with velocity aiding measurement.
+    Update (in place) the error state (dx) and the error covariance (P) with velocity
+    aiding measurement.
     """
     dz = vel_meas - vel_n
-    dx, P = _kalman_update_sequential(dx, P, dz, vel_var, H)
-    return dx, P
+    _kalman_update_sequential(dx, P, dz, vel_var, H)
 
 
 @njit  # type: ignore[misc]
@@ -62,9 +62,10 @@ def _aiding_update_head(
     head_meas: float,
     head_var: float,
     head_degrees: bool,
-) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+) -> None:
     """
-    Update error state (dx) and error covariance (P) with heading aiding measurement.
+    Update (in place) the error state (dx) and the error covariance (P) with heading
+    aiding measurement.
     """
 
     if head_degrees:
@@ -72,8 +73,7 @@ def _aiding_update_head(
         head_var = (np.pi / 180.0) ** 2 * head_var
 
     dz = _signed_smallest_angle(head_meas - _h_head(q_nb))
-    dx, P = _kalman_update_scalar(dx, P, dz, head_var, H)
-    return dx, P
+    _kalman_update_scalar(dx, P, dz, head_var, H)  # -> update dx and P (in place)
 
 
 @njit  # type: ignore[misc]
@@ -84,11 +84,10 @@ def _aiding_update_gref(
     vg_b: NDArray[np.float64],
     dvel: NDArray[np.float64],
     gref_var: NDArray[np.float64],
-) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+) -> None:
     """
-    Update error state (dx) and error covariance (P) with gravity reference vector
-    aiding measurement.
+    Update (in place) the error state (dx) and the error covariance (P) with gravity
+    reference vector aiding measurement.
     """
     dz = -_normalize(dvel) - vg_b
-    dx, P = _kalman_update_sequential(dx, P, dz, gref_var, H)
-    return dx, P
+    _kalman_update_sequential(dx, P, dz, gref_var, H)  # -> update dx and P (in place)
