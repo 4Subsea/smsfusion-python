@@ -397,8 +397,8 @@ class AHRS:
         dvel: ArrayLike,
         dtheta: ArrayLike,
         degrees: bool = False,
-        vel: ArrayLike | None = None,
-        vel_var: ArrayLike | None = None,
+        vel: ArrayLike | None = (0.0, 0.0, 0.0),
+        vel_var: ArrayLike | None = (100.0, 100.0, 100.0),
         head: float | None = None,
         head_var: float | None = None,
         head_degrees: bool = False,
@@ -420,10 +420,10 @@ class AHRS:
             degrees or radians. Defaults to radians.
         vel : array-like, shape (3,), optional
             Velocity aiding measurement in m/s. If ``None``, velocity aiding is
-            not used.
+            not used. Defaults to zero velocity (stationary).
         vel_var : array-like, shape (3,), optional
             Variance of velocity measurement noise in (m/s)^2. Ignored if ``vel``
-            is ``None``.
+            is ``None``. Defaults to (100.0, 100.0, 100.0) (m/s)^2.
         head : float, optional
             Heading measurement in radians or degrees depending on the ``head_degrees``
             flag. I.e., the yaw angle of the 'body' frame relative to the assumed
