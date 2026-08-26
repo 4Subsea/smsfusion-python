@@ -253,13 +253,13 @@ class Test_AHRS:
         noise_model = sf.noise.IMUNoise(err_acc=err_acc, err_gyro=err_gyro, seed=0)
         bg = np.array([0.01, -0.02, 0.03])  # rad/s
         imu_noise = noise_model(fs_imu, len(t))
-        acc_imu = acc_ref + imu_noise[:, :3]
-        gyro_imu = gyro_ref + imu_noise[:, 3:] + bg
+        acc_meas = acc_ref + imu_noise[:, :3]
+        gyro_meas = gyro_ref + imu_noise[:, 3:] + bg
         vel_meas = vel_ref + np.random.normal(0.0, vel_std, vel_ref.shape)
         head_meas = euler_ref[:, 2] + np.random.normal(0.0, head_std, len(euler_ref))
 
         if gyro_degrees:
-            gyro_imu = np.degrees(gyro_imu)
+            gyro_meas = np.degrees(gyro_meas)
 
         # MEKF
         mekf = AHRS(
@@ -272,7 +272,7 @@ class Test_AHRS:
         )
 
         vel_est, euler_est, bias_gyro_est = [], [], []
-        for f_i, w_i, h_i, v_i in zip(acc_imu, gyro_imu, head_meas, vel_meas):
+        for f_i, w_i, h_i, v_i in zip(acc_meas, gyro_meas, head_meas, vel_meas):
 
             dvel_i = f_i / fs_imu
             dtheta_i = w_i / fs_imu
@@ -342,11 +342,11 @@ class Test_AHRS:
         noise_model = sf.noise.IMUNoise(err_acc=err_acc, err_gyro=err_gyro, seed=0)
         bg = np.array([0.01, -0.02, 0.0])  # rad/s
         imu_noise = noise_model(fs_imu, len(t))
-        acc_imu = acc_ref + imu_noise[:, :3]
-        gyro_imu = gyro_ref + imu_noise[:, 3:] + bg
+        acc_meas = acc_ref + imu_noise[:, :3]
+        gyro_meas = gyro_ref + imu_noise[:, 3:] + bg
 
         if gyro_degrees:
-            gyro_imu = np.degrees(gyro_imu)
+            gyro_meas = np.degrees(gyro_meas)
 
         # MEKF
         mekf = AHRS(
@@ -359,7 +359,7 @@ class Test_AHRS:
         )
 
         euler_est, bias_gyro_est = [], []
-        for f_i, w_i in zip(acc_imu, gyro_imu):
+        for f_i, w_i in zip(acc_meas, gyro_meas):
 
             dvel_i = f_i / fs_imu
             dtheta_i = w_i / fs_imu
