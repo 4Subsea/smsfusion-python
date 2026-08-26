@@ -245,9 +245,9 @@ def _kalman_update_scalar(
     z: float,
     r: float,
     h: NDArray[np.float64],
-) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+) -> None:
     """
-    Scalar Kalman filter measurement update.
+    Scalar Kalman filter measurement update (in place).
 
     Parameters
     ----------
@@ -271,7 +271,6 @@ def _kalman_update_scalar(
 
     # Updated (a posteriori) covariance estimate (Joseph form)
     P[:, :] = _covariance_update(P, k, h, r)
-    return x, P
 
 
 @njit  # type: ignore[misc]
@@ -281,9 +280,9 @@ def _kalman_update_sequential(
     z: NDArray[np.float64],
     var: NDArray[np.float64],
     H: NDArray[np.float64],
-) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+) -> None:
     """
-    Sequential (one-at-a-time) Kalman filter measurement update.
+    Sequential (one-at-a-time) Kalman filter measurement update (in place).
 
     Parameters
     ----------
@@ -300,16 +299,15 @@ def _kalman_update_sequential(
     """
     m = z.shape[0]
     for i in range(m):
-        x, P = _kalman_update_scalar(x, P, z[i], var[i], H[i])
-    return x, P
+        _kalman_update_scalar(x, P, z[i], var[i], H[i])
 
 
 @njit  # type: ignore[misc]
 def _project_covariance_ahead(
     P: NDArray[np.float64], phi: NDArray[np.float64], Q: NDArray[np.float64]
-) -> NDArray[np.float64]:
+) -> None:
     """
-    Project the error covariance matrix estimate ahead.
+    Project the error covariance matrix estimate ahead (in place).
 
     Parameters
     ----------
@@ -321,7 +319,6 @@ def _project_covariance_ahead(
         Process noise covariance matrix.
     """
     P[:, :] = phi @ P @ phi.T + Q
-    return P
 
 
 @njit  # type: ignore[misc]
