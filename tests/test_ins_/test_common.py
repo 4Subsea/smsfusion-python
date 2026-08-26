@@ -119,15 +119,13 @@ def test__signed_smallest_angle(angle, degrees, angle_expect):
     ],
 )
 def test__update_quaternion_with_rotvec(quaternion, dtheta, quaternion_update_expected):
-    quaternion_update = _common._update_quaternion_with_rotvec(quaternion, dtheta)
+    _common._update_quaternion_with_rotvec(quaternion, dtheta)
 
     assert np.isclose(
-        np.linalg.norm(quaternion_update), 1.0
-    ), f"Output quaternion is not unit norm: {quaternion_update}"
+        np.linalg.norm(quaternion), 1.0
+    ), f"Output quaternion is not unit norm: {quaternion}"
 
-    np.testing.assert_allclose(
-        quaternion_update, quaternion_update_expected, atol=1e-16
-    )
+    np.testing.assert_allclose(quaternion, quaternion_update_expected, atol=1e-16)
 
 
 @pytest.mark.parametrize(
@@ -184,16 +182,14 @@ def test__update_quaternion_with_rotvec(quaternion, dtheta, quaternion_update_ex
     ],
 )
 def test__update_quaternion_with_gibbs2(quaternion, da, quaternion_update_expected):
-    quaternion_update = _common._update_quaternion_with_gibbs2(quaternion.copy(), da)
+    _common._update_quaternion_with_gibbs2(quaternion, da)
 
     # Always assert unit norm
     assert np.isclose(
-        np.linalg.norm(quaternion_update), 1.0
-    ), f"Output quaternion is not unit norm: {quaternion_update}"
+        np.linalg.norm(quaternion), 1.0
+    ), f"Output quaternion is not unit norm: {quaternion}"
 
-    np.testing.assert_allclose(
-        quaternion_update, quaternion_update_expected, atol=1e-10
-    )
+    np.testing.assert_allclose(quaternion, quaternion_update_expected, atol=1e-10)
 
 
 @pytest.mark.parametrize(

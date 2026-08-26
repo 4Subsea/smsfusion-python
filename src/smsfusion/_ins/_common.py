@@ -99,8 +99,8 @@ def _update_quaternion_with_rotvec(
     q: NDArray[np.float64], dtheta: NDArray[np.float64]
 ) -> NDArray[np.float64]:
     """
-    Update a unit quaternion, q, with a small attitude increment, dtheta, parameterized
-    as a rotation vector.
+    Update (in place) a unit quaternion, q, with a small attitude increment, dtheta,
+    parameterized as a rotation vector.
 
     Parameters
     ----------
@@ -135,16 +135,15 @@ def _update_quaternion_with_rotvec(
     q[2] = py * qw - pz * qx + cos_gamma * qy + px * qz
     q[3] = pz * qw + py * qx - px * qy + cos_gamma * qz
     q[:] = _normalize(q)
-    return q
 
 
 @njit  # type: ignore[misc]
 def _update_quaternion_with_gibbs2(
     q: NDArray[np.float64], da: NDArray[np.float64]
-) -> NDArray[np.float64]:
+) -> None:
     """
-    Update/correct a unit quaternion, q, with a small attitude error, da, parameterized
-    as a scaled (2x) Gibbs vector.
+    Update/correct (in place) a unit quaternion, q, with a small attitude error, da,
+    parameterized as a scaled (2x) Gibbs vector.
 
     As described in ref [1]_, this correction can be simplified by doing it in two
     steps: first a correction, followed by renormalization. The scaling factor becomes
@@ -171,7 +170,6 @@ def _update_quaternion_with_gibbs2(
     q[2] = qy + 0.5 * (qw * day - qx * daz + qz * dax)
     q[3] = qz + 0.5 * (qw * daz + qx * day - qy * dax)
     q[:] = _normalize(q)
-    return q
 
 
 @njit  # type: ignore[misc]
