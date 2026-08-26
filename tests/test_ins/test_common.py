@@ -217,3 +217,30 @@ def test__gref_b_from_quat(q_nb, nav_frame_factor):
 def test__nz2vg():
     assert _common._nz2vg("NED") == 1.0
     assert _common._nz2vg("ENU") == -1.0
+
+
+def test_kalman_update_sequential():
+
+    rng = np.random.default_rng(42)
+
+    m = 10  # number of measurements
+    n = 12  # state dimension
+
+    x = rng.random(n)
+    A = rng.random((n, n))
+    P = A @ A.T + np.eye(n)  # positive semi-definite
+    H = rng.random((m, n))
+    var = rng.random(m)
+    z = rng.random(m)
+
+    x_upd = x.copy()
+    P_upd = P.copy()
+    _common._kalman_update_sequential(x_upd, P_upd, z, var, H)
+
+    R = np.diag(var)
+    K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
+    x_expect = x + K @ (z - H @ x)
+    P_expect = (np.eye(n) - K @ H) @ P @ (np.eye(n) - K @ H).T + K @ R @ K.T
+
+    np.testing.assert_allclose(x_upd, x_expect)
+    np.testing.assert_allclose(P_upd, P_expect)
