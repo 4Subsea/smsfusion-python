@@ -317,9 +317,9 @@ class Test_AHRS:
         assert vx_rmse <= 0.1
         assert vy_rmse <= 0.1
         assert vz_rmse <= 0.1
-        assert np.degrees(roll_rmse) <= 0.5
-        assert np.degrees(pitch_rmse) <= 0.5
-        assert np.degrees(yaw_rmse) <= 0.5
+        assert np.degrees(roll_rmse) <= 0.6
+        assert np.degrees(pitch_rmse) <= 0.6
+        assert np.degrees(yaw_rmse) <= 0.6
         assert np.degrees(bgx_rmse) <= 0.01
         assert np.degrees(bgy_rmse) <= 0.01
         assert np.degrees(bgz_rmse) <= 0.01

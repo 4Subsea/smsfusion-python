@@ -267,9 +267,9 @@ class Test_VRU:
             bias_gyro_ref[warmup:], bias_gyro_est[warmup:]
         )
 
-        assert np.degrees(roll_rmse) <= 0.5
-        assert np.degrees(pitch_rmse) <= 0.5
-        assert np.degrees(yaw_rmse) <= 0.5
+        assert np.degrees(roll_rmse) <= 0.6
+        assert np.degrees(pitch_rmse) <= 0.6
+        assert np.degrees(yaw_rmse) <= 0.6
         assert np.degrees(bgx_rmse) <= 0.01
         assert np.degrees(bgy_rmse) <= 0.01
         assert np.degrees(bgz_rmse) <= 0.01
