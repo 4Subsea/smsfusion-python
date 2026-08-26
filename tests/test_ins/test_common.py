@@ -244,3 +244,30 @@ def test_kalman_update_sequential():
 
     np.testing.assert_allclose(x_upd, x_expect)
     np.testing.assert_allclose(P_upd, P_expect)
+
+
+def test_kalman_update_scalar():
+
+    rng = np.random.default_rng(42)
+
+    n = 9  # state dimension
+
+    x = rng.random(n)
+    A = rng.random((n, n))
+    P = A @ A.T + np.eye(n)  # positive semi-definite
+    h = rng.random(n)
+    r = rng.random()
+    z = rng.random()
+
+    x_upd = x.copy()
+    P_upd = P.copy()
+    _common._kalman_update_scalar(x_upd, P_upd, z, r, h)
+
+    R = np.array([[r]])
+    H = h.reshape(1, n)
+    K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
+    x_expect = x + K @ (z - H @ x)
+    P_expect = (np.eye(n) - K @ H) @ P @ (np.eye(n) - K @ H).T + K @ R @ K.T
+
+    np.testing.assert_allclose(x_upd, x_expect)
+    np.testing.assert_allclose(P_upd, P_expect)
