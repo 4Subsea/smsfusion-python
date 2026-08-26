@@ -335,7 +335,7 @@ class VRU:
         dtheta = dtheta - self._dt * self._bg_b
 
         # Update state-space model
-        _state_transition_matrix_update(self._phi, dtheta)  # -> update phi
+        _state_transition_matrix_update(self._phi, dtheta)  # -> update phi (in place)
 
         # Project (a priori) state estimates ahead
         _update_quaternion_with_rotvec(self._q_nb, dtheta)  # -> update q_nb (in place)
