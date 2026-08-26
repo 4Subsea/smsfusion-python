@@ -364,7 +364,7 @@ class Test_AINS:
                 vel=v_i,
                 vel_var=vel_std**2 * np.ones(3),
                 gref=True,
-                gref_var=(0.1, 0.1, 0.1),  # high uncertainty
+                gref_var=(0.1, 0.1, 0.1),
             )
             pos_est.append(mekf.position())
             vel_est.append(mekf.velocity())
