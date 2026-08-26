@@ -286,10 +286,9 @@ class Test_VRU:
         warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
 
         # Reference signals (without noise)
-        t, _, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
+        t, _, _, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
 
         # IMU and aiding measurements (with noise)
-        head_std = np.radians(0.1)  # rad
         err_acc = sf.constants.ERR_ACC_MOTION2
         err_gyro = sf.constants.ERR_GYRO_MOTION2
         noise_model = sf.noise.IMUNoise(err_acc=err_acc, err_gyro=err_gyro, seed=0)
@@ -297,22 +296,16 @@ class Test_VRU:
         imu_noise = noise_model(fs_imu, len(t))
         acc_meas = acc_ref + imu_noise[:, :3]
         gyro_meas = gyro_ref + imu_noise[:, 3:] + bg
-        head_meas = euler_ref[:, 2] + np.random.normal(0.0, head_std, len(euler_ref))
 
         if gyro_degrees:
             gyro_meas = np.degrees(gyro_meas)
 
         # MEKF
-        mekf = VRU(
-            fs_imu,
-            q0=sf.quaternion_from_euler(euler_ref[0], degrees=False),
-            gyro_noise_density=err_gyro["N"],
-            gyro_bias_stability=err_gyro["B"],
-            gyro_bias_corr_time=err_gyro["tau_cb"],
-        )
+        q0 = sf.quaternion_from_euler(euler_ref[0], degrees=False)
+        mekf = VRU(fs_imu, q0=q0)
 
         euler_est, bias_gyro_est = [], []
-        for f_i, w_i, h_i in zip(acc_meas, gyro_meas, head_meas):
+        for f_i, w_i in zip(acc_meas, gyro_meas):
 
             dvel_i = f_i / fs_imu
             dtheta_i = w_i / fs_imu
@@ -327,17 +320,14 @@ class Test_VRU:
         # Half-sample shift (compensates for the delay introduced by Euler integration)
         euler_est = resample_poly(euler_est, 2, 1)[1:-1:2]
         bias_gyro_est = resample_poly(bias_gyro_est, 2, 1)[1:-1:2]
-        vel_ref = vel_ref[:-1, :]
         euler_ref = euler_ref[:-1, :]
-        bias_gyro_ref = np.tile(bg, (len(bias_gyro_est), 1))
+        bg_ref = np.tile(bg, (len(bias_gyro_est), 1))
 
         def rmse(ref, est):
             return np.sqrt(np.mean((ref - est) ** 2, axis=0))
 
         roll_rmse, pitch_rmse, _ = rmse(euler_ref[warmup:], euler_est[warmup:])
-        bgx_rmse, bgy_rmse, _ = rmse(
-            bias_gyro_ref[warmup:], bias_gyro_est[warmup:]
-        )
+        bgx_rmse, bgy_rmse, _ = rmse(bg_ref[warmup:], bias_gyro_est[warmup:])
 
         assert np.degrees(roll_rmse) <= 0.6
         assert np.degrees(pitch_rmse) <= 0.6
