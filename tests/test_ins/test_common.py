@@ -271,3 +271,23 @@ def test_kalman_update_scalar():
 
     np.testing.assert_allclose(x_upd, x_expect)
     np.testing.assert_allclose(P_upd, P_expect)
+
+
+def test_project_covariance_ahead():
+
+    rng = np.random.default_rng(42)
+
+    n = 6  # state dimension
+
+    A = rng.random((n, n))
+    P = A @ A.T + np.eye(n)  # positive semi-definite
+    phi = rng.random((n, n))
+    A = rng.random((n, n))
+    Q = A @ A.T + np.eye(n)  # positive semi-definite
+
+    P_proj = P.copy()
+    _common._project_covariance_ahead(P_proj, phi, Q)
+
+    P_expect = phi @ P @ phi.T + Q
+
+    np.testing.assert_allclose(P_proj, P_expect)
