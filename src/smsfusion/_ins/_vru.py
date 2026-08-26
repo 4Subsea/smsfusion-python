@@ -286,8 +286,8 @@ class VRU:
         head: float | None = None,
         head_var: float | None = None,
         head_degrees: bool = False,
-        gref: bool = False,
-        gref_var: ArrayLike | None = None,
+        gref: bool = True,
+        gref_var: ArrayLike | None = (0.0001, 0.0001, 0.0001),
     ) -> Self:
         """
         Update state estimates with IMU and aiding measurements.
@@ -315,10 +315,10 @@ class VRU:
             and degrees^2, or radians and radians^2. Defaults to radians and radians^2.
         gref : bool, optional
             Specifies whether to use accelerometer measurements (dvel) and the known
-            direction of gravity as aiding. Defaults to ``False``.
+            direction of gravity as aiding. Defaults to ``True``.
         gref_var : array_like, shape (3,), optional
             Variance of gravity reference vector measurement noise (dimensionless).
-            Required for gravity reference vector aiding.
+            Required for gravity reference vector aiding. Defaults to (0.0001, 0.0001, 0.0001).
 
         Returns
         -------
