@@ -473,11 +473,11 @@ class AHRS:
         # Project (a priori) error covariance matrix estimate ahead
         _project_covariance_ahead(self._P, self._phi, self._Q)  # -> update P (in place)
 
-        # Update (a posteriori) estimates with velocity aiding
         if vel is not None:
             if vel_var is None:
                 raise ValueError("'vel_var' is required for velocity aiding.")
 
+            # Update (a posteriori) estimates with velocity aiding
             _aiding_update_vel(  # -> update dx and P (in place)
                 self._dx,
                 self._P,
@@ -487,13 +487,14 @@ class AHRS:
                 np.asarray(vel_var),
             )
 
-        # Update (a posteriori) estimates with heading aiding
         if head is not None:
             if head_var is None:
                 raise ValueError("'head_var' is required for heading aiding.")
 
+            # Update measurement matrix (heading row)
             self._H[3, 6:9] = _dhda_head(self._q_nb)
 
+            # Update (a posteriori) estimates with heading aiding
             _aiding_update_head(  # -> update dx and P (in place)
                 self._dx,
                 self._P,
@@ -504,14 +505,15 @@ class AHRS:
                 head_degrees,
             )
 
-        # Update (a posteriori) estimates with gravity reference vector aiding
         if gref is True:
             if gref_var is None:
                 raise ValueError("'gref_var' is required for gravity reference aiding.")
 
+            # Update measurement matrix (gravity reference vector rows)
             vg_b = _gref_b_from_quat(self._q_nb, self._nz2vg)
             self._H[4:7, 3:6] = _skew_symmetric(vg_b)
 
+            # Update (a posteriori) estimates with gravity reference vector aiding
             _aiding_update_gref(  # -> update dx and P (in place)
                 self._dx,
                 self._P,
