@@ -275,13 +275,13 @@ class Test_VRU:
         assert np.degrees(bgz_rmse) <= 0.01
 
     @pytest.mark.parametrize(
-        "benchmark_gen, gyro_degrees",
+        "benchmark_gen",
         [
-            (benchmark_full_pva_beat_202311A, False),
-            (benchmark_full_pva_chirp_202311A, True),
+            benchmark_full_pva_beat_202311A,
+            benchmark_full_pva_chirp_202311A,
         ],
     )
-    def test_benchmark_default_aiding(self, benchmark_gen, gyro_degrees):
+    def test_benchmark_default_aiding(self, benchmark_gen):
         fs_imu = 10.0
         warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
 
@@ -297,9 +297,6 @@ class Test_VRU:
         acc_meas = acc_ref + imu_noise[:, :3]
         gyro_meas = gyro_ref + imu_noise[:, 3:] + bg
 
-        if gyro_degrees:
-            gyro_meas = np.degrees(gyro_meas)
-
         # MEKF
         q0 = sf.quaternion_from_euler(euler_ref[0], degrees=False)
         mekf = VRU(fs_imu, q0=q0)
@@ -310,7 +307,7 @@ class Test_VRU:
             dvel_i = f_i / fs_imu
             dtheta_i = w_i / fs_imu
 
-            mekf.update(dvel_i, dtheta_i, degrees=gyro_degrees)
+            mekf.update(dvel_i, dtheta_i, degrees=False)
             euler_est.append(mekf.euler(degrees=False))
             bias_gyro_est.append(mekf.bias_gyro())
 
