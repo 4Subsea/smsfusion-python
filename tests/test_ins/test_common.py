@@ -33,7 +33,7 @@ from smsfusion._ins import _common
     ],
 )
 def test__dhda(quaternion, dhda_expect):
-    dhda_out = _common._dhda_head(quaternion)
+    dhda_out = _common._yaw_gradient(quaternion)
     np.testing.assert_allclose(dhda_out, dhda_expect)
 
 
@@ -45,7 +45,7 @@ def test__dhda(quaternion, dhda_expect):
         np.radians([10.0, 95.0, 1.0]),
     ],
 )
-def test__h_head(angles):
+def test__yaw_from_quaternion(angles):
     alpha, beta, gamma = np.radians((0.0, 0.0, 15.0))
 
     quaternion = Rotation.from_euler(
@@ -53,7 +53,7 @@ def test__h_head(angles):
     ).as_quat()
     quaternion = np.r_[quaternion[3], quaternion[:3]]
 
-    gamma_expect = _common._h_head(quaternion)
+    gamma_expect = _common._yaw_from_quaternion(quaternion)
     assert gamma_expect == pytest.approx(gamma)
 
 

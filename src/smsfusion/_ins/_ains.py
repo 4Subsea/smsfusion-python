@@ -14,12 +14,12 @@ from ._aiding import (
     _aiding_update_vel,
 )
 from ._common import (
-    _dhda_head,
     _gref_b_from_quat,
     _nz2vg,
     _project_covariance_ahead,
     _update_quaternion_with_gibbs2,
     _update_quaternion_with_rotvec,
+    _yaw_gradient,
 )
 
 _P0 = (
@@ -182,7 +182,7 @@ def _measurement_matrix_init(
     H[0:3, 0:3] = np.eye(3)  # position
     H[0:3, 6:9] = -_rot_matrix_from_quaternion(q_nb) @ _skew_symmetric(lever_arm)
     H[3:6, 3:6] = np.eye(3)  # velocity
-    H[6:7, 6:9] = _dhda_head(q_nb)  # heading
+    H[6:7, 6:9] = _yaw_gradient(q_nb)  # heading
     H[7:10, 6:9] = _skew_symmetric(vg_b)  # gravity reference vector
     return H
 
@@ -557,7 +557,7 @@ class AINS:
                 raise ValueError("'head_var' is required for heading aiding.")
 
             # Update measurement matrix (heading row)
-            self._H[6, 6:9] = _dhda_head(self._q_nb)
+            self._H[6, 6:9] = _yaw_gradient(self._q_nb)
 
             # Update (a posteriori) estimates with heading aiding
             _aiding_update_head(  # -> update dx and P (in place)

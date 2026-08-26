@@ -6,7 +6,11 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from smsfusion._ins._common import _dhda_head, _h_head, _signed_smallest_angle
+from smsfusion._ins._common import (
+    _signed_smallest_angle,
+    _yaw_from_quaternion,
+    _yaw_gradient,
+)
 from smsfusion._transforms import (
     _angular_matrix_from_quaternion,
     _euler_from_quaternion,
@@ -700,9 +704,11 @@ class AidedINS(INSMixin):
         self._H[6:9, 6:9] = S(R_nm.T @ self._vg_ref_n)
         return self._H[6:9]
 
-    def _update_H_head(self, q_nm: NDArray[np.float64]) -> NDArray[np.float64]:
+    def _update_yaw_from_quaternion(
+        self, q_nm: NDArray[np.float64]
+    ) -> NDArray[np.float64]:
         """Update and return part of H matrix relevant for heading aiding."""
-        self._H[9:10, 6:9] = _dhda_head(q_nm)
+        self._H[9:10, 6:9] = _yaw_gradient(q_nm)
         return self._H[9:10]
 
     @staticmethod
@@ -776,7 +782,7 @@ class AidedINS(INSMixin):
             Specifies whether the heading is given in degrees or radians.
         """
         if head is None:
-            head = _h_head(self.quaternion())
+            head = _yaw_from_quaternion(self.quaternion())
         else:
             if head_degrees:
                 head = (np.pi / 180.0) * head
@@ -926,12 +932,16 @@ class AidedINS(INSMixin):
 
             head_var_ = np.asarray([head_var], dtype=float, order="C")
             dz_head = np.asarray(
-                [_signed_smallest_angle(head - _h_head(q_ins_nm), degrees=False)],
+                [
+                    _signed_smallest_angle(
+                        head - _yaw_from_quaternion(q_ins_nm), degrees=False
+                    )
+                ],
                 dtype=float,
                 order="C",
             )
 
-            H_head = self._update_H_head(q_ins_nm)
+            H_head = self._update_yaw_from_quaternion(q_ins_nm)
             dx, P = self._update_dx_P(dx, P, dz_head, head_var_, H_head, I_)
 
         self._dx[:] = dx.ravel().copy()

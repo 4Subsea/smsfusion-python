@@ -27,7 +27,11 @@ from smsfusion._ins import (
     gravity,
 )
 from smsfusion._ins._ains_legacy import INSMixin, _roll_pitch_from_acc
-from smsfusion._ins._common import _dhda_head, _h_head, _signed_smallest_angle
+from smsfusion._ins._common import (
+    _signed_smallest_angle,
+    _yaw_from_quaternion,
+    _yaw_gradient,
+)
 from smsfusion._transforms import (
     _angular_matrix_from_quaternion,
     _rot_matrix_from_quaternion,
@@ -602,7 +606,7 @@ class Test_StrapdownINS:
         np.radians([10.0, 95.0, 1.0]),
     ],
 )
-def test__h_head(angles):
+def test__yaw_from_quaternion(angles):
     alpha, beta, gamma = np.radians((0.0, 0.0, 15.0))
 
     quaternion = Rotation.from_euler(
@@ -610,7 +614,7 @@ def test__h_head(angles):
     ).as_quat()
     quaternion = np.r_[quaternion[3], quaternion[:3]]
 
-    gamma_expect = _h_head(quaternion)
+    gamma_expect = _yaw_from_quaternion(quaternion)
     assert gamma_expect == pytest.approx(gamma)
 
 
@@ -638,7 +642,7 @@ def test__h_head(angles):
     ],
 )
 def test__dhda(quaternion, dhda_expect):
-    dhda_out = _dhda_head(quaternion)
+    dhda_out = _yaw_gradient(quaternion)
     np.testing.assert_allclose(dhda_out, dhda_expect)
 
 
@@ -1242,11 +1246,11 @@ class Test_AidedINS:
         H_expect[0:3, 6:9] = S(R_nm.T @ ains._vg_ref_n)
         np.testing.assert_allclose(H_out, H_expect)
 
-    def test__update_H_head(self, ains):
+    def test__update_yaw_from_quaternion(self, ains):
         q = self.quaternion(alpha=0.0, beta=-12.0, gamma=45, degrees=True)
-        H_out = ains._update_H_head(q)
+        H_out = ains._update_yaw_from_quaternion(q)
         H_expect = np.zeros((1, 15))
-        H_expect[0, 6:9] = _dhda_head(q)
+        H_expect[0, 6:9] = _yaw_gradient(q)
         np.testing.assert_allclose(H_out, H_expect)
 
     def test_update_return_self(self, ains):

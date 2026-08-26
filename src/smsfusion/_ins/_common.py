@@ -6,16 +6,16 @@ from smsfusion._vectorops import _normalize
 
 
 @njit  # type: ignore[misc]
-def _dhda_head(q: NDArray[np.float64]) -> NDArray[np.float64]:
+def _yaw_gradient(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Compute yaw angle gradient wrt to the unit quaternion.
+    Compute yaw/heading angle gradient wrt to the unit quaternion.
 
     Defined in terms of scaled Gibbs vector in ref [1]_, but implemented in terms of
     unit quaternion here to avoid singularities.
 
     Parameters
     ----------
-    q : numpy.ndarray, shape (3,)
+    q : numpy.ndarray, shape (4,)
         Unit quaternion.
 
     Returns
@@ -45,9 +45,9 @@ def _dhda_head(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _h_head(q: NDArray[np.float64]) -> float:
+def _yaw_from_quaternion(q: NDArray[np.float64]) -> float:
     """
-    Compute yaw angle from unit quaternion.
+    Compute yaw/heading angle from unit quaternion.
 
     Defined in terms of scaled Gibbs vector in ref [1]_, but implemented in terms of
     unit quaternion here to avoid singularities.
@@ -74,21 +74,22 @@ def _h_head(q: NDArray[np.float64]) -> float:
 
 
 @njit  # type: ignore[misc]
-def _signed_smallest_angle(angle: float, degrees: bool = True) -> float:
+def _signed_smallest_angle(angle: float, degrees: bool = False) -> float:
     """
-    Convert the given angle to the smallest angle between [-180., 180) degrees.
+    Convert the given angle to the smallest angle between [-pi, pi) radians or [-180, 180)
+    degrees.
 
     Parameters
     ----------
     angle : float
-        Value of angle.
-    degrees : bool, default True
-        Specify whether ``angle`` is given degrees or radians.
+        Angle in radians or degrees depending on the ``degrees`` parameter.
+    degrees : bool, optional
+        Specify whether ``angle`` is given degrees or radians (default).
 
     Returns
     -------
     float
-        The smallest angle between [-180., 180) degrees (or  [-pi, pi] radians).
+        The smallest angle between [-pi, pi) radians or [-180, 180) degrees.
     """
     base = 180.0 if degrees else np.pi
     return (angle + base) % (2.0 * base) - base  # type: ignore[no-any-return]

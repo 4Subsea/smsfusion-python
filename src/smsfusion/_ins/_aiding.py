@@ -5,10 +5,10 @@ from numpy.typing import NDArray
 from smsfusion._vectorops import _normalize
 
 from ._common import (
-    _h_head,
     _kalman_update_scalar,
     _kalman_update_sequential,
     _signed_smallest_angle,
+    _yaw_from_quaternion,
 )
 
 
@@ -72,7 +72,7 @@ def _aiding_update_head(
         head_meas = (np.pi / 180.0) * head_meas
         head_var = (np.pi / 180.0) ** 2 * head_var
 
-    dz = _signed_smallest_angle(head_meas - _h_head(q_nb))
+    dz = _signed_smallest_angle(head_meas - _yaw_from_quaternion(q_nb))
     _kalman_update_scalar(dx, P, dz, head_var, H)  # -> update dx and P (in place)
 
 

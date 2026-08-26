@@ -9,12 +9,12 @@ from smsfusion._vectorops import _skew_symmetric
 
 from ._aiding import _aiding_update_gref, _aiding_update_head
 from ._common import (
-    _dhda_head,
     _gref_b_from_quat,
     _nz2vg,
     _project_covariance_ahead,
     _update_quaternion_with_gibbs2,
     _update_quaternion_with_rotvec,
+    _yaw_gradient,
 )
 
 _P0 = (
@@ -133,7 +133,7 @@ def _measurement_matrix_init(
     """
     vg_b = _gref_b_from_quat(q_nb, nav_frame_factor)  # gravity reference vector
     H = np.zeros((4, 6))
-    H[0:1, 0:3] = _dhda_head(q_nb)  # heading
+    H[0:1, 0:3] = _yaw_gradient(q_nb)  # heading
     H[1:4, 0:3] = _skew_symmetric(vg_b)  # gravity reference vector
     return H
 
@@ -348,7 +348,7 @@ class VRU:
                 raise ValueError("'head_var' is required for heading aiding.")
 
             # Update measurement matrix (heading row)
-            self._H[0, 0:3] = _dhda_head(self._q_nb)
+            self._H[0, 0:3] = _yaw_gradient(self._q_nb)
 
             # Update (a posteriori) estimates with heading aiding
             _aiding_update_head(  # -> update dx and P (in place)
