@@ -1,5 +1,5 @@
 from ._ahrs import AHRS as AHRSv2
-from ._ains_old import AHRS, VRU, AidedINS, StrapdownINS
+from ._ains_legacy import AHRS, VRU, AidedINS, StrapdownINS
 from ._ains import AINS as AINSv2
 from ._utils import FixedNED, euler_from_acc, gravity
 from ._vru import VRU as VRUv2
