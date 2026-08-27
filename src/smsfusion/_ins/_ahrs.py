@@ -167,8 +167,8 @@ def _measurement_matrix_init(
     vg_b = _gref_b_from_quat(q_nb, nav_frame_factor)  # gravity reference vector
     H = np.zeros((7, 9))
     H[0:3, 0:3] = np.eye(3)  # velocity
-    H[3:4, 3:6] = _yaw_gradient(q_nb)  # heading
-    H[4:7, 3:6] = _skew_symmetric(vg_b)  # gravity reference vector
+    H[3:6, 3:6] = _skew_symmetric(vg_b)  # gravity reference vector
+    H[6:7, 3:6] = _yaw_gradient(q_nb)  # heading
     return H
 
 
@@ -487,40 +487,40 @@ class AHRS:
                 np.asarray(vel_var),
             )
 
-        if head is not None:
-            if head_var is None:
-                raise ValueError("'head_var' is required for heading aiding.")
-
-            # Update measurement matrix (heading row)
-            self._H[3, 6:9] = _yaw_gradient(self._q_nb)
-
-            # Update (a posteriori) estimates with heading aiding
-            _aiding_update_head(  # -> update dx and P (in place)
-                self._dx,
-                self._P,
-                self._H[3],
-                self._q_nb,
-                head,
-                head_var,
-                head_degrees,
-            )
-
         if gref is True:
             if gref_var is None:
                 raise ValueError("'gref_var' is required for gravity reference aiding.")
 
             # Update measurement matrix (gravity reference vector rows)
             vg_b = _gref_b_from_quat(self._q_nb, self._nz2vg)
-            self._H[4:7, 3:6] = _skew_symmetric(vg_b)
+            self._H[3:6, 3:6] = _skew_symmetric(vg_b)
 
             # Update (a posteriori) estimates with gravity reference vector aiding
             _aiding_update_gref(  # -> update dx and P (in place)
                 self._dx,
                 self._P,
-                self._H[4:7],
+                self._H[3:6],
                 vg_b,
                 dvel,
                 np.asarray(gref_var),
+            )
+
+        if head is not None:
+            if head_var is None:
+                raise ValueError("'head_var' is required for heading aiding.")
+
+            # Update measurement matrix (heading row)
+            self._H[6, 6:9] = _yaw_gradient(self._q_nb)
+
+            # Update (a posteriori) estimates with heading aiding
+            _aiding_update_head(  # -> update dx and P (in place)
+                self._dx,
+                self._P,
+                self._H[6],
+                self._q_nb,
+                head,
+                head_var,
+                head_degrees,
             )
 
         # Reset state -> update v_n, q_nb, bg_b and dx (in place)

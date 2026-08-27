@@ -80,8 +80,8 @@ def test_measurement_matrix_init():
 
     expect = np.zeros((7, 9))
     expect[0:3, 0:3] = np.eye(3)
-    expect[3:4, 3:6] = np.array([0.0, 0.0, 1.0])  # kappa -> zero due to unit quat
-    expect[4:7, 3:6] = _skew_symmetric(_gref_b_from_quat(q_nb, nz2vg))
+    expect[3:6, 3:6] = _skew_symmetric(_gref_b_from_quat(q_nb, nz2vg))
+    expect[6:7, 3:6] = np.array([0.0, 0.0, 1.0])  # kappa -> zero due to unit quat
 
     np.testing.assert_array_equal(_measurement_matrix_init(q_nb, nz2vg), expect)
 

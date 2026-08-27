@@ -90,8 +90,8 @@ def test_measurement_matrix_init():
     expect[0:3, 0:3] = np.eye(3)
     expect[0:3, 6:9] = -_rot_matrix_from_quaternion(q_nb) @ _skew_symmetric(lever_arm)
     expect[3:6, 3:6] = np.eye(3)
-    expect[6, 6:9] = np.array([0.0, 0.0, 1.0])  # kappa -> zero due to unit quat
-    expect[7:10, 6:9] = _skew_symmetric(_gref_b_from_quat(q_nb, nz2vg))
+    expect[6:9, 6:9] = _skew_symmetric(_gref_b_from_quat(q_nb, nz2vg))
+    expect[9:10, 6:9] = np.array([0.0, 0.0, 1.0])  # kappa -> zero due to unit quat
 
     np.testing.assert_array_equal(
         _measurement_matrix_init(q_nb, lever_arm, nz2vg), expect
