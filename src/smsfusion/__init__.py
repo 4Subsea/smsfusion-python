@@ -11,6 +11,7 @@ from ._ins import (
     StrapdownINS,
     gravity,
 )
+from ._ins._smoothing import FixedIntervalSmoother as FixedIntervalSmoother2
 from ._smoothing import FixedIntervalSmoother
 from ._transforms import quaternion_from_euler
 
@@ -24,6 +25,7 @@ __all__ = [
     "ConingScullingAlg",
     "ConingScullingAlgCalibrated",
     "FixedIntervalSmoother",
+    "FixedIntervalSmoother2",
     "FixedNED",
     "StrapdownINS",
     "benchmark",
