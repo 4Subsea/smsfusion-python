@@ -261,13 +261,15 @@ class Test_VRU:
         def rmse(ref, est):
             return np.sqrt(np.mean((ref - est) ** 2, axis=0))
 
-        roll_rmse, pitch_rmse, _ = rmse(euler_ref[warmup:], euler_est[warmup:])
-        bgx_rmse, bgy_rmse, _ = rmse(bg_ref[warmup:], bias_gyro_est[warmup:])
+        roll_rmse, pitch_rmse, yaw_rmse = rmse(euler_ref[warmup:], euler_est[warmup:])
+        bgx_rmse, bgy_rmse, bgz_rmse = rmse(bg_ref[warmup:], bias_gyro_est[warmup:])
 
         assert np.degrees(roll_rmse) <= 0.4
         assert np.degrees(pitch_rmse) <= 0.4
+        assert np.degrees(yaw_rmse) <= 0.4
         assert np.degrees(bgx_rmse) <= 0.02
         assert np.degrees(bgy_rmse) <= 0.02
+        assert np.degrees(bgz_rmse) <= 0.02
 
 
     @pytest.mark.parametrize(
