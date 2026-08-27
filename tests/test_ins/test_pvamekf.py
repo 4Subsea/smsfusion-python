@@ -3,7 +3,8 @@ import pytest
 from scipy.signal import resample_poly
 
 import smsfusion as sf
-from smsfusion._ins._ains import (
+from smsfusion._ins._common import _gref_b_from_quat
+from smsfusion._ins._pvamekf import (
     PVAMEKF,
     _measurement_matrix_init,
     _process_noise_covariance_matrix,
@@ -11,7 +12,6 @@ from smsfusion._ins._ains import (
     _state_transition_matrix_init,
     _state_transition_matrix_update,
 )
-from smsfusion._ins._common import _gref_b_from_quat
 from smsfusion._transforms import _rot_matrix_from_quaternion
 from smsfusion._vectorops import _skew_symmetric
 from smsfusion.benchmark import (
@@ -252,7 +252,7 @@ class Test_PVAMEKF:
         np.testing.assert_allclose(mekf.velocity(), np.zeros(3))
         np.testing.assert_allclose(mekf.quaternion(), np.array([1.0, 0.0, 0.0, 0.0]))
         np.testing.assert_allclose(mekf.bias_gyro(), np.zeros(3))
-        np.testing.assert_allclose(mekf.P, np.array(sf._ins._ains._P0))
+        np.testing.assert_allclose(mekf.P, np.array(sf._ins._pvamekf._P0))
         np.testing.assert_allclose(mekf._dx, np.zeros(12))
 
     @pytest.mark.parametrize("nav_frame, scale", (["NED", 1.0], ["ENU", -1.0]))
