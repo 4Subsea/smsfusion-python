@@ -222,12 +222,9 @@ def _project_state_ahead(
     _update_quaternion_with_rotvec(q_nb, dtheta)  # -> update q_nb (in place)
 
 
-class AHRS:
+class VAMEKF:
     """
-    Attitude and Heading Reference System (AHRS).
-
-    This class provides velocity, attitude and gyro bias estimation using a multiplicative
-    extended Kalman filter (MEKF).
+    Multiplicative extended Kalman filter (MEKF) for velocity and attitude estimation.
 
     Parameters
     ----------
@@ -425,7 +422,7 @@ class AHRS:
 
         Returns
         -------
-        AHRS
+        VAMEKF
             A reference to the instance itself after the update.
         """
 

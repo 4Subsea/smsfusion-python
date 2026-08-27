@@ -4,7 +4,7 @@ from scipy.signal import resample_poly
 
 import smsfusion as sf
 from smsfusion._ins._ahrs import (
-    AHRS,
+    VAMEKF,
     _measurement_matrix_init,
     _process_noise_covariance_matrix,
     _reset,
@@ -126,7 +126,7 @@ def test_reset():
     )
 
 
-class Test_AHRS:
+class Test_VAMEKF:
 
     def test_init(self):
 
@@ -139,7 +139,7 @@ class Test_AHRS:
         gbs = 0.0003
         gbc = 123.0
 
-        mekf = AHRS(
+        mekf = VAMEKF(
             51.2,
             v0=v0,
             q0=q0,
@@ -175,7 +175,7 @@ class Test_AHRS:
         assert mekf._P is not P0  # copy
 
     def test_init_default(self):
-        mekf = AHRS(10.0)
+        mekf = VAMEKF(10.0)
         assert mekf._fs == pytest.approx(10.0)
         assert mekf._dt == pytest.approx(0.1)
         assert mekf._g == 9.80665
@@ -193,33 +193,33 @@ class Test_AHRS:
 
     @pytest.mark.parametrize("nav_frame, scale", (["NED", 1.0], ["ENU", -1.0]))
     def test_nav_frame(self, nav_frame, scale):
-        mekf = AHRS(10.0, nav_frame=nav_frame)
+        mekf = VAMEKF(10.0, nav_frame=nav_frame)
         assert mekf._nav_frame == nav_frame.lower()
         np.testing.assert_allclose(mekf._g_n, np.array([0.0, 0.0, mekf._g * scale]))
 
     def test_velocity(self):
         v0 = np.array([1.0, 2.0, 3.0])
-        mekf = AHRS(10.0, v0=v0)
+        mekf = VAMEKF(10.0, v0=v0)
         np.testing.assert_allclose(mekf.velocity(), v0)
         assert mekf.velocity() is not mekf._v_n  # copy
 
     def test_quaternion(self):
         euler = np.array([10.0, 20.0, 30.0])
         q0 = sf.quaternion_from_euler(euler, degrees=True)
-        mekf = AHRS(10.0, q0=q0)
+        mekf = VAMEKF(10.0, q0=q0)
         np.testing.assert_allclose(mekf.quaternion(), q0)
         assert mekf.quaternion() is not mekf._q_nb  # copy
 
     def test_euler(self):
         euler = np.array([10.0, 20.0, 30.0])
-        mekf = AHRS(10.0, q0=sf.quaternion_from_euler(euler, degrees=True))
+        mekf = VAMEKF(10.0, q0=sf.quaternion_from_euler(euler, degrees=True))
         np.testing.assert_allclose(mekf.euler(), np.radians(euler))
         np.testing.assert_allclose(mekf.euler(degrees=True), euler)
         np.testing.assert_allclose(mekf.euler(degrees=False), np.radians(euler))
 
     def test_bias_gyro(self):
         bg0 = np.array([0.01, -0.02, 0.03])
-        mekf = AHRS(10.0, bg0=bg0)
+        mekf = VAMEKF(10.0, bg0=bg0)
         np.testing.assert_allclose(mekf.bias_gyro(), bg0)
         np.testing.assert_allclose(mekf.bias_gyro(degrees=False), bg0)
         np.testing.assert_allclose(mekf.bias_gyro(degrees=True), np.degrees(bg0))
@@ -227,7 +227,7 @@ class Test_AHRS:
 
     def test_P(self):
         P0 = 0.1 * np.eye(9)
-        mekf = AHRS(10.0, P0=P0)
+        mekf = VAMEKF(10.0, P0=P0)
         np.testing.assert_allclose(mekf.P, P0)
         assert mekf.P is not mekf._P  # copy
 
@@ -262,7 +262,7 @@ class Test_AHRS:
             gyro_meas = np.degrees(gyro_meas)
 
         # MEKF
-        mekf = AHRS(
+        mekf = VAMEKF(
             fs_imu,
             v0=vel_ref[0],
             q0=sf.quaternion_from_euler(euler_ref[0], degrees=False),
@@ -349,7 +349,7 @@ class Test_AHRS:
 
         # MEKF
         q0 = sf.quaternion_from_euler(euler_ref[0], degrees=False)
-        mekf = AHRS(fs_imu, q0=q0)
+        mekf = VAMEKF(fs_imu, q0=q0)
 
         euler_est, bias_gyro_est = [], []
         for f_i, w_i in zip(acc_meas, gyro_meas):

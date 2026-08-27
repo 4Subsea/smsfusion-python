@@ -1,5 +1,18 @@
-from ._ahrs import AHRS as AHRSv2
-from ._ains import AINS as AINSv2
+from ._ahrs import VAMEKF
+from ._ains import PVAMEKF
 from ._ains_legacy import AHRS, VRU, AidedINS, StrapdownINS
 from ._utils import FixedNED, euler_from_acc, gravity
-from ._vru import VRU as VRUv2
+from ._vru import AMEKF
+
+__all__ = [
+    "AHRS",
+    "AMEKF",
+    "PVAMEKF",
+    "VAMEKF",
+    "VRU",
+    "AidedINS",
+    "FixedNED",
+    "StrapdownINS",
+    "euler_from_acc",
+    "gravity",
+]

@@ -160,12 +160,9 @@ def _reset(
     dx[:] = 0.0
 
 
-class VRU:
+class AMEKF:
     """
-    Vertical Reference Unit (VRU).
-
-    This class provides attitude and gyro bias estimation using a multiplicative
-    extended Kalman filter (MEKF).
+    Multiplicative extended Kalman filter (MEKF) for attitude estimation.
 
     Parameters
     ----------
@@ -327,7 +324,7 @@ class VRU:
 
         Returns
         -------
-        VRU
+        AMEKF
             A reference to the instance itself after the update.
         """
 

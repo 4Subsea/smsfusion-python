@@ -5,7 +5,7 @@ from scipy.signal import resample_poly
 import smsfusion as sf
 from smsfusion._ins._common import _gref_b_from_quat
 from smsfusion._ins._vru import (
-    VRU,
+    AMEKF,
     _measurement_matrix_init,
     _process_noise_covariance_matrix,
     _reset,
@@ -108,19 +108,18 @@ def test_reset():
     )
 
 
-class Test_VRU:
+class Test_AMEKF:
 
     def test_init(self):
 
         q0 = sf.quaternion_from_euler(np.random.random(3), degrees=False)
         bg0 = np.random.random(3)
         P0 = 0.1 * np.eye(6)
-        vrw = 0.0001
         arw = 0.0002
         gbs = 0.0003
         gbc = 123.0
 
-        mekf = VRU(
+        mekf = AMEKF(
             51.2,
             q0=q0,
             bg0=bg0,
@@ -148,7 +147,7 @@ class Test_VRU:
         assert mekf._P is not P0  # copy
 
     def test_init_default(self):
-        mekf = VRU(10.0)
+        mekf = AMEKF(10.0)
         assert mekf._fs == pytest.approx(10.0)
         assert mekf._dt == pytest.approx(0.1)
         assert mekf._nav_frame == "ned"
@@ -160,28 +159,28 @@ class Test_VRU:
         np.testing.assert_allclose(mekf.P, np.array(sf._ins._vru._P0))
         np.testing.assert_allclose(mekf._dx, np.zeros(6))
 
-    @pytest.mark.parametrize("nav_frame, scale", (["NED", 1.0], ["ENU", -1.0]))
-    def test_nav_frame(self, nav_frame, scale):
-        mekf = VRU(10.0, nav_frame=nav_frame)
+    @pytest.mark.parametrize("nav_frame", ["NED", "ENU"])
+    def test_nav_frame(self, nav_frame):
+        mekf = AMEKF(10.0, nav_frame=nav_frame)
         assert mekf._nav_frame == nav_frame.lower()
 
     def test_quaternion(self):
         euler = np.array([10.0, 20.0, 30.0])
         q0 = sf.quaternion_from_euler(euler, degrees=True)
-        mekf = VRU(10.0, q0=q0)
+        mekf = AMEKF(10.0, q0=q0)
         np.testing.assert_allclose(mekf.quaternion(), q0)
         assert mekf.quaternion() is not mekf._q_nb  # copy
 
     def test_euler(self):
         euler = np.array([10.0, 20.0, 30.0])
-        mekf = VRU(10.0, q0=sf.quaternion_from_euler(euler, degrees=True))
+        mekf = AMEKF(10.0, q0=sf.quaternion_from_euler(euler, degrees=True))
         np.testing.assert_allclose(mekf.euler(), np.radians(euler))
         np.testing.assert_allclose(mekf.euler(degrees=True), euler)
         np.testing.assert_allclose(mekf.euler(degrees=False), np.radians(euler))
 
     def test_bias_gyro(self):
         bg0 = np.array([0.01, -0.02, 0.03])
-        mekf = VRU(10.0, bg0=bg0)
+        mekf = AMEKF(10.0, bg0=bg0)
         np.testing.assert_allclose(mekf.bias_gyro(), bg0)
         np.testing.assert_allclose(mekf.bias_gyro(degrees=False), bg0)
         np.testing.assert_allclose(mekf.bias_gyro(degrees=True), np.degrees(bg0))
@@ -189,7 +188,7 @@ class Test_VRU:
 
     def test_P(self):
         P0 = 0.1 * np.eye(6)
-        mekf = VRU(10.0, P0=P0)
+        mekf = AMEKF(10.0, P0=P0)
         np.testing.assert_allclose(mekf.P, P0)
         assert mekf.P is not mekf._P  # copy
 
@@ -222,7 +221,7 @@ class Test_VRU:
             gyro_meas = np.degrees(gyro_meas)
 
         # MEKF
-        mekf = VRU(
+        mekf = AMEKF(
             fs_imu,
             q0=sf.quaternion_from_euler(euler_ref[0], degrees=False),
             gyro_noise_density=err_gyro["N"],
@@ -296,7 +295,7 @@ class Test_VRU:
 
         # MEKF
         q0 = sf.quaternion_from_euler(euler_ref[0], degrees=False)
-        mekf = VRU(fs_imu, q0=q0)
+        mekf = AMEKF(fs_imu, q0=q0)
 
         euler_est, bias_gyro_est = [], []
         for f_i, w_i in zip(acc_meas, gyro_meas):

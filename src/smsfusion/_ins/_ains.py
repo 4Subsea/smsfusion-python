@@ -244,12 +244,10 @@ def _project_state_ahead(
     _update_quaternion_with_rotvec(q_nb, dtheta)  # -> update q_nb (in place)
 
 
-class AINS:
+class PVAMEKF:
     """
-    Aided inertial navigation system (AINS).
-
-    This class provides position, velocity, attitude and gyro bias estimation using
-    a multiplicative extended Kalman filter (MEKF).
+    Multiplicative extended Kalman filter (MEKF) for position, velocity and attitude
+    estimation.
 
     Parameters
     ----------
@@ -472,7 +470,7 @@ class AINS:
 
         Returns
         -------
-        AINS
+        PVAMEKF
             A reference to the instance itself after the update.
         """
 
