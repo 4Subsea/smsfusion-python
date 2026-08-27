@@ -9,6 +9,7 @@ from smsfusion._vectorops import _skew_symmetric
 
 from ._aiding import _aiding_update_gref, _aiding_update_head, _aiding_update_vel
 from ._common import (
+    _gravity_nav,
     _gref_b_from_quat,
     _nz2vg,
     _project_covariance_ahead,
@@ -170,31 +171,6 @@ def _measurement_matrix_init(
     H[3:6, 3:6] = _skew_symmetric(vg_b)  # gravity reference vector
     H[6:7, 3:6] = _yaw_gradient(q_nb)  # heading
     return H
-
-
-def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
-    """
-    Gravity vector expressed in the navigation frame ('NED' or 'ENU').
-
-    Parameters
-    ----------
-    g : float
-        Gravitational acceleration in m/s^2.
-    nav_frame : {'NED', 'ENU'}
-        Navigation frame in which the gravity vector is expressed.
-
-    Returns
-    -------
-    ndarray, shape (3,)
-        Gravity vector expressed in the navigation frame.
-    """
-    if nav_frame.lower() == "ned":
-        g_n = np.array([0.0, 0.0, g])
-    elif nav_frame.lower() == "enu":
-        g_n = np.array([0.0, 0.0, -g])
-    else:
-        raise ValueError(f"Unknown navigation frame: {nav_frame}.")
-    return g_n
 
 
 @njit  # type: ignore[misc]

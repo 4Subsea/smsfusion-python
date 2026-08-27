@@ -219,6 +219,12 @@ def test__nz2vg():
     assert _common._nz2vg("ENU") == -1.0
 
 
+def test__gravity_nav():
+    g = 9.81
+    assert np.allclose(_common._gravity_nav(g, "NED"), np.array([0.0, 0.0, g]))
+    assert np.allclose(_common._gravity_nav(g, "ENU"), np.array([0.0, 0.0, -g]))
+
+
 def test_kalman_update_sequential():
 
     rng = np.random.default_rng(42)
