@@ -297,7 +297,7 @@ class Test_AHRS:
         euler_est = np.array(euler_est)
         bias_gyro_est = np.array(bias_gyro_est)
 
-        # Half-sample shift (compensates for the delay introduced by Euler integration)
+        # Half-sample shift (compensates for the time shift introduced by Euler integration)
         vel_est = resample_poly(vel_est, 2, 1)[1:-1:2]
         euler_est = resample_poly(euler_est, 2, 1)[1:-1:2]
         bias_gyro_est = resample_poly(bias_gyro_est, 2, 1)[1:-1:2]
@@ -364,7 +364,7 @@ class Test_AHRS:
         euler_est = np.array(euler_est)
         bias_gyro_est = np.array(bias_gyro_est)
 
-        # Half-sample shift (compensates for the delay introduced by Euler integration)
+        # Half-sample shift (compensates for the time shift introduced by Euler integration)
         euler_est = resample_poly(euler_est, 2, 1)[1:-1:2]
         bias_gyro_est = resample_poly(bias_gyro_est, 2, 1)[1:-1:2]
         euler_ref = euler_ref[1:, :]
