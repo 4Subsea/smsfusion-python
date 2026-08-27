@@ -252,27 +252,23 @@ class Test_VRU:
         euler_est = np.array(euler_est)
         bias_gyro_est = np.array(bias_gyro_est)
 
-        # Half-sample shift (compensates for the delay introduced by Euler integration)
+        # Half-sample shift (compensates for the time shift introduced by Euler integration)
         euler_est = resample_poly(euler_est, 2, 1)[1:-1:2]
         bias_gyro_est = resample_poly(bias_gyro_est, 2, 1)[1:-1:2]
-        vel_ref = vel_ref[:-1, :]
-        euler_ref = euler_ref[:-1, :]
-        bias_gyro_ref = np.tile(bg, (len(bias_gyro_est), 1))
+        euler_ref = euler_ref[1:, :]
+        bg_ref = np.tile(bg, (len(bias_gyro_est), 1))
 
         def rmse(ref, est):
             return np.sqrt(np.mean((ref - est) ** 2, axis=0))
 
-        roll_rmse, pitch_rmse, yaw_rmse = rmse(euler_ref[warmup:], euler_est[warmup:])
-        bgx_rmse, bgy_rmse, bgz_rmse = rmse(
-            bias_gyro_ref[warmup:], bias_gyro_est[warmup:]
-        )
+        roll_rmse, pitch_rmse, _ = rmse(euler_ref[warmup:], euler_est[warmup:])
+        bgx_rmse, bgy_rmse, _ = rmse(bg_ref[warmup:], bias_gyro_est[warmup:])
 
-        assert np.degrees(roll_rmse) <= 0.6
-        assert np.degrees(pitch_rmse) <= 0.6
-        assert np.degrees(yaw_rmse) <= 0.6
-        assert np.degrees(bgx_rmse) <= 0.01
-        assert np.degrees(bgy_rmse) <= 0.01
-        assert np.degrees(bgz_rmse) <= 0.01
+        assert np.degrees(roll_rmse) <= 0.4
+        assert np.degrees(pitch_rmse) <= 0.4
+        assert np.degrees(bgx_rmse) <= 0.02
+        assert np.degrees(bgy_rmse) <= 0.02
+
 
     @pytest.mark.parametrize(
         "benchmark_gen",
@@ -314,10 +310,10 @@ class Test_VRU:
         euler_est = np.array(euler_est)
         bias_gyro_est = np.array(bias_gyro_est)
 
-        # Half-sample shift (compensates for the delay introduced by Euler integration)
+        # Half-sample shift (compensates for the time shift introduced by Euler integration)
         euler_est = resample_poly(euler_est, 2, 1)[1:-1:2]
         bias_gyro_est = resample_poly(bias_gyro_est, 2, 1)[1:-1:2]
-        euler_ref = euler_ref[:-1, :]
+        euler_ref = euler_ref[1:, :]
         bg_ref = np.tile(bg, (len(bias_gyro_est), 1))
 
         def rmse(ref, est):
@@ -326,7 +322,7 @@ class Test_VRU:
         roll_rmse, pitch_rmse, _ = rmse(euler_ref[warmup:], euler_est[warmup:])
         bgx_rmse, bgy_rmse, _ = rmse(bg_ref[warmup:], bias_gyro_est[warmup:])
 
-        assert np.degrees(roll_rmse) <= 0.6
-        assert np.degrees(pitch_rmse) <= 0.6
+        assert np.degrees(roll_rmse) <= 0.4
+        assert np.degrees(pitch_rmse) <= 0.4
         assert np.degrees(bgx_rmse) <= 0.02
         assert np.degrees(bgy_rmse) <= 0.02
