@@ -271,7 +271,6 @@ class Test_VRU:
         assert np.degrees(bgy_rmse) <= 0.02
         assert np.degrees(bgz_rmse) <= 0.02
 
-
     @pytest.mark.parametrize(
         "benchmark_gen",
         [
