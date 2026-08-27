@@ -205,7 +205,7 @@ class Test_VRU:
         warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
 
         # Reference signals (without noise)
-        t, _, vel_ref, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
+        t, _, _, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
 
         # IMU and aiding measurements (with noise)
         head_std = np.radians(0.1)  # rad
