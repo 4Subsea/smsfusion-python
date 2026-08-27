@@ -133,8 +133,8 @@ def _measurement_matrix_init(
     """
     vg_b = _gref_b_from_quat(q_nb, nav_frame_factor)  # gravity reference vector
     H = np.zeros((4, 6))
-    H[0:1, 0:3] = _yaw_gradient(q_nb)  # heading
-    H[1:4, 0:3] = _skew_symmetric(vg_b)  # gravity reference vector
+    H[0:3, 0:3] = _skew_symmetric(vg_b)  # gravity reference vector
+    H[3:4, 0:3] = _yaw_gradient(q_nb)  # heading
     return H
 
 
@@ -343,40 +343,40 @@ class VRU:
         # Project (a priori) error covariance matrix estimate ahead
         _project_covariance_ahead(self._P, self._phi, self._Q)  # -> update P (in place)
 
-        if head is not None:
-            if head_var is None:
-                raise ValueError("'head_var' is required for heading aiding.")
-
-            # Update measurement matrix (heading row)
-            self._H[0, 0:3] = _yaw_gradient(self._q_nb)
-
-            # Update (a posteriori) estimates with heading aiding
-            _aiding_update_head(  # -> update dx and P (in place)
-                self._dx,
-                self._P,
-                self._H[0],
-                self._q_nb,
-                head,
-                head_var,
-                head_degrees,
-            )
-
         if gref is True:
             if gref_var is None:
                 raise ValueError("'gref_var' is required for gravity reference aiding.")
 
             # Update measurement matrix (gravity reference vector rows)
             vg_b = _gref_b_from_quat(self._q_nb, self._nz2vg)
-            self._H[1:4, 0:3] = _skew_symmetric(vg_b)
+            self._H[0:3, 0:3] = _skew_symmetric(vg_b)
 
             # Update (a posteriori) estimates with gravity reference vector aiding
             _aiding_update_gref(  # -> update dx and P (in place)
                 self._dx,
                 self._P,
-                self._H[1:4],
+                self._H[0:3],
                 vg_b,
                 dvel,
                 np.asarray(gref_var),
+            )
+
+        if head is not None:
+            if head_var is None:
+                raise ValueError("'head_var' is required for heading aiding.")
+
+            # Update measurement matrix (heading row)
+            self._H[3, 0:3] = _yaw_gradient(self._q_nb)
+
+            # Update (a posteriori) estimates with heading aiding
+            _aiding_update_head(  # -> update dx and P (in place)
+                self._dx,
+                self._P,
+                self._H[3],
+                self._q_nb,
+                head,
+                head_var,
+                head_degrees,
             )
 
         # Reset state -> update q_nb, bg_b and dx (in place)
