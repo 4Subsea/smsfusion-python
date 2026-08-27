@@ -284,10 +284,10 @@ class VRU:
         dtheta: ArrayLike,
         degrees: bool = False,
         head: float | None = None,
-        head_var: float | None = None,
+        head_var: float = 0.001,
         head_degrees: bool = False,
         gref: bool = True,
-        gref_var: ArrayLike | None = (0.0001, 0.0001, 0.0001),
+        gref_var: ArrayLike = (0.0001, 0.0001, 0.0001),
     ) -> Self:
         """
         Update state estimates with IMU and aiding measurements.
@@ -295,10 +295,14 @@ class VRU:
         Parameters
         ----------
         dvel : array_like, shape (3,)
-            Velocity increment (sculling integral) in m/s.
+            Velocity increment (sculling integral) in m/s. The simple approximation,
+            ``dvel = f * dt``, where ``f`` is the specific force measurement in m/s^2
+            and ``dt`` is the time step in seconds, is sufficient for most applications.
         dtheta : array_like, shape (3,)
-            Attitude increment (coning integral) in radians or degrees depending
-            on the ``degrees`` flag.
+            Attitude increment (coning integral) in radians or degrees, depending
+            on the ``degrees`` flag. The simple approximation, ``dtheta = w * dt``,
+            where ``w`` is the angular rate in rad/s (or deg/s) and ``dt`` is the
+            time step in seconds is sufficient for most applications.
         degrees : bool, optional
             Specifies whether the unit of the attitude increment, ``dtheta``, is
             degrees or radians. Defaults to radians.
@@ -309,7 +313,8 @@ class VRU:
             If ``None``, compass aiding is not used.
         head_var : float, optional
             Variance of heading measurement noise in radians^2 or degrees^2 depending
-            on the ``head_degrees`` flag. Ignored if ``head`` is ``None``.
+            on the ``head_degrees`` flag. Ignored if ``head`` is ``None``. Defaults
+            to 0.001 radians^2.
         head_degrees : bool, default False
             Specifies whether the unit of ``head`` and ``head_var`` are in degrees
             and degrees^2, or radians and radians^2. Defaults to radians and radians^2.

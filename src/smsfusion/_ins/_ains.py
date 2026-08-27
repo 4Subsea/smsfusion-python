@@ -437,14 +437,14 @@ class AINS:
         dtheta: ArrayLike,
         degrees: bool = False,
         pos: ArrayLike | None = (0.0, 0.0, 0.0),
-        pos_var: ArrayLike | None = (1_000_000.0, 1_000_000.0, 1_000_000.0),
+        pos_var: ArrayLike = (1_000_000.0, 1_000_000.0, 1_000_000.0),
         vel: ArrayLike | None = (0.0, 0.0, 0.0),
-        vel_var: ArrayLike | None = (100.0, 100.0, 100.0),
+        vel_var: ArrayLike = (100.0, 100.0, 100.0),
         head: float | None = None,
-        head_var: float | None = None,
+        head_var: float = 0.001,
         head_degrees: bool = False,
         gref: bool = False,
-        gref_var: ArrayLike | None = None,
+        gref_var: ArrayLike = (0.0001, 0.0001, 0.0001),
     ) -> Self:
         """
         Update state estimates with IMU and aiding measurements.
@@ -452,10 +452,14 @@ class AINS:
         Parameters
         ----------
         dvel : array_like, shape (3,)
-            Velocity increment (sculling integral) in m/s.
+            Velocity increment (sculling integral) in m/s. The simple approximation,
+            ``dvel = f * dt``, where ``f`` is the specific force measurement in m/s^2
+            and ``dt`` is the time step in seconds, is sufficient for most applications.
         dtheta : array_like, shape (3,)
-            Attitude increment (coning integral) in radians or degrees depending
-            on the ``degrees`` flag.
+            Attitude increment (coning integral) in radians or degrees, depending
+            on the ``degrees`` flag. The simple approximation, ``dtheta = w * dt``,
+            where ``w`` is the angular rate in rad/s (or deg/s) and ``dt`` is the
+            time step in seconds is sufficient for most applications.
         degrees : bool, optional
             Specifies whether the unit of the attitude increment, ``dtheta``, is
             degrees or radians. Defaults to radians.
@@ -478,8 +482,9 @@ class AINS:
             If ``None``, compass aiding is not used.
         head_var : float, optional
             Variance of heading measurement noise in radians^2 or degrees^2 depending
-            on the ``head_degrees`` flag. Ignored if ``head`` is ``None``.
-        head_degrees : bool, default False
+            on the ``head_degrees`` flag. Ignored if ``head`` is ``None``. Defaults
+            to 0.001 radians^2.
+        head_degrees : bool, optional
             Specifies whether the unit of ``head`` and ``head_var`` are in degrees
             and degrees^2, or radians and radians^2. Defaults to radians and radians^2.
         gref : bool, optional
@@ -487,7 +492,7 @@ class AINS:
             direction of gravity as aiding. Defaults to ``False``.
         gref_var : array_like, shape (3,), optional
             Variance of gravity reference vector measurement noise (dimensionless).
-            Required for gravity reference vector aiding.
+            Required for gravity reference vector aiding. Defaults to (0.0001, 0.0001, 0.0001).
 
         Returns
         -------
