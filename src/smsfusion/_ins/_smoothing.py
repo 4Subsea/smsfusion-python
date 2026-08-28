@@ -1,13 +1,15 @@
 import numpy as np
+from numpy.typing import NDArray
 
-from ._common import _correct_quat_with_gibbs2
+from .._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
+from ._common import _update_quaternion_with_gibbs2
 from ._pvamekf import PVAMEKF, _state_transition_matrix_update
-from .._transforms import _rot_matrix_from_quaternion
 
 
 class FixedIntervalSmoother:
     def __init__(self, mekf: PVAMEKF):
         self._mekf = mekf
+        self._mekf._smoothing = True
 
         # Buffers with estimates from the forward pass
         self._p_buf = []
@@ -35,10 +37,10 @@ class FixedIntervalSmoother:
         self._v_buf.append(self._mekf.velocity())
         self._q_buf.append(self._mekf.quaternion())
         self._bg_buf.append(self._mekf.bias_gyro(degrees=False))
-        self._dx_buf.append(self._mekf._dx.copy())
         self._P_buf.append(self._mekf.P)
-        self._dvel_buf.append(self._mekf._dvel.copy())
-        self._dtheta_buf.append(self._mekf._dtheta.copy())
+        self._dx_buf.append(self._mekf._error_state_copy)
+        self._dvel_buf.append(self._mekf._dvel_copy)
+        self._dtheta_buf.append(self._mekf._dtheta_copy)
         return self
 
     def _smooth(self):
@@ -71,6 +73,36 @@ class FixedIntervalSmoother:
             self._bg_b = np.array(bg_b, dtype="float64")
             self._P = np.array(P, dtype="float64")
 
+    def quaternion(self) -> NDArray[np.float64]:
+        """
+        Smoothed quaternion estimates.
+
+        Returns
+        -------
+        np.ndarray, shape (N, 4)
+            Quaternion estimates for each of the N time steps where the smoother has
+            been updated with measurements.
+        """
+        self._smooth()
+        return self._q_nb.copy()
+
+    def euler(self, degrees: bool = False):
+        """
+        Smoothed Euler angles estimates.
+
+        Returns
+        -------
+        np.ndarray, shape (N, 3)
+            Euler angles estimates for each of the N time steps where the smoother has
+            been updated with measurements.
+        """
+        q = self.quaternion()
+        if q.size == 0:
+            return np.empty((0, 3), dtype="float64")
+
+        theta = np.array([_euler_from_quaternion(q_i) for q_i in q])
+        return np.degrees(theta) if degrees else theta
+
 
 def _rts_backward_sweep(p_n, v_n, q_nb, bg_b, P, dx, dvel, dtheta, phi_k, Q):
     """
@@ -102,7 +134,7 @@ def _rts_backward_sweep(p_n, v_n, q_nb, bg_b, P, dx, dvel, dtheta, phi_k, Q):
         # Update smoothed state estimates
         p_n[k] += ddx[0:3]
         v_n[k] += ddx[3:6]
-        _correct_quat_with_gibbs2(q_nb[k], ddx[6:9])
+        _update_quaternion_with_gibbs2(q_nb[k], ddx[6:9])
         bg_b[k] += ddx[9:12]
 
     return p_n, v_n, q_nb, bg_b, P

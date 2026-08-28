@@ -314,6 +314,7 @@ class PVAMEKF:
         self._g_n = _gravity_nav(self._g, self._nav_frame)
         self._dvel_g_corr = self._dt * self._g_n
         self._lever_arm = np.asarray_chkfinite(lever_arm).reshape(3).copy()
+        self._smoothing = False
 
         # IMU noise parameters
         self._vrw = acc_noise_density  # velocity random walk
@@ -566,6 +567,11 @@ class PVAMEKF:
                 head_var,
                 head_degrees,
             )
+
+        if self._smoothing:
+            self._dvel_copy = dvel.copy()
+            self._dtheta_copy = dtheta.copy()
+            self._error_state_copy = self._dx.copy()
 
         # Reset state -> update p_n, v_n, q_nb, bg_b and dx (in place)
         _reset(self._dx, self._p_n, self._v_n, self._q_nb, self._bg_b)
