@@ -109,12 +109,12 @@ def _rts_backward_sweep(p_n, v_n, q_nb, bg_b, P, dx, dvel, dtheta, phi_k, Q):
     Perform a backward sweep with the Rauch-Tung-Striebel (RTS) algorithm.
     """
 
-    p_n = p_n.copy()
-    v_n = v_n.copy()
-    q_nb = q_nb.copy()
-    bg_b = bg_b.copy()
-    P = P.copy()
-    dx = dx.copy()
+    p_n = [x.copy() for x in p_n]
+    v_n = [x.copy() for x in v_n]
+    q_nb = [x.copy() for x in q_nb]
+    bg_b = [x.copy() for x in bg_b]
+    P = [x.copy() for x in P]
+    dx = [x.copy() for x in dx]
 
     # Backward sweep
     n = len(q_nb)
@@ -122,7 +122,7 @@ def _rts_backward_sweep(p_n, v_n, q_nb, bg_b, P, dx, dvel, dtheta, phi_k, Q):
 
         # Update step k state space and calculate a priori covariance for step k + 1
         R_nb = _rot_matrix_from_quaternion(q_nb[k])
-        _state_transition_matrix_update(phi_k, dtheta[k + 1], dtheta[k + 1], R_nb)
+        _state_transition_matrix_update(phi_k, dvel[k + 1], dtheta[k + 1], R_nb)
         P_prior_kp1 = phi_k @ P[k] @ phi_k.T + Q
 
         # Smoothed error-state estimate and corresponding covariance
