@@ -7,7 +7,6 @@ from ._ins import (
     FixedNED,
     gravity,
 )
-from ._smoothing import FixedIntervalSmoother
 from ._transforms import quaternion_from_euler
 
 __all__ = [
@@ -16,7 +15,6 @@ __all__ = [
     "VAMEKF",
     "ConingScullingAlg",
     "ConingScullingAlgCalibrated",
-    "FixedIntervalSmoother",
     "FixedNED",
     "benchmark",
     "calibrate",
