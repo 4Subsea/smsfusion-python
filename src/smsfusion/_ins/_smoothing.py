@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.typing import NDArray
+from numba import njit
 
 from .._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
 from ._common import _update_quaternion_with_gibbs2
@@ -91,6 +92,7 @@ class FixedIntervalSmoother:
         return np.degrees(theta) if degrees else theta
 
 
+@njit  # type: ignore[misc]
 def _rts_backward_sweep(p_n, v_n, q_nb, bg_b, P, dx, dvel, dtheta, phi_k, Q):
     """
     Perform a backward sweep with the Rauch-Tung-Striebel (RTS) algorithm.
