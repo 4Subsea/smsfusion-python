@@ -102,21 +102,23 @@ def _rts_backward_sweep(p_n, v_n, q_nb, bg_b, P, dx, dvel, dtheta, phi_k, Q):
     n = len(q_nb)
     for k in range(n - 2, -1, -1):
 
-        # Update step k state space and calculate a priori covariance for step k + 1
-        R_nb = _rot_matrix_from_quaternion(q_nb[k])
-        _state_transition_matrix_update(phi_k, dvel[k + 1], dtheta[k + 1], R_nb)
+        # Update state space model for step k
+        R_nb_k = _rot_matrix_from_quaternion(q_nb[k])
+        _state_transition_matrix_update(phi_k, dvel[k + 1], dtheta[k + 1], R_nb_k)
+
+        # Calculate a priori error covariance matrix for step k + 1
         P_prior_kp1 = phi_k @ P[k] @ phi_k.T + Q
 
         # Smoothed error-state estimate and corresponding covariance
         A = P[k] @ phi_k.T @ np.linalg.inv(P_prior_kp1)
-        ddx = A @ dx[k + 1]
-        dx[k] += ddx
+        ddx_k = A @ dx[k + 1]
+        dx[k] += ddx_k
         P[k] += A @ (P[k + 1] - P_prior_kp1) @ A.T
 
         # Update smoothed state estimates
-        p_n[k] += ddx[0:3]
-        v_n[k] += ddx[3:6]
-        _update_quaternion_with_gibbs2(q_nb[k], ddx[6:9])
-        bg_b[k] += ddx[9:12]
+        p_n[k] += ddx_k[0:3]
+        v_n[k] += ddx_k[3:6]
+        _update_quaternion_with_gibbs2(q_nb[k], ddx_k[6:9])
+        bg_b[k] += ddx_k[9:12]
 
     return p_n, v_n, q_nb, bg_b, P
