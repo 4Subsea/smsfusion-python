@@ -91,6 +91,59 @@ class FixedIntervalSmoother:
 
         return np.degrees(theta) if degrees else theta
 
+    def position(self) -> NDArray[np.float64]:
+        """
+        Smoothed position estimates.
+
+        Returns
+        -------
+        np.ndarray, shape (N, 3)
+            Position estimates for each of the N time steps where the smoother has
+            been updated with measurements.
+        """
+        self._smooth()
+        return self._p_n.copy()
+
+    def velocity(self) -> NDArray[np.float64]:
+        """
+        Smoothed velocity estimates.
+
+        Returns
+        -------
+        np.ndarray, shape (N, 3)
+            Velocity estimates for each of the N time steps where the smoother has
+            been updated with measurements.
+        """
+        self._smooth()
+        return self._v_n.copy()
+
+    def bias_gyro(self) -> NDArray[np.float64]:
+        """
+        Smoothed gyroscope bias estimates.
+
+        Returns
+        -------
+        np.ndarray, shape (N, 3)
+            Gyroscope bias estimates for each of the N time steps where the smoother has
+            been updated with measurements.
+        """
+        self._smooth()
+        return self._bg_b.copy()
+
+    @property
+    def P(self) -> NDArray[np.float64]:
+        """
+        Smoothed error covariance estimates.
+
+        Returns
+        -------
+        np.ndarray, shape (N, 12, 12)
+            Error covariance estimates for each of the N time steps where the smoother has
+            been updated with measurements.
+        """
+        self._smooth()
+        return self._P.copy()
+
 
 @njit  # type: ignore[misc]
 def _rts_backward_sweep(p_n, v_n, q_nb, bg_b, P, dx, dvel, dtheta, phi_k, Q):
