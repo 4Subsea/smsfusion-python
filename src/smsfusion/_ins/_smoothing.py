@@ -9,7 +9,7 @@ from ._pvamekf import PVAMEKF, _state_transition_matrix_update
 class FixedIntervalSmoother:
     def __init__(self, mekf: PVAMEKF):
         self._mekf = mekf
-        self._mekf._smoothing = True
+        self._mekf._keep_smoothing_params = True
 
         # Buffers with estimates from the forward pass
         self._p_buf = []
@@ -38,40 +38,26 @@ class FixedIntervalSmoother:
         self._q_buf.append(self._mekf.quaternion())
         self._bg_buf.append(self._mekf.bias_gyro(degrees=False))
         self._P_buf.append(self._mekf.P)
-        self._dx_buf.append(self._mekf._error_state_copy)
+        self._dx_buf.append(self._mekf._dx_copy)
         self._dvel_buf.append(self._mekf._dvel_copy)
         self._dtheta_buf.append(self._mekf._dtheta_copy)
         return self
 
     def _smooth(self):
         n_samples = len(self._q_buf)
-
-        if n_samples == 0:
-            pass
-        elif n_samples == 1:
-            self._p_n = np.array(self._p_buf)
-            self._v_n = np.array(self._v_buf)
-            self._q_nb = np.array(self._q_buf)
-            self._bg_b = np.array(self._bg_buf)
-            self._P = np.array(self._P_buf)
-        elif n_samples != len(self._p_n):
-            p_n, v_n, q_nb, bg_b, P = _rts_backward_sweep(
-                self._p_buf,
-                self._v_buf,
-                self._q_buf,
-                self._bg_buf,
-                self._P_buf,
-                self._dx_buf,
+        if n_samples != len(self._p_n):
+            self._p_n, self._v_n, self._q_nb, self._bg_b, self._P = _rts_backward_sweep(
+                np.array(self._p_buf),
+                np.array(self._v_buf),
+                np.array(self._q_buf),
+                np.array(self._bg_buf),
+                np.array(self._P_buf),
+                np.array(self._dx_buf),
                 self._dvel_buf,
                 self._dtheta_buf,
                 self._mekf._phi,
                 self._mekf._Q,
             )
-            self._p_n = np.array(p_n, dtype="float64")
-            self._v_n = np.array(v_n, dtype="float64")
-            self._q_nb = np.array(q_nb, dtype="float64")
-            self._bg_b = np.array(bg_b, dtype="float64")
-            self._P = np.array(P, dtype="float64")
 
     def quaternion(self) -> NDArray[np.float64]:
         """
@@ -109,13 +95,6 @@ def _rts_backward_sweep(p_n, v_n, q_nb, bg_b, P, dx, dvel, dtheta, phi_k, Q):
     """
     Perform a backward sweep with the Rauch-Tung-Striebel (RTS) algorithm.
     """
-
-    p_n = [x.copy() for x in p_n]
-    v_n = [x.copy() for x in v_n]
-    q_nb = [x.copy() for x in q_nb]
-    bg_b = [x.copy() for x in bg_b]
-    P = [x.copy() for x in P]
-    dx = [x.copy() for x in dx]
 
     # Backward sweep
     n = len(q_nb)
