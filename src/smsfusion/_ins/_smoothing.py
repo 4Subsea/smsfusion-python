@@ -1,6 +1,6 @@
 import numpy as np
-from numpy.typing import NDArray
 from numba import njit
+from numpy.typing import NDArray
 
 from .._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
 from ._common import _update_quaternion_with_gibbs2
