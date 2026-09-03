@@ -100,3 +100,6 @@ directory = "coverage_html_report"
 files = ["src/smsfusion"]
 strict = true
 ignore_missing_imports = true
+
+[tool.black]
+target-version = ["py312"]
