@@ -246,8 +246,7 @@ def _project_state_ahead(
 
 class PVAMEKF:
     """
-    Multiplicative extended Kalman filter (MEKF) for position, velocity and attitude
-    estimation.
+    Position, velocity, and attitude (PVA) multiplicative extended Kalman filter (MEKF).
 
     Parameters
     ----------
