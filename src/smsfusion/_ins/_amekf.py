@@ -162,7 +162,7 @@ def _reset(
 
 class AMEKF:
     """
-    Multiplicative extended Kalman filter (MEKF) for attitude estimation.
+    Attitude (A) multiplicative extended Kalman filter (MEKF).
 
     Parameters
     ----------
