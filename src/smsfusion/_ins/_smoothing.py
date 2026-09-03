@@ -173,5 +173,6 @@ def _rts_backward_sweep(p_n, v_n, q_nb, bg_b, P, dx, dvel, dtheta, phi_k, Q):
         v_n[k] += ddx_k[3:6]
         _update_quaternion_with_gibbs2(q_nb[k], ddx_k[6:9])
         bg_b[k] += ddx_k[9:12]
+        # dtheta[k] += ddx_k[9:12]
 
     return p_n, v_n, q_nb, bg_b, P
