@@ -138,13 +138,6 @@ class Test_FixedIntervalSmoother:
         ],
     )
     def test_benchmark_head_aiding(self, benchmark_gen):
-        """
-        Heading-only aiding, i.e. no position or velocity aiding. Unlike the
-        full-aiding case (position + velocity + heading), this aiding
-        configuration does not trigger the smoothing bug, and the smoother
-        should consistently improve on the forward filter's Euler angle
-        estimates.
-        """
         fs_imu = 10.0
         warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
 
