@@ -21,10 +21,11 @@ class FixedIntervalSmoother:
     ----------
     mekf : PVAMEKF
         The underlying PVAMEKF instance used for forward filtering.
-    cov_smoothing : bool, default True
+    cov_smoothing : bool, optional
         Whether to include the error covariance matrix, `P`, in the smoothing process.
         Disabling the covariance smoothing has no effect on the smoothed state estimates,
         and can reduce computation time if smoothed covariances are not required.
+        Defaults to ``True``.
 
     References
     ----------
