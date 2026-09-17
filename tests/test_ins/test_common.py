@@ -5,36 +5,68 @@ from scipy.spatial.transform import Rotation
 from smsfusion._ins import _common
 
 
+def _quaternion_from_euler(roll, pitch, yaw):
+    """Unit quaternion (qw, qx, qy, qz) from ZYX Euler angles in radians."""
+    quaternion = Rotation.from_euler("ZYX", (yaw, pitch, roll), degrees=False).as_quat()
+    return np.r_[quaternion[3], quaternion[:3]]
+
+
 @pytest.mark.parametrize(
-    "quaternion, dhda_expect",
+    "angles",
     [
-        (
-            np.array([1.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 1.0]),
-        ),
-        (
-            np.array([0.89442719, 0.4472136, 0.0, 0.0]),  # gibbs -> [1.0, 0.0, 0.0]
-            np.array([0.0, 10.0, 20.0]) / (4.0 + 1.0) ** 2,
-        ),
-        (
-            np.array([0.89442719, 0.0, 0.4472136, 0.0]),  # gibbs -> [0.0, 1.0, 0.0]
-            np.array([6.0, 0.0, 12.0]) / (4.0 - 1.0) ** 2,
-        ),
-        (
-            np.array([0.89442719, 0.0, 0.0, 0.4472136]),  # gibbs -> [0.0, 0.0, 1.0]
-            np.array([0.0, 0.0, 20.0]) / ((4.0 - 1.0) ** 2 * (1 + (4.0 / 3.0) ** 2)),
-        ),
-        (
-            np.array(
-                [0.92387953, 0.22094238, 0.22094238, 0.22094238]
-            ),  # gibbs -> [0.47829262, 0.47829262, 0.47829262]
-            np.array([0.06751864, 0.29609696, 0.87452584]),
-        ),
+        (0.0, 0.0, 0.0),
+        (0.0, 0.0, 35.0),
+        (30.0, 0.0, 0.0),
+        (0.0, 30.0, 0.0),
+        (25.0, -40.0, -125.0),
+        (-70.0, 60.0, 15.0),
     ],
 )
-def test__dhda(quaternion, dhda_expect):
+def test__yaw_gradient(angles):
+    """
+    The gradient is the bottom row of the Euler angle rate transformation matrix,
+    i.e. [0, sin(roll) / cos(pitch), cos(roll) / cos(pitch)].
+    """
+    roll, pitch, yaw = np.radians(angles)
+    quaternion = _quaternion_from_euler(roll, pitch, yaw)
+
+    dhda_expect = np.array(
+        [0.0, np.sin(roll) / np.cos(pitch), np.cos(roll) / np.cos(pitch)]
+    )
+
     dhda_out = _common._yaw_gradient(quaternion)
-    np.testing.assert_allclose(dhda_out, dhda_expect)
+    np.testing.assert_allclose(dhda_out, dhda_expect, atol=1e-12)
+
+
+@pytest.mark.parametrize("seed", [0, 1, 2, 3, 4])
+def test__yaw_gradient_vs_finite_difference(seed):
+    """
+    The gradient must be taken wrt. the attitude error state as it is actually
+    applied, i.e. as a body-frame rotation via '_update_quaternion_with_gibbs2'.
+    """
+    rng = np.random.default_rng(seed)
+    quaternion = rng.normal(size=4)
+    quaternion /= np.linalg.norm(quaternion)
+
+    eps = 1e-7
+    dhda_expect = np.zeros(3)
+    for i in range(3):
+        da = np.zeros(3)
+        da[i] = eps
+
+        q_plus = quaternion.copy()
+        _common._update_quaternion_with_gibbs2(q_plus, da)
+
+        q_minus = quaternion.copy()
+        _common._update_quaternion_with_gibbs2(q_minus, -da)
+
+        dyaw = _common._yaw_from_quaternion(q_plus) - _common._yaw_from_quaternion(
+            q_minus
+        )
+        dhda_expect[i] = _common._signed_smallest_angle(dyaw) / (2.0 * eps)
+
+    dhda_out = _common._yaw_gradient(quaternion)
+    np.testing.assert_allclose(dhda_out, dhda_expect, atol=1e-6)
 
 
 @pytest.mark.parametrize(
