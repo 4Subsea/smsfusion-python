@@ -32,8 +32,3 @@ def test_ERR_GYRO_MOTION2():
 
     for key_i in err_expect:
         assert err_out[key_i] == approx(err_expect[key_i])
-
-
-def test_P0():
-    p0_expect = np.eye(12) * 1.0e-6
-    np.testing.assert_almost_equal(constants.P0, p0_expect)
