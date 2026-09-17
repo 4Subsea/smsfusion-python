@@ -1,3 +1,5 @@
+from typing import Self
+
 import numpy as np
 from numba import njit
 from numpy.typing import NDArray
@@ -33,7 +35,7 @@ class FixedIntervalSmoother:
         filtering with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
     """
 
-    def __init__(self, mekf: PVAMEKF, cov_smoothing: bool = True):
+    def __init__(self, mekf: PVAMEKF, cov_smoothing: bool = True) -> None:
         self._mekf = mekf
         self._mekf._keep_smoothing_params = True
         self._cov_smoothing = cov_smoothing
@@ -55,7 +57,7 @@ class FixedIntervalSmoother:
         self._bg_b = np.empty((0, 3), dtype="float64")
         self._P = np.empty((0, *self._mekf._P.shape), dtype="float64")
 
-    def update(self, *args, **kwargs):
+    def update(self, *args, **kwargs) -> Self:
         """
         Update with IMU and aiding measurements.
         """
