@@ -8,10 +8,22 @@ from smsfusion._vectorops import _normalize
 @njit  # type: ignore[misc]
 def _yaw_gradient(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Compute yaw/heading angle gradient wrt to the unit quaternion.
+    Compute the yaw/heading angle gradient wrt. the attitude error state.
 
-    Defined in terms of scaled Gibbs vector in ref [1]_, but implemented in terms of
-    unit quaternion here to avoid singularities.
+    The attitude error state, ``a``, is a small body-frame rotation parameterized as
+    a scaled (2x) Gibbs vector, applied multiplicatively as ``q_true = q ⊗ dq(a)``
+    (see :func:`_update_quaternion_with_gibbs2`). The gradient of the yaw angle (as
+    given by :func:`_yaw_from_quaternion`) wrt. this error is the bottom row of the
+    Euler angle rate transformation matrix::
+
+        d(yaw)/da = [0, sin(roll) / cos(pitch), cos(roll) / cos(pitch)]
+
+    Implemented in terms of the unit quaternion to avoid computing the Euler angles.
+    The x-component is identically zero: the yaw angle is ``atan2(R_nb[1, 0],
+    R_nb[0, 0])``, i.e. a function of the body x-axis alone, which a rotation about
+    that same axis leaves unchanged.
+
+    Singular at ``cos(pitch) = 0``, as the yaw angle itself is.
 
     Parameters
     ----------
@@ -22,26 +34,23 @@ def _yaw_gradient(q: NDArray[np.float64]) -> NDArray[np.float64]:
     -------
     numpy.ndarray, shape (3,)
         Yaw angle gradient vector.
-
-    References
-    ----------
-    .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
-    2nd Edition, equation 14.254, John Wiley & Sons, 2021.
     """
     q_w, q_x, q_y, q_z = q
-    u_y = 2.0 * (q_x * q_y + q_z * q_w)
-    u_x = 1.0 - 2.0 * (q_y**2 + q_z**2)
-    u = u_y / u_x
 
-    duda_scale = 1.0 / u_x**2
-    duda_x = -(q_w * q_y) * (1.0 - 2.0 * q_w**2) - (2.0 * q_w**2 * q_x * q_z)
-    duda_y = (q_w * q_x) * (1.0 - 2.0 * q_z**2) + (2.0 * q_w**2 * q_y * q_z)
-    duda_z = q_w**2 * (1.0 - 2.0 * q_y**2) + (2.0 * q_w * q_x * q_y * q_z)
-    duda = duda_scale * np.array([duda_x, duda_y, duda_z])
+    # Entries of the rotation matrix, R_nb, needed below
+    r_00 = 1.0 - 2.0 * (q_y**2 + q_z**2)
+    r_01 = 2.0 * (q_x * q_y - q_w * q_z)
+    r_02 = 2.0 * (q_x * q_z + q_w * q_y)
+    r_10 = 2.0 * (q_x * q_y + q_w * q_z)
+    r_11 = 1.0 - 2.0 * (q_x**2 + q_z**2)
+    r_12 = 2.0 * (q_y * q_z - q_w * q_x)
 
-    dhda = 1.0 / (1.0 + u**2) * duda
+    cos_pitch_sq = r_00**2 + r_10**2
 
-    return dhda  # type: ignore[no-any-return]
+    dhda_y = -(r_00 * r_12 - r_10 * r_02) / cos_pitch_sq  # sin(roll) / cos(pitch)
+    dhda_z = (r_00 * r_11 - r_10 * r_01) / cos_pitch_sq  # cos(roll) / cos(pitch)
+
+    return np.array([0.0, dhda_y, dhda_z])
 
 
 @njit  # type: ignore[misc]
