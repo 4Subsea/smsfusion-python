@@ -37,7 +37,6 @@ class FixedIntervalSmoother:
 
     def __init__(self, mekf: PVAMEKF, cov_smoothing: bool = True) -> None:
         self._mekf = mekf
-        self._mekf._keep_smoothing_params = True
         self._cov_smoothing = cov_smoothing
 
         # Buffers with estimates from the forward pass
@@ -67,9 +66,9 @@ class FixedIntervalSmoother:
         self._q_buf.append(self._mekf.quaternion())
         self._bg_buf.append(self._mekf.bias_gyro(degrees=False))
         self._P_buf.append(self._mekf.P)
-        self._dx_buf.append(self._mekf._dx_copy)
-        self._dvel_buf.append(self._mekf._dvel_copy)
-        self._dtheta_buf.append(self._mekf._dtheta_copy)
+        self._dx_buf.append(self._mekf._dx_before_reset.copy())
+        self._dvel_buf.append(self._mekf._dvel.copy())
+        self._dtheta_buf.append(self._mekf._dtheta.copy())
         return self
 
     def _smooth(self):
