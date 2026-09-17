@@ -3,7 +3,7 @@ import pytest
 from scipy.signal import resample_poly
 
 import smsfusion as sf
-from smsfusion import PVAMEKF
+from smsfusion import PVAMEKF, ConingScullingAlg
 from smsfusion._ins._smoothing import FixedIntervalSmoother
 from smsfusion.benchmark import (
     benchmark_full_pva_beat_202311A,
@@ -13,16 +13,6 @@ from smsfusion.benchmark import (
 
 class Test_FixedIntervalSmoother:
 
-    @pytest.mark.xfail(
-        reason=(
-            "Known bug: when position, velocity and heading aiding are all active "
-            "at the same time, the RTS backward sweep makes the smoothed position "
-            "(and roll/pitch) estimates worse than the forward filter, instead of "
-            "better. Velocity and gyro bias smoothing are unaffected. See combined "
-            "pos+vel+head aiding case; gref aiding is not involved."
-        ),
-        strict=False,
-    )
     @pytest.mark.parametrize(
         "benchmark_gen",
         [
@@ -48,9 +38,10 @@ class Test_FixedIntervalSmoother:
         imu_noise = noise_model(fs_imu, len(t))
         acc_meas = acc_ref + imu_noise[:, :3]
         gyro_meas = gyro_ref + imu_noise[:, 3:] + bg
-        pos_meas = pos_ref + np.random.normal(0.0, pos_std, pos_ref.shape)
-        vel_meas = vel_ref + np.random.normal(0.0, vel_std, vel_ref.shape)
-        head_meas = euler_ref[:, 2] + np.random.normal(0.0, head_std, len(euler_ref))
+        rng = np.random.default_rng(0)
+        pos_meas = pos_ref + rng.normal(0.0, pos_std, pos_ref.shape)
+        vel_meas = vel_ref + rng.normal(0.0, vel_std, vel_ref.shape)
+        head_meas = euler_ref[:, 2] + rng.normal(0.0, head_std, len(euler_ref))
 
         # MEKF
         q0 = sf.quaternion_from_euler(euler_ref[0], degrees=False)
@@ -59,13 +50,18 @@ class Test_FixedIntervalSmoother:
             PVAMEKF(fs_imu, p0=pos_ref[0], v0=vel_ref[0], q0=q0)
         )
 
+        # Coning and sculling corrected IMU increments. The crude approximation,
+        # dvel = f * dt and dtheta = w * dt, leaves a deterministic rotation
+        # compensation error which the RTS backward sweep integrates coherently.
+        coning_sculling = ConingScullingAlg(fs_imu)
+
         pos_fwd, vel_fwd, euler_fwd, bg_fwd = [], [], [], []
         for f_i, w_i, h_i, p_i, v_i in zip(
             acc_meas, gyro_meas, head_meas, pos_meas, vel_meas
         ):
 
-            dvel_i = f_i / fs_imu
-            dtheta_i = w_i / fs_imu
+            coning_sculling.update(f_i, w_i)
+            dtheta_i, dvel_i = coning_sculling.flush()
 
             aid_kwargs = {
                 "head": h_i,
@@ -153,7 +149,8 @@ class Test_FixedIntervalSmoother:
         imu_noise = noise_model(fs_imu, len(t))
         acc_meas = acc_ref + imu_noise[:, :3]
         gyro_meas = gyro_ref + imu_noise[:, 3:] + bg
-        head_meas = euler_ref[:, 2] + np.random.normal(0.0, head_std, len(euler_ref))
+        rng = np.random.default_rng(0)
+        head_meas = euler_ref[:, 2] + rng.normal(0.0, head_std, len(euler_ref))
 
         # MEKF
         q0 = sf.quaternion_from_euler(euler_ref[0], degrees=False)
