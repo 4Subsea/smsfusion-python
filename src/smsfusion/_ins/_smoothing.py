@@ -8,9 +8,34 @@ from ._pvamekf import PVAMEKF, _state_transition_matrix_update
 
 
 class FixedIntervalSmoother:
-    def __init__(self, mekf: PVAMEKF):
+    """
+    Fixed-interval smoothing for PVAMEKF.
+
+    This class wraps an instance of PVAMEKF, and maintains a time-ordered buffer
+    of state and error covariance estimates as measurements are processed via
+    the ``update()`` method. A backward sweep over the buffered data using the
+    Rauch-Tung-Striebel (RTS) algorithm [1] is performed to refine the filter
+    estimates.
+
+    Parameters
+    ----------
+    mekf : PVAMEKF
+        The underlying PVAMEKF instance used for forward filtering.
+    cov_smoothing : bool, default True
+        Whether to include the error covariance matrix, `P`, in the smoothing process.
+        Disabling the covariance smoothing has no effect on the smoothed state estimates,
+        and can reduce computation time if smoothed covariances are not required.
+
+    References
+    ----------
+    [1] R. G. Brown and P. Y. C. Hwang, "Random signals and applied Kalman
+        filtering with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
+    """
+
+    def __init__(self, mekf: PVAMEKF, cov_smoothing: bool = True):
         self._mekf = mekf
         self._mekf._keep_smoothing_params = True
+        self._cov_smoothing = cov_smoothing
 
         # Buffers with estimates from the forward pass
         self._p_buf = []
@@ -58,6 +83,7 @@ class FixedIntervalSmoother:
                 self._dtheta_buf,
                 self._mekf._phi,
                 self._mekf._Q,
+                self._cov_smoothing,
             )
 
     def quaternion(self) -> NDArray[np.float64]:
@@ -146,7 +172,19 @@ class FixedIntervalSmoother:
 
 
 @njit  # type: ignore[misc]
-def _rts_backward_sweep(p_n, v_n, q_nb, bg_b, P, dx, dvel, dtheta, phi_k, Q):
+def _rts_backward_sweep(
+    p_n: NDArray[np.float64],
+    v_n: NDArray[np.float64],
+    q_nb: NDArray[np.float64],
+    bg_b: NDArray[np.float64],
+    P: NDArray[np.float64],
+    dx: NDArray[np.float64],
+    dvel: NDArray[np.float64],
+    dtheta: NDArray[np.float64],
+    phi_k: NDArray[np.float64],
+    Q: NDArray[np.float64],
+    cov_smoothing: bool = True,
+):
     """
     Perform a backward sweep with the Rauch-Tung-Striebel (RTS) algorithm.
     """
@@ -166,7 +204,8 @@ def _rts_backward_sweep(p_n, v_n, q_nb, bg_b, P, dx, dvel, dtheta, phi_k, Q):
         A = P[k] @ phi_k.T @ np.linalg.inv(P_prior_kp1)
         ddx_k = A @ dx[k + 1]
         dx[k] += ddx_k
-        P[k] += A @ (P[k + 1] - P_prior_kp1) @ A.T
+        if cov_smoothing:
+            P[k] += A @ (P[k + 1] - P_prior_kp1) @ A.T
 
         # Update smoothed state estimates
         p_n[k] += ddx_k[0:3]
