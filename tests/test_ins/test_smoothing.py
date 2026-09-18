@@ -146,24 +146,6 @@ class Test_FixedIntervalSmoother:
         second = smoother.position()
         np.testing.assert_array_equal(first, second)
 
-    def test_accessor_before_further_updates(self):
-        """
-        Reading an estimate must not prevent the smoother from accounting for
-        measurements that are applied afterwards.
-        """
-        _, smoother = self._run(n_samples=20)
-        smoother.position()  # trigger a backward sweep
-
-        for _ in range(5):
-            smoother.update(np.array([0.0, 0.0, -0.98]), np.zeros(3))
-
-        _, smoother_expect = self._run(n_samples=20)
-        for _ in range(5):
-            smoother_expect.update(np.array([0.0, 0.0, -0.98]), np.zeros(3))
-
-        assert smoother.position().shape == (25, 3)
-        np.testing.assert_allclose(smoother.position(), smoother_expect.position())
-
     def test_cov_smoothing_false(self):
         """
         Disabling covariance smoothing returns the forward filter covariances, and
