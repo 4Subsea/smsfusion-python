@@ -66,7 +66,27 @@ class FixedIntervalSmoother:
 
     def update(self, *args: Any, **kwargs: Any) -> Self:
         """
-        Update with IMU and aiding measurements.
+        Update with IMU and aiding measurements, and buffer the resulting estimates
+        for smoothing.
+
+        The arguments are passed on to the underlying PVAMEKF instance unaltered. See
+        :meth:`smsfusion.PVAMEKF.update` for a full description of them.
+
+        Parameters
+        ----------
+        *args : tuple
+            Positional arguments passed on to ``PVAMEKF.update``.
+        **kwargs : dict
+            Keyword arguments passed on to ``PVAMEKF.update``.
+
+        Returns
+        -------
+        FixedIntervalSmoother
+            A reference to the instance itself after the update.
+
+        See Also
+        --------
+        smsfusion.PVAMEKF.update
         """
         self._mekf.update(*args, **kwargs)
         self._p_buf.append(self._mekf.position())
