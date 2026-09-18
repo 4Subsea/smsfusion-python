@@ -15,29 +15,28 @@ from smsfusion.benchmark import (
 
 class Test_FixedIntervalSmoother:
 
-    FS = 10.0  # sampling frequency in Hz
-
     @classmethod
     def _run(cls, n_samples=50, seed=0, **smoother_kwargs):
         """
         Run a forward filter and a smoother over identical measurements. The
         measurements describe a nominally stationary and level body.
         """
+        fs = 10.0
         rng = np.random.default_rng(seed)
-        dvel = np.array([0.0, 0.0, -sf.gravity() / cls.FS]) + rng.normal(
+        dvel = np.array([0.0, 0.0, -sf.gravity() / fs]) + rng.normal(
             0.0, 1.0e-3, (n_samples, 3)
         )
         dtheta = rng.normal(0.0, 1.0e-3, (n_samples, 3))
 
-        mekf = PVAMEKF(cls.FS)
-        smoother = FixedIntervalSmoother(PVAMEKF(cls.FS), **smoother_kwargs)
+        mekf = PVAMEKF(fs)
+        smoother = FixedIntervalSmoother(PVAMEKF(fs), **smoother_kwargs)
         for dvel_i, dtheta_i in zip(dvel, dtheta):
             mekf.update(dvel_i, dtheta_i)
             smoother.update(dvel_i, dtheta_i)
         return mekf, smoother
 
     def test_update_returns_self(self):
-        smoother = FixedIntervalSmoother(PVAMEKF(self.FS))
+        smoother = FixedIntervalSmoother(PVAMEKF(10.0))
         assert smoother.update(np.array([0.0, 0.0, -0.98]), np.zeros(3)) is smoother
 
     def test_position(self):
@@ -51,7 +50,7 @@ class Test_FixedIntervalSmoother:
         np.testing.assert_allclose(position[-1], mekf.position())
 
     def test_position_without_updates(self):
-        smoother = FixedIntervalSmoother(PVAMEKF(self.FS))
+        smoother = FixedIntervalSmoother(PVAMEKF(10.0))
         assert smoother.position().shape == (0, 3)
 
     def test_velocity(self):
@@ -65,7 +64,7 @@ class Test_FixedIntervalSmoother:
         np.testing.assert_allclose(velocity[-1], mekf.velocity())
 
     def test_velocity_without_updates(self):
-        smoother = FixedIntervalSmoother(PVAMEKF(self.FS))
+        smoother = FixedIntervalSmoother(PVAMEKF(10.0))
         assert smoother.velocity().shape == (0, 3)
 
     def test_quaternion(self):
@@ -80,7 +79,7 @@ class Test_FixedIntervalSmoother:
         np.testing.assert_allclose(quaternion[-1], mekf.quaternion())
 
     def test_quaternion_without_updates(self):
-        smoother = FixedIntervalSmoother(PVAMEKF(self.FS))
+        smoother = FixedIntervalSmoother(PVAMEKF(10.0))
         assert smoother.quaternion().shape == (0, 4)
 
     def test_euler(self):
@@ -95,7 +94,7 @@ class Test_FixedIntervalSmoother:
         np.testing.assert_allclose(euler[-1], mekf.euler())
 
     def test_euler_without_updates(self):
-        smoother = FixedIntervalSmoother(PVAMEKF(self.FS))
+        smoother = FixedIntervalSmoother(PVAMEKF(10.0))
         assert smoother.euler().shape == (0, 3)
 
     def test_bias_gyro(self):
@@ -113,7 +112,7 @@ class Test_FixedIntervalSmoother:
         np.testing.assert_allclose(bias_gyro[-1], mekf.bias_gyro())
 
     def test_bias_gyro_without_updates(self):
-        smoother = FixedIntervalSmoother(PVAMEKF(self.FS))
+        smoother = FixedIntervalSmoother(PVAMEKF(10.0))
         assert smoother.bias_gyro().shape == (0, 3)
 
     def test_P(self):
@@ -127,7 +126,7 @@ class Test_FixedIntervalSmoother:
         np.testing.assert_allclose(P[-1], mekf.P)
 
     def test_P_without_updates(self):
-        smoother = FixedIntervalSmoother(PVAMEKF(self.FS))
+        smoother = FixedIntervalSmoother(PVAMEKF(10.0))
         assert smoother.P.shape == (0, 12, 12)
 
     def test_smoothing_is_idempotent(self):
@@ -142,17 +141,18 @@ class Test_FixedIntervalSmoother:
         Disabling covariance smoothing returns the forward filter covariances, and
         leaves the smoothed state estimates unchanged.
         """
+        fs = 10.0
         n_samples = 30
         rng = np.random.default_rng(0)
-        dvel = np.array([0.0, 0.0, -sf.gravity() / self.FS]) + rng.normal(
+        dvel = np.array([0.0, 0.0, -sf.gravity() / fs]) + rng.normal(
             0.0, 1.0e-3, (n_samples, 3)
         )
         dtheta = rng.normal(0.0, 1.0e-3, (n_samples, 3))
         aid_kwargs = {"pos_var": (0.01, 0.01, 0.01), "vel_var": (0.01, 0.01, 0.01)}
 
-        mekf = PVAMEKF(self.FS)
-        smoother = FixedIntervalSmoother(PVAMEKF(self.FS), cov_smoothing=False)
-        smoother_cov = FixedIntervalSmoother(PVAMEKF(self.FS), cov_smoothing=True)
+        mekf = PVAMEKF(fs)
+        smoother = FixedIntervalSmoother(PVAMEKF(fs), cov_smoothing=False)
+        smoother_cov = FixedIntervalSmoother(PVAMEKF(fs), cov_smoothing=True)
 
         P_fwd = []
         for dvel_i, dtheta_i in zip(dvel, dtheta):
@@ -188,7 +188,7 @@ class Test_FixedIntervalSmoother:
         assert smoother.P.shape == (0, 12, 12)
 
     def test_clear_without_updates(self):
-        smoother = FixedIntervalSmoother(PVAMEKF(self.FS))
+        smoother = FixedIntervalSmoother(PVAMEKF(10.0))
         smoother.clear()
 
         assert smoother.position().shape == (0, 3)
@@ -212,15 +212,16 @@ class Test_FixedIntervalSmoother:
         filtering carries on, so the result must equal that of a smoother attached to
         a filter in the same state.
         """
+        fs = 10.0
         n_samples = 15
         rng = np.random.default_rng(0)
-        dvel = np.array([0.0, 0.0, -sf.gravity() / self.FS]) + rng.normal(
+        dvel = np.array([0.0, 0.0, -sf.gravity() / fs]) + rng.normal(
             0.0, 1.0e-3, (2 * n_samples, 3)
         )
         dtheta = rng.normal(0.0, 1.0e-3, (2 * n_samples, 3))
 
         # Buffer the first interval, clear it, then buffer the second interval
-        smoother = FixedIntervalSmoother(PVAMEKF(self.FS))
+        smoother = FixedIntervalSmoother(PVAMEKF(fs))
         for dvel_i, dtheta_i in zip(dvel[:n_samples], dtheta[:n_samples]):
             smoother.update(dvel_i, dtheta_i)
         smoother.position()  # populate the smoothed estimates
@@ -229,7 +230,7 @@ class Test_FixedIntervalSmoother:
             smoother.update(dvel_i, dtheta_i)
 
         # Advance an identical filter over the first interval without buffering it
-        mekf_expect = PVAMEKF(self.FS)
+        mekf_expect = PVAMEKF(fs)
         for dvel_i, dtheta_i in zip(dvel[:n_samples], dtheta[:n_samples]):
             mekf_expect.update(dvel_i, dtheta_i)
         smoother_expect = FixedIntervalSmoother(mekf_expect)
