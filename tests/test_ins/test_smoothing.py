@@ -23,6 +23,11 @@ class Test_FixedIntervalSmoother:
         ],
     )
     def test_benchmark_full_aiding(self, benchmark_gen):
+        """
+        Full aiding (position, velocity, and heading).
+
+        All degrees of freedom are observable with this aiding configuration.
+        """
         fs_imu = 10.0
         warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
 
@@ -126,6 +131,13 @@ class Test_FixedIntervalSmoother:
         ],
     )
     def test_benchmark_head_aiding(self, benchmark_gen):
+        """
+        Heading aiding and the default pseudo zero-position and zero-velocity
+        measurements are applied.
+
+        Only the attitude (roll, pitch and yaw) is observable with this aiding
+        configuration.
+        """
         fs_imu = 10.0
         warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
 
