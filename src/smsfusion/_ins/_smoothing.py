@@ -27,7 +27,6 @@ class FixedIntervalSmoother:
         Whether to include the error covariance matrix, `P`, in the smoothing process.
         Disabling the covariance smoothing has no effect on the smoothed state estimates,
         and can reduce computation time if smoothed covariances are not required.
-        Defaults to ``True``.
 
     References
     ----------
@@ -169,11 +168,14 @@ class FixedIntervalSmoother:
         """
         Smoothed error covariance estimates.
 
+        NB! If the smoother was created with ``cov_smoothing=False``, the forward
+        filter's (i.e., unsmoothed) error covariance estimates are returned instead.
+
         Returns
         -------
         np.ndarray, shape (N, 12, 12)
-            Error covariance estimates for each of the N time steps where the smoother has
-            been updated with measurements.
+            Error covariance estimates for each of the N time steps where the smoother
+            has been updated with measurements.
         """
         self._smooth()
         return self._P.copy()
