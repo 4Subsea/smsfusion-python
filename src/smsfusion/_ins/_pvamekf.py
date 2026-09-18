@@ -476,8 +476,8 @@ class PVAMEKF:
             A reference to the instance itself after the update.
         """
 
-        self._dvel[:] = np.asarray(dvel)
-        self._dtheta[:] = np.asarray(dtheta)
+        self._dvel[:] = np.asarray(dvel).reshape(3)
+        self._dtheta[:] = np.asarray(dtheta).reshape(3)
 
         if degrees:
             self._dtheta[:] *= np.pi / 180.0
