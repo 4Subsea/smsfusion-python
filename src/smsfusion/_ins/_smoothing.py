@@ -145,9 +145,14 @@ class FixedIntervalSmoother:
         self._smooth()
         return self._v_n.copy()
 
-    def bias_gyro(self) -> NDArray[np.float64]:
+    def bias_gyro(self, degrees: bool = False) -> NDArray[np.float64]:
         """
         Smoothed gyroscope bias estimates.
+
+        Parameters
+        ----------
+        degrees : bool, optional
+            Whether to return the bias in deg/s or rad/s. Defaults to rad/s.
 
         Returns
         -------
@@ -156,7 +161,8 @@ class FixedIntervalSmoother:
             been updated with measurements.
         """
         self._smooth()
-        return self._bg_b.copy()
+        bg_b = self._bg_b.copy()
+        return np.degrees(bg_b) if degrees else bg_b
 
     @property
     def P(self) -> NDArray[np.float64]:

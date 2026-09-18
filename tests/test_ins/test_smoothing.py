@@ -15,6 +15,17 @@ from smsfusion.benchmark import (
 
 class Test_FixedIntervalSmoother:
 
+    def test_bias_gyro(self):
+        bg0 = np.array([0.01, -0.02, 0.03])
+        smoother = FixedIntervalSmoother(PVAMEKF(10.0, bg0=bg0))
+        for _ in range(10):
+            smoother.update(np.array([0.0, 0.0, -0.98]), np.zeros(3))
+
+        bg_rad = smoother.bias_gyro()
+        np.testing.assert_allclose(smoother.bias_gyro(degrees=False), bg_rad)
+        np.testing.assert_allclose(smoother.bias_gyro(degrees=True), np.degrees(bg_rad))
+        assert smoother.bias_gyro() is not smoother._bg_b  # copy
+
     @pytest.mark.parametrize(
         "benchmark_gen",
         [
