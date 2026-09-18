@@ -183,6 +183,74 @@ class Test_FixedIntervalSmoother:
         np.testing.assert_allclose(smoother.euler(), smoother_cov.euler())
         np.testing.assert_allclose(smoother.bias_gyro(), smoother_cov.bias_gyro())
 
+    def test_clear(self):
+        _, smoother = self._run(n_samples=20)
+        smoother.position()  # populate the smoothed estimates
+
+        assert smoother.clear() is None
+
+        assert smoother.position().shape == (0, 3)
+        assert smoother.velocity().shape == (0, 3)
+        assert smoother.quaternion().shape == (0, 4)
+        assert smoother.euler().shape == (0, 3)
+        assert smoother.bias_gyro().shape == (0, 3)
+        assert smoother.P.shape == (0, 12, 12)
+
+    def test_clear_without_updates(self):
+        smoother = FixedIntervalSmoother(PVAMEKF(self.FS))
+        smoother.clear()
+
+        assert smoother.position().shape == (0, 3)
+        assert smoother.P.shape == (0, 12, 12)
+
+    def test_clear_does_not_affect_filter(self):
+        _, smoother = self._run(n_samples=20)
+        position = smoother._mekf.position()
+        euler = smoother._mekf.euler()
+        P = smoother._mekf.P
+
+        smoother.clear()
+
+        np.testing.assert_array_equal(smoother._mekf.position(), position)
+        np.testing.assert_array_equal(smoother._mekf.euler(), euler)
+        np.testing.assert_array_equal(smoother._mekf.P, P)
+
+    def test_clear_allows_reuse(self):
+        """
+        After clearing, the smoother covers the subsequent interval only. The forward
+        filtering carries on, so the result must equal that of a smoother attached to
+        a filter in the same state.
+        """
+        n_samples = 15
+        rng = np.random.default_rng(0)
+        dvel = np.array([0.0, 0.0, -sf.gravity() / self.FS]) + rng.normal(
+            0.0, 1.0e-3, (2 * n_samples, 3)
+        )
+        dtheta = rng.normal(0.0, 1.0e-3, (2 * n_samples, 3))
+
+        # Buffer the first interval, clear it, then buffer the second interval
+        smoother = FixedIntervalSmoother(PVAMEKF(self.FS))
+        for dvel_i, dtheta_i in zip(dvel[:n_samples], dtheta[:n_samples]):
+            smoother.update(dvel_i, dtheta_i)
+        smoother.position()  # populate the smoothed estimates
+        smoother.clear()
+        for dvel_i, dtheta_i in zip(dvel[n_samples:], dtheta[n_samples:]):
+            smoother.update(dvel_i, dtheta_i)
+
+        # Advance an identical filter over the first interval without buffering it
+        mekf_expect = PVAMEKF(self.FS)
+        for dvel_i, dtheta_i in zip(dvel[:n_samples], dtheta[:n_samples]):
+            mekf_expect.update(dvel_i, dtheta_i)
+        smoother_expect = FixedIntervalSmoother(mekf_expect)
+        for dvel_i, dtheta_i in zip(dvel[n_samples:], dtheta[n_samples:]):
+            smoother_expect.update(dvel_i, dtheta_i)
+
+        assert smoother.position().shape == (n_samples, 3)
+        np.testing.assert_allclose(smoother.position(), smoother_expect.position())
+        np.testing.assert_allclose(smoother.euler(), smoother_expect.euler())
+        np.testing.assert_allclose(smoother.bias_gyro(), smoother_expect.bias_gyro())
+        np.testing.assert_allclose(smoother.P, smoother_expect.P)
+
     @pytest.mark.parametrize(
         "benchmark_gen",
         [

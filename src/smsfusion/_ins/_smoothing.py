@@ -37,7 +37,16 @@ class FixedIntervalSmoother:
     def __init__(self, mekf: PVAMEKF, cov_smoothing: bool = True) -> None:
         self._mekf = mekf
         self._cov_smoothing = cov_smoothing
+        self.clear()
 
+    def clear(self) -> None:
+        """
+        Clear the internal buffers of state and error covariance estimates. This
+        resets the smoother, and prepares it for a new interval of measurements.
+
+        NB! The underlying PVAMEKF instance is not affected. The forward filtering
+        continues from its current state.
+        """
         # Buffers with estimates from the forward pass
         self._p_buf: list[NDArray[np.float64]] = []
         self._v_buf: list[NDArray[np.float64]] = []
