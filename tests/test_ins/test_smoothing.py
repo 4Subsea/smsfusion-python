@@ -18,7 +18,7 @@ class Test_FixedIntervalSmoother:
     FS = 10.0
 
     @classmethod
-    def _run(cls, n_samples=50, seed=0, bg0=(0.0, 0.0, 0.0), **smoother_kwargs):
+    def _run(cls, n_samples=50, seed=0, **smoother_kwargs):
         """
         Run a forward filter and a smoother over identical measurements. The
         measurements describe a nominally stationary and level body.
@@ -29,8 +29,8 @@ class Test_FixedIntervalSmoother:
         )
         dtheta = rng.normal(0.0, 1.0e-3, (n_samples, 3))
 
-        mekf = PVAMEKF(cls.FS, bg0=bg0)
-        smoother = FixedIntervalSmoother(PVAMEKF(cls.FS, bg0=bg0), **smoother_kwargs)
+        mekf = PVAMEKF(cls.FS)
+        smoother = FixedIntervalSmoother(PVAMEKF(cls.FS), **smoother_kwargs)
         for dvel_i, dtheta_i in zip(dvel, dtheta):
             mekf.update(dvel_i, dtheta_i)
             smoother.update(dvel_i, dtheta_i)
@@ -101,7 +101,7 @@ class Test_FixedIntervalSmoother:
         The RTS backward sweep leaves the last time step uncorrected, so it must
         equal the forward filter estimate.
         """
-        mekf, smoother = self._run(n_samples=50, bg0=(0.01, -0.02, 0.03))
+        mekf, smoother = self._run(n_samples=50)
         np.testing.assert_allclose(
             getattr(smoother, method)()[-1], getattr(mekf, method)()
         )
@@ -111,8 +111,7 @@ class Test_FixedIntervalSmoother:
         np.testing.assert_allclose(smoother.P[-1], mekf.P)
 
     def test_bias_gyro(self):
-        bg0 = np.array([0.01, -0.02, 0.03])
-        _, smoother = self._run(n_samples=10, bg0=bg0)
+        _, smoother = self._run(n_samples=10)
 
         bg_rad = smoother.bias_gyro()
         np.testing.assert_allclose(smoother.bias_gyro(degrees=False), bg_rad)
