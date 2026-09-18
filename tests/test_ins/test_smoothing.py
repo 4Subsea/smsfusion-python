@@ -15,8 +15,7 @@ from smsfusion.benchmark import (
 
 class Test_FixedIntervalSmoother:
 
-    @classmethod
-    def _run(cls, n_samples=50, seed=0, **smoother_kwargs):
+    def _run(self, n_samples=50, seed=0, **smoother_kwargs):
         """
         Run a forward filter and a smoother over identical measurements. The
         measurements describe a nominally stationary and level body.
