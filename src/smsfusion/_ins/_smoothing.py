@@ -91,7 +91,7 @@ class FixedIntervalSmoother:
                 np.array(self._dx_buf),
                 np.array(self._dvel_buf),
                 np.array(self._dtheta_buf),
-                self._mekf._phi,
+                self._mekf._phi.copy(),
                 self._mekf._Q,
                 self._cov_smoothing,
             )
