@@ -8,6 +8,8 @@ from smsfusion._ins._smoothing import FixedIntervalSmoother
 from smsfusion.benchmark import (
     benchmark_full_pva_beat_202311A,
     benchmark_full_pva_chirp_202311A,
+    benchmark_pure_attitude_beat_202311A,
+    benchmark_pure_attitude_chirp_202311A,
 )
 
 
@@ -45,9 +47,9 @@ class Test_FixedIntervalSmoother:
 
         # MEKF
         q0 = sf.quaternion_from_euler(euler_ref[0], degrees=False)
-        mekf = PVAMEKF(fs_imu, p0=pos_ref[0], v0=vel_ref[0], q0=q0)
+        mekf = PVAMEKF(fs_imu, p0=pos_ref[0], v0=vel_ref[0], q0=q0, bg0=bg)
         smoother = FixedIntervalSmoother(
-            PVAMEKF(fs_imu, p0=pos_ref[0], v0=vel_ref[0], q0=q0)
+            PVAMEKF(fs_imu, p0=pos_ref[0], v0=vel_ref[0], q0=q0, bg0=bg)
         )
 
         # Coning and sculling corrected IMU increments. The crude approximation,
@@ -154,8 +156,8 @@ class Test_FixedIntervalSmoother:
 
         # MEKF
         q0 = sf.quaternion_from_euler(euler_ref[0], degrees=False)
-        mekf = PVAMEKF(fs_imu, q0=q0)
-        smoother = FixedIntervalSmoother(PVAMEKF(fs_imu, q0=q0))
+        mekf = PVAMEKF(fs_imu, q0=q0, bg0=bg)
+        smoother = FixedIntervalSmoother(PVAMEKF(fs_imu, q0=q0, bg0=bg))
 
         euler_fwd = []
         for f_i, w_i, h_i in zip(acc_meas, gyro_meas, head_meas):
@@ -184,3 +186,82 @@ class Test_FixedIntervalSmoother:
         euler_rmse_smth = rmse(euler_ref[warmup:], euler_smth[warmup:])
 
         assert np.all(euler_rmse_smth < euler_rmse_fwd)
+
+    @pytest.mark.parametrize(
+        "benchmark_gen",
+        [
+            benchmark_pure_attitude_beat_202311A,
+            benchmark_pure_attitude_chirp_202311A,
+        ],
+    )
+    def test_benchmark_no_aiding(self, benchmark_gen):
+        """
+        No external aiding, i.e., only the default pseudo zero-position and
+        zero-velocity measurements are applied. The body does not translate in this
+        benchmark, so these pseudo measurements are valid.
+
+        Only roll, pitch, and the x- and y-axis gyroscope biases are observable in this
+        configuration. Yaw and the z-axis gyroscope bias are not, and are therefore not
+        asserted on.
+        """
+        fs_imu = 10.0
+        warmup = int(fs_imu * 600.0)  # truncate 600 seconds from the beginning
+
+        # Reference signals (without noise)
+        t, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
+
+        # IMU measurements (with noise)
+        err_acc = sf.constants.ERR_ACC_MOTION2
+        err_gyro = sf.constants.ERR_GYRO_MOTION2
+        noise_model = sf.noise.IMUNoise(err_acc=err_acc, err_gyro=err_gyro, seed=0)
+        bg = np.array([0.01, -0.02, 0.03])  # rad/s
+        imu_noise = noise_model(fs_imu, len(t))
+        acc_meas = acc_ref + imu_noise[:, :3]
+        gyro_meas = gyro_ref + imu_noise[:, 3:] + bg
+
+        # MEKF
+        q0 = sf.quaternion_from_euler(euler_ref[0], degrees=False)
+        mekf = PVAMEKF(fs_imu, q0=q0, bg0=bg)
+        smoother = FixedIntervalSmoother(PVAMEKF(fs_imu, q0=q0, bg0=bg))
+
+        coning_sculling = ConingScullingAlg(fs_imu)
+
+        euler_fwd, bg_fwd = [], []
+        for f_i, w_i in zip(acc_meas, gyro_meas):
+
+            coning_sculling.update(f_i, w_i)
+            dtheta_i, dvel_i = coning_sculling.flush()
+
+            mekf.update(dvel_i, dtheta_i, degrees=False)
+            smoother.update(dvel_i, dtheta_i, degrees=False)
+
+            euler_fwd.append(mekf.euler(degrees=False))
+            bg_fwd.append(mekf.bias_gyro())
+
+        euler_fwd = np.array(euler_fwd)
+        bg_fwd = np.array(bg_fwd)
+
+        euler_smth = smoother.euler(degrees=False)
+        bg_smth = smoother.bias_gyro()
+
+        # Half-sample shift (compensates for the time shift introduced by Euler integration)
+        euler_fwd = resample_poly(euler_fwd, 2, 1)[1:-1:2]
+        bg_fwd = resample_poly(bg_fwd, 2, 1)[1:-1:2]
+        euler_smth = resample_poly(euler_smth, 2, 1)[1:-1:2]
+        bg_smth = resample_poly(bg_smth, 2, 1)[1:-1:2]
+
+        euler_ref = euler_ref[1:, :]
+        bg_ref = np.tile(bg, (len(bg_fwd), 1))
+
+        def rmse(ref, est):
+            return np.sqrt(np.mean((ref - est) ** 2, axis=0))
+
+        euler_rmse_fwd = rmse(euler_ref[warmup:], euler_fwd[warmup:])
+        euler_rmse_smth = rmse(euler_ref[warmup:], euler_smth[warmup:])
+        bg_rmse_fwd = rmse(bg_ref[warmup:], bg_fwd[warmup:])
+        bg_rmse_smth = rmse(bg_ref[warmup:], bg_smth[warmup:])
+
+        # Only roll and pitch are observable with this aiding configuration
+        assert np.all(euler_rmse_smth[:2] < euler_rmse_fwd[:2])
+        assert np.all(bg_rmse_fwd[:2] < 1.0e-4)  # rad/s
+        assert np.all(bg_rmse_smth[:2] < 1.0e-4)  # rad/s
