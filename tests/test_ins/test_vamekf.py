@@ -232,6 +232,20 @@ class Test_VAMEKF:
         assert mekf.P is not mekf._P  # copy
 
     @pytest.mark.parametrize(
+        "dvel, dtheta",
+        [
+            (0.1, (0.0, 0.0, 0.0)),  # scalar dvel
+            ((0.0, 0.0, -0.98), 0.1),  # scalar dtheta
+            ((0.0, -0.98), (0.0, 0.0, 0.0)),  # too few elements
+            ((0.0, 0.0, -0.98), (0.0, 0.0, 0.0, 0.0)),  # too many elements
+        ],
+    )
+    def test_update_rejects_bad_increment_shape(self, dvel, dtheta):
+        mekf = VAMEKF(10.0)
+        with pytest.raises(ValueError):
+            mekf.update(dvel, dtheta)
+
+    @pytest.mark.parametrize(
         "benchmark_gen, gyro_degrees",
         [
             (benchmark_full_pva_beat_202311A, False),
