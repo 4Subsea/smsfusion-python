@@ -224,13 +224,11 @@ class Test_FixedIntervalSmoother:
         mekf = PVAMEKF(fs_imu, q0=q0, bg0=bg)
         smoother = FixedIntervalSmoother(PVAMEKF(fs_imu, q0=q0, bg0=bg))
 
-        coning_sculling = ConingScullingAlg(fs_imu)
-
         euler_fwd, bg_fwd = [], []
         for f_i, w_i in zip(acc_meas, gyro_meas):
 
-            coning_sculling.update(f_i, w_i)
-            dtheta_i, dvel_i = coning_sculling.flush()
+            dvel_i = f_i / fs_imu
+            dtheta_i = w_i / fs_imu
 
             mekf.update(dvel_i, dtheta_i, degrees=False)
             smoother.update(dvel_i, dtheta_i, degrees=False)
