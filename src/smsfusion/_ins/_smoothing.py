@@ -113,6 +113,11 @@ class FixedIntervalSmoother:
         """
         Smoothed Euler angles estimates.
 
+        Parameters
+        ----------
+        degrees : bool, optional
+            Whether to return the Euler angles in degrees or radians. Defaults to radians.
+
         Returns
         -------
         np.ndarray, shape (N, 3)
