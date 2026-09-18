@@ -15,7 +15,7 @@ from smsfusion.benchmark import (
 
 class Test_FixedIntervalSmoother:
 
-    FS = 10.0
+    FS = 10.0  # sampling frequency in Hz
 
     @classmethod
     def _run(cls, n_samples=50, seed=0, **smoother_kwargs):
