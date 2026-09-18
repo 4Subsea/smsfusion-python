@@ -15,16 +15,191 @@ from smsfusion.benchmark import (
 
 class Test_FixedIntervalSmoother:
 
+    FS = 10.0
+
+    @classmethod
+    def _run(cls, n_samples=50, seed=0, bg0=(0.0, 0.0, 0.0), **smoother_kwargs):
+        """
+        Run a forward filter and a smoother over identical measurements. The
+        measurements describe a nominally stationary and level body.
+        """
+        rng = np.random.default_rng(seed)
+        dvel = np.array([0.0, 0.0, -sf.gravity() / cls.FS]) + rng.normal(
+            0.0, 1.0e-3, (n_samples, 3)
+        )
+        dtheta = rng.normal(0.0, 1.0e-3, (n_samples, 3))
+
+        mekf = PVAMEKF(cls.FS, bg0=bg0)
+        smoother = FixedIntervalSmoother(PVAMEKF(cls.FS, bg0=bg0), **smoother_kwargs)
+        for dvel_i, dtheta_i in zip(dvel, dtheta):
+            mekf.update(dvel_i, dtheta_i)
+            smoother.update(dvel_i, dtheta_i)
+        return mekf, smoother
+
+    def test_update_returns_self(self):
+        smoother = FixedIntervalSmoother(PVAMEKF(self.FS))
+        assert smoother.update(np.array([0.0, 0.0, -0.98]), np.zeros(3)) is smoother
+
+    @pytest.mark.parametrize(
+        "method, shape",
+        [
+            ("position", (50, 3)),
+            ("velocity", (50, 3)),
+            ("quaternion", (50, 4)),
+            ("euler", (50, 3)),
+            ("bias_gyro", (50, 3)),
+        ],
+    )
+    def test_state_shapes(self, method, shape):
+        _, smoother = self._run(n_samples=shape[0])
+        assert getattr(smoother, method)().shape == shape
+
+    def test_P_shape(self):
+        _, smoother = self._run(n_samples=50)
+        assert smoother.P.shape == (50, 12, 12)
+
+    @pytest.mark.parametrize(
+        "method, shape",
+        [
+            ("position", (0, 3)),
+            ("velocity", (0, 3)),
+            ("quaternion", (0, 4)),
+            ("euler", (0, 3)),
+            ("bias_gyro", (0, 3)),
+        ],
+    )
+    def test_state_shapes_without_updates(self, method, shape):
+        smoother = FixedIntervalSmoother(PVAMEKF(self.FS))
+        assert getattr(smoother, method)().shape == shape
+
+    def test_P_shape_without_updates(self):
+        smoother = FixedIntervalSmoother(PVAMEKF(self.FS))
+        assert smoother.P.shape == (0, 12, 12)
+
+    @pytest.mark.parametrize(
+        "method, attribute",
+        [
+            ("position", "_p_n"),
+            ("velocity", "_v_n"),
+            ("quaternion", "_q_nb"),
+            ("bias_gyro", "_bg_b"),
+            ("P", "_P"),
+        ],
+    )
+    def test_state_methods_return_copies(self, method, attribute):
+        _, smoother = self._run(n_samples=10)
+        out = getattr(smoother, method)
+        out = out if method == "P" else out()  # 'P' is a property
+        assert out is not getattr(smoother, attribute)
+
+    @pytest.mark.parametrize(
+        "method",
+        ["position", "velocity", "quaternion", "euler", "bias_gyro"],
+    )
+    def test_last_sample_equals_forward_filter(self, method):
+        """
+        The RTS backward sweep leaves the last time step uncorrected, so it must
+        equal the forward filter estimate.
+        """
+        mekf, smoother = self._run(n_samples=50, bg0=(0.01, -0.02, 0.03))
+        np.testing.assert_allclose(
+            getattr(smoother, method)()[-1], getattr(mekf, method)()
+        )
+
+    def test_P_last_sample_equals_forward_filter(self):
+        mekf, smoother = self._run(n_samples=50)
+        np.testing.assert_allclose(smoother.P[-1], mekf.P)
+
     def test_bias_gyro(self):
         bg0 = np.array([0.01, -0.02, 0.03])
-        smoother = FixedIntervalSmoother(PVAMEKF(10.0, bg0=bg0))
-        for _ in range(10):
-            smoother.update(np.array([0.0, 0.0, -0.98]), np.zeros(3))
+        _, smoother = self._run(n_samples=10, bg0=bg0)
 
         bg_rad = smoother.bias_gyro()
         np.testing.assert_allclose(smoother.bias_gyro(degrees=False), bg_rad)
         np.testing.assert_allclose(smoother.bias_gyro(degrees=True), np.degrees(bg_rad))
         assert smoother.bias_gyro() is not smoother._bg_b  # copy
+
+    def test_euler_degrees(self):
+        _, smoother = self._run(n_samples=10)
+
+        euler_rad = smoother.euler()
+        np.testing.assert_allclose(smoother.euler(degrees=False), euler_rad)
+        np.testing.assert_allclose(smoother.euler(degrees=True), np.degrees(euler_rad))
+
+    def test_euler_matches_quaternion(self):
+        _, smoother = self._run(n_samples=10)
+
+        quaternion = smoother.quaternion()
+        np.testing.assert_allclose(np.linalg.norm(quaternion, axis=1), 1.0)
+
+        quaternion_expect = np.array(
+            [sf.quaternion_from_euler(theta_i) for theta_i in smoother.euler()]
+        )
+        # The quaternion and its negative describe the same rotation
+        quaternion_expect *= np.sign(quaternion_expect[:, 0:1] * quaternion[:, 0:1])
+        np.testing.assert_allclose(quaternion, quaternion_expect, atol=1e-12)
+
+    def test_smoothing_is_idempotent(self):
+        _, smoother = self._run(n_samples=20)
+
+        first = smoother.position()
+        second = smoother.position()
+        np.testing.assert_array_equal(first, second)
+
+    def test_accessor_before_further_updates(self):
+        """
+        Reading an estimate must not prevent the smoother from accounting for
+        measurements that are applied afterwards.
+        """
+        _, smoother = self._run(n_samples=20)
+        smoother.position()  # trigger a backward sweep
+
+        for _ in range(5):
+            smoother.update(np.array([0.0, 0.0, -0.98]), np.zeros(3))
+
+        _, smoother_expect = self._run(n_samples=20)
+        for _ in range(5):
+            smoother_expect.update(np.array([0.0, 0.0, -0.98]), np.zeros(3))
+
+        assert smoother.position().shape == (25, 3)
+        np.testing.assert_allclose(smoother.position(), smoother_expect.position())
+
+    def test_cov_smoothing_false(self):
+        """
+        Disabling covariance smoothing returns the forward filter covariances, and
+        leaves the smoothed state estimates unchanged.
+        """
+        n_samples = 30
+        rng = np.random.default_rng(0)
+        dvel = np.array([0.0, 0.0, -sf.gravity() / self.FS]) + rng.normal(
+            0.0, 1.0e-3, (n_samples, 3)
+        )
+        dtheta = rng.normal(0.0, 1.0e-3, (n_samples, 3))
+        aid_kwargs = {"pos_var": (0.01, 0.01, 0.01), "vel_var": (0.01, 0.01, 0.01)}
+
+        mekf = PVAMEKF(self.FS)
+        smoother = FixedIntervalSmoother(PVAMEKF(self.FS), cov_smoothing=False)
+        smoother_cov = FixedIntervalSmoother(PVAMEKF(self.FS), cov_smoothing=True)
+
+        P_fwd = []
+        for dvel_i, dtheta_i in zip(dvel, dtheta):
+            mekf.update(dvel_i, dtheta_i, **aid_kwargs)
+            smoother.update(dvel_i, dtheta_i, **aid_kwargs)
+            smoother_cov.update(dvel_i, dtheta_i, **aid_kwargs)
+            P_fwd.append(mekf.P)
+        P_fwd = np.array(P_fwd)
+
+        # Covariances are passed through unsmoothed
+        np.testing.assert_array_equal(smoother.P, P_fwd)
+
+        # ... whereas smoothing them reduces the uncertainty
+        assert np.all(np.diagonal(smoother_cov.P[0]) < np.diagonal(P_fwd[0]))
+
+        # The state estimates are unaffected either way
+        np.testing.assert_allclose(smoother.position(), smoother_cov.position())
+        np.testing.assert_allclose(smoother.velocity(), smoother_cov.velocity())
+        np.testing.assert_allclose(smoother.euler(), smoother_cov.euler())
+        np.testing.assert_allclose(smoother.bias_gyro(), smoother_cov.bias_gyro())
 
     @pytest.mark.parametrize(
         "benchmark_gen",
