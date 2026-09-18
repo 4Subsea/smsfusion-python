@@ -1,4 +1,4 @@
-from typing import Self
+from typing import Any, Self
 
 import numpy as np
 from numba import njit
@@ -39,14 +39,14 @@ class FixedIntervalSmoother:
         self._cov_smoothing = cov_smoothing
 
         # Buffers with estimates from the forward pass
-        self._p_buf = []
-        self._v_buf = []
-        self._q_buf = []
-        self._bg_buf = []
-        self._dx_buf = []
-        self._P_buf = []
-        self._dvel_buf = []
-        self._dtheta_buf = []
+        self._p_buf: list[NDArray[np.float64]] = []
+        self._v_buf: list[NDArray[np.float64]] = []
+        self._q_buf: list[NDArray[np.float64]] = []
+        self._bg_buf: list[NDArray[np.float64]] = []
+        self._dx_buf: list[NDArray[np.float64]] = []
+        self._P_buf: list[NDArray[np.float64]] = []
+        self._dvel_buf: list[NDArray[np.float64]] = []
+        self._dtheta_buf: list[NDArray[np.float64]] = []
 
         # Smoothed state and covariance estimates
         self._p_n = np.empty((0, 3), dtype="float64")
@@ -55,7 +55,7 @@ class FixedIntervalSmoother:
         self._bg_b = np.empty((0, 3), dtype="float64")
         self._P = np.empty((0, *self._mekf._P.shape), dtype="float64")
 
-    def update(self, *args, **kwargs) -> Self:
+    def update(self, *args: Any, **kwargs: Any) -> Self:
         """
         Update with IMU and aiding measurements.
         """
@@ -70,7 +70,7 @@ class FixedIntervalSmoother:
         self._dtheta_buf.append(self._mekf._dtheta.copy())
         return self
 
-    def _smooth(self):
+    def _smooth(self) -> None:
         n_samples = len(self._q_buf)
         if n_samples != len(self._p_n):
             self._p_n, self._v_n, self._q_nb, self._bg_b, self._P = _rts_backward_sweep(
@@ -100,7 +100,7 @@ class FixedIntervalSmoother:
         self._smooth()
         return self._q_nb.copy()
 
-    def euler(self, degrees: bool = False):
+    def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
         Smoothed Euler angles estimates.
 
@@ -194,7 +194,13 @@ def _rts_backward_sweep(
     phi_k: NDArray[np.float64],
     Q: NDArray[np.float64],
     cov_smoothing: bool = True,
-):
+) -> tuple[
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+]:
     """
     Perform a backward sweep with the Rauch-Tung-Striebel (RTS) algorithm.
     """
