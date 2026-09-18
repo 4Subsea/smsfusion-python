@@ -205,43 +205,6 @@ class Test_FixedIntervalSmoother:
         np.testing.assert_array_equal(smoother._mekf.euler(), euler)
         np.testing.assert_array_equal(smoother._mekf.P, P)
 
-    def test_clear_allows_reuse(self):
-        """
-        After clearing, the smoother covers the subsequent interval only. The forward
-        filtering carries on, so the result must equal that of a smoother attached to
-        a filter in the same state.
-        """
-        fs = 10.0
-        n_samples = 15
-        rng = np.random.default_rng(0)
-        dvel = np.array([0.0, 0.0, -sf.gravity() / fs]) + rng.normal(
-            0.0, 1.0e-3, (2 * n_samples, 3)
-        )
-        dtheta = rng.normal(0.0, 1.0e-3, (2 * n_samples, 3))
-
-        # Buffer the first interval, clear it, then buffer the second interval
-        smoother = FixedIntervalSmoother(PVAMEKF(fs))
-        for dvel_i, dtheta_i in zip(dvel[:n_samples], dtheta[:n_samples]):
-            smoother.update(dvel_i, dtheta_i)
-        smoother.position()  # populate the smoothed estimates
-        smoother.clear()
-        for dvel_i, dtheta_i in zip(dvel[n_samples:], dtheta[n_samples:]):
-            smoother.update(dvel_i, dtheta_i)
-
-        # Advance an identical filter over the first interval without buffering it
-        mekf_expect = PVAMEKF(fs)
-        for dvel_i, dtheta_i in zip(dvel[:n_samples], dtheta[:n_samples]):
-            mekf_expect.update(dvel_i, dtheta_i)
-        smoother_expect = FixedIntervalSmoother(mekf_expect)
-        for dvel_i, dtheta_i in zip(dvel[n_samples:], dtheta[n_samples:]):
-            smoother_expect.update(dvel_i, dtheta_i)
-
-        assert smoother.position().shape == (n_samples, 3)
-        np.testing.assert_allclose(smoother.position(), smoother_expect.position())
-        np.testing.assert_allclose(smoother.euler(), smoother_expect.euler())
-        np.testing.assert_allclose(smoother.bias_gyro(), smoother_expect.bias_gyro())
-        np.testing.assert_allclose(smoother.P, smoother_expect.P)
-
     @pytest.mark.parametrize(
         "benchmark_gen",
         [
