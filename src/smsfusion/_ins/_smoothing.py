@@ -224,7 +224,7 @@ def _rts_backward_sweep(
     dtheta: NDArray[np.float64],
     phi_k: NDArray[np.float64],
     Q: NDArray[np.float64],
-    cov_smoothing: bool = True,
+    cov_smoothing: bool,
 ) -> tuple[
     NDArray[np.float64],
     NDArray[np.float64],
@@ -254,7 +254,7 @@ def _rts_backward_sweep(
         if cov_smoothing:
             P[k] += A @ (P[k + 1] - P_prior_kp1) @ A.T
 
-        # Update smoothed state estimates
+        # Smoothed state estimates
         p_n[k] += ddx_k[0:3]
         v_n[k] += ddx_k[3:6]
         _update_quaternion_with_gibbs2(q_nb[k], ddx_k[6:9])
