@@ -41,11 +41,8 @@ class FixedIntervalSmoother:
 
     def clear(self) -> None:
         """
-        Clear the internal buffers of state and error covariance estimates. This
-        resets the smoother, and prepares it for a new interval of measurements.
-
-        NB! The underlying PVAMEKF instance is not affected. The forward filtering
-        continues from its current state.
+        Clear the internal buffers of state and covariance estimates. This resets
+        the smoother, and prepares it for a new interval of measurements.
         """
         # Buffers with estimates from the forward pass
         self._p_buf: list[NDArray[np.float64]] = []
@@ -69,8 +66,8 @@ class FixedIntervalSmoother:
         Update with IMU and aiding measurements, and buffer the resulting estimates
         for smoothing.
 
-        The arguments are passed on to the underlying PVAMEKF instance unaltered. See
-        :meth:`smsfusion.PVAMEKF.update` for a full description of them.
+        The arguments are passed on to the underlying PVAMEKF instance unaltered.
+        See :meth:`smsfusion.PVAMEKF.update` for a full description of them.
 
         Parameters
         ----------
@@ -118,7 +115,7 @@ class FixedIntervalSmoother:
 
     def quaternion(self) -> NDArray[np.float64]:
         """
-        Smoothed quaternion estimates.
+        Smoothed unit quaternion estimates.
 
         Returns
         -------
@@ -200,16 +197,16 @@ class FixedIntervalSmoother:
     @property
     def P(self) -> NDArray[np.float64]:
         """
-        Smoothed error covariance estimates.
+        Error covariance matrix estimates.
 
-        NB! If the smoother was created with ``cov_smoothing=False``, the forward
-        filter's (i.e., unsmoothed) error covariance estimates are returned instead.
+        If ``cov_smoothing=True``, smoothed error covariance estimates are returned.
+        Otherwise, the forward filter covariance estimates are returned.
 
         Returns
         -------
         np.ndarray, shape (N, 12, 12)
-            Error covariance estimates for each of the N time steps where the smoother
-            has been updated with measurements.
+            Error covariance matrix estimates for each of the N time steps where
+            the smoother has been updated with measurements.
         """
         self._smooth()
         return self._P.copy()
