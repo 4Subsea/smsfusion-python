@@ -4,6 +4,7 @@ from ._ins import (
     AMEKF,
     PVAMEKF,
     VAMEKF,
+    FixedIntervalSmoother,
     FixedNED,
     gravity,
 )
@@ -15,6 +16,7 @@ __all__ = [
     "VAMEKF",
     "ConingScullingAlg",
     "ConingScullingAlgCalibrated",
+    "FixedIntervalSmoother",
     "FixedNED",
     "benchmark",
     "calibrate",

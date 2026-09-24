@@ -209,7 +209,7 @@ def _reset(
         Attitude state estimate parameterized as a unit quaternion to be reset in place.
     bg_b : ndarray, shape (3,)
         Gyroscope bias state estimate to be reset in place.
-    dx : ndarray, shape (9,)
+    dx : ndarray, shape (12,)
         Error state vector containing the corrections to be applied to the state
         estimates. Will be reset to zero after applying the corrections.
     """
@@ -327,6 +327,9 @@ class PVAMEKF:
         self._bg_b = np.asarray_chkfinite(bg0).reshape(3).copy()
         self._P = np.asarray_chkfinite(P0).reshape(12, 12).copy()
         self._dx = np.zeros(12)
+        self._dx_before_reset = np.zeros(12)
+        self._dvel = np.zeros(3)
+        self._dtheta = np.zeros(3)
 
         # Discrete state-space model
         self._phi = _state_transition_matrix_init(
@@ -473,17 +476,19 @@ class PVAMEKF:
             A reference to the instance itself after the update.
         """
 
-        dvel = np.asarray(dvel)
-        dtheta = np.asarray(dtheta)
+        self._dvel[:] = np.asarray(dvel).reshape(3)
+        self._dtheta[:] = np.asarray(dtheta).reshape(3)
 
         if degrees:
-            dtheta = (np.pi / 180.0) * dtheta
+            self._dtheta[:] *= np.pi / 180.0
 
-        dtheta = dtheta - self._dt * self._bg_b
+        self._dtheta[:] = self._dtheta - self._dt * self._bg_b
 
         # Update state-space model
         R_nb = _rot_matrix_from_quaternion(self._q_nb)
-        _state_transition_matrix_update(self._phi, dvel, dtheta, R_nb)  # -> update phi
+        _state_transition_matrix_update(
+            self._phi, self._dvel, self._dtheta, R_nb
+        )  # -> update phi
 
         # Project (a priori) state estimates ahead
         _project_state_ahead(  # -> update p_n, v_n, q_nb (in place)
@@ -491,8 +496,8 @@ class PVAMEKF:
             self._v_n,
             self._q_nb,
             R_nb,
-            dvel,
-            dtheta,
+            self._dvel,
+            self._dtheta,
             self._dt,
             self._dvel_g_corr,
         )
@@ -544,7 +549,7 @@ class PVAMEKF:
                 self._P,
                 self._H[6:9],
                 vg_b,
-                dvel,
+                self._dvel,
                 np.asarray(gref_var),
             )
 
@@ -567,6 +572,7 @@ class PVAMEKF:
             )
 
         # Reset state -> update p_n, v_n, q_nb, bg_b and dx (in place)
+        self._dx_before_reset[:] = self._dx  # keep copy of dx estimate for smoothing
         _reset(self._dx, self._p_n, self._v_n, self._q_nb, self._bg_b)
 
         return self

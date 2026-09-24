@@ -328,8 +328,8 @@ class AMEKF:
             A reference to the instance itself after the update.
         """
 
-        dvel = np.asarray(dvel)
-        dtheta = np.asarray(dtheta)
+        dvel = np.asarray(dvel).reshape(3)
+        dtheta = np.asarray(dtheta).reshape(3)
 
         if degrees:
             dtheta = (np.pi / 180.0) * dtheta
