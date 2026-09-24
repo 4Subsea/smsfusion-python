@@ -57,7 +57,7 @@ def white_noise(
     """
     rng = np.random.default_rng(seed)
     sigma_wn = N * np.sqrt(fs)
-    wn = sigma_wn * rng.standard_normal(n)  # type: ignore[no-any-return]
+    wn: NDArray[np.float64] = sigma_wn * rng.standard_normal(n)
     return wn
 
 
@@ -245,7 +245,7 @@ class NoiseModel:
         Brownian noise is modeled as a random walk (RW) process. Otherwise, it
         is modeled as a first-order Gauss-Markov (GM) process.
     bc : float, optional
-        Constant bias given in the same units as the output noise.
+        Constant bias given in the same units as the output noise. Defaults to 0.0.
     seed : int, optional
         A seed used to initialize the random number generator.
 
@@ -263,7 +263,7 @@ class NoiseModel:
         tau_cb: float,
         K: float | None = None,
         tau_ck: float | None = None,
-        bc: float | None = None,
+        bc: float = 0.0,
         seed: int | None = None,
     ) -> None:
         self._N = N
@@ -271,7 +271,7 @@ class NoiseModel:
         self._tau_cb = tau_cb
         self._K = K
         self._tau_ck = tau_ck
-        self._bc = bc or 0.0
+        self._bc = bc
         self._rng = np.random.default_rng(seed)
 
     def __call__(self, fs: float, n: int) -> NDArray[np.float64]:
