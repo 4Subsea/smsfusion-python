@@ -53,7 +53,7 @@ def white_noise(
 
     See Also
     --------
-    smsfusion.gauss_markov, smsfusion.random_walk
+    smsfusion.noise.gauss_markov, smsfusion.noise.random_walk
     """
     rng = np.random.default_rng(seed)
     sigma_wn = N * np.sqrt(fs)
@@ -105,7 +105,7 @@ def random_walk(
 
     See Also
     --------
-    smsfusion.gauss_markov, smsfusion.white_noise
+    smsfusion.noise.gauss_markov, smsfusion.noise.white_noise
     """
     rng = np.random.default_rng(seed)
 
@@ -175,7 +175,7 @@ def gauss_markov(
 
     See Also
     --------
-    smsfusion.random_walk, smsfusion.white_noise
+    smsfusion.noise.random_walk, smsfusion.noise.white_noise
     """
     rng = np.random.default_rng(seed)
 
@@ -251,9 +251,9 @@ class NoiseModel:
 
     See Also
     --------
-    smsfusion.gauss_markov
-    smsfusion.random_walk
-    smsfusion.white_noise
+    smsfusion.noise.gauss_markov
+    smsfusion.noise.random_walk
+    smsfusion.noise.white_noise
     """
 
     def __init__(
