@@ -12,27 +12,6 @@ from smsfusion.constants import (
     GYRO_NOISE_DENSITY,
 )
 
-# def _standard_normal(
-#     n: int, seed: int | np.random.Generator | None = None
-# ) -> NDArray[np.float64]:
-#     """
-#     Draw i.i.d. samples from a standard Normal distribution (mean=0, stdev=1).
-
-#     Parameters
-#     ----------
-#     n : int
-#         Number of samples to generate.
-#     seed : int, np.random.Generator or None, optional
-#         A seed used to initialize a random number generator. If passed a Generator,
-#         it will be used unaltered.
-
-#     Returns
-#     -------
-#     numpy.ndarray, shape (n,)
-#         Sequence of i.i.d. samples.
-#     """
-#     return np.random.default_rng(seed).standard_normal(n)
-
 
 def white_noise(
     N: float,
