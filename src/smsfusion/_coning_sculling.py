@@ -190,12 +190,17 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
     def __init__(
         self,
         fs,
-        W_w: np.ndarray = np.eye(3),
-        W_f: np.ndarray = np.eye(3),
-        b_w: np.ndarray = np.zeros(3),
-        b_f: np.ndarray = np.zeros(3),
+        W_w: ArrayLike | None = None,
+        W_f: ArrayLike | None = None,
+        b_w: ArrayLike | None = None,
+        b_f: ArrayLike | None = None,
         bias_alt: bool = False,
     ):
+        W_w = np.eye(3) if W_w is None else np.array(W_w, dtype=float)
+        W_f = np.eye(3) if W_f is None else np.array(W_f, dtype=float)
+        b_w = np.zeros(3) if b_w is None else np.array(b_w, dtype=float)
+        b_f = np.zeros(3) if b_f is None else np.array(b_f, dtype=float)
+
         adj_W_w, W_w_det = _adjugate_and_det_3_by_3(W_w)
         if W_w_det == 0:
             raise ValueError("W_w must be invertible")
