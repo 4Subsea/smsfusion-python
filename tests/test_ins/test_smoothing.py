@@ -257,7 +257,7 @@ class Test_FixedIntervalSmoother:
         ):
 
             coning_sculling.update(f_i, w_i)
-            dtheta_i, dvel_i = coning_sculling.flush()
+            dvel_i, dtheta_i = coning_sculling.flush()
 
             aid_kwargs = {
                 "head": h_i,
