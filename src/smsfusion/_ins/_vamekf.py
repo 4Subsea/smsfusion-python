@@ -247,7 +247,7 @@ class VAMEKF:
         Initial (a priori) estimate of the error covariance matrix. Defaults to
         a small diagonal matrix (1e-6 * np.eye(9)).
     acc_noise_density : float, optional
-        Accelerometer noise density (velocity random walk) in (m/s)/√Hz. Defaults to
+        Accelerometer noise density (velocity random walk) in (m/s^2)/√Hz. Defaults to
         :const:`smsfusion.constants.ACC_NOISE_DENSITY`.
     gyro_noise_density : float, optional
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
