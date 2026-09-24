@@ -1,5 +1,7 @@
+from typing import Any
+
 import numpy as np
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike, NDArray
 
 # def _standard_normal(
 #     n: int, seed: int | np.random.Generator | None = None
@@ -331,7 +333,7 @@ class IMUNoise:
     Provides an interface for generating random IMU sensor measurement noise with
     the following contributions for each sensor axis (x, y, z):
 
-    - **N**: White noise.
+    - **N**: White noise (noise density).
     - **B**: Flicker noise (sometimes referred to as 'pink noise' or 'bias instability').
     - **K**: Drift / Brownian noise (optional).
     - **bc**: Constant bias (optional).
@@ -358,160 +360,146 @@ class IMUNoise:
     where ``WN[k]``, ``PN[k]``, and ``BN[k]`` represent the white, flicker, and Brownian
     noise contributions, respectively.
 
+    All noise parameters can be given either as a scalar value (same noise
+    characteristics for all axes) or as an array-like of size 3 (per-axis values
+    for x, y, z). The default values correspond to the SMS Motion 2 noise level.
+
     Parameters
     ----------
-    err_acc : dict
-        Noise parameters for the accelerometer (see Notes). The dictionary values
-        can either be scalar (same noise characteristics for all axes) or per-axis
-        (list of values).
-    err_gyro : dict
-        Noise parameters for the gyroscope (see Notes). The dictionary values
-        can either be scalar (same noise characteristics for all axes) or per-axis
-        (list of values).
+    acc_noise_density : float or array-like of size 3, optional
+        Accelerometer noise density (velocity random walk), **N**, in (m/s^2)/√Hz.
+        Defaults to 0.0007 (m/s^2)/√Hz (SMS Motion 2 noise level).
+    acc_bias_stability : float or array-like of size 3, optional
+        Accelerometer bias stability (flicker noise), **B**, in m/s^2. Defaults to
+        0.0005 m/s^2 (SMS Motion 2 noise level).
+    acc_bias_corr_time : float or array-like of size 3, optional
+        Accelerometer bias correlation time, **tau_cb**, in seconds. Defaults to 50.0 s.
+    acc_drift_rate : float or array-like of size 3, optional
+        Accelerometer drift rate (Brownian noise), **K**, in (m/s^2)*√Hz. Defaults
+        to ``None`` (no drift).
+    acc_drift_corr_time : float or array-like of size 3, optional
+        Accelerometer drift correlation time, **tau_ck**, in seconds. If ``None``
+        (default), the drift is modeled as a random walk (RW) process. Otherwise,
+        it is modeled as a first-order Gauss-Markov (GM) process.
+    acc_constant_bias : float or array-like of size 3, optional
+        Accelerometer constant bias, **bc**, in m/s^2. Defaults to 0.0 m/s^2.
+    gyro_noise_density : float or array-like of size 3, optional
+        Gyroscope noise density (angular random walk), **N**, in (rad/s)/√Hz.
+        Defaults to 0.00005 (rad/s)/√Hz (SMS Motion 2 noise level).
+    gyro_bias_stability : float or array-like of size 3, optional
+        Gyroscope bias stability (flicker noise), **B**, in rad/s. Defaults to
+        0.00005 rad/s (SMS Motion 2 noise level).
+    gyro_bias_corr_time : float or array-like of size 3, optional
+        Gyroscope bias correlation time, **tau_cb**, in seconds. Defaults to 50.0 s.
+    gyro_drift_rate : float or array-like of size 3, optional
+        Gyroscope drift rate (Brownian noise), **K**, in (rad/s)*√Hz. Defaults
+        to ``None`` (no drift).
+    gyro_drift_corr_time : float or array-like of size 3, optional
+        Gyroscope drift correlation time, **tau_ck**, in seconds. If ``None``
+        (default), the drift is modeled as a random walk (RW) process. Otherwise,
+        it is modeled as a first-order Gauss-Markov (GM) process.
+    gyro_constant_bias : float or array-like of size 3, optional
+        Gyroscope constant bias, **bc**, in rad/s. Defaults to 0.0 rad/s.
     seed : int, optional
         A seed used to initialize a random number generator.
-
-    Notes
-    -----
-    The input dictionaries must include the following parameters:
-
-    - **N** (required): White noise spectral density coefficient given in units
-      ``V/sqrt(Hz)``, where ``V`` represents the unit of the output noise.
-    - **B** (required): Bias stability / pink noise power spectral density coefficient
-      given in the same units as the output noise.
-    - **tau_cb**: Correlation time in seconds for the pink noise (i.e., flicker noise).
-
-    The following parameters are optional and can be omitted or set to `None`:
-
-    - **bc** (optional): Constant bias given in the same units as the desired output noise.
-    - **K** (optional): Brownian noise power spectral density coefficient given in units
-      ``V*sqrt(Hz)``, where ``V`` represents the unit of the output noise. If ``None``,
-      Brownian noise is excluded.
-    - **tau_ck** (optional): Correlation time in seconds for the Brownian noise. If ``None``, the
-      Brownian noise is modeled as a random walk (RW) process. Otherwise, it
-      is modeled as a first-order Gauss-Markov (GM) process.
-
-    The value for each key can be:
-
-    - **Scalar value**: A single value applied to all axes (x, y, z).
-    - **Per-axis values**: List of length 3 with values for each axis (x, y, z).
 
     Examples
     --------
 
-    Full example with different noise characteristics for all axes:
+    Default noise parameters (SMS Motion 2 noise level) for all axes:
 
     .. code-block:: python
 
-        err_acc = {
-            "bc": (0.1, 0.2, 0.3),  # m/s^2
-            "N": (7.0e-4, 7.0e-4, 8.0e-4),  # (m/s^2)/sqrt(Hz)
-            "B": (5.0e-4, 5.0e-4, 6.0e-4),  # m/s^2
-            "K": (1.0e-7, 1.0e-7, 1.0e-7),  # (m/s^2)*sqrt(Hz)
-            "tau_cb": (50.0, 50.0, 50.0),  # s
-            "tau_ck": (3_600.0, 3_600.0, 3_600.0),  # s
-        }
+        imu_noise = IMUNoise()
 
-        err_gyro = {
-            "bc": (0.04, 0.05, 0.06),  # rad/s
-            "N": (5.0e-5, 5.0e-5, 6.0e-5),  # (rad/s)/sqrt(Hz)
-            "B": (3.0-5, 3.0-5, 4.0-5),  # rad/s
-            "K": (4.0e-7, 4.0e-7, 5.0e-7),  # (rad/s)*sqrt(Hz)
-            "tau_cb": (50.0, 50.0, 50.0),  # s
-            "tau_ck": (3_600.0, 3_600.0, 3_600.0),  # s
-        }
-
-        imu_noise = IMUNoise(err_acc, err_gyro)
-
-    Minimal example with the same noise characteristics for all axes, while excluding
-    Brownian noise and constant bias:
+    Different noise characteristics for each axis:
 
     .. code-block:: python
 
-        err_acc = {
-            "N": 7.0e-4,  # (m/s^2)/sqrt(Hz)
-            "B": 5.0e-4,  # m/s^2
-            "tau_cb": 50.0,  # s
-        }
-
-        err_gyro = {
-            "N": 5.0e-5,  # (rad/s)/sqrt(Hz)
-            "B": 3.0-5,  # rad/s
-            "tau_cb": 50.0,  # s
-        }
-
-        imu_noise = IMUNoise(err_acc, err_gyro)
-
-    Dictionaries with noise parameters for the SMS Motion Gen 2 sensor are provided
-    in the :mod:`smsfusion.constants` module.
-
-    - :const:`smsfusion.constants.ERR_ACC_MOTION2`
-    - :const:`smsfusion.constants.ERR_GYRO_MOTION2`
-
-    The values represent accelerometer noise in m/s^2 and gyroscope noise in rad/s.
+        imu_noise = IMUNoise(
+            acc_noise_density=(7.0e-4, 7.0e-4, 8.0e-4),  # (m/s^2)/sqrt(Hz)
+            acc_bias_stability=(5.0e-4, 5.0e-4, 6.0e-4),  # m/s^2
+            acc_bias_corr_time=50.0,  # s
+            acc_drift_rate=1.0e-7,  # (m/s^2)*sqrt(Hz)
+            acc_drift_corr_time=3_600.0,  # s
+            acc_constant_bias=(0.1, 0.2, 0.3),  # m/s^2
+            gyro_noise_density=(5.0e-5, 5.0e-5, 6.0e-5),  # (rad/s)/sqrt(Hz)
+            gyro_bias_stability=(3.0e-5, 3.0e-5, 4.0e-5),  # rad/s
+            gyro_bias_corr_time=50.0,  # s
+            gyro_drift_rate=(4.0e-7, 4.0e-7, 5.0e-7),  # (rad/s)*sqrt(Hz)
+            gyro_drift_corr_time=3_600.0,  # s
+            gyro_constant_bias=(0.04, 0.05, 0.06),  # rad/s
+        )
 
     See Also
     --------
-    smsfusion.constants.ERR_ACC_MOTION1
-    smsfusion.constants.ERR_GYRO_MOTION1
-    smsfusion.constants.ERR_ACC_MOTION2
-    smsfusion.constants.ERR_GYRO_MOTION2
     smsfusion.NoiseModel : Generates the specific noise for one single sensor axis.
 
     """
 
-    _REQUIRED_KEYS = {"N", "B", "tau_cb"}
-    _ALLOWED_KEYS = _REQUIRED_KEYS | {"K", "tau_ck", "bc"}
-    _ERR_DEFAULT = {"K": None, "tau_ck": 5e5, "bc": 0.0}
-
     def __init__(
         self,
-        err_acc,
-        err_gyro,
+        *,
+        acc_noise_density: ArrayLike = 0.0007,
+        acc_bias_stability: ArrayLike = 0.0005,
+        acc_bias_corr_time: ArrayLike = 50.0,
+        acc_drift_rate: ArrayLike | None = None,
+        acc_drift_corr_time: ArrayLike | None = None,
+        acc_constant_bias: ArrayLike = 0.0,
+        gyro_noise_density: ArrayLike = 0.00005,
+        gyro_bias_stability: ArrayLike = 0.00005,
+        gyro_bias_corr_time: ArrayLike = 50.0,
+        gyro_drift_rate: ArrayLike | None = None,
+        gyro_drift_corr_time: ArrayLike | None = None,
+        gyro_constant_bias: ArrayLike = 0.0,
         seed: int | None = None,
     ) -> None:
-        self._err_acc = err_acc
-        self._err_gyro = err_gyro
         self._seed = seed
 
-        if not self._REQUIRED_KEYS.issubset(self._err_acc.keys()):
-            raise ValueError("Missing required keys in accelerometer noise parameters.")
-        if not self._REQUIRED_KEYS.issubset(self._err_gyro.keys()):
-            raise ValueError("Missing required keys in gyroscope noise parameters.")
-
-        if not self._ALLOWED_KEYS.issuperset(self._err_acc.keys()):
-            raise ValueError("Invalid keys in accelerometer noise parameters.")
-        if not self._ALLOWED_KEYS.issuperset(self._err_gyro.keys()):
-            raise ValueError("Invalid keys in gyroscope noise parameters.")
-
-        self._err_acc = self._ERR_DEFAULT | self._err_acc
-        self._err_gyro = self._ERR_DEFAULT | self._err_gyro
+        # Per-axis noise parameters (keys correspond to NoiseModel arguments)
+        self._err_acc = {
+            "N": self._full(acc_noise_density),
+            "B": self._full(acc_bias_stability),
+            "tau_cb": self._full(acc_bias_corr_time),
+            "K": self._full(acc_drift_rate),
+            "tau_ck": self._full(acc_drift_corr_time),
+            "bc": self._full(acc_constant_bias),
+        }
+        self._err_gyro = {
+            "N": self._full(gyro_noise_density),
+            "B": self._full(gyro_bias_stability),
+            "tau_cb": self._full(gyro_bias_corr_time),
+            "K": self._full(gyro_drift_rate),
+            "tau_ck": self._full(gyro_drift_corr_time),
+            "bc": self._full(gyro_constant_bias),
+        }
 
         self._err_list = self._to_list(self._err_acc) + self._to_list(self._err_gyro)
 
-        if not len(self._err_list) == 6:
-            raise ValueError("Not enough noise parameters provided.")
-
     @staticmethod
-    def _full(value):
-        value = np.asarray_chkfinite(value)
+    def _full(value: ArrayLike | None) -> list[float | None]:
+        """Broadcast a scalar or per-axis parameter value to a list of size 3."""
+        if value is None:
+            return [None, None, None]
+        value = np.asarray_chkfinite(value, dtype=np.float64)
         if value.size == 1:
-            return np.full(3, value.item())
+            return [value.item()] * 3
         elif value.size == 3:
-            return value
+            return value.flatten().tolist()
         else:
             raise ValueError(
                 "Parameter values must be a scalar or an array-like of size 3."
             )
 
-    def _to_list(self, dict_of_lists: dict[str, list[float]]) -> list[dict[str, float]]:
+    @staticmethod
+    def _to_list(
+        dict_of_lists: dict[str, list[float | None]],
+    ) -> list[dict[str, Any]]:
         """Convert dict of lists to list of dicts."""
-        dict_of_lists = {key: self._full(val) for key, val in dict_of_lists.items()}
-        list_of_dicts = [
-            {key_i: val_i for key_i, val_i in zip(dict_of_lists.keys(), values_j)}
+        return [
+            dict(zip(dict_of_lists.keys(), values_j))
             for values_j in zip(*dict_of_lists.values())
         ]
-        return list_of_dicts
 
     def __call__(self, fs: float, n: int) -> NDArray[np.float64]:
         """
