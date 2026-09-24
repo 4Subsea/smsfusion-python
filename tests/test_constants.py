@@ -1,34 +1,12 @@
-import numpy as np
 from pytest import approx
 
 from smsfusion import constants
 
 
-def test_ERR_ACC_MOTION2():
-    err_expect = {
-        "N": 0.0007,
-        "B": 0.0005,
-        "tau_cb": 50.0,
-    }
-
-    err_out = constants.ERR_ACC_MOTION2
-
-    assert set(err_out.keys()) == set(err_expect.keys())
-
-    for key_i in err_expect:
-        assert err_out[key_i] == approx(err_expect[key_i])
-
-
-def test_ERR_GYRO_MOTION2():
-    err_expect = {
-        "N": 0.00005,
-        "B": 0.00005,
-        "tau_cb": 50.0,
-    }
-
-    err_out = constants.ERR_GYRO_MOTION2
-
-    assert set(err_out.keys()) == set(err_expect.keys())
-
-    for key_i in err_expect:
-        assert err_out[key_i] == approx(err_expect[key_i])
+def test_imu_noise_params():
+    assert constants.ACC_NOISE_DENSITY == approx(0.0007)
+    assert constants.ACC_BIAS_STABILITY == approx(0.0005)
+    assert constants.ACC_BIAS_CORR_TIME == approx(50.0)
+    assert constants.GYRO_NOISE_DENSITY == approx(0.00005)
+    assert constants.GYRO_BIAS_STABILITY == approx(0.00005)
+    assert constants.GYRO_BIAS_CORR_TIME == approx(50.0)

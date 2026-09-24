@@ -228,10 +228,7 @@ class Test_FixedIntervalSmoother:
         pos_std = 0.1  # m
         vel_std = 0.01  # m/s
         head_std = np.radians(0.1)  # rad
-        err_acc = sf.constants.ERR_ACC_MOTION2
-        err_gyro = sf.constants.ERR_GYRO_MOTION2
-        noise_model = sf.noise.IMUNoise(err_acc=err_acc, err_gyro=err_gyro, seed=0)
-        imu_noise = noise_model(fs_imu, len(t))
+        imu_noise = sf.noise.IMUNoise(seed=0)(fs_imu, len(t))
         acc_meas = acc_ref + imu_noise[:, :3]
         gyro_meas = gyro_ref + imu_noise[:, 3:]
         rng = np.random.default_rng(0)
@@ -336,10 +333,7 @@ class Test_FixedIntervalSmoother:
 
         # IMU and aiding measurements (with noise)
         head_std = np.radians(0.1)  # rad
-        err_acc = sf.constants.ERR_ACC_MOTION2
-        err_gyro = sf.constants.ERR_GYRO_MOTION2
-        noise_model = sf.noise.IMUNoise(err_acc=err_acc, err_gyro=err_gyro, seed=0)
-        imu_noise = noise_model(fs_imu, len(t))
+        imu_noise = sf.noise.IMUNoise(seed=0)(fs_imu, len(t))
         acc_meas = acc_ref + imu_noise[:, :3]
         gyro_meas = gyro_ref + imu_noise[:, 3:]
         rng = np.random.default_rng(0)
@@ -401,10 +395,7 @@ class Test_FixedIntervalSmoother:
         t, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
 
         # IMU measurements (with noise)
-        err_acc = sf.constants.ERR_ACC_MOTION2
-        err_gyro = sf.constants.ERR_GYRO_MOTION2
-        noise_model = sf.noise.IMUNoise(err_acc=err_acc, err_gyro=err_gyro, seed=0)
-        imu_noise = noise_model(fs_imu, len(t))
+        imu_noise = sf.noise.IMUNoise(seed=0)(fs_imu, len(t))
         acc_meas = acc_ref + imu_noise[:, :3]
         gyro_meas = gyro_ref + imu_noise[:, 3:]
 

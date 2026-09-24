@@ -77,15 +77,6 @@ class Test_NoiseModel:
         assert noise._bc == 0.0
         assert isinstance(noise._rng, np.random.Generator)
 
-    def test__init__constants(self):
-        noise = NoiseModel(**sf.constants.ERR_ACC_MOTION2)
-        assert noise._N == sf.constants.ERR_ACC_MOTION2["N"]
-        assert noise._B == sf.constants.ERR_ACC_MOTION2["B"]
-        assert noise._tau_cb == sf.constants.ERR_ACC_MOTION2["tau_cb"]
-        assert noise._K is None
-        assert noise._tau_ck is None
-        assert noise._bc == 0.0
-
     def test__call__GM(self):
         N = 4.0e-4
         B = 3.0e-4
@@ -162,64 +153,44 @@ class Test_NoiseModel:
 
 class Test_IMUNoise:
     @pytest.fixture
-    def err_acc_scalar(self):
-        err_acc = {
-            "bc": 0.1,
-            "N": 1.0e-4,
-            "B": 1.0e-5,
-            "K": 1.0e-6,
-            "tau_cb": 10.0,
-            "tau_ck": 1_000.0,
+    def params_scalar(self):
+        params = {
+            "acc_noise_density": 1.0e-4,
+            "acc_bias_stability": 1.0e-5,
+            "acc_bias_corr_time": 10.0,
+            "acc_drift_rate": 1.0e-6,
+            "acc_drift_corr_time": 1_000.0,
+            "acc_constant_bias": 0.1,
+            "gyro_noise_density": 4.0e-4,
+            "gyro_bias_stability": 4.0e-5,
+            "gyro_bias_corr_time": 40.0,
+            "gyro_drift_rate": 4.0e-6,
+            "gyro_drift_corr_time": 4_000.0,
+            "gyro_constant_bias": 0.4,
         }
-
-        return err_acc
+        return params
 
     @pytest.fixture
-    def err_gyro_scalar(self):
-        err_gyro = {
-            "bc": 0.4,
-            "N": 4.0e-4,
-            "B": 4.0e-5,
-            "K": 4.0e-6,
-            "tau_cb": 40.0,
-            "tau_ck": 4_000.0,
+    def params_full(self):
+        params = {
+            "acc_noise_density": [1.0e-4, 2.0e-4, 3e-4],
+            "acc_bias_stability": [1.0e-5, 2.0e-5, 3.0e-5],
+            "acc_bias_corr_time": [10.0, 20.0, 30.0],
+            "acc_drift_rate": [1.0e-6, 2.0e-6, 3.0e-6],
+            "acc_drift_corr_time": [1_000.0, 2_000.0, 3_000.0],
+            "acc_constant_bias": [0.1, 0.2, 0.3],
+            "gyro_noise_density": [4.0e-4, 5.0e-4, 6e-4],
+            "gyro_bias_stability": [4.0e-5, 5.0e-5, 6.0e-5],
+            "gyro_bias_corr_time": [40.0, 50.0, 60.0],
+            "gyro_drift_rate": [4.0e-6, 5.0e-6, 6.0e-6],
+            "gyro_drift_corr_time": [4_000.0, 5_000.0, 6_000.0],
+            "gyro_constant_bias": [0.4, 0.5, 0.6],
         }
-        return err_gyro
+        return params
 
-    @pytest.fixture
-    def err_acc_full(self):
-        err_acc = {
-            "bc": [0.1, 0.2, 0.3],
-            "N": [1.0e-4, 2.0e-4, 3e-4],
-            "B": [1.0e-5, 2.0e-5, 3.0e-5],
-            "K": [1.0e-6, 2.0e-6, 3.0e-6],
-            "tau_cb": [10.0, 20.0, 30.0],
-            "tau_ck": [1_000.0, 2_000.0, 3_000.0],
-        }
+    def test__init__full(self, params_full):
+        noise = IMUNoise(**params_full, seed=123)
 
-        return err_acc
-
-    @pytest.fixture
-    def err_gyro_full(self):
-        err_gyro = {
-            "bc": [0.4, 0.5, 0.6],
-            "N": [4.0e-4, 5.0e-4, 6e-4],
-            "B": [4.0e-5, 5.0e-5, 6.0e-5],
-            "K": [4.0e-6, 5.0e-6, 6.0e-6],
-            "tau_cb": [40.0, 50.0, 60.0],
-            "tau_ck": [4_000.0, 5_000.0, 6_000.0],
-        }
-        return err_gyro
-
-    @pytest.fixture
-    def noise(self, err_acc_full, err_gyro_full):
-        return IMUNoise(err_acc=err_acc_full, err_gyro=err_gyro_full, seed=123)
-
-    def test__init__full(self, err_acc_full, err_gyro_full):
-        noise = IMUNoise(err_acc=err_acc_full, err_gyro=err_gyro_full, seed=123)
-
-        assert noise._err_acc == err_acc_full
-        assert noise._err_gyro == err_gyro_full
         assert noise._seed == 123
 
         err_list_expect = [
@@ -274,92 +245,126 @@ class Test_IMUNoise:
         ]
         assert noise._err_list == err_list_expect
 
-    def test__init__scalar(self, err_acc_scalar, err_gyro_scalar):
-        noise = IMUNoise(err_acc_scalar, err_gyro_scalar)
+    def test__init__scalar(self, params_scalar):
+        noise = IMUNoise(**params_scalar)
 
-        err_list_expect = [err_acc_scalar] * 3 + [err_gyro_scalar] * 3
+        err_acc_expect = {
+            "bc": 0.1,
+            "N": 1.0e-4,
+            "B": 1.0e-5,
+            "K": 1.0e-6,
+            "tau_cb": 10.0,
+            "tau_ck": 1_000.0,
+        }
+        err_gyro_expect = {
+            "bc": 0.4,
+            "N": 4.0e-4,
+            "B": 4.0e-5,
+            "K": 4.0e-6,
+            "tau_cb": 40.0,
+            "tau_ck": 4_000.0,
+        }
+        err_list_expect = [err_acc_expect] * 3 + [err_gyro_expect] * 3
 
-        assert noise._err_acc == err_acc_scalar
-        assert noise._err_gyro == err_gyro_scalar
         assert noise._seed is None
         assert noise._err_list == err_list_expect
 
     def test__init__default(self):
-        err_acc_minimal = {
-            "N": 1.0e-4,
-            "B": 1.0e-5,
-            "tau_cb": 10.0,
-        }
-        err_gyro_minimal = {
-            "N": 4.0e-4,
-            "B": 4.0e-5,
-            "tau_cb": 40.0,
-        }
+        noise = IMUNoise()
 
-        noise = IMUNoise(err_acc_minimal, err_gyro_minimal)
-
-        DEFAULTS = {
-            "bc": 0.0,
+        err_acc_expect = {
+            "N": 0.0007,
+            "B": 0.0005,
+            "tau_cb": 50.0,
             "K": None,
-            "tau_ck": 5e5,
+            "tau_ck": None,
+            "bc": 0.0,
         }
-
-        err_acc_expect = err_acc_minimal | DEFAULTS
-        err_gyro_expect = err_gyro_minimal | DEFAULTS
+        err_gyro_expect = {
+            "N": 0.00005,
+            "B": 0.00005,
+            "tau_cb": 50.0,
+            "K": None,
+            "tau_ck": None,
+            "bc": 0.0,
+        }
         err_list_expect = [err_acc_expect] * 3 + [err_gyro_expect] * 3
 
-        assert noise._err_acc == err_acc_expect
-        assert noise._err_gyro == err_gyro_expect
         assert noise._seed is None
         assert noise._err_list == err_list_expect
 
-    def test__init__raises_keys(self, err_acc_scalar, err_gyro_scalar):
-        err_invalid = {**err_acc_scalar, **{"invalid_key": 0}}
+    def test__init__default_matches_constants(self):
+        # Default values should correspond to SMS Motion 2 noise levels
+        noise = IMUNoise()
+        for err in noise._err_list[:3]:
+            assert err["N"] == sf.constants.ACC_NOISE_DENSITY
+            assert err["B"] == sf.constants.ACC_BIAS_STABILITY
+            assert err["tau_cb"] == sf.constants.ACC_BIAS_CORR_TIME
+        for err in noise._err_list[3:]:
+            assert err["N"] == sf.constants.GYRO_NOISE_DENSITY
+            assert err["B"] == sf.constants.GYRO_BIAS_STABILITY
+            assert err["tau_cb"] == sf.constants.GYRO_BIAS_CORR_TIME
 
-        with pytest.raises(ValueError):
-            IMUNoise(err_acc=err_invalid, err_gyro=err_gyro_scalar, seed=123)
+    def test__init__mixed(self):
+        noise = IMUNoise(
+            acc_noise_density=(1.0e-4, 2.0e-4, 3.0e-4),
+            gyro_bias_stability=4.0e-5,
+        )
 
-        with pytest.raises(ValueError):
-            IMUNoise(err_acc=err_acc_scalar, err_gyro=err_invalid, seed=123)
+        assert [err["N"] for err in noise._err_list[:3]] == [1.0e-4, 2.0e-4, 3.0e-4]
+        assert [err["N"] for err in noise._err_list[3:]] == [0.00005] * 3
+        assert [err["B"] for err in noise._err_list[:3]] == [0.0005] * 3
+        assert [err["B"] for err in noise._err_list[3:]] == [4.0e-5] * 3
 
-    def test__init__raises_values(self, err_acc_full, err_gyro_full):
-        err_missing_value = {**err_acc_full, **{"bc": [0.1, 0.2]}}
-        err_extra_value = {**err_acc_full, **{"bc": [0.1, 0.2, 0.3, 0.4]}}
+    def test__init__positional_raises(self):
+        with pytest.raises(TypeError):
+            IMUNoise(0.0007)
 
-        with pytest.raises(ValueError):  # missing value accelerometer
-            IMUNoise(err_acc=err_missing_value, err_gyro=err_gyro_full, seed=123)
-        with pytest.raises(ValueError):  # missing value gyro
-            IMUNoise(err_acc=err_acc_full, err_gyro=err_missing_value, seed=123)
-        with pytest.raises(ValueError):  # extra value accelerometer
-            IMUNoise(err_acc=err_extra_value, err_gyro=err_gyro_full, seed=123)
-        with pytest.raises(ValueError):  # extra value gyro
-            IMUNoise(err_acc=err_acc_full, err_gyro=err_extra_value, seed=123)
+    @pytest.mark.parametrize(
+        "key",
+        [
+            "acc_noise_density",
+            "acc_bias_stability",
+            "acc_bias_corr_time",
+            "acc_drift_rate",
+            "acc_drift_corr_time",
+            "acc_constant_bias",
+            "gyro_noise_density",
+            "gyro_bias_stability",
+            "gyro_bias_corr_time",
+            "gyro_drift_rate",
+            "gyro_drift_corr_time",
+            "gyro_constant_bias",
+        ],
+    )
+    def test__init__raises_values(self, params_full, key):
+        with pytest.raises(ValueError):  # missing value
+            IMUNoise(**(params_full | {key: [0.1, 0.2]}), seed=123)
+        with pytest.raises(ValueError):  # extra value
+            IMUNoise(**(params_full | {key: [0.1, 0.2, 0.3, 0.4]}), seed=123)
 
-    def test__to_list(self, noise):
+    def test__to_list(self):
         dict_in = {"a": [1, 2, 3], "b": [4, 5, 6]}
         list_expect = [{"a": 1, "b": 4}, {"a": 2, "b": 5}, {"a": 3, "b": 6}]
-        list_out = noise._to_list(dict_in)
+        list_out = IMUNoise._to_list(dict_in)
         assert list_out == list_expect
 
     def test__call__(self):
-        err_acc = {
-            "bc": (0.0, 0.0, 0.0),
-            "N": (4.0e-4, 4.0e-4, 4.5e-4),
-            "B": (1.5e-4, 1.5e-4, 3.0e-4),
-            "K": (4.5e-6, 4.5e-6, 1.5e-5),
-            "tau_cb": (50, 50, 30),
-            "tau_ck": (5e5, 5e5, 5e5),
-        }
-        err_gyro = {
-            "bc": (0.0, 0.0, 0.0),
-            "N": (1.9e-3, 1.9e-3, 1.7e-3),
-            "B": (7.5e-4, 4.0e-4, 8.8e-4),
-            "K": (2.5e-5, 2.5e-5, 4.0e-5),
-            "tau_cb": (50, 50, 50),
-            "tau_ck": (5e5, 5e5, 5e5),
-        }
-
-        noise = IMUNoise(err_acc=err_acc, err_gyro=err_gyro, seed=123)
+        noise = IMUNoise(
+            acc_noise_density=(4.0e-4, 4.0e-4, 4.5e-4),
+            acc_bias_stability=(1.5e-4, 1.5e-4, 3.0e-4),
+            acc_bias_corr_time=(50, 50, 30),
+            acc_drift_rate=(4.5e-6, 4.5e-6, 1.5e-5),
+            acc_drift_corr_time=(5e5, 5e5, 5e5),
+            acc_constant_bias=(0.0, 0.0, 0.0),
+            gyro_noise_density=(1.9e-3, 1.9e-3, 1.7e-3),
+            gyro_bias_stability=(7.5e-4, 4.0e-4, 8.8e-4),
+            gyro_bias_corr_time=(50, 50, 50),
+            gyro_drift_rate=(2.5e-5, 2.5e-5, 4.0e-5),
+            gyro_drift_corr_time=(5e5, 5e5, 5e5),
+            gyro_constant_bias=(0.0, 0.0, 0.0),
+            seed=123,
+        )
         x_out = noise(10.24, 1_000)
 
         x_expect = pd.read_csv(
@@ -369,9 +374,15 @@ class Test_IMUNoise:
         assert x_out.shape == (1_000, 6)
         np.testing.assert_array_almost_equal(x_out, x_expect)
 
-    def test_different_seeds(self, err_acc_scalar):
-        err = err_acc_scalar  # all channels given same noise parameters
-        noise = IMUNoise(err_acc=err, err_gyro=err, seed=123)
+    def test_different_seeds(self):
+        # All channels given same noise parameters
+        noise = IMUNoise(
+            acc_noise_density=1.0e-4,
+            acc_bias_stability=1.0e-5,
+            gyro_noise_density=1.0e-4,
+            gyro_bias_stability=1.0e-5,
+            seed=123,
+        )
         x = noise(10.24, 100)
 
         for i, j in product([0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5]):

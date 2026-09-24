@@ -6,6 +6,11 @@ from numpy.typing import ArrayLike, NDArray
 
 from smsfusion._transforms import _euler_from_quaternion
 from smsfusion._vectorops import _skew_symmetric
+from smsfusion.constants import (
+    GYRO_BIAS_CORR_TIME,
+    GYRO_BIAS_STABILITY,
+    GYRO_NOISE_DENSITY,
+)
 
 from ._aiding import _aiding_update_gref, _aiding_update_head
 from ._common import (
@@ -178,12 +183,13 @@ class AMEKF:
         a small diagonal matrix (1e-6 * np.eye(6)).
     gyro_noise_density : float, optional
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
-        0.00005 (rad/s)/√Hz (SMS Motion 2 noise level).
+        :const:`smsfusion.constants.GYRO_NOISE_DENSITY` (SMS Motion 2 noise level).
     gyro_bias_stability : float, optional
-        Gyroscope bias stability in rad/s. Defaults to 0.00005 rad/s (SMS Motion 2
-        noise level).
+        Gyroscope bias stability in rad/s. Defaults to
+        :const:`smsfusion.constants.GYRO_BIAS_STABILITY` (SMS Motion 2 noise level).
     gyro_bias_corr_time : float, optional
-        Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
+        Gyroscope bias correlation time in seconds. Defaults to
+        :const:`smsfusion.constants.GYRO_BIAS_CORR_TIME` (SMS Motion 2 noise level).
     nav_frame : {'NED', 'ENU'}, optional
         Specifies the assumed inertial-like 'navigation' frame. Should be 'NED' (North-East-Down)
         (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
@@ -196,9 +202,9 @@ class AMEKF:
         q0: ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg0: ArrayLike = (0.0, 0.0, 0.0),
         P0: ArrayLike = _P0,
-        gyro_noise_density: float = 0.00005,
-        gyro_bias_stability: float = 0.00005,
-        gyro_bias_corr_time: float = 50.0,
+        gyro_noise_density: float = GYRO_NOISE_DENSITY,
+        gyro_bias_stability: float = GYRO_BIAS_STABILITY,
+        gyro_bias_corr_time: float = GYRO_BIAS_CORR_TIME,
         nav_frame: str = "NED",
     ) -> None:
         self._fs = fs
