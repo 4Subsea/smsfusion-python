@@ -110,22 +110,22 @@ class ConingScullingAlg:
     def _dvel_rot(self):
         return 0.5 * _cross(self._theta, self._vel)
 
-    def _calc_dtheta_dvel(self, degrees=False):
+    def _calc_dvel_dtheta(self, degrees=False):
         """
-        Calculate the coning and sculling corrected dtheta and dvel.
+        Calculate the coning and sculling corrected dvel and dtheta vectors.
         """
         dtheta = self._theta + self._dtheta_con
         dtheta = np.degrees(dtheta) if degrees else dtheta
         # Equation (7.2.2.2-23) in ref [2]_
         dvel = self._vel + self._dvel_rot + self._dvel_scul
 
-        return dtheta, dvel
+        return dvel, dtheta
 
     def flush(self, degrees=False):
         """
-        Return dtheta (the accumulated 'body attitude change' vector) and
-        dvel (the accumulated specific force velocity change vector), and reset
-        the coning (dtheta) and sculling (dvel) integrals to zero.
+        Return dvel (the accumulated specific force velocity change vector) and
+        dtheta (the accumulated 'body attitude change' vector), and reset the coning
+        (dtheta) and sculling (dvel) integrals to zero.
 
         Parameters
         ----------
@@ -135,22 +135,22 @@ class ConingScullingAlg:
 
         Returns
         -------
-        dtheta : ndarray, shape (3,)
-            The accumulated 'body attitude change' vector. I.e., the rotation vector
-            describing the total rotation over all samples since initialization (or
-            last reset).
         dvel : ndarray, shape (3,)
             The accumulated specific force velocity change vector. I.e., the total change
             in velocity (no gravity correction) over all samples since initialization
             (or last reset).
+        dtheta : ndarray, shape (3,)
+            The accumulated 'body attitude change' vector. I.e., the rotation vector
+            describing the total rotation over all samples since initialization (or
+            last reset).
         """
-        dtheta, dvel = self._calc_dtheta_dvel(degrees)
+        dvel, dtheta = self._calc_dvel_dtheta(degrees)
 
         self._theta[:] = np.zeros(3, dtype=float)
         self._dtheta_con[:] = np.zeros(3, dtype=float)
         self._dvel_scul[:] = np.zeros(3, dtype=float)
         self._vel[:] = np.zeros(3, dtype=float)
-        return dtheta, dvel
+        return dvel, dtheta
 
 
 class ConingScullingAlgCalibrated(ConingScullingAlg):
@@ -190,12 +190,17 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
     def __init__(
         self,
         fs,
-        W_w: np.ndarray = np.eye(3),
-        W_f: np.ndarray = np.eye(3),
-        b_w: np.ndarray = np.zeros(3),
-        b_f: np.ndarray = np.zeros(3),
+        W_w: ArrayLike | None = None,
+        W_f: ArrayLike | None = None,
+        b_w: ArrayLike | None = None,
+        b_f: ArrayLike | None = None,
         bias_alt: bool = False,
     ):
+        W_w = np.eye(3) if W_w is None else np.array(W_w, dtype=float)
+        W_f = np.eye(3) if W_f is None else np.array(W_f, dtype=float)
+        b_w = np.zeros(3) if b_w is None else np.array(b_w, dtype=float)
+        b_f = np.zeros(3) if b_f is None else np.array(b_f, dtype=float)
+
         adj_W_w, W_w_det = _adjugate_and_det_3_by_3(W_w)
         if W_w_det == 0:
             raise ValueError("W_w must be invertible")
@@ -220,9 +225,9 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
         w_adjusted = w + self.b_w_star
         super().update(f_adjusted, w_adjusted, degrees)
 
-    def _calc_dtheta_dvel(self, degrees=False):
+    def _calc_dvel_dtheta(self, degrees=False):
         dtheta = self.W_w @ self._theta + self.cof_W @ self._dtheta_con
         dtheta = np.degrees(dtheta) if degrees else dtheta
 
         dvel = self.W_w @ self._vel + self.cof_W @ (self._dvel_rot + self._dvel_scul)
-        return dtheta, dvel
+        return dvel, dtheta
