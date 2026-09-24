@@ -3,6 +3,15 @@ from typing import Any
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
+from smsfusion.constants import (
+    ACC_BIAS_CORR_TIME,
+    ACC_BIAS_STABILITY,
+    ACC_NOISE_DENSITY,
+    GYRO_BIAS_CORR_TIME,
+    GYRO_BIAS_STABILITY,
+    GYRO_NOISE_DENSITY,
+)
+
 # def _standard_normal(
 #     n: int, seed: int | np.random.Generator | None = None
 # ) -> NDArray[np.float64]:
@@ -440,15 +449,15 @@ class IMUNoise:
     def __init__(
         self,
         *,
-        acc_noise_density: ArrayLike = 0.0007,
-        acc_bias_stability: ArrayLike = 0.0005,
-        acc_bias_corr_time: ArrayLike = 50.0,
+        acc_noise_density: ArrayLike = ACC_NOISE_DENSITY,
+        acc_bias_stability: ArrayLike = ACC_BIAS_STABILITY,
+        acc_bias_corr_time: ArrayLike = ACC_BIAS_CORR_TIME,
         acc_drift_rate: ArrayLike | None = None,
         acc_drift_corr_time: ArrayLike | None = None,
         acc_constant_bias: ArrayLike = 0.0,
-        gyro_noise_density: ArrayLike = 0.00005,
-        gyro_bias_stability: ArrayLike = 0.00005,
-        gyro_bias_corr_time: ArrayLike = 50.0,
+        gyro_noise_density: ArrayLike = GYRO_NOISE_DENSITY,
+        gyro_bias_stability: ArrayLike = GYRO_BIAS_STABILITY,
+        gyro_bias_corr_time: ArrayLike = GYRO_BIAS_CORR_TIME,
         gyro_drift_rate: ArrayLike | None = None,
         gyro_drift_corr_time: ArrayLike | None = None,
         gyro_constant_bias: ArrayLike = 0.0,

@@ -6,6 +6,11 @@ from numpy.typing import ArrayLike, NDArray
 
 from smsfusion._transforms import _euler_from_quaternion
 from smsfusion._vectorops import _skew_symmetric
+from smsfusion.constants import (
+    GYRO_BIAS_CORR_TIME,
+    GYRO_BIAS_STABILITY,
+    GYRO_NOISE_DENSITY,
+)
 
 from ._aiding import _aiding_update_gref, _aiding_update_head
 from ._common import (
@@ -196,9 +201,9 @@ class AMEKF:
         q0: ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg0: ArrayLike = (0.0, 0.0, 0.0),
         P0: ArrayLike = _P0,
-        gyro_noise_density: float = 0.00005,
-        gyro_bias_stability: float = 0.00005,
-        gyro_bias_corr_time: float = 50.0,
+        gyro_noise_density: float = GYRO_NOISE_DENSITY,
+        gyro_bias_stability: float = GYRO_BIAS_STABILITY,
+        gyro_bias_corr_time: float = GYRO_BIAS_CORR_TIME,
         nav_frame: str = "NED",
     ) -> None:
         self._fs = fs

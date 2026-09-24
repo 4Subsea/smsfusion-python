@@ -77,15 +77,6 @@ class Test_NoiseModel:
         assert noise._bc == 0.0
         assert isinstance(noise._rng, np.random.Generator)
 
-    def test__init__constants(self):
-        noise = NoiseModel(**sf.constants.ERR_ACC_MOTION2)
-        assert noise._N == sf.constants.ERR_ACC_MOTION2["N"]
-        assert noise._B == sf.constants.ERR_ACC_MOTION2["B"]
-        assert noise._tau_cb == sf.constants.ERR_ACC_MOTION2["tau_cb"]
-        assert noise._K is None
-        assert noise._tau_ck is None
-        assert noise._bc == 0.0
-
     def test__call__GM(self):
         N = 4.0e-4
         B = 3.0e-4
@@ -305,11 +296,14 @@ class Test_IMUNoise:
     def test__init__default_matches_constants(self):
         # Default values should correspond to SMS Motion 2 noise levels
         noise = IMUNoise()
-        for i in range(3):
-            for key, val in sf.constants.ERR_ACC_MOTION2.items():
-                assert noise._err_list[i][key] == val
-            for key, val in sf.constants.ERR_GYRO_MOTION2.items():
-                assert noise._err_list[i + 3][key] == val
+        for err in noise._err_list[:3]:
+            assert err["N"] == sf.constants.ACC_NOISE_DENSITY
+            assert err["B"] == sf.constants.ACC_BIAS_STABILITY
+            assert err["tau_cb"] == sf.constants.ACC_BIAS_CORR_TIME
+        for err in noise._err_list[3:]:
+            assert err["N"] == sf.constants.GYRO_NOISE_DENSITY
+            assert err["B"] == sf.constants.GYRO_BIAS_STABILITY
+            assert err["tau_cb"] == sf.constants.GYRO_BIAS_CORR_TIME
 
     def test__init__mixed(self):
         noise = IMUNoise(
