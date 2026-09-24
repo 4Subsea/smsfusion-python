@@ -371,18 +371,21 @@ class IMUNoise:
 
     All noise parameters can be given either as a scalar value (same noise
     characteristics for all axes) or as an array-like of size 3 (per-axis values
-    for x, y, z). The default values correspond to the SMS Motion 2 noise level.
+    for x, y, z). The default values are given by the noise parameter constants
+    in :mod:`smsfusion.constants`, which correspond to the SMS Motion 2 noise
+    level.
 
     Parameters
     ----------
     acc_noise_density : float or array-like of size 3, optional
         Accelerometer noise density (velocity random walk), **N**, in (m/s^2)/√Hz.
-        Defaults to 0.0007 (m/s^2)/√Hz (SMS Motion 2 noise level).
+        Defaults to :const:`smsfusion.constants.ACC_NOISE_DENSITY`.
     acc_bias_stability : float or array-like of size 3, optional
         Accelerometer bias stability (flicker noise), **B**, in m/s^2. Defaults to
-        0.0005 m/s^2 (SMS Motion 2 noise level).
+        :const:`smsfusion.constants.ACC_BIAS_STABILITY`.
     acc_bias_corr_time : float or array-like of size 3, optional
-        Accelerometer bias correlation time, **tau_cb**, in seconds. Defaults to 50.0 s.
+        Accelerometer bias correlation time, **tau_cb**, in seconds. Defaults to
+        :const:`smsfusion.constants.ACC_BIAS_CORR_TIME`.
     acc_drift_rate : float or array-like of size 3, optional
         Accelerometer drift rate (Brownian noise), **K**, in (m/s^2)*√Hz. Defaults
         to ``None`` (no drift).
@@ -394,12 +397,13 @@ class IMUNoise:
         Accelerometer constant bias, **bc**, in m/s^2. Defaults to 0.0 m/s^2.
     gyro_noise_density : float or array-like of size 3, optional
         Gyroscope noise density (angular random walk), **N**, in (rad/s)/√Hz.
-        Defaults to 0.00005 (rad/s)/√Hz (SMS Motion 2 noise level).
+        Defaults to :const:`smsfusion.constants.GYRO_NOISE_DENSITY`.
     gyro_bias_stability : float or array-like of size 3, optional
         Gyroscope bias stability (flicker noise), **B**, in rad/s. Defaults to
-        0.00005 rad/s (SMS Motion 2 noise level).
+        :const:`smsfusion.constants.GYRO_BIAS_STABILITY`.
     gyro_bias_corr_time : float or array-like of size 3, optional
-        Gyroscope bias correlation time, **tau_cb**, in seconds. Defaults to 50.0 s.
+        Gyroscope bias correlation time, **tau_cb**, in seconds. Defaults to
+        :const:`smsfusion.constants.GYRO_BIAS_CORR_TIME`.
     gyro_drift_rate : float or array-like of size 3, optional
         Gyroscope drift rate (Brownian noise), **K**, in (rad/s)*√Hz. Defaults
         to ``None`` (no drift).
