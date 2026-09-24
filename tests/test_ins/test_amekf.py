@@ -208,9 +208,7 @@ class Test_AMEKF:
 
         # IMU and aiding measurements (with noise)
         head_std = np.radians(0.1)  # rad
-        err_acc = sf.constants.ERR_ACC_MOTION2
-        err_gyro = sf.constants.ERR_GYRO_MOTION2
-        noise_model = sf.noise.IMUNoise(err_acc=err_acc, err_gyro=err_gyro, seed=0)
+        noise_model = sf.noise.IMUNoise(seed=0)
         bg = np.array([0.01, -0.02, 0.03])  # rad/s
         imu_noise = noise_model(fs_imu, len(t))
         acc_meas = acc_ref + imu_noise[:, :3]
@@ -221,13 +219,8 @@ class Test_AMEKF:
             gyro_meas = np.degrees(gyro_meas)
 
         # MEKF
-        mekf = AMEKF(
-            fs_imu,
-            q0=sf.quaternion_from_euler(euler_ref[0], degrees=False),
-            gyro_noise_density=err_gyro["N"],
-            gyro_bias_stability=err_gyro["B"],
-            gyro_bias_corr_time=err_gyro["tau_cb"],
-        )
+        q0 = sf.quaternion_from_euler(euler_ref[0], degrees=False)
+        mekf = AMEKF(fs_imu, q0=q0)
 
         euler_est, bias_gyro_est = [], []
         for f_i, w_i, h_i in zip(acc_meas, gyro_meas, head_meas):
@@ -285,9 +278,7 @@ class Test_AMEKF:
         t, _, _, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
 
         # IMU and aiding measurements (with noise)
-        err_acc = sf.constants.ERR_ACC_MOTION2
-        err_gyro = sf.constants.ERR_GYRO_MOTION2
-        noise_model = sf.noise.IMUNoise(err_acc=err_acc, err_gyro=err_gyro, seed=0)
+        noise_model = sf.noise.IMUNoise(seed=0)
         bg = np.array([0.01, -0.02, 0.0])  # rad/s
         imu_noise = noise_model(fs_imu, len(t))
         acc_meas = acc_ref + imu_noise[:, :3]
