@@ -248,16 +248,16 @@ class VAMEKF:
         a small diagonal matrix (1e-6 * np.eye(9)).
     acc_noise_density : float, optional
         Accelerometer noise density (velocity random walk) in (m/s^2)/√Hz. Defaults to
-        :const:`smsfusion.constants.ACC_NOISE_DENSITY`.
+        :const:`smsfusion.constants.ACC_NOISE_DENSITY` (SMS Motion 2 noise level).
     gyro_noise_density : float, optional
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
-        :const:`smsfusion.constants.GYRO_NOISE_DENSITY`.
+        :const:`smsfusion.constants.GYRO_NOISE_DENSITY` (SMS Motion 2 noise level).
     gyro_bias_stability : float, optional
         Gyroscope bias stability in rad/s. Defaults to
-        :const:`smsfusion.constants.GYRO_BIAS_STABILITY`.
+        :const:`smsfusion.constants.GYRO_BIAS_STABILITY` (SMS Motion 2 noise level).
     gyro_bias_corr_time : float, optional
         Gyroscope bias correlation time in seconds. Defaults to
-        :const:`smsfusion.constants.GYRO_BIAS_CORR_TIME`.
+        :const:`smsfusion.constants.GYRO_BIAS_CORR_TIME` (SMS Motion 2 noise level).
     g : float, optional
         The gravitational acceleration in m/s^2. Default is 'standard gravity' of
         9.80665 m/s^2.

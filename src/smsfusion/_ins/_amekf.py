@@ -183,13 +183,13 @@ class AMEKF:
         a small diagonal matrix (1e-6 * np.eye(6)).
     gyro_noise_density : float, optional
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
-        :const:`smsfusion.constants.GYRO_NOISE_DENSITY`.
+        :const:`smsfusion.constants.GYRO_NOISE_DENSITY` (SMS Motion 2 noise level).
     gyro_bias_stability : float, optional
         Gyroscope bias stability in rad/s. Defaults to
-        :const:`smsfusion.constants.GYRO_BIAS_STABILITY`.
+        :const:`smsfusion.constants.GYRO_BIAS_STABILITY` (SMS Motion 2 noise level).
     gyro_bias_corr_time : float, optional
         Gyroscope bias correlation time in seconds. Defaults to
-        :const:`smsfusion.constants.GYRO_BIAS_CORR_TIME`.
+        :const:`smsfusion.constants.GYRO_BIAS_CORR_TIME` (SMS Motion 2 noise level).
     nav_frame : {'NED', 'ENU'}, optional
         Specifies the assumed inertial-like 'navigation' frame. Should be 'NED' (North-East-Down)
         (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
