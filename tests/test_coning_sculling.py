@@ -36,7 +36,7 @@ def data_ag():
 
 
 @pytest.fixture
-def data_dtheta_dvel():
+def data_dvel_dtheta():
     """
     10 Hz coning/sculling reference data.
     """
@@ -67,8 +67,8 @@ class Test_ConingScullingAlg:
     def test__init__(self):
         alg = sf.ConingScullingAlg(256.0)
 
-        alg._fs == 256.0
-        alg._dt == 1.0 / 256.0
+        assert alg._fs == 256.0
+        assert alg._dt == 1.0 / 256.0
         np.testing.assert_allclose(alg._theta, np.zeros(3))
         np.testing.assert_allclose(alg._dtheta_con, np.zeros(3))
         np.testing.assert_allclose(alg._dtheta_prev, np.zeros(3))
@@ -79,9 +79,9 @@ class Test_ConingScullingAlg:
     @pytest.mark.parametrize(
         "algorithm", [sf.ConingScullingAlg, sf.ConingScullingAlgCalibrated]
     )
-    def test_update(self, data_ag, data_dtheta_dvel, algorithm):
+    def test_update(self, data_ag, data_dvel_dtheta, algorithm):
         f, w = data_ag
-        dvel_ref, dtheta_ref = data_dtheta_dvel
+        dvel_ref, dtheta_ref = data_dvel_dtheta
 
         fs_highfreq = 200.0
         fs_lowfreq = 10.0
@@ -95,7 +95,7 @@ class Test_ConingScullingAlg:
             alg.update(f_i, w_i)
 
             if (i != 0) and (i % step == 0.0):
-                dtheta_i, dvel_i = alg.flush()
+                dvel_i, dtheta_i = alg.flush()
                 dtheta_out.append(dtheta_i)
                 dvel_out.append(dvel_i)
 
@@ -115,7 +115,7 @@ class Test_ConingScullingAlg:
         for i in range(int(fs * 1.0)):  # 1 second
             alg.update(f, w)
 
-        dtheta_out, dvel_out = alg.flush()
+        dvel_out, dtheta_out = alg.flush()
 
         dtheta_expect = np.array([np.radians(90.0), 0.0, 0.0])
         np.testing.assert_allclose(dtheta_out, dtheta_expect)
@@ -131,7 +131,7 @@ class Test_ConingScullingAlg:
         for i in range(int(fs * 1.0)):  # 1 second
             alg.update(f, w)
 
-        dtheta_out, dvel_out = alg.flush()
+        dvel_out, dtheta_out = alg.flush()
 
         dtheta_expect = np.array([0.0, np.radians(90.0), 0.0])
         np.testing.assert_allclose(dtheta_out, dtheta_expect)
@@ -147,7 +147,7 @@ class Test_ConingScullingAlg:
         for i in range(int(fs * 1.0)):  # 1 second
             alg.update(f, w)
 
-        dtheta_out, dvel_out = alg.flush()
+        dvel_out, dtheta_out = alg.flush()
 
         dtheta_expect = np.array([0.0, 0.0, np.radians(90.0)])
         np.testing.assert_allclose(dtheta_out, dtheta_expect)
@@ -163,7 +163,7 @@ class Test_ConingScullingAlg:
         for i in range(int(fs * 1.0)):  # 1 second
             alg.update(f, w)
 
-        dtheta_out, dvel_out = alg.flush()
+        dvel_out, dtheta_out = alg.flush()
 
         dvel_expect = np.array([1.0, 0.0, 0.0])
         np.testing.assert_allclose(dvel_out, dvel_expect)
@@ -179,7 +179,7 @@ class Test_ConingScullingAlg:
         for i in range(int(fs * 1.0)):  # 1 second
             alg.update(f, w)
 
-        dtheta_out, dvel_out = alg.flush()
+        dvel_out, dtheta_out = alg.flush()
 
         dvel_expect = np.array([0.0, 1.0, 0.0])
         np.testing.assert_allclose(dvel_out, dvel_expect)
@@ -195,7 +195,7 @@ class Test_ConingScullingAlg:
         for i in range(int(fs * 1.0)):  # 1 second
             alg.update(f, w)
 
-        dtheta_out, dvel_out = alg.flush()
+        dvel_out, dtheta_out = alg.flush()
 
         dvel_expect = np.array([0.0, 0.0, 1.0])
         np.testing.assert_allclose(dvel_out, dvel_expect)
@@ -211,7 +211,7 @@ class Test_ConingScullingAlg:
         for i in range(int(fs * 1.0)):  # 1 second
             alg.update(f, w)
 
-        dtheta_out, dvel_out = alg.flush()
+        dvel_out, dtheta_out = alg.flush()
 
         dtheta_expect = np.array([np.radians(90.0), 0.0, 0.0])
         dvel_expect = np.array([1.0, 0.0, 0.0])
@@ -228,7 +228,7 @@ class Test_ConingScullingAlg:
         for i in range(int(fs * 1.0)):  # 1 second
             alg.update(f, w)
 
-        dtheta_out, dvel_out = alg.flush()
+        dvel_out, dtheta_out = alg.flush()
 
         dtheta_expect = np.array([0.0, np.radians(90.0), 0.0])
         dvel_expect = np.array([0.0, 1.0, 0.0])
@@ -245,7 +245,7 @@ class Test_ConingScullingAlg:
         for i in range(int(fs * 1.0)):  # 1 second
             alg.update(f, w)
 
-        dtheta_out, dvel_out = alg.flush()
+        dvel_out, dtheta_out = alg.flush()
 
         dtheta_expect = np.array([0.0, 0.0, np.radians(90.0)])
         dvel_expect = np.array([0.0, 0.0, 1.0])
@@ -262,7 +262,7 @@ class Test_ConingScullingAlg:
         for i in range(int(fs * 1.0)):  # 1 second
             alg.update(f, w)
 
-        dtheta_out, dvel_out = alg.flush()
+        dvel_out, dtheta_out = alg.flush()
 
         dtheta_expect = np.array(
             [np.radians(30.0), -np.radians(45.0), np.radians(60.0)]
@@ -280,7 +280,7 @@ class Test_ConingScullingAlg:
         for i in range(int(fs * 1.0)):  # 1 second
             alg.update(f, w)
 
-        dtheta_out, dvel_out = alg.flush()
+        dvel_out, dtheta_out = alg.flush()
 
         dvel_expect = np.array([1.0, -2.0, 3.0])
         np.testing.assert_allclose(dvel_out, dvel_expect)
@@ -296,17 +296,18 @@ class Test_ConingScullingAlg:
         for i in range(int(fs * 1.0)):  # 1 second
             alg.update(f, w)
 
-        dtheta_out, dvel_out = alg.flush()
+        dvel_out, dtheta_out = alg.flush()
+
         # Check that flush returns non-zero values
         assert np.all(np.abs(dtheta_out) > 0.1)
         assert np.all(np.abs(dvel_out) > 0.1)
 
         # Flushing again should yield all zeros
-        dtheta_out, dvel_out = alg.flush()
+        dvel_out, dtheta_out = alg.flush()
         np.testing.assert_allclose(dtheta_out, np.zeros(3))
         np.testing.assert_allclose(dvel_out, np.zeros(3))
 
-    def test_verify_calibration(self, data_ag, data_dtheta_dvel):
+    def test_verify_calibration(self, data_ag, data_dvel_dtheta):
         """Tests that the algorithm with built-in calibration produces the same results as the
         uncalibrated algorithm with manual calibration applied to the inputs.
         """
@@ -322,7 +323,7 @@ class Test_ConingScullingAlg:
         W_f_inv, W_w_inv = np.linalg.inv(W_f), np.linalg.inv(W_w)
 
         f_true, w_true = data_ag
-        dvel_true, dtheta_true = data_dtheta_dvel
+        dvel_true, dtheta_true = data_dvel_dtheta
 
         # Generate measurements with scaling, misalignment and bias
         f_meas = np.empty_like(f_true)
@@ -348,7 +349,7 @@ class Test_ConingScullingAlg:
 
             alg_naive_calibration.update(f_i_naive, w_i_naive)
             if (i != 0) and (i % downsample_factor == 0):
-                dtheta_i, dvel_i = alg_naive_calibration.flush()
+                dvel_i, dtheta_i = alg_naive_calibration.flush()
                 dtheta_naive.append(dtheta_i)
                 dvel_naive.append(dvel_i)
         dtheta_naive = np.array(dtheta_naive)
@@ -362,7 +363,7 @@ class Test_ConingScullingAlg:
         for i, (f_i, w_i) in enumerate(zip(f_meas, w_meas)):
             alg_calibrated.update(f_i, w_i)
             if (i != 0) and (i % downsample_factor == 0):
-                dtheta_i, dvel_i = alg_calibrated.flush()
+                dvel_i, dtheta_i = alg_calibrated.flush()
                 dtheta_calibrated.append(dtheta_i)
                 dvel_calibrated.append(dvel_i)
         dtheta_calibrated = np.array(dtheta_calibrated)
@@ -376,7 +377,7 @@ class Test_ConingScullingAlg:
         for i, (f_i, w_i) in enumerate(zip(f_meas_alt, w_meas_alt)):
             alg_calibrated_alt.update(f_i, w_i)
             if (i != 0) and (i % downsample_factor == 0):
-                dtheta_i, dvel_i = alg_calibrated_alt.flush()
+                dvel_i, dtheta_i = alg_calibrated_alt.flush()
                 dtheta_calibrated_alt.append(dtheta_i)
                 dvel_calibrated_alt.append(dvel_i)
         dtheta_calibrated_alt = np.array(dtheta_calibrated_alt)
