@@ -98,7 +98,7 @@ class FixedIntervalSmoother:
 
     def _smooth(self) -> None:
         n_samples = len(self._q_buf)
-        if n_samples != len(self._p_n):
+        if n_samples != len(self._q_nb):
             self._p_n, self._v_n, self._q_nb, self._bg_b, self._P = _rts_backward_sweep(
                 np.array(self._p_buf),
                 np.array(self._v_buf),
@@ -242,7 +242,7 @@ def _rts_backward_sweep(
 
         # Update state space model for step k
         R_nb_k = _rot_matrix_from_quaternion(q_nb[k])
-        _state_transition_matrix_update(phi_k, dvel[k + 1], dtheta[k + 1], R_nb_k)
+        _state_transition_matrix_update(phi_k, dvel[k + 1], dtheta[k + 1], R_nb_k)  # -> update phi
 
         # Calculate a priori error covariance matrix for step k + 1
         P_prior_kp1 = phi_k @ P[k] @ phi_k.T + Q
@@ -257,7 +257,7 @@ def _rts_backward_sweep(
         # Smoothed state estimates
         p_n[k] += ddx_k[0:3]
         v_n[k] += ddx_k[3:6]
-        _update_quaternion_with_gibbs2(q_nb[k], ddx_k[6:9])
+        _update_quaternion_with_gibbs2(q_nb[k], ddx_k[6:9]) # -> update q_nb
         bg_b[k] += ddx_k[9:12]
 
     return p_n, v_n, q_nb, bg_b, P
