@@ -208,9 +208,8 @@ class Test_AMEKF:
 
         # IMU and aiding measurements (with noise)
         head_std = np.radians(0.1)  # rad
-        noise_model = sf.noise.IMUNoise(seed=0)
         bg = np.array([0.01, -0.02, 0.03])  # rad/s
-        imu_noise = noise_model(fs_imu, len(t))
+        imu_noise = sf.noise.IMUNoise(seed=0)(fs_imu, len(t))
         acc_meas = acc_ref + imu_noise[:, :3]
         gyro_meas = gyro_ref + imu_noise[:, 3:] + bg
         head_meas = euler_ref[:, 2] + np.random.normal(0.0, head_std, len(euler_ref))
@@ -278,9 +277,8 @@ class Test_AMEKF:
         t, _, _, euler_ref, acc_ref, gyro_ref = benchmark_gen(fs_imu)
 
         # IMU and aiding measurements (with noise)
-        noise_model = sf.noise.IMUNoise(seed=0)
         bg = np.array([0.01, -0.02, 0.0])  # rad/s
-        imu_noise = noise_model(fs_imu, len(t))
+        imu_noise = sf.noise.IMUNoise(seed=0)(fs_imu, len(t))
         acc_meas = acc_ref + imu_noise[:, :3]
         gyro_meas = gyro_ref + imu_noise[:, 3:] + bg
 
