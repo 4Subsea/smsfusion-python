@@ -1,15 +1,33 @@
 Quickstart
 ==========
-This is a quick introduction to the `SMS Fusion`: a Python library with INS algorithms
-complementing the `SMS Motion` hardware.
+This is a short introduction to `SMS Fusion`: a Python library with inertial navigation
+algorithms for `SMS Motion`. Although the primary purpose is to complement the SMS Motion
+hardware, the algorithms can be used with any IMU sensor.
+
+The core algorithms in ``smsfusion`` are a family of fusion filters known as
+`multiplicative extended Kalman filters` (MEKF). Three flavors of the MEKF are
+available:
+
+- :class:`~smsfusion.AMEKF`: Estimates attitude and gyroscope bias.
+- :class:`~smsfusion.VAMEKF`: Estimates velocity, attitude and gyroscope bias.
+- :class:`~smsfusion.PVAMEKF`: Estimates position, velocity, attitude and gyroscope bias.
+
+The filters differ only in the states they estimate, and hence also the type of
+external aiding they support. :class:`~smsfusion.PVAMEKF` is the most comprehensive
+filter, estimating all degrees of freedom. By leveraging external aiding measurements,
+this filter can achieve the highest accuracy in all state estimates. The :class:`~smsfusion.VAMEKF`
+and :class:`~smsfusion.AMEKF` are degenerated versions of :class:`~smsfusion.PVAMEKF`,
+where some of the states are removed, resulting in simpler filters with reduced
+computational complexity at the expense of lower accuracy.
 
 
 Measurement data
 ----------------
 This quickstart guide assumes that you have access to accelerometer and gyroscope
-data from an IMU sensor, and ideally position, velocity and heading data from other
-aiding sensors. If you do not have access to such data, you can generate synthetic
-measurements using the code provided here:
+measurements from an IMU sensor, and ideally position, velocity and/or heading
+measurements from other aiding sensors. If you do not have access to such data,
+you can generate synthetic measurements using the :mod:`~smsfusion.benchmark`
+module in ``smsfusion``:
 
 .. code-block:: python
 
@@ -22,14 +40,12 @@ measurements using the code provided here:
     head = euler[:, 2]
 
     # Add measurement noise
-    pos_noise_std = 0.1  # m
-    head_noise_std = 0.01  # rad
-    imu_noise = sf.noise.IMUNoise(seed=1)(fs, len(acc))
+    imu_noise = sf.noise.IMUNoise(seed=0)(fs, len(acc))
     acc_imu = acc + imu_noise[:, :3]
     gyro_imu = gyro + imu_noise[:, 3:]
-    rng = np.random.default_rng(0)
-    pos_aid = pos + pos_noise_std * rng.standard_normal(pos.shape)
-    head_aid = head + head_noise_std * rng.standard_normal(head.shape)
+    rng = np.random.default_rng(1)
+    pos_aid = pos + 0.1 * rng.standard_normal(pos.shape)
+    head_aid = head + 0.01 * rng.standard_normal(head.shape)
 
 
 Choosing a filter
@@ -42,6 +58,48 @@ Three versions of the `multiplicative extended Kalman filter` (MEKF) are availab
 
 The filters differ only in the states they estimate (see the above table), and hence
 the type of external aiding they support.
+
+
+No external aiding - estimate roll and pitch only
+-------------------------------------------------
+In aiding denied scenarios, where you don't have access to long-term stable aiding
+measurements, only the roll and pitch degrees of freedom can be estimated since
+these are still observable through accelerometer measurements and the known direction
+of gravity.
+
+Using the AMEKF filter with gravity reference aiding is the most lightweight and
+robust choice for estimating roll and pitch in the absence of external aiding:
+
+.. code-block:: python
+
+    mekf = sf.AMEKF(fs)
+
+    euler_est = []
+    for dvel_i, dtheta_i, head_i in zip(dvel, dtheta, head_aid):
+        mekf.update(dvel_i, dtheta_i, head=head_i, head_var=head_noise_std**2)
+        euler_est.append(mekf.euler())
+    euler_est = np.array(euler_est)
+
+
+Kladd
+-----
+
+In aiding denied scenarios, where no external aiding sensors are available, only the roll and pitch can be estimated from the IMU measurements.
+
+
+If no external aiding is available, we must rely solely on the IMU measurements
+to estimate the body's motion. Then, only the roll and pitch degrees of freedom
+are o
+
+to estimate roll and pitch.
+
+
+
+In aiding denied scenarios, where no external aiding sensors are available, 
+
+
+
+
 
 
 AMEKF - Estimate roll and pitch only without external aiding
