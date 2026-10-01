@@ -94,19 +94,6 @@ are in meters per second squared (m/s^2), and the gyroscope signals are in radia
 per second (rad/s). If your measurement data is given in other units, you must account
 for that in other sections of this quickstart guide.
 
-
-Choosing a filter
------------------
-Three versions of the `multiplicative extended Kalman filter` (MEKF) are available:
-
-- :class:`~smsfusion.AMEKF`: Estimates attitude and gyroscope bias.
-- :class:`~smsfusion.VAMEKF`: Estimates velocity, attitude and gyroscope bias.
-- :class:`~smsfusion.PVAMEKF`: Estimates position, velocity, attitude and gyroscope bias.
-
-The filters differ only in the states they estimate (see the above table), and hence
-the type of external aiding they support.
-
-
 No external aiding - estimate roll and pitch only
 -------------------------------------------------
 In aiding denied scenarios, where you don't have access to long-term stable aiding
@@ -114,18 +101,37 @@ measurements, only the roll and pitch degrees of freedom can be estimated since
 these are still observable through accelerometer measurements and the known direction
 of gravity.
 
-Using the AMEKF filter with gravity reference aiding is the most lightweight and
-robust choice for estimating roll and pitch in the absence of external aiding:
+Using :class:`~smsfusion.AMEKF` with gravity reference aiding is the most lightweight
+and robust choice for estimating roll and pitch without external aiding:
 
 .. code-block:: python
 
     mekf = sf.AMEKF(fs)
 
-    euler_est = []
-    for dvel_i, dtheta_i, head_i in zip(dvel, dtheta, head_aid):
-        mekf.update(dvel_i, dtheta_i, head=head_i, head_var=head_noise_std**2)
-        euler_est.append(mekf.euler())
-    euler_est = np.array(euler_est)
+    roll_pitch_est = []
+    for dvel_i, dtheta_i in zip(dvel, dtheta):
+        mekf.update(dvel_i, dtheta_i)
+        roll_pitch_est.append(mekf.euler()[:2])
+    roll_pitch_est = np.array(roll_pitch_est)
+
+Alternatively, the :class:`~smsfusion.VAMEKF` with zero-velocity aiding can be
+used, often resulting in higher accuracy compared to the AMEKF. To ensure stability
+of the filter, a calibrated accelerometer is then required, and the correct local
+gravitational acceleration must be set:
+
+.. code-block:: python
+
+    lat = 59.0  # latitude
+    mekf = sf.VAMEKF(fs, g=sf.gravity(lat))
+
+    # Zero-velocity w/ 10 m/s standard deviation
+    aiding = {"vel": np.zeros(3), "vel_var": (100.0, 100.0, 100.0)}
+
+    roll_pitch_est = []
+    for dvel_i, dtheta_i in zip(dvel, dtheta):
+        mekf.update(dvel_i, dtheta_i, **aiding)
+        roll_pitch_est.append(mekf.euler()[:2])
+    roll_pitch_est = np.array(roll_pitch_est)
 
 
 Kladd
