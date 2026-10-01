@@ -9,16 +9,18 @@ Measurement data from an `inertial measurement unit` (IMU) forms the backbone of
 `inertial navigation system` (INS). These measurements are integrated to estimate the
 position, velocity, and attitude (PVA) of the moving object to which the IMU is attached.
 Since the IMU's measurements are subject to noise and bias, the PVA estimates will drift
-over time if they are not corrected. Thus, `Aided INS` (AINS) systems incorporate additional
+over time if they are not corrected. Thus, aided INS (AINS) systems incorporate additional
 long-term stable aiding measurements to ensure convergence and stability of the INS.
 The aiding measurements are typically provided by a `global navigation satellite system`
 (GNSS) and a compass, providing absolute position, velocity, and heading information.
 
-``smsfusion`` provides Python implementations of three versions of the multiplicative
-extended Kalman filter (MEKF): :class:`~smsfusion.AMEKF`, :class:`~smsfusion.VAMEKF`,
-and :class:`~smsfusion.PVAMEKF`. In this quickstart guide we will demonstrate how
-to use these MEKF filters to estimate position, velocity and/or attitude of a moving
-body using IMU measurements and optional external aiding measurements.
+Internally, the AINS uses fusion filters to estimate its states. ``smsfusion`` provides
+Python implementations of a fusion filter known as the `multiplicative extended Kalman filter`
+(MEKF). Three versions of the MEKF filter are available: :class:`~smsfusion.AMEKF`,
+:class:`~smsfusion.VAMEKF`, and :class:`~smsfusion.PVAMEKF`. In this quickstart guide
+we will demonstrate how to use these MEKF filters to estimate position, velocity
+and/or attitude of a moving body using IMU measurements and optional external aiding
+measurements.
 
 
 Choosing a filter
