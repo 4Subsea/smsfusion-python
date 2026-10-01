@@ -12,14 +12,13 @@ Three versions of the `multiplicative extended Kalman filter` (MEKF) are availab
 - :class:`~smsfusion.VAMEKF`: Estimates velocity, attitude and gyroscope bias.
 - :class:`~smsfusion.PVAMEKF`: Estimates position, velocity, attitude and gyroscope bias.
 
-The filters differ only in the states they estimate (see the above table).
-
-The table below summarizes when to use the different filters:
+The filters differ only in the states they estimate (see the above table), and hence
+the type of external aiding they support. The following table provides a summary:
 
 
 .. list-table::
    :header-rows: 1
-   :widths: 15 15 15 55
+   :widths: 15 15 25 45
 
    * - Filter
      - States
@@ -30,23 +29,22 @@ The table below summarizes when to use the different filters:
        | Velocity,
        | Attitude,
        | Gyro bias
-     - | Position,
-       | Velocity,
-       | Heading
+     - | Position (GNSS),
+       | Velocity (GNSS),
+       | Heading (compass)
      - Estimate all degrees of freedom when full aiding is available.
    * - :class:`~smsfusion.VAMEKF`
      - | Velocity,
        | Attitude,
        | Gyro bias
-     - Velocity
-     - Estimate velocity and attitude when velocity aiding is available.
+     - | Velocity (GNSS)
+       | Heading (compass)
+     - Estimate velocity and attitude when velocity and heading aiding is available.
    * - :class:`~smsfusion.AMEKF`
      - | Attitude,
        | Gyro bias
-     - No external aiding
-     - Attitude-only estimation when no external aiding is available. Accelerometer
-       measuremements and the known direction of gravity is used to correct the
-       roll and pitch estimates.
+     - Heading (compass)
+     - Estimate attitude when heading aiding is available.
 
 
 Inertial navigation primer
