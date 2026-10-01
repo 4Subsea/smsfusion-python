@@ -38,17 +38,13 @@ MEKF filters and when to use them.
      - When to use
    * - :class:`~smsfusion.PVAMEKF`
      - Position, velocity, attitude, gyroscope bias
-     - Full estimation of all degrees of freedom when full aiding (e.g., GNSS
-       position/velocity and compass heading) is available.
+     - Estimation of all states when full aiding is available.
    * - :class:`~smsfusion.VAMEKF`
      - Velocity, attitude, gyroscope bias
-     - Better attitude accuracy than :class:`~smsfusion.AMEKF` when used with
-       zero-velocity aiding. Requires the gravitational acceleration to be
-       known, and runs somewhat slower.
+     - Estimation of velocity and attitude when velocity aiding is available.
    * - :class:`~smsfusion.AMEKF`
      - Attitude, gyroscope bias
-     - Attitude-only estimation where speed is important and no velocity or
-       position aiding is available.
+     - Attitude-only estimation when no external aiding is available.
 
 Measurement data
 ----------------
