@@ -1,7 +1,53 @@
 Quickstart
 ==========
 This is a quick introduction to the `SMS Fusion` Python package. ``smsfusion``
-provides Python implementations of INS algorithms as presented below.
+provides Python implementations of INS algorithms complementing the `SMS Motion`
+hardware.
+
+Choosing a filter
+-----------------
+Three versions of the `multiplicative extended Kalman filter` (MEKF) are available:
+
+- :class:`~smsfusion.AMEKF`: Estimates attitude and gyroscope bias.
+- :class:`~smsfusion.VAMEKF`: Estimates velocity, attitude and gyroscope bias.
+- :class:`~smsfusion.PVAMEKF`: Estimates position, velocity, attitude and gyroscope bias.
+
+The filters differ only in the states they estimate (see the above table).
+
+The table below summarizes when to use the different filters:
+
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 15 15 55
+
+   * - Filter
+     - States
+     - Aiding
+     - When to use
+   * - :class:`~smsfusion.PVAMEKF`
+     - | Position,
+       | Velocity,
+       | Attitude,
+       | Gyro bias
+     - | Position,
+       | Velocity,
+       | Heading
+     - Estimate all degrees of freedom when full aiding is available.
+   * - :class:`~smsfusion.VAMEKF`
+     - | Velocity,
+       | Attitude,
+       | Gyro bias
+     - Velocity
+     - Estimate velocity and attitude when velocity aiding is available.
+   * - :class:`~smsfusion.AMEKF`
+     - | Attitude,
+       | Gyro bias
+     - No external aiding
+     - Attitude-only estimation when no external aiding is available. Accelerometer
+       measuremements and the known direction of gravity is used to correct the
+       roll and pitch estimates.
+
 
 Inertial navigation primer
 --------------------------
