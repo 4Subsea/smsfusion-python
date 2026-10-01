@@ -421,7 +421,7 @@ class IMUNoise:
         if value.size == 1:
             return [value.item()] * 3
         elif value.size == 3:
-            return value.flatten().tolist()
+            return value.ravel().tolist()
         else:
             raise ValueError(
                 "Parameter values must be a scalar or an array-like of size 3."
