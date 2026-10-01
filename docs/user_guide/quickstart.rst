@@ -5,20 +5,60 @@ algorithms for `SMS Motion`. Although the primary purpose is to complement the S
 hardware, the algorithms can be used with any IMU sensor.
 
 The core algorithms in ``smsfusion`` are a family of fusion filters known as
-`multiplicative extended Kalman filters` (MEKF). Three flavors of the MEKF are
-available:
+`multiplicative extended Kalman filters` (MEKF). Three flavors of the MEKF filter
+are available:
 
 - :class:`~smsfusion.AMEKF`: Estimates attitude and gyroscope bias.
 - :class:`~smsfusion.VAMEKF`: Estimates velocity, attitude and gyroscope bias.
 - :class:`~smsfusion.PVAMEKF`: Estimates position, velocity, attitude and gyroscope bias.
 
-The filters differ only in the states they estimate, and hence also the type of
+The three filters differ only in the states they estimate, and hence also the type of
 external aiding they support. :class:`~smsfusion.PVAMEKF` is the most comprehensive
-filter, estimating all degrees of freedom. By leveraging external aiding measurements,
-this filter can achieve the highest accuracy in all state estimates. The :class:`~smsfusion.VAMEKF`
-and :class:`~smsfusion.AMEKF` are degenerated versions of :class:`~smsfusion.PVAMEKF`,
-where some of the states are removed, resulting in simpler filters with reduced
-computational complexity at the expense of lower accuracy.
+filter, estimating all degrees of freedom (DOFs). By leveraging external aiding measurements,
+this filter can achieve the highest accuracy in all state estimates. Thus, if you have
+access to full external aiding (GNSS and compass), this is the filter to use. The
+:class:`~smsfusion.VAMEKF` and :class:`~smsfusion.AMEKF` are degenerated versions
+of the this filter, where some of the states are removed, resulting in simpler filters
+with reduced computational complexity at the expense of potentially lower accuracy.
+In aiding denied scenarios, where external aiding is not feasible or simply not
+available, the simpler filters are more suitable.
+
+The following table lists which MEKF filter and aiding configuration to use for
+different scenarios:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 10 15 35 40
+
+   * - Filter
+     - States
+     - Aiding
+     - When to use
+   * - :class:`~smsfusion.PVAMEKF`
+     - | Position,
+       | Velocity,
+       | Attitude,
+       | Gyro bias
+     - | Position (GNSS),
+       | Velocity (GNSS, optional),
+       | Heading (compass)
+     - Estimate all DOFs when full aiding is available.
+   * - :class:`~smsfusion.VAMEKF`
+     - | Velocity,
+       | Attitude,
+       | Gyro bias
+     - | Velocity (GNSS),
+       | Heading (compass)
+     - Estimate all attitude and velocity.
+   * - :class:`~smsfusion.AMEKF`
+     - | Roll,
+       | Pitch,
+       | Gyro bias
+     - Gravity reference
+     - Estimate roll and pitch only when no external aiding is available.
+
+In the following sections, we will demonstrate how to use the MEKF filters in
+different aiding scenarios.
 
 
 Measurement data
