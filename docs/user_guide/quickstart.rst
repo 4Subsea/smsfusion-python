@@ -4,6 +4,68 @@ This is a quick introduction to the `SMS Fusion` Python package. ``smsfusion``
 provides Python implementations of INS algorithms complementing the `SMS Motion`
 hardware.
 
+
+Measurement data
+----------------
+This quickstart guide assumes that you have access to accelerometer and gyroscope
+data from an IMU sensor, and ideally position and heading data from other aiding
+sensors. If you do not have access to such data, you can generate synthetic
+measurements using the code provided here.
+
+Using the ``benchmark`` module, you can generate synthetic 3D motion data with ``smsfusion``.
+For example, you can generate beating signals representing position, velocity and
+attitude (PVA) degrees of freedom using :func:`~smsfusion.benchmark.benchmark_full_pva_beat_202311A`:
+
+.. code-block:: python
+
+    from smsfusion.benchmark import benchmark_full_pva_beat_202311A
+
+
+    fs = 10.24  # sampling rate in Hz
+    t, pos, vel, euler, acc, gyro = benchmark_full_pva_beat_202311A(fs)
+    head = euler[:, 2]
+
+Note that the generated position signals are in meters (m), velocity signals are in meters
+per second (m/s), and attitude signals are in radians (rad). The accelerometer signals
+are in meters per second squared (m/s^2), and the gyroscope signals are in radians
+per second (rad/s). If your measurement data is given in other units, you must account
+for that in other sections of this quickstart guide.
+
+To emulate real sensor recordings, these reference signals must be polluted with noise.
+The ``noise`` module that comes with ``smsfusion`` provides a variety of noise models
+that can be used to corrupt the reference signals. For example, the :func:`~smsfusion.noise.IMUNoise`
+class can be used to add IMU-like noise to accelerometer and gyroscope signals:
+
+.. code-block:: python
+
+    import smsfusion as sf
+
+
+    fs = 10.24  # sampling rate in Hz
+    imu_noise = sf.noise.IMUNoise()(fs, len(acc))
+    acc_imu = acc + imu_noise[:, :3]
+    gyro_imu = gyro + imu_noise[:, 3:]
+
+Similarly, white noise can be added to the position and heading measurements using
+``NumPy``'s random number generator:
+
+.. code-block:: python
+
+    import numpy as np
+
+
+    pos_noise_std = 0.1  # m
+    head_noise_std = 0.01  # rad
+    rng = np.random.default_rng()
+    pos_aid = pos + pos_noise_std * rng.standard_normal(pos.shape)
+    head_aid = head + head_noise_std * rng.standard_normal(head.shape)
+
+
+For simpler cases where only compass or no aiding is available, consider using
+:func:`~smsfusion.benchmark.benchmark_pure_attitude_beat_202311A` instead to
+generate synthetic data.
+
+
 Choosing a filter
 -----------------
 Three versions of the `multiplicative extended Kalman filter` (MEKF) are available:
@@ -13,7 +75,19 @@ Three versions of the `multiplicative extended Kalman filter` (MEKF) are availab
 - :class:`~smsfusion.PVAMEKF`: Estimates position, velocity, attitude and gyroscope bias.
 
 The filters differ only in the states they estimate (see the above table), and hence
-the type of external aiding they support. The following table provides a summary:
+the type of external aiding they support.
+
+
+
+
+
+
+
+
+Kladd
+-----
+
+The following table provides a summary:
 
 
 .. list-table::
