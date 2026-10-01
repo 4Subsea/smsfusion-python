@@ -1,264 +1,178 @@
 Quickstart
 ==========
-This is a quick introduction to the `SMS Fusion` Python package. The package provides
-Python implementations of INS algorithms as presented below.
+This is a quick introduction to the `SMS Fusion` Python package. ``smsfusion``
+provides a family of `multiplicative extended Kalman filters` (MEKF) that fuse
+measurements from an `inertial measurement unit` (IMU) with optional aiding
+measurements (e.g., position, velocity and heading) to estimate the motion of a
+body.
 
-Inertial navigation primer
---------------------------
-Measurement data from an `inertial measurement unit` (IMU) forms the backbone of an
-`inertial navigation system` (INS). These measurements are integrated to estimate the
-position, velocity, and attitude (PVA) of the moving object to which the IMU is attached.
-Since the IMU's measurements are subject to noise and bias, the PVA estimates will drift
-over time if they are not corrected. Thus, `Aided INS` (AINS) systems incorporate additional
-long-term stable aiding measurements to ensure convergence and stability of the INS.
-The aiding measurements are typically provided by a `global navigation satellite system`
-(GNSS) and a compass, providing absolute position, velocity, and heading information.
+Choosing a filter
+-----------------
+All filters estimate attitude and gyroscope bias, and can be operated with IMU
+measurements only (VRU mode), where roll and pitch are stabilized using the
+known direction of gravity. Adding heading aiding (e.g., a compass) stabilizes
+yaw as well. The filters differ in which additional states they estimate:
 
-``smsfusion`` provides Python implementations of a few AINS algorithms, including
-:class:`~smsfusion.AidedINS`, :class:`~smsfusion.AHRS` and :class:`~smsfusion.VRU`.
-In this quickstart guide we will demonstrate how to use these AINS algorithms to
-estimate PVA of a moving body using IMU measurements and aiding measurements.
+.. list-table::
+   :header-rows: 1
+   :widths: 15 25 60
+
+   * - Filter
+     - States
+     - When to use
+   * - :class:`~smsfusion.AMEKF`
+     - Attitude
+     - Attitude-only estimation where speed is important and no velocity or
+       position aiding is available.
+   * - :class:`~smsfusion.VAMEKF`
+     - Velocity, attitude
+     - Better attitude accuracy than :class:`~smsfusion.AMEKF` when used with
+       zero-velocity aiding. Requires the gravitational acceleration to be
+       known, and runs somewhat slower.
+   * - :class:`~smsfusion.PVAMEKF`
+     - Position, velocity, attitude
+     - Full estimation of all degrees of freedom when full aiding (e.g., GNSS
+       position/velocity and compass heading) is available.
 
 Measurement data
 ----------------
-This quickstart guide assumes that you have access to accelerometer and gyroscope
-data from an IMU sensor, and ideally position and heading data from other aiding
-sensors. If you do not have access to such data, you can generate synthetic
-measurements using the code provided here.
+The filters are updated with velocity increments, ``dvel`` (m/s), and attitude
+increments, ``dtheta`` (rad), rather than with specific force and angular rate
+directly. For most applications, the simple approximations ``dvel = f * dt``
+and ``dtheta = w * dt`` are sufficient, where ``f`` is the specific force in
+m/s^2, ``w`` is the angular rate in rad/s, and ``dt = 1 / fs`` is the time step.
+For higher accuracy, e.g., when downsampling high-rate IMU data, use
+:class:`~smsfusion.ConingScullingAlg` to compute coning and sculling corrected
+increments.
 
-Using the ``benchmark`` module, you can generate synthetic 3D motion data with ``smsfusion``.
-For example, you can generate beating signals representing position, velocity and
-attitude (PVA) degrees of freedom using :func:`~smsfusion.benchmark.benchmark_full_pva_beat_202311A`:
+If you do not have access to real measurements, synthetic data can be generated
+with the ``benchmark`` and ``noise`` modules:
 
 .. code-block:: python
 
+    import numpy as np
+    import smsfusion as sf
     from smsfusion.benchmark import benchmark_full_pva_beat_202311A
 
 
     fs = 10.24  # sampling rate in Hz
+    dt = 1.0 / fs
     t, pos, vel, euler, acc, gyro = benchmark_full_pva_beat_202311A(fs)
-    head = euler[:, 2]
 
-Note that the generated position signals are in meters (m), velocity signals are in meters
-per second (m/s), and attitude signals are in radians (rad). The accelerometer signals
-are in meters per second squared (m/s^2), and the gyroscope signals are in radians
-per second (rad/s). If your measurement data is given in other units, you must account
-for that in other sections of this quickstart guide.
+    # Add IMU noise
+    err_acc = sf.constants.ERR_ACC_MOTION2
+    err_gyro = sf.constants.ERR_GYRO_MOTION2
+    imu_noise = sf.noise.IMUNoise(err_acc, err_gyro)(fs, len(t))
+    dvel = (acc + imu_noise[:, :3]) * dt
+    dtheta = (gyro + imu_noise[:, 3:]) * dt
 
-To emulate real sensor recordings, these reference signals must be polluted with noise.
-The ``noise`` module that comes with ``smsfusion`` provides a variety of noise models
-that can be used to corrupt the reference signals. For example, the :func:`~smsfusion.noise.IMUNoise`
-class can be used to add IMU-like noise to accelerometer and gyroscope signals:
-
-.. code-block:: python
-
-    import smsfusion as sf
-
-
-    fs = 10.24  # sampling rate in Hz
-    err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
-    err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
-    imu_noise = sf.noise.IMUNoise(err_acc, err_gyro)(fs, len(acc))
-    acc_imu = acc + imu_noise[:, :3]
-    gyro_imu = gyro + imu_noise[:, 3:]
-
-Similarly, white noise can be added to the position and heading measurements using
-``NumPy``'s random number generator:
-
-.. code-block:: python
-
-    import numpy as np
-
-
-    pos_noise_std = 0.1  # m
-    head_noise_std = 0.01  # rad
+    # Add aiding noise
     rng = np.random.default_rng()
+    pos_noise_std = 0.1  # m
+    vel_noise_std = 0.05  # m/s
+    head_noise_std = 0.01  # rad
     pos_aid = pos + pos_noise_std * rng.standard_normal(pos.shape)
-    head_aid = head + head_noise_std * rng.standard_normal(head.shape)
+    vel_aid = vel + vel_noise_std * rng.standard_normal(vel.shape)
+    head_aid = euler[:, 2] + head_noise_std * rng.standard_normal(len(t))
 
-
-For simpler cases where only compass or no aiding is available, consider using
-:func:`~smsfusion.benchmark.benchmark_pure_attitude_beat_202311A` instead to
-generate synthetic data.
-
-INS algorithms
---------------
-The following INS algorithms are provided by ``smsfusion``:
-
-* :class:`~smsfusion.AidedINS`: Aided INS (AINS) algorithm. Used to estimate position,
-  velocity and attitude (PVA) using IMU data, GNSS data and compass data.
-* :class:`~smsfusion.AHRS`: AHRS wrapper around :class:`~smsfusion.AidedINS` with sane defaults.
-  Used to estimate attitude only using IMU data and compass data.
-* :class:`~smsfusion.VRU`: VRU wrapper around :class:`~smsfusion.AidedINS` with sane defaults.
-  Used to estimate roll and pitch only using IMU data.
-* :class:`~smsfusion.StrapdownINS`: Simple strapdown INS algorithm, where the
-  IMU measurements are integrated without incorporating any additional aiding measurements.
-  The state estimates will therefore drift over time and quickly diverge from their true values.
-  This class is primarily used for PVA propagation in other aided INS algorithms.
-
-All AINS algorithms provided by ``smsfusion`` are based on a fusion filtering technique
-known as the `multiplicative extended Kalman filter` (MEKF).
-
-AidedINS - IMU + heading and position aiding
-............................................
-If you have access to accelerometer and gyroscope data from an IMU sensor, as well
-as position and heading data from other aiding sensors, you can estimate the position,
-velocity and attitude (PVA) of a moving body using the :func:`~smsfusion.AidedINS` class:
+AMEKF - attitude only
+---------------------
+:class:`~smsfusion.AMEKF` is the lightest filter. It uses the accelerometer and
+the known direction of gravity to correct roll and pitch, and optionally a
+heading measurement to correct yaw:
 
 .. code-block:: python
 
-    import numpy as np
-    import smsfusion as sf
+    amekf = sf.AMEKF(fs)
 
+    euler_est = []
+    for dvel_i, dtheta_i, head_i in zip(dvel, dtheta, head_aid):
+        amekf.update(dvel_i, dtheta_i, head=head_i, head_var=head_noise_std**2)
+        euler_est.append(amekf.euler())
+    euler_est = np.array(euler_est)
 
-    # Initialize AINS
-    fs = 10.24  # sampling rate in Hz
-    ains = sf.AidedINS(fs)
+Omit ``head`` to run in VRU mode, in which case yaw will drift.
 
-    # Estimate PVA states sequentially using AINS
+VAMEKF - attitude with zero-velocity aiding
+-------------------------------------------
+:class:`~smsfusion.VAMEKF` also estimates velocity, which allows it to separate
+gravity from the body's own acceleration. By default, it applies zero-velocity
+pseudo aiding (``vel=(0, 0, 0)`` with a large variance), which assumes that the
+body is stationary on average. This gives more accurate attitude estimates than
+:class:`~smsfusion.AMEKF` for bodies in oscillating motion, e.g., on a vessel.
+
+The gravitational acceleration must be known. Use :func:`~smsfusion.gravity`
+to compute it from the latitude:
+
+.. code-block:: python
+
+    vamekf = sf.VAMEKF(fs, g=sf.gravity(lat=60.0))
+
+    euler_est = []
+    for dvel_i, dtheta_i, head_i in zip(dvel, dtheta, head_aid):
+        vamekf.update(dvel_i, dtheta_i, head=head_i, head_var=head_noise_std**2)
+        euler_est.append(vamekf.euler())
+    euler_est = np.array(euler_est)
+
+The zero-velocity aiding can be tuned through the ``vel_var`` argument of
+:meth:`~smsfusion.VAMEKF.update`.
+
+PVAMEKF - full position, velocity and attitude
+----------------------------------------------
+:class:`~smsfusion.PVAMEKF` estimates all degrees of freedom, and should be used
+when position, velocity and heading aiding are available. If the position aiding
+sensor (e.g., a GNSS antenna) is offset from the IMU, specify the offset with
+the ``lever_arm`` argument:
+
+.. code-block:: python
+
+    pvamekf = sf.PVAMEKF(fs, g=sf.gravity(lat=60.0))
+
     pos_est, vel_est, euler_est = [], [], []
-    for f_i, w_i, p_i, h_i in zip(acc_imu, gyro_imu, pos_aid, head_aid):
-        ains.update(
-            f_i,
-            w_i,
-            degrees=False,
+    for dvel_i, dtheta_i, p_i, v_i, head_i in zip(dvel, dtheta, pos_aid, vel_aid, head_aid):
+        pvamekf.update(
+            dvel_i,
+            dtheta_i,
             pos=p_i,
             pos_var=pos_noise_std**2 * np.ones(3),
-            head=h_i,
+            vel=v_i,
+            vel_var=vel_noise_std**2 * np.ones(3),
+            head=head_i,
             head_var=head_noise_std**2,
-            head_degrees=False,
         )
-        pos_est.append(ains.position())
-        vel_est.append(ains.velocity())
-        euler_est.append(ains.euler(degrees=False))
-
+        pos_est.append(pvamekf.position())
+        vel_est.append(pvamekf.velocity())
+        euler_est.append(pvamekf.euler())
     pos_est = np.array(pos_est)
     vel_est = np.array(vel_est)
     euler_est = np.array(euler_est)
 
-AHRS - IMU + heading aiding
-...........................
-In scenarios where only compass aiding is available (i.e., no GNSS), the INS is
-unable to provide reliable position and velocity information, but it can still
-deliver stable attitude estimates. When the AINS is operated in this mode, we call
-it an `Attitude and Heading Reference System` (AHRS).
-
-To limit integration drift in AHRS mode, we must assume that the sensor on average
-is stationary. The static assumtion is incorporated as so-called pseudo aiding measurements
-of zero with corresponding error variances. For most applications, the following pseudo
-aiding is sufficient:
-
-* Position: 0 m with 1000 m standard deviation
-* Velocity: 0 m/s with 10 m/s standard deviation
-
-If you have access to accelerometer and gyroscope data from an IMU sensor and
-heading measurements from a compass, you can estimate the attitude of a moving body
-using the :func:`~smsfusion.AHRS` class:
-
-.. code-block:: python
-
-    import numpy as np
-    import smsfusion as sf
-
-
-    # Initialize AHRS
-    fs = 10.24  # sampling rate in Hz
-    ahrs = sf.AHRS(fs)
-
-    # Estimate attitude sequentially using AHRS
-    euler_est = []
-    for f_i, w_i, h_i in zip(acc_imu, gyro_imu, head_aid):
-        ahrs.update(
-            f_i,
-            w_i,
-            degrees=False,
-            head=h_i,
-            head_var=head_noise_std**2,
-            head_degrees=False,
-        )
-        euler_est.append(ahrs.euler(degrees=False))
-
-    euler_est = np.array(euler_est)
-
-VRU - IMU only (aiding-denied)
-..............................
-In aiding-denied scenarios, where no aiding measurements are available, the INS
-must rely solely on the IMU's measurements to estimate the body's motion. In such
-scenarios only the roll and pitch degrees of freedom are observable, as they can
-still be corrected using the IMU's accelerometer data and the known direction of
-the gravitational field. When operated in this mode, the AINS is referred to as
-a `Vertical Reference Unit` (VRU).
-
-To limit integration drift in VRU mode, we must assume that the sensor on average
-is stationary. The static assumption is incorporated as so-called pseudo aiding measurements
-of zero with corresponding error variances. For most applications, the following pseudo
-aiding is sufficient:
-
-* Position: 0 m with 1000 m standard deviation
-* Velocity: 0 m/s with 10 m/s standard deviation
-
-Note that the heading is not corrected in VRU mode, and the yaw degree of freedom
-will thus drift arbitrarily.
-
-If you have access to accelerometer and gyroscope data from an IMU sensor, you can
-estimate the roll and pitch degrees of freedom of a moving body using the
-:func:`~smsfusion.VRU` class:
-
-.. code-block:: python
-
-    import numpy as np
-    import smsfusion as sf
-
-
-    # Initialize VRU
-    fs = 10.24  # sampling rate in Hz
-    vru = sf.VRU(fs)
-
-    # Estimate roll and pitch sequentially using VRU
-    roll_pitch_est = []
-    for f_i, w_i in zip(acc_imu, gyro_imu):
-        vru.update(f_i, w_i, degrees=False)
-        roll_pitch_est.append(vru.euler(degrees=False)[:2])
-
-    roll_pitch_est = np.array(roll_pitch_est)
-
+Pass ``None`` for any aiding measurement that is unavailable at a given time
+step. Without position and velocity aiding, the filter falls back to zero-position
+and zero-velocity pseudo aiding.
 
 Smoothing
 ---------
-Smoothing refers to post-processing techniques that enhance the accuracy of a Kalman
-filter's state and covariance estimates by incorporating both past and future measurements.
-In contrast, standard forward filtering (as provided by :class:`~smsfusion.AidedINS`,
-:class:`~smsfusion.AHRS` and :class:`~smsfusion.VRU`) relies only on past and current
-measurements, leading to suboptimal estimates when future data is available.
-
-Fixed-interval smoothing
-........................
-The :class:`~smsfusion.FixedIntervalSmoother` class implements fixed-interval smoothing
-for an :class:`~smsfusion.AidedINS` instance or one of its subclasses (:class:`~smsfusion.AHRS`
-or :class:`~smsfusion.VRU`). After a complete forward pass using the given AINS
-algorithm, a backward sweep with a smoothing algorithm is performed to refine the
-state and covariance estimates. Fixed-interval smoothing is particularly useful
-when the entire measurement sequence is available, as it allows for optimal state
-estimation by considering all measurements in the sequence.
-
-The following example demonstrates how to refine a :class:`~smsfusion.VRU`'s roll
-and pitch estimates using :class:`~smsfusion.FixedIntervalSmoother`. The same
-workflow applies if the underlying AINS instance is an :class:`~smsfusion.AidedINS`
-or an :class:`~smsfusion.AHRS` instead. However, note that the ``update()`` method may take
-additional aiding parameters depending on the type of AINS instance used.
+When the full measurement sequence is available (post-processing), the
+:class:`~smsfusion.FixedIntervalSmoother` refines the estimates of a
+:class:`~smsfusion.PVAMEKF` by performing a backward sweep with the
+Rauch-Tung-Striebel (RTS) algorithm after the forward pass. Its ``update()``
+method takes the same arguments as :meth:`~smsfusion.PVAMEKF.update`, and the
+smoothed estimates are returned for all time steps:
 
 .. code-block:: python
 
-    import smsfusion as sf
+    smoother = sf.FixedIntervalSmoother(sf.PVAMEKF(fs, g=sf.gravity(lat=60.0)))
 
+    for dvel_i, dtheta_i, p_i, head_i in zip(dvel, dtheta, pos_aid, head_aid):
+        smoother.update(
+            dvel_i,
+            dtheta_i,
+            pos=p_i,
+            pos_var=pos_noise_std**2 * np.ones(3),
+            head=head_i,
+            head_var=head_noise_std**2,
+        )
 
-    # Initialize VRU-based fixed-interval smoother
-    fs = 10.24  # sampling rate in Hz
-    smoother = sf.FixedIntervalSmoother(sf.VRU(fs))
-
-    # Update with accelerometer and gyroscope measurements
-    for f_i, w_i in zip(acc_imu, gyro_imu):
-        smoother.update(f_i, w_i, degrees=False)
-
-    # Get smoothed roll and pitch estimates
-    roll_pitch_est = smoother.euler(degrees=False)[:, :2]
+    pos_est = smoother.position()  # shape (n, 3)
+    euler_est = smoother.euler()  # shape (n, 3)
