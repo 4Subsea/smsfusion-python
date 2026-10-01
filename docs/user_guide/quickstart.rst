@@ -64,11 +64,11 @@ different aiding scenarios.
 
 Measurement data
 ----------------
-This quickstart guide assumes that you have access to accelerometer and gyroscope
-measurements from an IMU sensor, and ideally position, velocity and/or heading
-measurements from other aiding sensors. If you do not have access to such data,
-you can generate synthetic measurements using the :mod:`~smsfusion.benchmark`
-module in ``smsfusion``:
+The next sections assume that you have access to accelerometer and gyroscope
+measurements from an IMU sensor, and (depending on the scenario) position, velocity
+and heading measurements from other, external aiding sensors. If you don't have
+access to such data, you can generate synthetic measurements using the
+:mod:`~smsfusion.benchmark` module in ``smsfusion``:
 
 .. code-block:: python
 
@@ -87,6 +87,12 @@ module in ``smsfusion``:
     rng = np.random.default_rng(1)
     pos_aid = pos + 0.1 * rng.standard_normal(pos.shape)
     head_aid = head + 0.01 * rng.standard_normal(head.shape)
+
+Note that the generated position signals are in meters (m), velocity signals are in meters
+per second (m/s), and attitude signals are in radians (rad). The accelerometer signals
+are in meters per second squared (m/s^2), and the gyroscope signals are in radians
+per second (rad/s). If your measurement data is given in other units, you must account
+for that in other sections of this quickstart guide.
 
 
 Choosing a filter
