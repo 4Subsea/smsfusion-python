@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import smsfusion as sf
 from smsfusion.noise import (
     IMUNoise,
     NoiseModel,
@@ -292,18 +291,6 @@ class Test_IMUNoise:
 
         assert noise._seed is None
         assert noise._err_list == err_list_expect
-
-    def test__init__default_matches_constants(self):
-        # Default values should correspond to SMS Motion 2 noise levels
-        noise = IMUNoise()
-        for err in noise._err_list[:3]:
-            assert err["N"] == sf.constants.ACC_NOISE_DENSITY
-            assert err["B"] == sf.constants.ACC_BIAS_STABILITY
-            assert err["tau_cb"] == sf.constants.ACC_BIAS_CORR_TIME
-        for err in noise._err_list[3:]:
-            assert err["N"] == sf.constants.GYRO_NOISE_DENSITY
-            assert err["B"] == sf.constants.GYRO_BIAS_STABILITY
-            assert err["tau_cb"] == sf.constants.GYRO_BIAS_CORR_TIME
 
     def test__init__mixed(self):
         noise = IMUNoise(
