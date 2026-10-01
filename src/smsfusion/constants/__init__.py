@@ -1,8 +1,17 @@
-from ._constants import ERR_ACC_MOTION2, ERR_GYRO_MOTION2
+from ._constants import (
+    ACC_BIAS_CORR_TIME,
+    ACC_BIAS_STABILITY,
+    ACC_NOISE_DENSITY,
+    GYRO_BIAS_CORR_TIME,
+    GYRO_BIAS_STABILITY,
+    GYRO_NOISE_DENSITY,
+)
 
 __all__ = [
-    "ERR_ACC_MOTION2",
-    "ERR_GYRO_MOTION2",
-    "P0",
-    "X0",
+    "ACC_BIAS_CORR_TIME",
+    "ACC_BIAS_STABILITY",
+    "ACC_NOISE_DENSITY",
+    "GYRO_BIAS_CORR_TIME",
+    "GYRO_BIAS_STABILITY",
+    "GYRO_NOISE_DENSITY",
 ]
