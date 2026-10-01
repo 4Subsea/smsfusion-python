@@ -15,8 +15,8 @@ The aiding measurements are typically provided by a `global navigation satellite
 (GNSS) and a compass, providing absolute position, velocity, and heading information.
 
 Internally, an AINS uses a fusion filter to estimate its states. ``smsfusion`` provides
-Python implementations of a fusion filter known as the `multiplicative extended Kalman filter`
-(MEKF). Three versions of the MEKF filter are available: :class:`~smsfusion.AMEKF`,
+Python implementations of a type of fusion filter known as the `multiplicative extended
+Kalman filter` (MEKF). Three versions of the MEKF filter are available: :class:`~smsfusion.AMEKF`,
 :class:`~smsfusion.VAMEKF`, and :class:`~smsfusion.PVAMEKF`. In this quickstart guide
 we will demonstrate how to use these MEKF filters to estimate position, velocity
 and/or attitude of a moving body using IMU measurements and optional external aiding
@@ -25,10 +25,9 @@ measurements.
 
 Choosing a filter
 -----------------
-All filters estimate attitude and gyroscope bias, and can be operated with IMU
-measurements only (VRU mode), where roll and pitch are stabilized using the
-known direction of gravity. Adding heading aiding (e.g., a compass) stabilizes
-yaw as well. The filters differ in which additional states they estimate:
+The choice of which MEKF filter to use depends on the states you need to estimate,
+and the availability of external aiding. The table below summarizes the different
+MEKF filters and when to use them.
 
 .. list-table::
    :header-rows: 1
@@ -37,19 +36,19 @@ yaw as well. The filters differ in which additional states they estimate:
    * - Filter
      - States
      - When to use
-   * - :class:`~smsfusion.AMEKF`
-     - Attitude
-     - Attitude-only estimation where speed is important and no velocity or
-       position aiding is available.
+   * - :class:`~smsfusion.PVAMEKF`
+     - Position, velocity, attitude, gyroscope bias
+     - Full estimation of all degrees of freedom when full aiding (e.g., GNSS
+       position/velocity and compass heading) is available.
    * - :class:`~smsfusion.VAMEKF`
-     - Velocity, attitude
+     - Velocity, attitude, gyroscope bias
      - Better attitude accuracy than :class:`~smsfusion.AMEKF` when used with
        zero-velocity aiding. Requires the gravitational acceleration to be
        known, and runs somewhat slower.
-   * - :class:`~smsfusion.PVAMEKF`
-     - Position, velocity, attitude
-     - Full estimation of all degrees of freedom when full aiding (e.g., GNSS
-       position/velocity and compass heading) is available.
+   * - :class:`~smsfusion.AMEKF`
+     - Attitude, gyroscope bias
+     - Attitude-only estimation where speed is important and no velocity or
+       position aiding is available.
 
 Measurement data
 ----------------
