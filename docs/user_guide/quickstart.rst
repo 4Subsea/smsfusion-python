@@ -49,7 +49,8 @@ different scenarios:
        | Gyro bias
      - | Velocity (GNSS),
        | Heading (compass)
-     - Estimate all attitude and velocity.
+     - Estimate attitude and velocity when velocity (GNSS) and heading (compass)
+       aiding is available.
    * - :class:`~smsfusion.AMEKF`
      - | Roll,
        | Pitch,
