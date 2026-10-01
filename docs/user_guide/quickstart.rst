@@ -14,7 +14,7 @@ long-term stable aiding measurements to ensure convergence and stability of the 
 The aiding measurements are typically provided by a `global navigation satellite system`
 (GNSS) and a compass, providing absolute position, velocity, and heading information.
 
-Internally, the AINS uses fusion filters to estimate its states. ``smsfusion`` provides
+Internally, an AINS uses a fusion filter to estimate its states. ``smsfusion`` provides
 Python implementations of a fusion filter known as the `multiplicative extended Kalman filter`
 (MEKF). Three versions of the MEKF filter are available: :class:`~smsfusion.AMEKF`,
 :class:`~smsfusion.VAMEKF`, and :class:`~smsfusion.PVAMEKF`. In this quickstart guide
