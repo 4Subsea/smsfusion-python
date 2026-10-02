@@ -255,7 +255,7 @@ with position and heading aiding:
     p0 = pos_meas[0]
     v0 = vel_meas[0]
     q0 = sf.quaternion_from_euler(euler[0], degrees=False)
-    mekf = sf.PVAMEKF(fs, q0=q0, g=sf.gravity(lat))
+    mekf = sf.PVAMEKF(fs, q0=q0, v0=v0, p0=p0, g=sf.gravity(lat))
 
     # Update with IMU and aiding measurements
     pos_est, vel_est, euler_est = [], [], []
@@ -308,7 +308,7 @@ filter's roll and pitch estimates using :class:`~smsfusion.FixedIntervalSmoother
     p0 = pos_meas[0]
     v0 = vel_meas[0]
     q0 = sf.quaternion_from_euler(euler[0], degrees=False)
-    mekf = sf.PVAMEKF(fs, p0=p0, v0=v0, q0=q0, g=sf.gravity(lat))
+    mekf = sf.PVAMEKF(fs, q0=q0, v0=v0, p0=p0, g=sf.gravity(lat))
     smoother = sf.FixedIntervalSmoother(mekf)
 
     # Update with IMU and aiding measurements
