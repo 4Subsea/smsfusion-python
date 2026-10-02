@@ -112,13 +112,17 @@ and robust choice for estimating roll and pitch without external aiding:
     import smsfusion as sf
 
 
+    # Initialize MEKF
     q0 = sf.quaternion_from_euler(euler[0], degrees=False)
     mekf = sf.AMEKF(fs, q0=q0)
 
+    # Update with IMU measurements
     roll_pitch_est = []
     for f_i, w_i in zip(f_meas, w_meas):
-        mekf.update(f_i / fs, w_i / fs)
+        mekf.update(f_i / fs, w_i / fs)  # w/ default gravity reference aiding
         roll_pitch_est.append(mekf.euler()[:2])
+
+    # State estimates
     roll_pitch_est = np.array(roll_pitch_est)
 
 Alternatively, :class:`~smsfusion.VAMEKF` with zero-velocity aiding can be used:
@@ -128,6 +132,7 @@ Alternatively, :class:`~smsfusion.VAMEKF` with zero-velocity aiding can be used:
     import smsfusion as sf
 
 
+    # Initialize MEKF
     lat = 59.0  # latitude
     q0 = sf.quaternion_from_euler(euler[0], degrees=False)
     mekf = sf.VAMEKF(fs, q0=q0, g=sf.gravity(lat))
@@ -135,11 +140,15 @@ Alternatively, :class:`~smsfusion.VAMEKF` with zero-velocity aiding can be used:
     # Zero-velocity update (ZUPT) with 10 m/s standard deviation
     zupt = {"vel": (0.0, 0.0, 0.0), "vel_var": (100.0, 100.0, 100.0)}
 
+    # Update with IMU and aiding measurements
     roll_pitch_est = []
     for f_i, w_i in zip(f_meas, w_meas):
         mekf.update(f_i / fs, w_i / fs, **zupt)
         roll_pitch_est.append(mekf.euler()[:2])
+
+    # State estimates
     roll_pitch_est = np.array(roll_pitch_est)
+
 
 .. note::
 
@@ -162,13 +171,17 @@ is the most lightweight and robust choice for estimating roll, pitch, and yaw:
     import smsfusion as sf
 
 
+    # Initialize MEKF
     q0 = sf.quaternion_from_euler(euler[0], degrees=False)
     mekf = sf.AMEKF(fs, q0=q0)
 
+    # Update with IMU and aiding measurements
     euler_est = []
     for f_i, w_i, h_i in zip(f_meas, w_meas, head_meas):
         mekf.update(f_i / fs, w_i / fs, head=h_i, head_var=0.01**2)
         euler_est.append(mekf.euler())
+
+    # State estimates
     euler_est = np.array(euler_est)
 
 Alternatively, :class:`~smsfusion.VAMEKF` with zero-velocity and heading aiding
@@ -179,6 +192,7 @@ can be used:
     import smsfusion as sf
 
 
+    # Initialize MEKF
     lat = 59.0  # latitude
     q0 = sf.quaternion_from_euler(euler[0], degrees=False)
     mekf = sf.VAMEKF(fs, q0=q0, g=sf.gravity(lat))
@@ -186,10 +200,13 @@ can be used:
     # Zero-velocity update (ZUPT) with 10 m/s standard deviation
     zupt = {"vel": (0.0, 0.0, 0.0), "vel_var": (100.0, 100.0, 100.0)}
 
+    # Update with IMU and aiding measurements
     euler_est = []
     for f_i, w_i, h_i in zip(f_meas, w_meas, head_meas):
         mekf.update(f_i / fs, w_i / fs, head=h_i, head_var=0.01**2, **zupt)
         euler_est.append(mekf.euler())
+
+    # State estimates
     euler_est = np.array(euler_est)
 
 
@@ -206,12 +223,14 @@ aiding:
     import smsfusion as sf
 
 
+    # Initialize MEKF
     lat = 59.0  # latitude
     p0 = pos_meas[0]
     v0 = vel_meas[0]
     q0 = sf.quaternion_from_euler(euler[0], degrees=False)
     mekf = sf.PVAMEKF(fs, q0=q0, g=sf.gravity(lat))
 
+    # Update with IMU and aiding measurements
     pos_est, vel_est, euler_est = [], [], []
     for f_i, w_i, h_i, p_i in zip(df_meas, w_meas, head_meas, pos_meas):
         mekf.update(
@@ -225,6 +244,8 @@ aiding:
         pos_est.append(mekf.position())
         vel_est.append(mekf.velocity())
         euler_est.append(mekf.euler())
+
+    # State estimates
     pos_est = np.array(pos_est)
     vel_est = np.array(vel_est)
     euler_est = np.array(euler_est)
@@ -255,9 +276,11 @@ roll and pitch estimates using :class:`~smsfusion.FixedIntervalSmoother`:
     import smsfusion as sf
 
 
+    # Initialize smoother
     fs = 10.24  # sampling rate in Hz
     smoother = sf.FixedIntervalSmoother(sf.PVAMEKF(fs))
 
+    # Update with IMU and aiding measurements
     for f_i, w_i, h_i, p_i in zip(df_meas, w_meas, head_meas, pos_meas):
         smoother.update(
             f_i,
