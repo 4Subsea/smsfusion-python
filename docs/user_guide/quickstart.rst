@@ -30,8 +30,8 @@ different scenarios:
    :header-rows: 1
    :widths: 30 40 30
 
-   * - Aiding
-     - Filter
+   * - External aiding
+     - Filter options
      - State estimates
    * - No external aiding
      - | :class:`~smsfusion.AMEKF` (w/ gravity reference),
