@@ -194,4 +194,33 @@ can be used:
 
 IMU + GNSS and compass aiding - estimate position, velocity and attitude
 ------------------------------------------------------------------------
+With GNSS and compass aiding, it is possible to estimate the full state of the system,
+including position, velocity, and attitude.
 
+Use the :class:`~smsfusion.PVAMEKF` for full state estimation with GNSS and compass
+aiding:
+
+.. code-block:: python
+
+    import smsfusion as sf
+
+
+    lat = 59.0  # latitude
+    mekf = sf.PVAMEKF(fs, g=sf.gravity(lat))
+
+    pos_est, vel_est, euler_est = []
+    for dvel_i, dtheta_i, head_i, pos_i in zip(dvel_meas, dtheta_meas, head_meas, pos_meas):
+        mekf.update(
+            dvel_i,
+            dtheta_i,
+            head=head_i,
+            head_var=0.01**2,
+            pos=pos_i,
+            pos_var=(0.1, 0.1, 0.1),
+        )
+        pos_est.append(mekf.position())
+        vel_est.append(mekf.velocity())
+        euler_est.append(mekf.euler())
+    pos_est = np.array(pos_est)
+    vel_est = np.array(vel_est)
+    euler_est = np.array(euler_est)
