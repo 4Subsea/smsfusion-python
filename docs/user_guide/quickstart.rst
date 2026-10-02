@@ -112,7 +112,8 @@ and robust choice for estimating roll and pitch without external aiding:
     import smsfusion as sf
 
 
-    mekf = sf.AMEKF(fs)
+    q0 = sf.quaternion_from_euler(euler[0], degrees=False)
+    mekf = sf.AMEKF(fs, q0=q0)
 
     roll_pitch_est = []
     for f_i, w_i in zip(f_meas, w_meas):
@@ -128,7 +129,8 @@ Alternatively, :class:`~smsfusion.VAMEKF` with zero-velocity aiding can be used:
 
 
     lat = 59.0  # latitude
-    mekf = sf.VAMEKF(fs, g=sf.gravity(lat))
+    q0 = sf.quaternion_from_euler(euler[0], degrees=False)
+    mekf = sf.VAMEKF(fs, q0=q0, g=sf.gravity(lat))
 
     # Zero-velocity update (ZUPT) with 10 m/s standard deviation
     zupt = {"vel": (0.0, 0.0, 0.0), "vel_var": (100.0, 100.0, 100.0)}
@@ -160,7 +162,8 @@ is the most lightweight and robust choice for estimating roll, pitch, and yaw:
     import smsfusion as sf
 
 
-    mekf = sf.AMEKF(fs)
+    q0 = sf.quaternion_from_euler(euler[0], degrees=False)
+    mekf = sf.AMEKF(fs, q0=q0)
 
     euler_est = []
     for f_i, w_i, h_i in zip(f_meas, w_meas, head_meas):
@@ -177,7 +180,8 @@ can be used:
 
 
     lat = 59.0  # latitude
-    mekf = sf.VAMEKF(fs, g=sf.gravity(lat))
+    q0 = sf.quaternion_from_euler(euler[0], degrees=False)
+    mekf = sf.VAMEKF(fs, q0=q0, g=sf.gravity(lat))
 
     # Zero-velocity update (ZUPT) with 10 m/s standard deviation
     zupt = {"vel": (0.0, 0.0, 0.0), "vel_var": (100.0, 100.0, 100.0)}
@@ -203,7 +207,10 @@ aiding:
 
 
     lat = 59.0  # latitude
-    mekf = sf.PVAMEKF(fs, g=sf.gravity(lat))
+    p0 = pos_meas[0]
+    v0 = vel_meas[0]
+    q0 = sf.quaternion_from_euler(euler[0], degrees=False)
+    mekf = sf.PVAMEKF(fs, q0=q0, g=sf.gravity(lat))
 
     pos_est, vel_est, euler_est = [], [], []
     for f_i, w_i, h_i, p_i in zip(df_meas, w_meas, head_meas, pos_meas):
@@ -262,6 +269,7 @@ roll and pitch estimates using :class:`~smsfusion.FixedIntervalSmoother`:
             degrees=False,
         )
 
+    # Smoothed state estimates
     pos_est = smoother.position()
     vel_est = smoother.velocity()
     euler_est = smoother.euler()
