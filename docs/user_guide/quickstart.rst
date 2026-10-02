@@ -146,8 +146,8 @@ aiding, is that it is sensitive to errors from sustained linear accelerations; t
 is because we must assume that the body is stationary such that the accelerometer
 measures only the gravitational acceleration.
 
-An alternative filter option for this scenario, is to use the :class:`~smsfusion.VAMEKF`
-with zero-velocity update (ZUPT). I.e., we assume that the body is stationary with
+An alternative filter option for this scenario is to use the :class:`~smsfusion.VAMEKF`
+with zero-velocity update (ZUPT); i.e., we assume that the body is stationary with
 zero velocity. This approach has shown better accuracy compared to the gravity
 reference aiding, although it still degrades under sustained linear accelerations.
 The following example demonstrates how to apply the filter:
