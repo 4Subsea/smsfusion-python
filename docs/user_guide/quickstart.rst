@@ -6,8 +6,8 @@ hardware, the algorithms provided by ``smsfusion`` can be used with any IMU sens
 
 Inertial navigation primer
 --------------------------
-Measurement data from `inertial measurement units` (IMUs) form the backbone of
-`inertial navigation systems` (INS). These measurements are integrated to estimate the
+Measurement data from an `inertial measurement units` (IMU) form the backbone of an
+`inertial navigation system` (INS). These measurements are integrated to estimate the
 position, velocity, and/or attitude (PVA) of the moving object to which the IMU is attached.
 Since the IMU's measurements are subject to noise and bias, the PVA estimates will drift
 over time if they are not corrected. Thus, `aided INS` (AINS) systems incorporate additional
