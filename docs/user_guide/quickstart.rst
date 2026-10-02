@@ -141,7 +141,7 @@ The following example demonstrates how to apply the filter:
 
 
     # Initialize MEKF
-    lat = 59.0  # latitude
+    lat = 60.0  # latitude
     q0 = sf.quaternion_from_euler(euler[0], degrees=False)
     mekf = sf.VAMEKF(fs, q0=q0, g=sf.gravity(lat))
 
@@ -202,7 +202,7 @@ with zero-velocity update (ZUPT) and heading aiding:
 
 
     # Initialize MEKF
-    lat = 59.0  # latitude
+    lat = 60.0  # latitude
     q0 = sf.quaternion_from_euler(euler[0], degrees=False)
     mekf = sf.VAMEKF(fs, q0=q0, g=sf.gravity(lat))
 
@@ -234,7 +234,7 @@ with position and heading aiding:
 
 
     # Initialize MEKF
-    lat = 59.0  # latitude
+    lat = 60.0  # latitude
     p0 = pos_meas[0]
     v0 = vel_meas[0]
     q0 = sf.quaternion_from_euler(euler[0], degrees=False)
@@ -287,7 +287,7 @@ filter's roll and pitch estimates using :class:`~smsfusion.FixedIntervalSmoother
 
 
     # Initialize smoother
-    lat = 59.0  # latitude
+    lat = 60.0  # latitude
     p0 = pos_meas[0]
     v0 = vel_meas[0]
     q0 = sf.quaternion_from_euler(euler[0], degrees=False)
