@@ -4,6 +4,22 @@ This is a short introduction to `SMS Fusion`: a Python library with inertial nav
 algorithms for `SMS Motion`. Although the primary purpose is to complement the SMS Motion
 hardware, the algorithms provided by ``smsfusion`` can be used with any IMU sensor.
 
+Inertial navigation primer
+--------------------------
+Measurement data from an `inertial measurement unit` (IMU) forms the backbone of an
+`inertial navigation system` (INS). These measurements are integrated to estimate the
+position, velocity, and attitude (PVA) of the moving object to which the IMU is attached.
+Since the IMU's measurements are subject to noise and bias, the PVA estimates will drift
+over time if they are not corrected. Thus, `aided INS` (AINS) systems incorporate additional
+long-term stable aiding measurements to ensure convergence and stability of the INS.
+The aiding measurements are typically provided by a `global navigation satellite system`
+(GNSS) and a compass, providing absolute position, velocity, and heading information.
+
+The algorithms used to combine IMU measurements with aiding measurements are commonly
+known as `fusion filters`. One of the most widely used fusion filters for PVA estimation
+is the `multiplicative extended Kalman filter` (MEKF).
+
+
 Multiplicative extended Kalman filter (MEKF)
 --------------------------------------------
 
