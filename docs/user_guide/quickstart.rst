@@ -100,8 +100,8 @@ are in meters per second squared (m/s^2), and the gyroscope signals are in radia
 per second (rad/s). If your measurement data is given in other units, you must account
 for that in other sections of this quickstart guide.
 
-No external aiding - estimate roll and pitch only
--------------------------------------------------
+IMU only (no external aiding) - estimate roll and pitch
+-------------------------------------------------------
 In aiding denied scenarios, where you don't have access to long-term stable aiding
 measurements, only the roll and pitch degrees of freedom can be estimated since
 these are still observable through accelerometer measurements and the known direction
@@ -123,8 +123,7 @@ and robust choice for estimating roll and pitch without external aiding:
         roll_pitch_est.append(mekf.euler()[:2])
     roll_pitch_est = np.array(roll_pitch_est)
 
-Alternatively, the :class:`~smsfusion.VAMEKF` with zero-velocity aiding can be
-used:
+Alternatively, :class:`~smsfusion.VAMEKF` with zero-velocity aiding can be used:
 
 .. code-block:: python
 
@@ -134,12 +133,12 @@ used:
     lat = 59.0  # latitude
     mekf = sf.VAMEKF(fs, g=sf.gravity(lat))
 
-    # Zero-velocity pseudo aiding with 10 m/s standard deviation
-    aiding = {"vel": (0.0, 0.0, 0.0), "vel_var": (100.0, 100.0, 100.0)}
+    # Zero-velocity update (ZUPT) with 10 m/s standard deviation
+    zupt = {"vel": (0.0, 0.0, 0.0), "vel_var": (100.0, 100.0, 100.0)}
 
     roll_pitch_est = []
     for dvel_i, dtheta_i in zip(dvel_meas, dtheta_meas):
-        mekf.update(dvel_i, dtheta_i, **aiding)
+        mekf.update(dvel_i, dtheta_i, **zupt)
         roll_pitch_est.append(mekf.euler()[:2])
     roll_pitch_est = np.array(roll_pitch_est)
 
@@ -147,3 +146,44 @@ The :class:`~smsfusion.VAMEKF` with zero-velocity aiding has shown higher accura
 compared to the :class:`~smsfusion.AMEKF` with gravity reference aiding. However,
 to ensure stability of the filter, a calibrated accelerometer is then required,
 and the correct local gravitational acceleration must be set.
+
+
+IMU + heading aiding - estimate roll, pitch and yaw
+---------------------------------------------------
+If heading aiding is available, yaw can also be estimated along with roll and pitch.
+
+Using :class:`~smsfusion.AMEKF` with gravity reference aiding and heading aiding
+is the most lightweight and robust choice for estimating roll, pitch, and yaw:
+
+.. code-block:: python
+
+    import smsfusion as sf
+
+
+    mekf = sf.AMEKF(fs)
+
+    euler_est = []
+    for dvel_i, dtheta_i, head_i in zip(dvel_meas, dtheta_meas, head_meas):
+        mekf.update(dvel_i, dtheta_i, head=head_i, head_var=0.01**2)
+        euler_est.append(mekf.euler())
+    euler_est = np.array(euler_est)
+
+Alternatively, :class:`~smsfusion.VAMEKF` with zero-velocity and heading aiding
+can be used:
+
+.. code-block:: python
+
+    import smsfusion as sf
+
+
+    lat = 59.0  # latitude
+    mekf = sf.VAMEKF(fs, g=sf.gravity(lat))
+
+    # Zero-velocity update (ZUPT) with 10 m/s standard deviation
+    zupt = {"vel": (0.0, 0.0, 0.0), "vel_var": (100.0, 100.0, 100.0)}
+
+    euler_est = []
+    for dvel_i, dtheta_i, head_i in zip(dvel_meas, dtheta_meas, head_meas):
+        mekf.update(dvel_i, dtheta_i, head=head_i, head_var=0.01**2, **zupt)
+        euler_est.append(mekf.euler())
+    euler_est = np.array(euler_est)
