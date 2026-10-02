@@ -53,16 +53,15 @@ The table below lists which MEKF filter to use for different aiding scenarios:
        | Yaw
 
 In the following sections, we will demonstrate how to apply the MEKF filters in
-different aiding scenarios.
+these different aiding scenarios.
 
 
 Measurement data
 ----------------
-The next sections assume that you have access to accelerometer and gyroscope
-measurements from an IMU sensor, and (depending on the scenario) position, velocity
-and heading measurements from other, external aiding sensors. If you don't have
-access to such data, you can generate synthetic measurements using the
-:mod:`~smsfusion.benchmark` module in ``smsfusion``:
+The examples given in the next sections assume that you have access to measurement
+data from an IMU sensor and, depending on the scenario, other external aiding sensors.
+If you don't have access to such data, you can generate synthetic measurements using
+the :mod:`~smsfusion.benchmark` module in ``smsfusion``:
 
 .. code-block:: python
 
@@ -77,12 +76,12 @@ access to such data, you can generate synthetic measurements using the
     head = euler[:, 2]
 
     # Add measurement noise
-    imu_noise = sf.noise.IMUNoise(seed=0)(fs, len(f))
-    f_meas = f + imu_noise[:, :3]
-    w_meas = w + imu_noise[:, 3:]
-    rng = np.random.default_rng(1)
-    pos_meas = pos + 0.1 * rng.standard_normal(pos.shape)
-    head_meas = head + 0.01 * rng.standard_normal(head.shape)
+    rng = np.random.default_rng(0)
+    imu_noise = sf.noise.IMUNoise(seed=1)(fs, len(f))
+    f_meas = f + imu_noise[:, :3]  # m/s^2
+    w_meas = w + imu_noise[:, 3:]  # rad/s
+    pos_meas = pos + 0.1 * rng.standard_normal(pos.shape)  # m
+    head_meas = head + 0.01 * rng.standard_normal(head.shape)  # rad
 
 Note that the generated position signals are in meters (m), velocity signals are in meters
 per second (m/s), and attitude signals are in radians (rad). The accelerometer signals
