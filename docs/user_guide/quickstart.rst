@@ -23,8 +23,7 @@ resulting in simpler filters with reduced computational complexity at the expens
 of potentially lower accuracy. In aiding denied scenarios, where external aiding
 is not feasible or simply not available, the simpler filters are more suitable.
 
-The following table lists which MEKF filter and aiding configuration to use for
-different scenarios:
+The table below lists which MEKF filter to use for different aiding scenarios:
 
 .. list-table::
    :header-rows: 1
@@ -53,7 +52,7 @@ different scenarios:
        | Pitch,
        | Yaw
 
-In the following sections, we will demonstrate how to use the MEKF filters in
+In the following sections, we will demonstrate how to apply the MEKF filters in
 different aiding scenarios.
 
 
