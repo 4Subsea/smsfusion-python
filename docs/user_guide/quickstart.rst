@@ -130,12 +130,12 @@ The following example demonstrates how to apply the filter:
     mekf = sf.AMEKF(fs, q0=q0)
 
     # Gravity reference aiding
-    aiding = {"gref": True, "gref_var": (0.0001, 0.0001, 0.0001)}
+    gref = {"gref": True, "gref_var": (0.0001, 0.0001, 0.0001)}
 
     # Update with IMU measurements
     roll_pitch_est = []
     for f_i, w_i in zip(f_meas, w_meas):
-        mekf.update(f_i / fs, w_i / fs, **aiding)
+        mekf.update(f_i / fs, w_i / fs, **gref)
         roll_pitch_est.append(mekf.euler()[:2])
 
     # State estimates
@@ -162,13 +162,13 @@ The following example demonstrates how to apply the filter:
     q0 = sf.quaternion_from_euler(euler[0], degrees=False)
     mekf = sf.VAMEKF(fs, q0=q0, g=sf.gravity(lat))
 
-    # Zero-velocity aiding with 10 m/s standard deviation
-    aiding = {"vel": (0.0, 0.0, 0.0), "vel_var": (100.0, 100.0, 100.0)}
+    # Zero-velocity update (ZUPT) with 10 m/s standard deviation
+    zupt = {"vel": (0.0, 0.0, 0.0), "vel_var": (100.0, 100.0, 100.0)}
 
     # Update with IMU and aiding measurements
     roll_pitch_est = []
     for f_i, w_i in zip(f_meas, w_meas):
-        mekf.update(f_i / fs, w_i / fs, **aiding)
+        mekf.update(f_i / fs, w_i / fs, **zupt)
         roll_pitch_est.append(mekf.euler()[:2])
 
     # State estimates
@@ -199,12 +199,12 @@ gravity reference and heading aiding:
     mekf = sf.AMEKF(fs, q0=q0)
 
     # Gravity reference aiding
-    aiding = {"gref": True, "gref_var": (0.0001, 0.0001, 0.0001)}
+    gref = {"gref": True, "gref_var": (0.0001, 0.0001, 0.0001)}
 
     # Update with IMU and aiding measurements
     euler_est = []
     for f_i, w_i, h_i in zip(f_meas, w_meas, head_meas):
-        mekf.update(f_i / fs, w_i / fs, head=h_i, head_var=0.01**2, **aiding)
+        mekf.update(f_i / fs, w_i / fs, head=h_i, head_var=0.01**2, **gref)
         euler_est.append(mekf.euler())
 
     # State estimates
@@ -223,13 +223,13 @@ with zero-velocity update (ZUPT) and heading aiding:
     q0 = sf.quaternion_from_euler(euler[0], degrees=False)
     mekf = sf.VAMEKF(fs, q0=q0, g=sf.gravity(lat))
 
-    # Zero-velocity aiding with 10 m/s standard deviation
-    aiding = {"vel": (0.0, 0.0, 0.0), "vel_var": (100.0, 100.0, 100.0)}
+    # Zero-velocity update (ZUPT) with 10 m/s standard deviation
+    zupt = {"vel": (0.0, 0.0, 0.0), "vel_var": (100.0, 100.0, 100.0)}
 
     # Update with IMU and aiding measurements
     euler_est = []
     for f_i, w_i, h_i in zip(f_meas, w_meas, head_meas):
-        mekf.update(f_i / fs, w_i / fs, head=h_i, head_var=0.01**2, **aiding)
+        mekf.update(f_i / fs, w_i / fs, head=h_i, head_var=0.01**2, **zupt)
         euler_est.append(mekf.euler())
 
     # State estimates
