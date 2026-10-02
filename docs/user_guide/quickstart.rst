@@ -28,36 +28,22 @@ different scenarios:
 
 .. list-table::
    :header-rows: 1
-   :widths: 10 15 35 40
+   :widths: 30 40 30
 
-   * - Filter
-     - States
-     - Aiding
-     - When to use
-   * - :class:`~smsfusion.PVAMEKF`
-     - | Position,
-       | Velocity,
-       | Attitude,
-       | Gyro bias
-     - | GNSS
-       | Compass
-     - Estimate all DOFs when full aiding (GNSS and compass) is available.
-   * - :class:`~smsfusion.VAMEKF`
+   * - Aiding
+     - Filter
+     - State estimates
+   * - No external aiding
+     - | :class:`~smsfusion.AMEKF` (w/ gravity reference),
+       | :class:`~smsfusion.VAMEKF` (w/ zero-velocity),
+     - | Roll,
+       | Pitch
+   * - Compass (heading)
+     - | :class:`~smsfusion.AMEKF` (w/ gravity reference),
+       | :class:`~smsfusion.VAMEKF` (w/ zero-velocity),
      - | Roll,
        | Pitch,
-       | Yaw*,
-       | Gyro bias
-     - | Zero-velocity,
-       | Compass* (optional)
-     - Estimate roll and pitch using zero-velocity pseudo aiding. If heading (compass)
-       measurements are available, yaw can also be estimated.
-   * - :class:`~smsfusion.AMEKF`
-     - | Attitude,
-       | Gyro bias
-     - | Gravity reference,
-       | Compass (optional)
-     - Estimate roll and pitch using gravity reference aiding. If heading (compass)
-       measurements are available, yaw can also be estimated.
+       | Yaw
 
 In the following sections, we will demonstrate how to use the MEKF filters in
 different aiding scenarios.
@@ -302,4 +288,41 @@ roll and pitch estimates using :class:`~smsfusion.FixedIntervalSmoother`:
     pos_est = smoother.position()
     vel_est = smoother.velocity()
     euler_est = smoother.euler()
+
+
+Kladd
+-----
+
+.. list-table::
+   :header-rows: 1
+   :widths: 10 15 35 40
+
+   * - Filter
+     - States
+     - Aiding
+     - When to use
+   * - :class:`~smsfusion.PVAMEKF`
+     - | Position,
+       | Velocity,
+       | Attitude,
+       | Gyro bias
+     - | GNSS
+       | Compass
+     - Estimate all DOFs when full aiding (GNSS and compass) is available.
+   * - :class:`~smsfusion.VAMEKF`
+     - | Roll,
+       | Pitch,
+       | Yaw*,
+       | Gyro bias
+     - | Zero-velocity,
+       | Compass* (optional)
+     - Estimate roll and pitch using zero-velocity pseudo aiding. If heading (compass)
+       measurements are available, yaw can also be estimated.
+   * - :class:`~smsfusion.AMEKF`
+     - | Attitude,
+       | Gyro bias
+     - | Gravity reference,
+       | Compass (optional)
+     - Estimate roll and pitch using gravity reference aiding. If heading (compass)
+       measurements are available, yaw can also be estimated.
 
