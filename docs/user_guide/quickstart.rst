@@ -23,20 +23,18 @@ fusion filters for PVA estimation is the `multiplicative extended Kalman filter`
 Multiplicative extended Kalman filter (MEKF)
 --------------------------------------------
 
-The core algorithms in ``smsfusion`` are a family of fusion filters known as
-`multiplicative extended Kalman filters` (MEKF). Three flavors of the MEKF filter
-are available:
+The core algorithms in ``smsfusion`` are a family of MEKF filters:
 
 - :class:`~smsfusion.AMEKF`: estimates attitude and gyroscope bias.
 - :class:`~smsfusion.VAMEKF`: estimates velocity, attitude and gyroscope bias.
 - :class:`~smsfusion.PVAMEKF`: estimates position, velocity, attitude and gyroscope bias.
 
-The three filters differ only in the number of states they estimate, and hence also
+The three flavors of the MEKF differ only in the number of states they estimate, and hence also
 the type of external aiding they support. :class:`~smsfusion.PVAMEKF` is the most
-comprehensive filter, estimating all degrees of freedom (DOFs). By leveraging external
+comprehensive filter, estimating all degrees of freedom (12 states). By leveraging external
 aiding measurements, this filter can achieve the highest accuracy in all state estimates.
 Thus, if you have access to full external aiding (GNSS and compass), this is the
-filter to use. The :class:`~smsfusion.VAMEKF` and :class:`~smsfusion.AMEKF` are
+filter to use. The :class:`~smsfusion.VAMEKF` (9 states) and :class:`~smsfusion.AMEKF` (6 states) are
 degenerated versions of the this filter, where some of the states are removed,
 resulting in simpler filters with reduced computational complexity at the expense
 of potentially lower accuracy. In aiding denied scenarios, where external aiding
