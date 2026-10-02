@@ -221,12 +221,12 @@ with zero-velocity update (ZUPT) and heading aiding:
 
 IMU + GNSS and compass - estimate position, velocity and attitude
 -----------------------------------------------------------------
-With GNSS and compass aiding, we can estimate all degrees of freedom, while the
-attitude estimates become more accurate since we avoid the problem of linear
+With GNSS and compass aiding, we can estimate all degrees of freedom. The attitude
+estimates will also become more accurate since we avoid errors caused by linear
 acceleration under assumed stationary conditions.
 
 The following example demonstrates how to apply the :class:`~smsfusion.PVAMEKF`
-using position and heading aiding:
+with position and heading aiding:
 
 .. code-block:: python
 
