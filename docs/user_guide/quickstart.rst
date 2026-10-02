@@ -147,8 +147,8 @@ Alternatively, :class:`~smsfusion.VAMEKF` with zero-velocity aiding can be used:
     and the correct local gravitational acceleration must be set.
 
 
-IMU + compass aiding - estimate roll, pitch and yaw
----------------------------------------------------
+IMU + compass - estimate roll, pitch and yaw
+--------------------------------------------
 If compass (heading) aiding is available, yaw can also be estimated along with
 roll and pitch.
 
@@ -189,8 +189,8 @@ can be used:
     euler_est = np.array(euler_est)
 
 
-IMU + GNSS and compass aiding - estimate position, velocity and attitude
-------------------------------------------------------------------------
+IMU + GNSS and compass - estimate position, velocity and attitude
+-----------------------------------------------------------------
 With GNSS and compass aiding, it is possible to estimate the full state of the system,
 including position, velocity, and attitude.
 
@@ -205,7 +205,7 @@ aiding:
     lat = 59.0  # latitude
     mekf = sf.PVAMEKF(fs, g=sf.gravity(lat))
 
-    pos_est, vel_est, euler_est = []
+    pos_est, vel_est, euler_est = [], [], []
     for f_i, w_i, h_i, p_i in zip(df_meas, w_meas, head_meas, pos_meas):
         mekf.update(
             f_i / fs,
