@@ -43,20 +43,21 @@ different scenarios:
        | Compass
      - Estimate all DOFs when full aiding (GNSS and compass) is available.
    * - :class:`~smsfusion.VAMEKF`
-     - | Attitude,
+     - | Roll,
+       | Pitch,
+       | Yaw*,
        | Gyro bias
      - | Zero-velocity,
-       | Compass (optional)
-     - Estimate attitude with optional heading (compass) aiding. Zero-velocity
-       pseudo aiding is used to ensure convergence in roll and pitch.
+       | Compass* (optional)
+     - Estimate roll and pitch using zero-velocity pseudo aiding. If heading (compass)
+       measurements are available, yaw can also be estimated.
    * - :class:`~smsfusion.AMEKF`
      - | Attitude,
        | Gyro bias
      - | Gravity reference,
        | Compass (optional)
-     - Estimate attitude with optional heading (compass) aiding. Accelerometer
-       measurements and the known direction of gravity is used to ensure convergence
-       in roll and pitch.
+     - Estimate roll and pitch using gravity reference aiding. If heading (compass)
+       measurements are available, yaw can also be estimated.
 
 In the following sections, we will demonstrate how to use the MEKF filters in
 different aiding scenarios.
