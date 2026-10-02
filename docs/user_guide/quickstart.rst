@@ -278,8 +278,8 @@ covariance estimates. Fixed-interval smoothing is particularly useful when the e
 measurement sequence is available, as it allows for optimal state estimation by
 considering all measurements in the sequence.
 
-The following example demonstrates how to refine a :class:`~smsfusion.PVAMEKF`'s
-roll and pitch estimates using :class:`~smsfusion.FixedIntervalSmoother`:
+The following example demonstrates how to refine a :class:`~smsfusion.PVAMEKF`
+filter's roll and pitch estimates using :class:`~smsfusion.FixedIntervalSmoother`:
 
 .. code-block:: python
 
@@ -293,13 +293,12 @@ roll and pitch estimates using :class:`~smsfusion.FixedIntervalSmoother`:
     # Update with IMU and aiding measurements
     for f_i, w_i, h_i, p_i in zip(df_meas, w_meas, head_meas, pos_meas):
         smoother.update(
-            f_i,
-            w_i,
+            f_i / fs,
+            w_i / fs,
             head=h_i,
             head_var=0.01**2,
             pos=p_i,
-            pos_var=(0.1, 0.1, 0.1),
-            degrees=False,
+            pos_var=(0.1**2, 0.1**2, 0.1**2),
         )
 
     # Smoothed state estimates
