@@ -92,12 +92,16 @@ other units, you must account for that when using the examples provided.
 IMU only (no external aiding) - estimate roll and pitch
 -------------------------------------------------------
 In aiding denied scenarios, where you don't have access to long-term stable aiding
-measurements, only the roll and pitch degrees of freedom can be estimated since
-these are still observable through accelerometer measurements and the known direction
-of gravity.
+measurements, only the roll and pitch degrees of freedom are observable. These states
+can still be corrected using the IMU's accelerometer measurements and the known
+direction of gravity. In this scenario, two filter options are commonly used:
 
-Using :class:`~smsfusion.AMEKF` with gravity reference aiding is the most lightweight
-and robust choice for estimating roll and pitch without external aiding:
+* :class:`~smsfusion.AMEKF` w/ gravity reference aiding
+* :class:`~smsfusion.VAMEKF` w/ zero-velocity update (ZUPT)
+
+:class:`~smsfusion.AMEKF` with gravity reference aiding is the most lightweight
+and robust choice for estimating roll and pitch in the absence of external aiding.
+The following example demonstrates how to apply the filter:
 
 .. code-block:: python
 
@@ -120,7 +124,16 @@ and robust choice for estimating roll and pitch without external aiding:
     # State estimates
     roll_pitch_est = np.array(roll_pitch_est)
 
-Alternatively, :class:`~smsfusion.VAMEKF` with zero-velocity aiding can be used:
+The downside of using accelerometer measurements and the direction of gravity as
+aiding, is that it is sensitive to errors from sustained linear accelerations; this
+is because we must assume that the body is stationary such that the accelerometer
+measures only the gravitational acceleration.
+
+An alternative filter option for this scenario, is to use the :class:`~smsfusion.VAMEKF`
+with zero-velocity update (ZUPT). I.e., we assume that the body is stationary with
+zero velocity. This approach has shown better accuracy compared to the gravity
+reference aiding, although it still degrades under sustained linear accelerations.
+The following example demonstrates how to apply the filter:
 
 .. code-block:: python
 
@@ -144,13 +157,9 @@ Alternatively, :class:`~smsfusion.VAMEKF` with zero-velocity aiding can be used:
     # State estimates
     roll_pitch_est = np.array(roll_pitch_est)
 
-
-.. note::
-
-    The :class:`~smsfusion.VAMEKF` with zero-velocity aiding has shown higher accuracy
-    compared to the :class:`~smsfusion.AMEKF` with gravity reference aiding. However,
-    to ensure stability of the filter, a calibrated accelerometer is then required,
-    and the correct local gravitational acceleration must be set.
+The downside of using :class:`~smsfusion.VAMEKF` with zero-velocity aiding is that
+it requires a well calibrated accelerometer and a correctly set local gravitational
+acceleration. Otherwise, the filter may become unstable and diverge.
 
 
 IMU + compass - estimate roll, pitch and yaw
