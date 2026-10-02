@@ -142,10 +142,12 @@ Alternatively, :class:`~smsfusion.VAMEKF` with zero-velocity aiding can be used:
         roll_pitch_est.append(mekf.euler()[:2])
     roll_pitch_est = np.array(roll_pitch_est)
 
-The :class:`~smsfusion.VAMEKF` with zero-velocity aiding has shown higher accuracy
-compared to the :class:`~smsfusion.AMEKF` with gravity reference aiding. However,
-to ensure stability of the filter, a calibrated accelerometer is then required,
-and the correct local gravitational acceleration must be set.
+.. note::
+
+    The :class:`~smsfusion.VAMEKF` with zero-velocity aiding has shown higher accuracy
+    compared to the :class:`~smsfusion.AMEKF` with gravity reference aiding. However,
+    to ensure stability of the filter, a calibrated accelerometer is then required,
+    and the correct local gravitational acceleration must be set.
 
 
 IMU + compass aiding - estimate roll, pitch and yaw
