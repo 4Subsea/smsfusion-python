@@ -165,11 +165,12 @@ is thus considered a more robust option.
 
 IMU + compass - estimate roll, pitch and yaw
 --------------------------------------------
-If compass (heading) aiding is available, yaw can also be estimated along with
-roll and pitch.
+If compass (i.e., heading) aiding measurements are available, also the yaw degree
+of freedom can be estimated. Roll and pitch should be corrected either with gravity
+reference aiding or zero-velocity aiding, as described above.
 
-Using :class:`~smsfusion.AMEKF` with gravity reference aiding and heading aiding
-is the most lightweight and robust choice for estimating roll, pitch, and yaw:
+The following example demonstrates how to apply the :class:`~smsfusion.AMEKF` with
+gravity reference and heading aiding:
 
 .. code-block:: python
 
@@ -192,8 +193,8 @@ is the most lightweight and robust choice for estimating roll, pitch, and yaw:
     # State estimates
     euler_est = np.array(euler_est)
 
-Alternatively, :class:`~smsfusion.VAMEKF` with zero-velocity and heading aiding
-can be used:
+The following example demonstrates how to apply the :class:`~smsfusion.VAMEKF`
+with zero-velocity update (ZUPT) and heading aiding:
 
 .. code-block:: python
 
