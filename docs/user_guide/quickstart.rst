@@ -73,11 +73,12 @@ access to such data, you can generate synthetic measurements using the
 
 .. code-block:: python
 
+    import numpy as np
     import smsfusion as sf
     from smsfusion.benchmark import benchmark_full_pva_beat_202311A
 
 
-    # Position, velocity and attitude (PVA) reference signals
+    # IMU and PVA reference signals
     fs = 10.24  # sampling rate in Hz
     t, pos, vel, euler, f, w = benchmark_full_pva_beat_202311A(fs)
     head = euler[:, 2]
@@ -87,12 +88,8 @@ access to such data, you can generate synthetic measurements using the
     f_meas = f + imu_noise[:, :3]
     w_meas = w + imu_noise[:, 3:]
     rng = np.random.default_rng(1)
-    pos_aid = pos + 0.1 * rng.standard_normal(pos.shape)
-    head_aid = head + 0.01 * rng.standard_normal(head.shape)
-
-    # Velocity and attitude increments
-    dvel_meas = f_meas / fs
-    dtheta_meas = w_meas / fs
+    pos_meas = pos + 0.1 * rng.standard_normal(pos.shape)
+    head_meas = head + 0.01 * rng.standard_normal(head.shape)
 
 Note that the generated position signals are in meters (m), velocity signals are in meters
 per second (m/s), and attitude signals are in radians (rad). The accelerometer signals
@@ -118,8 +115,8 @@ and robust choice for estimating roll and pitch without external aiding:
     mekf = sf.AMEKF(fs)
 
     roll_pitch_est = []
-    for dvel_i, dtheta_i in zip(dvel_meas, dtheta_meas):
-        mekf.update(dvel_i, dtheta_i)
+    for f_i, w_i in zip(f_meas, w_meas):
+        mekf.update(f_i / fs, w_i / fs)
         roll_pitch_est.append(mekf.euler()[:2])
     roll_pitch_est = np.array(roll_pitch_est)
 
@@ -137,8 +134,8 @@ Alternatively, :class:`~smsfusion.VAMEKF` with zero-velocity aiding can be used:
     zupt = {"vel": (0.0, 0.0, 0.0), "vel_var": (100.0, 100.0, 100.0)}
 
     roll_pitch_est = []
-    for dvel_i, dtheta_i in zip(dvel_meas, dtheta_meas):
-        mekf.update(dvel_i, dtheta_i, **zupt)
+    for f_i, w_i in zip(f_meas, w_meas):
+        mekf.update(f_i / fs, w_i / fs, **zupt)
         roll_pitch_est.append(mekf.euler()[:2])
     roll_pitch_est = np.array(roll_pitch_est)
 
@@ -166,8 +163,8 @@ is the most lightweight and robust choice for estimating roll, pitch, and yaw:
     mekf = sf.AMEKF(fs)
 
     euler_est = []
-    for dvel_i, dtheta_i, head_i in zip(dvel_meas, dtheta_meas, head_meas):
-        mekf.update(dvel_i, dtheta_i, head=head_i, head_var=0.01**2)
+    for f_i, w_i, h_i in zip(f_meas, w_meas, head_meas):
+        mekf.update(f_i / fs, w_i / fs, head=h_i, head_var=0.01**2)
         euler_est.append(mekf.euler())
     euler_est = np.array(euler_est)
 
@@ -186,8 +183,8 @@ can be used:
     zupt = {"vel": (0.0, 0.0, 0.0), "vel_var": (100.0, 100.0, 100.0)}
 
     euler_est = []
-    for dvel_i, dtheta_i, head_i in zip(dvel_meas, dtheta_meas, head_meas):
-        mekf.update(dvel_i, dtheta_i, head=head_i, head_var=0.01**2, **zupt)
+    for f_i, w_i, h_i in zip(f_meas, w_meas, head_meas):
+        mekf.update(f_i / fs, w_i / fs, head=h_i, head_var=0.01**2, **zupt)
         euler_est.append(mekf.euler())
     euler_est = np.array(euler_est)
 
@@ -209,13 +206,13 @@ aiding:
     mekf = sf.PVAMEKF(fs, g=sf.gravity(lat))
 
     pos_est, vel_est, euler_est = []
-    for dvel_i, dtheta_i, head_i, pos_i in zip(dvel_meas, dtheta_meas, head_meas, pos_meas):
+    for f_i, w_i, h_i, p_i in zip(df_meas, w_meas, head_meas, pos_meas):
         mekf.update(
-            dvel_i,
-            dtheta_i,
-            head=head_i,
+            f_i / fs,
+            w_i / fs,
+            head=h_i,
             head_var=0.01**2,
-            pos=pos_i,
+            pos=p_i,
             pos_var=(0.1, 0.1, 0.1),
         )
         pos_est.append(mekf.position())
