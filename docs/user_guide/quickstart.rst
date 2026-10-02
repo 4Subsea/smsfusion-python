@@ -83,11 +83,11 @@ the :mod:`~smsfusion.benchmark` module in ``smsfusion``:
     pos_meas = pos + 0.1 * rng.standard_normal(pos.shape)  # m
     head_meas = head + 0.01 * rng.standard_normal(head.shape)  # rad
 
-Note that the generated position signals are in meters (m), velocity signals are in meters
-per second (m/s), and attitude signals are in radians (rad). The accelerometer signals
-are in meters per second squared (m/s^2), and the gyroscope signals are in radians
-per second (rad/s). If your measurement data is given in other units, you must account
-for that in other sections of this quickstart guide.
+Note that the generated position signals are in meters (m), the velocity signals
+are in meters per second (m/s), the attitude signals are in radians (rad), the
+accelerometer signals are in meters per second squared (m/s^2), and the gyroscope
+signals are in radians per second (rad/s). If your measurement data is given in
+other units, you must account for that when using the examples provided.
 
 IMU only (no external aiding) - estimate roll and pitch
 -------------------------------------------------------
