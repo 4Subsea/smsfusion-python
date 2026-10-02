@@ -2,7 +2,10 @@ Quickstart
 ==========
 This is a short introduction to `SMS Fusion`: a Python library with inertial navigation
 algorithms for `SMS Motion`. Although the primary purpose is to complement the SMS Motion
-hardware, the algorithms can be used with any IMU sensor.
+hardware, the algorithms provided by ``smsfusion`` can be used with any IMU sensor.
+
+Multiplicative extended Kalman filter (MEKF)
+--------------------------------------------
 
 The core algorithms in ``smsfusion`` are a family of fusion filters known as
 `multiplicative extended Kalman filters` (MEKF). Three flavors of the MEKF filter
@@ -57,7 +60,7 @@ these different aiding scenarios.
 
 
 Measurement data
-----------------
+................
 The examples given in the next sections assume that you have access to measurement
 data from an IMU sensor and, depending on the scenario, other external aiding sensors.
 If you don't have access to such data, you can generate synthetic measurements using
@@ -90,7 +93,7 @@ signals are in radians per second (rad/s). If your measurement data is given in
 other units, you must account for that when using the examples provided.
 
 IMU only (no external aiding) - estimate roll and pitch
--------------------------------------------------------
+.......................................................
 In aiding denied scenarios, where you don't have access to long-term stable aiding
 measurements, only the roll and pitch degrees of freedom are observable. These states
 can still be corrected using the IMU's accelerometer measurements and the known
@@ -164,7 +167,7 @@ is thus considered a more robust option.
 
 
 IMU + compass - estimate roll, pitch and yaw
---------------------------------------------
+............................................
 If compass (i.e., heading) aiding measurements are available, also the yaw degree
 of freedom can be estimated. Roll and pitch should still be corrected either with
 gravity reference aiding or zero-velocity aiding, as described above.
@@ -220,7 +223,7 @@ with zero-velocity update (ZUPT) and heading aiding:
 
 
 IMU + GNSS and compass - estimate position, velocity and attitude
------------------------------------------------------------------
+.................................................................
 With GNSS and compass aiding, we can estimate all degrees of freedom. The attitude
 estimates will also become more accurate since we avoid errors caused by linear
 acceleration under assumed stationary conditions.
