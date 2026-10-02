@@ -287,8 +287,12 @@ filter's roll and pitch estimates using :class:`~smsfusion.FixedIntervalSmoother
 
 
     # Initialize smoother
-    fs = 10.24  # sampling rate in Hz
-    smoother = sf.FixedIntervalSmoother(sf.PVAMEKF(fs))
+    lat = 59.0  # latitude
+    p0 = pos_meas[0]
+    v0 = vel_meas[0]
+    q0 = sf.quaternion_from_euler(euler[0], degrees=False)
+    mekf = sf.PVAMEKF(fs, p0=p0, v0=v0, q0=q0, g=sf.gravity(lat))
+    smoother = sf.FixedIntervalSmoother(mekf)
 
     # Update with IMU and aiding measurements
     for f_i, w_i, h_i, p_i in zip(df_meas, w_meas, head_meas, pos_meas):
