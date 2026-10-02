@@ -148,9 +148,10 @@ to ensure stability of the filter, a calibrated accelerometer is then required,
 and the correct local gravitational acceleration must be set.
 
 
-IMU + heading aiding - estimate roll, pitch and yaw
+IMU + compass aiding - estimate roll, pitch and yaw
 ---------------------------------------------------
-If heading aiding is available, yaw can also be estimated along with roll and pitch.
+If compass (heading) aiding is available, yaw can also be estimated along with
+roll and pitch.
 
 Using :class:`~smsfusion.AMEKF` with gravity reference aiding and heading aiding
 is the most lightweight and robust choice for estimating roll, pitch, and yaw:
@@ -187,3 +188,8 @@ can be used:
         mekf.update(dvel_i, dtheta_i, head=head_i, head_var=0.01**2, **zupt)
         euler_est.append(mekf.euler())
     euler_est = np.array(euler_est)
+
+
+IMU + GNSS and compass aiding - estimate position, velocity and attitude
+------------------------------------------------------------------------
+
