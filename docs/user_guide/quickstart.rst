@@ -166,8 +166,8 @@ is thus considered a more robust option.
 IMU + compass - estimate roll, pitch and yaw
 --------------------------------------------
 If compass (i.e., heading) aiding measurements are available, also the yaw degree
-of freedom can be estimated. Roll and pitch should be corrected either with gravity
-reference aiding or zero-velocity aiding, as described above.
+of freedom can be estimated. Roll and pitch should still be corrected either with
+gravity reference aiding or zero-velocity aiding, as described above.
 
 The following example demonstrates how to apply the :class:`~smsfusion.AMEKF` with
 gravity reference and heading aiding:
