@@ -15,9 +15,9 @@ long-term stable aiding measurements to ensure convergence and stability of the 
 The aiding measurements are typically provided by a `global navigation satellite system`
 (GNSS) and a compass, providing absolute position, velocity, and heading information.
 
-The algorithms used to combine IMU measurements with aiding measurements are commonly
-known as `fusion filters`. One of the most widely used fusion filters for PVA estimation
-is the `multiplicative extended Kalman filter` (MEKF).
+The algorithms used to combine IMU measurements with aiding measurements to estimate
+the INS' states are commonly known as `fusion filters`. One of the most widely used
+fusion filters for PVA estimation is the `multiplicative extended Kalman filter` (MEKF).
 
 
 Multiplicative extended Kalman filter (MEKF)
