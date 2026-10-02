@@ -75,7 +75,7 @@ these different aiding scenarios.
 
 Measurement data
 ................
-The examples given in the next sections assume that you have access to measurement
+The examples given in this quickstart assume that you have access to measurement
 data from an IMU sensor and, depending on the scenario, other external aiding sensors.
 If you don't have access to such data, you can generate synthetic measurements using
 the :mod:`~smsfusion.benchmark` module in ``smsfusion``:
