@@ -249,7 +249,7 @@ with position and heading aiding:
             head=h_i,
             head_var=0.01**2,
             pos=p_i,
-            pos_var=(0.1, 0.1, 0.1),
+            pos_var=(0.1**2, 0.1**2, 0.1**2),
         )
         pos_est.append(mekf.position())
         vel_est.append(mekf.velocity())
