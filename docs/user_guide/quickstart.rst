@@ -221,3 +221,48 @@ aiding:
     pos_est = np.array(pos_est)
     vel_est = np.array(vel_est)
     euler_est = np.array(euler_est)
+
+
+Smoothing
+---------
+Smoothing refers to post-processing techniques that enhance the accuracy of a Kalman
+filter's state and covariance estimates by incorporating both past and future measurements.
+In contrast, standard forward filtering (as provided by the MEKF) relies only on past and current
+measurements, leading to suboptimal estimates when future data is available.
+
+Fixed-interval smoothing
+........................
+
+The :class:`~smsfusion.FixedIntervalSmoother` class implements fixed-interval smoothing
+for a :class:`~smsfusion.PVAMEKF` instance. After a complete forward pass with the MEKF,
+a backward sweep with a smoothing algorithm is performed to refine the state and
+covariance estimates. Fixed-interval smoothing is particularly useful when the entire
+measurement sequence is available, as it allows for optimal state estimation by
+considering all measurements in the sequence.
+
+The following example demonstrates how to refine a :class:`~smsfusion.PVAMEKF`'s
+roll and pitch estimates using :class:`~smsfusion.FixedIntervalSmoother`:
+
+.. code-block:: python
+
+    import smsfusion as sf
+
+
+    fs = 10.24  # sampling rate in Hz
+    smoother = sf.FixedIntervalSmoother(sf.PVAMEKF(fs))
+
+    for f_i, w_i, h_i, p_i in zip(df_meas, w_meas, head_meas, pos_meas):
+        smoother.update(
+            f_i,
+            w_i,
+            head=h_i,
+            head_var=0.01**2,
+            pos=p_i,
+            pos_var=(0.1, 0.1, 0.1),
+            degrees=False,
+        )
+
+    pos_est = smoother.position()
+    vel_est = smoother.velocity()
+    euler_est = smoother.euler()
+
