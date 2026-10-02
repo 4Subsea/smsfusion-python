@@ -157,9 +157,10 @@ The following example demonstrates how to apply the filter:
     # State estimates
     roll_pitch_est = np.array(roll_pitch_est)
 
-The downside of using :class:`~smsfusion.VAMEKF` with zero-velocity aiding is that
-it requires a well calibrated accelerometer and a correctly set local gravitational
-acceleration. Otherwise, the filter may become unstable and diverge.
+Using the :class:`~smsfusion.VAMEKF` with zero-velocity update requires a well
+calibrated accelerometer and a correctly set local gravitational acceleration to
+avoid instability. The :class:`~smsfusion.AMEKF` with gravity reference aiding
+is thus considered a more robust option.
 
 
 IMU + compass - estimate roll, pitch and yaw
