@@ -16,7 +16,7 @@ The aiding measurements are typically provided by a `global navigation satellite
 (GNSS) and a compass, providing absolute position, velocity, and heading information.
 
 The algorithms used to combine IMU measurements with aiding measurements to estimate
-the INS' states are commonly known as `fusion filters`. One of the most widely used
+the INS' states are commonly known as fusion filter. One of the most widely used
 fusion filters for PVA estimation is the `multiplicative extended Kalman filter` (MEKF).
 
 
@@ -38,7 +38,8 @@ filter to use. The :class:`~smsfusion.VAMEKF` (9 states) and :class:`~smsfusion.
 degenerated versions of the this filter, where some of the states are removed,
 resulting in simpler filters with reduced computational complexity at the expense
 of potentially lower accuracy. In aiding denied scenarios, where external aiding
-is not feasible or simply not available, the simpler filters are more suitable.
+is not feasible or simply not available, the simpler filters are more suitable
+since full state estimation is not needed.
 
 The table below lists which MEKF filter to use for different aiding scenarios:
 
