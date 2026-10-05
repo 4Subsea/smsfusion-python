@@ -290,14 +290,14 @@ Fixed-interval smoothing
 ........................
 
 The :class:`~smsfusion.FixedIntervalSmoother` class implements fixed-interval smoothing
-for a :class:`~smsfusion.PVAMEKF` instance. After a complete forward pass with the MEKF,
+for :class:`~smsfusion.PVAMEKF`. After a complete forward pass with the MEKF,
 a backward sweep with a smoothing algorithm is performed to refine the state and
 covariance estimates. Fixed-interval smoothing is particularly useful when the entire
 measurement sequence is available, as it allows for optimal state estimation by
 considering all measurements in the sequence.
 
 The following example demonstrates how to refine a :class:`~smsfusion.PVAMEKF`
-filter's roll and pitch estimates using :class:`~smsfusion.FixedIntervalSmoother`:
+filter's PVA estimates using :class:`~smsfusion.FixedIntervalSmoother`:
 
 .. code-block:: python
 
