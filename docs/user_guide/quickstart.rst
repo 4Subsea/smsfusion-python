@@ -133,7 +133,7 @@ The following example demonstrates how to apply the filter:
     # Gravity reference aiding
     gref = {"gref": True, "gref_var": (0.0001, 0.0001, 0.0001)}
 
-    # Update with IMU measurements
+    # Update with IMU and aiding measurements
     roll_pitch_est = []
     for f_i, w_i in zip(f_meas, w_meas):
         mekf.update(f_i / fs, w_i / fs, **gref)
@@ -143,14 +143,14 @@ The following example demonstrates how to apply the filter:
     roll_pitch_est = np.array(roll_pitch_est)
 
 The downside of using accelerometer measurements and the direction of gravity as
-aiding, is that it is sensitive to errors from sustained linear accelerations; this
-is because we must assume that the body is stationary such that the accelerometer
+aiding, is that it is sensitive to errors from sustained linear accelerations. This
+is because we must assume that the body is stationary, such that the accelerometer
 measures only the gravitational acceleration.
 
 An alternative filter option for this scenario is to use the :class:`~smsfusion.VAMEKF`
-with zero-velocity update (ZUPT); i.e., we assume that the body is stationary with
+with zero-velocity update (ZUPT). I.e., we assume that the body is stationary with
 zero velocity. This approach has shown better accuracy compared to the gravity
-reference aiding, although it still degrades under sustained linear accelerations.
+reference aiding option, although it still degrades under sustained linear accelerations.
 The following example demonstrates how to apply the filter:
 
 .. code-block:: python
