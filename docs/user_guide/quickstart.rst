@@ -51,13 +51,13 @@ The table below lists which MEKF filter to use for different aiding scenarios:
      - Filter options
      - State estimates
    * - No external aiding
-     - | :class:`~smsfusion.AMEKF` (w/ gravity reference),
-       | :class:`~smsfusion.VAMEKF` (w/ zero-velocity),
+     - | :class:`~smsfusion.AMEKF` (w/ gravity reference aiding),
+       | :class:`~smsfusion.VAMEKF` (w/ zero-velocity aiding),
      - | Roll,
        | Pitch
    * - Compass (heading)
-     - | :class:`~smsfusion.AMEKF` (w/ gravity reference),
-       | :class:`~smsfusion.VAMEKF` (w/ zero-velocity),
+     - | :class:`~smsfusion.AMEKF` (w/ gravity reference aiding),
+       | :class:`~smsfusion.VAMEKF` (w/ zero-velocity aiding),
      - | Roll,
        | Pitch,
        | Yaw
