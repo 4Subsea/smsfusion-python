@@ -79,7 +79,7 @@ Measurement data
 The examples given in this quickstart assume that you have access to measurement
 data from an IMU sensor and, depending on the scenario, other external aiding sensors.
 If you don't have access to such data, you can generate synthetic measurements using
-the :mod:`~smsfusion.benchmark` module in ``smsfusion``:
+the :mod:`smsfusion.benchmark` module:
 
 .. code-block:: python
 
@@ -105,7 +105,7 @@ Note that the generated position signals are in meters (m), the velocity signals
 are in meters per second (m/s), the attitude signals are in radians (rad), the
 accelerometer signals are in meters per second squared (m/s^2), and the gyroscope
 signals are in radians per second (rad/s). If your measurement data is given in
-other units, you must account for that when using the examples provided.
+other units, you must account for that when following the examples in this quickstart.
 
 IMU only (no external aiding) - estimate roll and pitch
 .......................................................
