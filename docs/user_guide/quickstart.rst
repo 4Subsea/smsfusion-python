@@ -61,7 +61,7 @@ The table below lists which MEKF filter to use for different aiding scenarios:
      - | Roll,
        | Pitch,
        | Yaw
-   * - | GNSS (position),
+   * - | GNSS (position, velocity),
        | Compass (heading)
      - :class:`~smsfusion.PVAMEKF`
      - | Position,
