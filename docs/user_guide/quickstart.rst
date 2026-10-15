@@ -35,7 +35,7 @@ comprehensive filter, estimating all degrees of freedom (12 states). By leveragi
 aiding measurements, this filter can achieve the highest accuracy in all state estimates.
 Thus, if you have access to full external aiding (GNSS and compass), this is the
 filter to use. The :class:`~smsfusion.VAMEKF` (9 states) and :class:`~smsfusion.AMEKF` (6 states) are
-degenerated versions of the this filter, where some of the states are removed,
+simplified versions of this filter, where some of the states are removed,
 resulting in simpler filters with reduced computational complexity at the expense
 of potentially lower accuracy. In aiding denied scenarios, where external aiding
 is not feasible or simply not available, the simpler filters are more suitable
