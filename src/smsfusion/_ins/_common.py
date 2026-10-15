@@ -8,10 +8,7 @@ from smsfusion._vectorops import _normalize
 @njit  # type: ignore[misc]
 def _yaw_gradient(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Compute yaw/heading angle gradient wrt to the unit quaternion.
-
-    Defined in terms of scaled Gibbs vector in ref [1]_, but implemented in terms of
-    unit quaternion here to avoid singularities.
+    Compute yaw/heading angle gradient wrt. the attitude error (scaled Gibbs vector).
 
     Parameters
     ----------
@@ -21,27 +18,16 @@ def _yaw_gradient(q: NDArray[np.float64]) -> NDArray[np.float64]:
     Returns
     -------
     numpy.ndarray, shape (3,)
-        Yaw angle gradient vector.
-
-    References
-    ----------
-    .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
-    2nd Edition, equation 14.254, John Wiley & Sons, 2021.
+        Yaw angle gradient.
     """
-    q_w, q_x, q_y, q_z = q
-    u_y = 2.0 * (q_x * q_y + q_z * q_w)
-    u_x = 1.0 - 2.0 * (q_y**2 + q_z**2)
-    u = u_y / u_x
+    # TODO: add reference when the 3rd edition of Fossen's book is released
+    qw, qx, qy, qz = q
+    r21 = 2.0 * (qy * qz + qx * qw)
+    r22 = 1.0 - 2.0 * (qx**2 + qy**2)
 
-    duda_scale = 1.0 / u_x**2
-    duda_x = -(q_w * q_y) * (1.0 - 2.0 * q_w**2) - (2.0 * q_w**2 * q_x * q_z)
-    duda_y = (q_w * q_x) * (1.0 - 2.0 * q_z**2) + (2.0 * q_w**2 * q_y * q_z)
-    duda_z = q_w**2 * (1.0 - 2.0 * q_y**2) + (2.0 * q_w * q_x * q_y * q_z)
-    duda = duda_scale * np.array([duda_x, duda_y, duda_z])
+    dyawda = np.array([0.0, r21, r22]) / (r21**2 + r22**2)
 
-    dhda = 1.0 / (1.0 + u**2) * duda
-
-    return dhda  # type: ignore[no-any-return]
+    return dyawda  # type: ignore[no-any-return]
 
 
 @njit  # type: ignore[misc]
