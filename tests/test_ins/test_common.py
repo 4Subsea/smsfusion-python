@@ -20,10 +20,6 @@ YAW_GRADIENT_EULER_ANGLES = [  # (roll, pitch, yaw) in degrees
 
 @pytest.mark.parametrize("roll, pitch, yaw", YAW_GRADIENT_EULER_ANGLES)
 def test__yaw_gradient(roll, pitch, yaw):
-    """
-    The yaw gradient wrt a body-frame attitude error is given by the yaw row of the
-    ZYX Euler angle kinematics: [0, sin(roll), cos(roll)] / cos(pitch).
-    """
     q = quaternion_from_euler([roll, pitch, yaw], degrees=True)
     dhda_out = _common._yaw_gradient(q)
 
@@ -34,10 +30,6 @@ def test__yaw_gradient(roll, pitch, yaw):
 
 @pytest.mark.parametrize("roll, pitch, yaw", YAW_GRADIENT_EULER_ANGLES)
 def test__yaw_gradient_finite_difference(roll, pitch, yaw):
-    """
-    The yaw gradient must be consistent with how the attitude error is applied in
-    the MEKF reset step (i.e., ``_update_quaternion_with_gibbs2``).
-    """
     q = quaternion_from_euler([roll, pitch, yaw], degrees=True)
     dhda_out = _common._yaw_gradient(q)
 
