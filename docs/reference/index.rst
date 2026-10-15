@@ -17,6 +17,8 @@ API reference
    ConingScullingAlg
    ConingScullingAlgCalibrated
    FixedNED
+   IMUNoise
+   NoiseModel
    gravity
    quaternion_from_euler
    benchmark.BeatSignal
@@ -26,8 +28,5 @@ API reference
    benchmark.benchmark_pure_attitude_beat_202311A
    benchmark.benchmark_pure_attitude_chirp_202311A
    calibrate.calibrate
-   noise.IMUNoise
-   noise.NoiseModel
-   noise.gauss_markov
-   noise.random_walk
-   noise.white_noise
+   allan_var
+

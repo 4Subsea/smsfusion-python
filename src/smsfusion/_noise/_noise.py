@@ -13,7 +13,7 @@ from smsfusion.constants import (
 )
 
 
-def white_noise(
+def _white_noise(
     N: float,
     fs: float,
     n: int,
@@ -61,7 +61,7 @@ def white_noise(
     return wn
 
 
-def random_walk(
+def _random_walk(
     K: float, fs: float, n: int, seed: int | np.random.Generator | None = None
 ) -> NDArray[np.float64]:
     """
@@ -119,7 +119,7 @@ def random_walk(
     return x
 
 
-def gauss_markov(
+def _gauss_markov(
     sigma: float,
     tau_c: float,
     fs: float,
@@ -299,17 +299,17 @@ class NoiseModel:
         bc = self._bc
 
         # White noise
-        wn = white_noise(self._N, fs, n, seed=self._rng)
+        wn = _white_noise(self._N, fs, n, seed=self._rng)
 
         # Flicker noise / pink noise
-        pn = gauss_markov(self._B, self._tau_cb, fs, n, seed=self._rng)
+        pn = _gauss_markov(self._B, self._tau_cb, fs, n, seed=self._rng)
 
         # Drift / Brownian noise
         if self._K and self._tau_ck:
             sigma = self._K * np.sqrt(self._tau_ck / 2.0)
-            bn = gauss_markov(sigma, self._tau_ck, fs, n, seed=self._rng)
+            bn = _gauss_markov(sigma, self._tau_ck, fs, n, seed=self._rng)
         elif self._K:
-            bn = random_walk(self._K, fs, n, seed=self._rng)
+            bn = _random_walk(self._K, fs, n, seed=self._rng)
         else:
             bn = np.zeros(n)
 

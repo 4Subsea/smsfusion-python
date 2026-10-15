@@ -5,21 +5,15 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from smsfusion._noise import (
-    IMUNoise,
-    NoiseModel,
-    allan_var,
-    gauss_markov,
-    random_walk,
-    white_noise,
-)
+from smsfusion import IMUNoise, NoiseModel, allan_var
+from smsfusion._noise import _noise
 
 TEST_PATH = Path(__file__).parent
 
 
 def test_white_noise():
     N, fs, n = 3, 10.0, 100_000
-    wn_out = white_noise(N, fs, n, seed=123)
+    wn_out = _noise._white_noise(N, fs, n, seed=123)
 
     wn_expect = pd.read_csv(
         TEST_PATH / "testdata" / "white_noise.csv", index_col=0
@@ -30,7 +24,7 @@ def test_white_noise():
 
 def test_random_walk():
     K, fs, n = 3, 10.0, 100_000
-    rw_out = random_walk(K, fs, n, seed=123)
+    rw_out = _noise._random_walk(K, fs, n, seed=123)
 
     rw_expect = pd.read_csv(
         TEST_PATH / "testdata" / "random_walk.csv", index_col=0
@@ -42,7 +36,7 @@ def test_random_walk():
 def test_gauss_markov():
     sigma, tau_c, fs, n = 3, 5, 10.0, 100_000
 
-    gm_out = gauss_markov(sigma, tau_c, fs, n, seed=123)
+    gm_out = _noise._gauss_markov(sigma, tau_c, fs, n, seed=123)
 
     gm_expect = pd.read_csv(
         TEST_PATH / "testdata" / "gauss_markov.csv", index_col=0

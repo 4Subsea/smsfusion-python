@@ -95,7 +95,7 @@ the :mod:`smsfusion.benchmark` module:
 
     # Add measurement noise
     rng = np.random.default_rng(0)
-    imu_noise = sf.noise.IMUNoise(seed=1)(fs, len(f))
+    imu_noise = sf.IMUNoise(seed=1)(fs, len(f))
     f_meas = f + imu_noise[:, :3]  # m/s^2
     w_meas = w + imu_noise[:, 3:]  # rad/s
     pos_meas = pos + 0.1 * rng.standard_normal(pos.shape)  # m
