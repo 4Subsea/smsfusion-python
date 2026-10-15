@@ -1,4 +1,5 @@
 from . import benchmark, calibrate, constants
+from ._allan import allan_var
 from ._coning_sculling import ConingScullingAlg, ConingScullingAlgCalibrated
 from ._ins import (
     AMEKF,
@@ -8,7 +9,7 @@ from ._ins import (
     FixedNED,
     gravity,
 )
-from ._noise import IMUNoise, allan_var
+from ._noise import IMUNoise
 from ._transforms import quaternion_from_euler
 
 __all__ = [

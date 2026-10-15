@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from smsfusion import IMUNoise, allan_var
-from smsfusion._noise._noise import (
+from smsfusion._noise import (
     _gauss_markov,
     _NoiseModel,
     _random_walk,
