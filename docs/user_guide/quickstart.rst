@@ -56,9 +56,7 @@ class can be used to add IMU-like noise to accelerometer and gyroscope signals:
 
 
     fs = 10.24  # sampling rate in Hz
-    err_acc = sf.constants.ERR_ACC_MOTION2  # m/s^2
-    err_gyro = sf.constants.ERR_GYRO_MOTION2  # rad/s
-    imu_noise = sf.noise.IMUNoise(err_acc, err_gyro)(fs, len(acc))
+    imu_noise = sf.noise.IMUNoise()(fs, len(acc))
     acc_imu = acc + imu_noise[:, :3]
     gyro_imu = gyro + imu_noise[:, 3:]
 
