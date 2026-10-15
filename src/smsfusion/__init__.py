@@ -8,7 +8,7 @@ from ._ins import (
     FixedNED,
     gravity,
 )
-from ._noise import IMUNoise, NoiseModel, allan_var
+from ._noise import IMUNoise, allan_var
 from ._transforms import quaternion_from_euler
 
 __all__ = [
@@ -20,7 +20,6 @@ __all__ = [
     "FixedIntervalSmoother",
     "FixedNED",
     "IMUNoise",
-    "NoiseModel",
     "allan_var",
     "benchmark",
     "calibrate",

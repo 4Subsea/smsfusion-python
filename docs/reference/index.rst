@@ -18,7 +18,6 @@ API reference
    ConingScullingAlgCalibrated
    FixedNED
    IMUNoise
-   NoiseModel
    gravity
    allan_var
    quaternion_from_euler
