@@ -10,11 +10,13 @@ API reference
 .. autosummary::
    :toctree: api/
 
-   AHRS
-   AidedINS
+   AMEKF
+   VAMEKF
+   PVAMEKF
    FixedIntervalSmoother
-   StrapdownINS
-   VRU
+   ConingScullingAlg
+   ConingScullingAlgCalibrated
+   FixedNED
    gravity
    quaternion_from_euler
    benchmark.BeatSignal
