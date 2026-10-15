@@ -21,32 +21,32 @@ YAW_GRADIENT_EULER_ANGLES = [  # (roll, pitch, yaw) in degrees
 @pytest.mark.parametrize("roll, pitch, yaw", YAW_GRADIENT_EULER_ANGLES)
 def test__yaw_gradient(roll, pitch, yaw):
     q = quaternion_from_euler([roll, pitch, yaw], degrees=True)
-    dhda_out = _common._yaw_gradient(q)
+    dyawda_out = _common._yaw_gradient(q)
 
     roll, pitch = np.radians((roll, pitch))
-    dhda_expect = np.array([0.0, np.sin(roll), np.cos(roll)]) / np.cos(pitch)
-    np.testing.assert_allclose(dhda_out, dhda_expect)
+    dyawda_expect = np.array([0.0, np.sin(roll), np.cos(roll)]) / np.cos(pitch)
+    np.testing.assert_allclose(dyawda_out, dyawda_expect)
 
 
 @pytest.mark.parametrize("roll, pitch, yaw", YAW_GRADIENT_EULER_ANGLES)
 def test__yaw_gradient_finite_difference(roll, pitch, yaw):
     q = quaternion_from_euler([roll, pitch, yaw], degrees=True)
-    dhda_out = _common._yaw_gradient(q)
+    dyawda_out = _common._yaw_gradient(q)
 
     h = 1e-6
-    dhda_expect = np.zeros(3)
+    dyawda_expect = np.zeros(3)
     for i in range(3):
         da = np.zeros(3)
         da[i] = h
-        q_plus, q_minus = q.copy(), q.copy()
-        _common._update_quaternion_with_gibbs2(q_plus, da)
-        _common._update_quaternion_with_gibbs2(q_minus, -da)
-        dyaw = _common._yaw_from_quaternion(q_plus) - _common._yaw_from_quaternion(
-            q_minus
-        )
-        dhda_expect[i] = _common._signed_smallest_angle(dyaw) / (2.0 * h)
+        q_fwd, q_bwd = q.copy(), q.copy()
+        _common._update_quaternion_with_gibbs2(q_fwd, da)
+        _common._update_quaternion_with_gibbs2(q_bwd, -da)
+        yaw_fwd = _common._yaw_from_quaternion(q_fwd)
+        yaw_bwd = _common._yaw_from_quaternion(q_bwd)
+        dyaw = yaw_fwd - yaw_bwd
+        dyawda_expect[i] = _common._signed_smallest_angle(dyaw) / (2.0 * h)
 
-    np.testing.assert_allclose(dhda_out, dhda_expect, atol=1e-6)
+    np.testing.assert_allclose(dyawda_out, dyawda_expect, atol=1e-6)
 
 
 @pytest.mark.parametrize(
