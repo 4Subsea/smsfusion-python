@@ -25,7 +25,7 @@ def test__yaw_gradient(roll, pitch, yaw):
 
     roll, pitch = np.radians((roll, pitch))
     dhda_expect = np.array([0.0, np.sin(roll), np.cos(roll)]) / np.cos(pitch)
-    np.testing.assert_allclose(dhda_out, dhda_expect, atol=1e-12)
+    np.testing.assert_allclose(dhda_out, dhda_expect)
 
 
 @pytest.mark.parametrize("roll, pitch, yaw", YAW_GRADIENT_EULER_ANGLES)
