@@ -254,13 +254,13 @@ with position and heading aiding:
     # Initialize MEKF
     lat = 60.0  # latitude
     p0 = pos_meas[0]
-    v0 = vel_meas[0]
+    v0 = vel[0]
     q0 = sf.quaternion_from_euler(euler[0], degrees=False)
     mekf = sf.PVAMEKF(fs, q0=q0, v0=v0, p0=p0, g=sf.gravity(lat))
 
     # Update with IMU and aiding measurements
     pos_est, vel_est, euler_est = [], [], []
-    for f_i, w_i, h_i, p_i in zip(df_meas, w_meas, head_meas, pos_meas):
+    for f_i, w_i, h_i, p_i in zip(f_meas, w_meas, head_meas, pos_meas):
         mekf.update(
             f_i / fs,
             w_i / fs,
@@ -307,13 +307,13 @@ filter's PVA estimates using :class:`~smsfusion.FixedIntervalSmoother`:
     # Initialize smoother
     lat = 60.0  # latitude
     p0 = pos_meas[0]
-    v0 = vel_meas[0]
+    v0 = vel[0]
     q0 = sf.quaternion_from_euler(euler[0], degrees=False)
     mekf = sf.PVAMEKF(fs, q0=q0, v0=v0, p0=p0, g=sf.gravity(lat))
     smoother = sf.FixedIntervalSmoother(mekf)
 
     # Update with IMU and aiding measurements
-    for f_i, w_i, h_i, p_i in zip(df_meas, w_meas, head_meas, pos_meas):
+    for f_i, w_i, h_i, p_i in zip(f_meas, w_meas, head_meas, pos_meas):
         smoother.update(
             f_i / fs,
             w_i / fs,
