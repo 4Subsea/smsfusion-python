@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
+from smsfusion import quaternion_from_euler
 from smsfusion._ins import _common
 
 YAW_GRADIENT_EULER_ANGLES = [  # (roll, pitch, yaw) in degrees
@@ -17,18 +18,13 @@ YAW_GRADIENT_EULER_ANGLES = [  # (roll, pitch, yaw) in degrees
 ]
 
 
-def _quaternion_from_euler(roll, pitch, yaw):
-    q_xyzw = Rotation.from_euler("ZYX", (yaw, pitch, roll), degrees=True).as_quat()
-    return np.r_[q_xyzw[3], q_xyzw[:3]]
-
-
 @pytest.mark.parametrize("roll, pitch, yaw", YAW_GRADIENT_EULER_ANGLES)
 def test__yaw_gradient(roll, pitch, yaw):
     """
     The yaw gradient wrt a body-frame attitude error is given by the yaw row of the
     ZYX Euler angle kinematics: [0, sin(roll), cos(roll)] / cos(pitch).
     """
-    q = _quaternion_from_euler(roll, pitch, yaw)
+    q = quaternion_from_euler([roll, pitch, yaw], degrees=True)
     dhda_out = _common._yaw_gradient(q)
 
     roll, pitch = np.radians((roll, pitch))
@@ -42,7 +38,7 @@ def test__yaw_gradient_finite_difference(roll, pitch, yaw):
     The yaw gradient must be consistent with how the attitude error is applied in
     the MEKF reset step (i.e., ``_update_quaternion_with_gibbs2``).
     """
-    q = _quaternion_from_euler(roll, pitch, yaw)
+    q = quaternion_from_euler([roll, pitch, yaw], degrees=True)
     dhda_out = _common._yaw_gradient(q)
 
     h = 1e-6
