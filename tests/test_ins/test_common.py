@@ -5,48 +5,48 @@ from scipy.spatial.transform import Rotation
 from smsfusion import quaternion_from_euler
 from smsfusion._ins import _common
 
-YAW_GRADIENT_EULER_ANGLES = [  # (roll, pitch, yaw) in degrees
-    (0.0, 0.0, 0.0),
-    (0.0, 0.0, 90.0),
-    (0.0, 0.0, -90.0),
-    (0.0, 0.0, 180.0),
-    (30.0, 0.0, 0.0),
-    (0.0, 30.0, 0.0),
-    (10.0, -20.0, 135.0),
-    (-45.0, 60.0, -150.0),
-    (170.0, -80.0, 45.0),
-]
 
+class Test__yaw_gradient:
+    EULER_ANGLES = (  # (roll, pitch, yaw) in degrees
+        (0.0, 0.0, 0.0),
+        (0.0, 0.0, 90.0),
+        (0.0, 0.0, -90.0),
+        (0.0, 0.0, 180.0),
+        (30.0, 0.0, 0.0),
+        (0.0, 30.0, 0.0),
+        (10.0, -20.0, 135.0),
+        (-45.0, 60.0, -150.0),
+        (170.0, -80.0, 45.0),
+    )
 
-@pytest.mark.parametrize("roll, pitch, yaw", YAW_GRADIENT_EULER_ANGLES)
-def test__yaw_gradient(roll, pitch, yaw):
-    q = quaternion_from_euler([roll, pitch, yaw], degrees=True)
-    dyawda_out = _common._yaw_gradient(q)
+    @pytest.mark.parametrize("roll, pitch, yaw", EULER_ANGLES)
+    def test_analytical(self, roll, pitch, yaw):
+        q = quaternion_from_euler([roll, pitch, yaw], degrees=True)
+        dyawda_out = _common._yaw_gradient(q)
 
-    roll, pitch = np.radians((roll, pitch))
-    dyawda_expect = np.array([0.0, np.sin(roll), np.cos(roll)]) / np.cos(pitch)
-    np.testing.assert_allclose(dyawda_out, dyawda_expect)
+        roll, pitch = np.radians((roll, pitch))
+        dyawda_expect = np.array([0.0, np.sin(roll), np.cos(roll)]) / np.cos(pitch)
+        np.testing.assert_allclose(dyawda_out, dyawda_expect)
 
+    @pytest.mark.parametrize("roll, pitch, yaw", EULER_ANGLES)
+    def test_finite_difference(self, roll, pitch, yaw):
+        q = quaternion_from_euler([roll, pitch, yaw], degrees=True)
+        dyawda_out = _common._yaw_gradient(q)
 
-@pytest.mark.parametrize("roll, pitch, yaw", YAW_GRADIENT_EULER_ANGLES)
-def test__yaw_gradient_finite_difference(roll, pitch, yaw):
-    q = quaternion_from_euler([roll, pitch, yaw], degrees=True)
-    dyawda_out = _common._yaw_gradient(q)
+        h = 1e-6
+        dyawda_expect = np.zeros(3)
+        for i in range(3):
+            da = np.zeros(3)
+            da[i] = h
+            q_fwd, q_bwd = q.copy(), q.copy()
+            _common._update_quaternion_with_gibbs2(q_fwd, da)
+            _common._update_quaternion_with_gibbs2(q_bwd, -da)
+            yaw_fwd = _common._yaw_from_quaternion(q_fwd)
+            yaw_bwd = _common._yaw_from_quaternion(q_bwd)
+            dyaw = yaw_fwd - yaw_bwd
+            dyawda_expect[i] = _common._signed_smallest_angle(dyaw) / (2.0 * h)
 
-    h = 1e-6
-    dyawda_expect = np.zeros(3)
-    for i in range(3):
-        da = np.zeros(3)
-        da[i] = h
-        q_fwd, q_bwd = q.copy(), q.copy()
-        _common._update_quaternion_with_gibbs2(q_fwd, da)
-        _common._update_quaternion_with_gibbs2(q_bwd, -da)
-        yaw_fwd = _common._yaw_from_quaternion(q_fwd)
-        yaw_bwd = _common._yaw_from_quaternion(q_bwd)
-        dyaw = yaw_fwd - yaw_bwd
-        dyawda_expect[i] = _common._signed_smallest_angle(dyaw) / (2.0 * h)
-
-    np.testing.assert_allclose(dyawda_out, dyawda_expect, atol=1e-6)
+        np.testing.assert_allclose(dyawda_out, dyawda_expect, atol=1e-6)
 
 
 @pytest.mark.parametrize(
