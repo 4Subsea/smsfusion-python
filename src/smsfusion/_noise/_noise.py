@@ -53,7 +53,7 @@ def _white_noise(
 
     See Also
     --------
-    smsfusion.noise.gauss_markov, smsfusion.noise.random_walk
+    _gauss_markov, _random_walk
     """
     rng = np.random.default_rng(seed)
     sigma_wn = N * np.sqrt(fs)
@@ -105,7 +105,7 @@ def _random_walk(
 
     See Also
     --------
-    smsfusion.noise.gauss_markov, smsfusion.noise.white_noise
+    _gauss_markov, _white_noise
     """
     rng = np.random.default_rng(seed)
 
@@ -175,7 +175,7 @@ def _gauss_markov(
 
     See Also
     --------
-    smsfusion.noise.random_walk, smsfusion.noise.white_noise
+    _random_walk, _white_noise
     """
     rng = np.random.default_rng(seed)
 
@@ -248,12 +248,6 @@ class NoiseModel:
         Constant bias given in the same units as the output noise. Defaults to 0.0.
     seed : int, optional
         A seed used to initialize the random number generator.
-
-    See Also
-    --------
-    smsfusion.noise.gauss_markov
-    smsfusion.noise.random_walk
-    smsfusion.noise.white_noise
     """
 
     def __init__(
@@ -326,7 +320,7 @@ class IMUNoise:
 
         err[k] = bc + WN[k] + PN[k] + BN[k]
 
-    See :class:`~smsfusion.noise.NoiseModel` for details on the noise model.
+    See :class:`~smsfusion.NoiseModel` for details on the noise model.
 
     All noise parameters can be given as a scalar (same value for all axes) or as
     an array-like of size 3 (per-axis values for x, y, z).
@@ -370,7 +364,7 @@ class IMUNoise:
 
     See Also
     --------
-    smsfusion.noise.NoiseModel : Noise for a single sensor axis.
+    smsfusion.NoiseModel : Noise for a single sensor axis.
     """
 
     def __init__(
