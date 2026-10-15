@@ -495,7 +495,7 @@ class VAMEKF:
                 raise ValueError("'head_var' is required for heading aiding.")
 
             # Update measurement matrix (heading row)
-            self._H[6, 6:9] = _yaw_gradient(self._q_nb)
+            self._H[6, 3:6] = _yaw_gradient(self._q_nb)
 
             # Update (a posteriori) estimates with heading aiding
             _aiding_update_head(  # -> update dx and P (in place)
