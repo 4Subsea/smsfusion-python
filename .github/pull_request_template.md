@@ -11,5 +11,5 @@ PR title tips:
 * Describe the motivation for change, issue that has been solved or what has been improved - not how.
 * Examples:
   * Add functionality for Allan variance to smsfusion.simulate
-  * Upgrade to support Python 3.10
+  * Upgrade to support Python 3.14
   * Remove MacOS from CI
