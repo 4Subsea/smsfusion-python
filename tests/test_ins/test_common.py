@@ -4,37 +4,61 @@ from scipy.spatial.transform import Rotation
 
 from smsfusion._ins import _common
 
+YAW_GRADIENT_EULER_ANGLES = [  # (roll, pitch, yaw) in degrees
+    (0.0, 0.0, 0.0),
+    (0.0, 0.0, 90.0),
+    (0.0, 0.0, -90.0),
+    (0.0, 0.0, 180.0),
+    (30.0, 0.0, 0.0),
+    (0.0, 30.0, 0.0),
+    (10.0, -20.0, 135.0),
+    (-45.0, 60.0, -150.0),
+    (170.0, -80.0, 45.0),
+]
 
-@pytest.mark.parametrize(
-    "quaternion, dhda_expect",
-    [
-        (
-            np.array([1.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 1.0]),
-        ),
-        (
-            np.array([0.89442719, 0.4472136, 0.0, 0.0]),  # gibbs -> [1.0, 0.0, 0.0]
-            np.array([0.0, 10.0, 20.0]) / (4.0 + 1.0) ** 2,
-        ),
-        (
-            np.array([0.89442719, 0.0, 0.4472136, 0.0]),  # gibbs -> [0.0, 1.0, 0.0]
-            np.array([6.0, 0.0, 12.0]) / (4.0 - 1.0) ** 2,
-        ),
-        (
-            np.array([0.89442719, 0.0, 0.0, 0.4472136]),  # gibbs -> [0.0, 0.0, 1.0]
-            np.array([0.0, 0.0, 20.0]) / ((4.0 - 1.0) ** 2 * (1 + (4.0 / 3.0) ** 2)),
-        ),
-        (
-            np.array(
-                [0.92387953, 0.22094238, 0.22094238, 0.22094238]
-            ),  # gibbs -> [0.47829262, 0.47829262, 0.47829262]
-            np.array([0.06751864, 0.29609696, 0.87452584]),
-        ),
-    ],
-)
-def test__dhda(quaternion, dhda_expect):
-    dhda_out = _common._yaw_gradient(quaternion)
-    np.testing.assert_allclose(dhda_out, dhda_expect)
+
+def _quaternion_from_euler(roll, pitch, yaw):
+    q_xyzw = Rotation.from_euler("ZYX", (yaw, pitch, roll), degrees=True).as_quat()
+    return np.r_[q_xyzw[3], q_xyzw[:3]]
+
+
+@pytest.mark.parametrize("roll, pitch, yaw", YAW_GRADIENT_EULER_ANGLES)
+def test__yaw_gradient(roll, pitch, yaw):
+    """
+    The yaw gradient wrt a body-frame attitude error is given by the yaw row of the
+    ZYX Euler angle kinematics: [0, sin(roll), cos(roll)] / cos(pitch).
+    """
+    q = _quaternion_from_euler(roll, pitch, yaw)
+    dhda_out = _common._yaw_gradient(q)
+
+    roll, pitch = np.radians((roll, pitch))
+    dhda_expect = np.array([0.0, np.sin(roll), np.cos(roll)]) / np.cos(pitch)
+    np.testing.assert_allclose(dhda_out, dhda_expect, atol=1e-12)
+
+
+@pytest.mark.parametrize("roll, pitch, yaw", YAW_GRADIENT_EULER_ANGLES)
+def test__yaw_gradient_finite_difference(roll, pitch, yaw):
+    """
+    The yaw gradient must be consistent with how the attitude error is applied in
+    the MEKF reset step (i.e., ``_update_quaternion_with_gibbs2``).
+    """
+    q = _quaternion_from_euler(roll, pitch, yaw)
+    dhda_out = _common._yaw_gradient(q)
+
+    h = 1e-6
+    dhda_expect = np.zeros(3)
+    for i in range(3):
+        da = np.zeros(3)
+        da[i] = h
+        q_plus, q_minus = q.copy(), q.copy()
+        _common._update_quaternion_with_gibbs2(q_plus, da)
+        _common._update_quaternion_with_gibbs2(q_minus, -da)
+        dyaw = _common._yaw_from_quaternion(q_plus) - _common._yaw_from_quaternion(
+            q_minus
+        )
+        dhda_expect[i] = _common._signed_smallest_angle(dyaw) / (2.0 * h)
+
+    np.testing.assert_allclose(dhda_out, dhda_expect, atol=1e-6)
 
 
 @pytest.mark.parametrize(
