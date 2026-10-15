@@ -6,6 +6,12 @@ from numpy.typing import ArrayLike, NDArray
 
 from smsfusion._transforms import _euler_from_quaternion, _rot_matrix_from_quaternion
 from smsfusion._vectorops import _skew_symmetric
+from smsfusion.constants import (
+    ACC_NOISE_DENSITY,
+    GYRO_BIAS_CORR_TIME,
+    GYRO_BIAS_STABILITY,
+    GYRO_NOISE_DENSITY,
+)
 
 from ._aiding import (
     _aiding_update_gref,
@@ -265,16 +271,17 @@ class PVAMEKF:
         Initial (a priori) estimate of the error covariance matrix. Defaults to
         a small diagonal matrix (1e-6 * np.eye(12)).
     acc_noise_density : float, optional
-        Accelerometer noise density (velocity random walk) in (m/s)/√Hz. Defaults to
-        0.0007 (m/s)/√Hz (SMS Motion 2 noise level).
+        Accelerometer noise density (velocity random walk) in (m/s^2)/√Hz. Defaults to
+        :const:`smsfusion.constants.ACC_NOISE_DENSITY` (SMS Motion 2 noise level).
     gyro_noise_density : float, optional
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
-        0.00005 (rad/s)/√Hz (SMS Motion 2 noise level).
+        :const:`smsfusion.constants.GYRO_NOISE_DENSITY` (SMS Motion 2 noise level).
     gyro_bias_stability : float, optional
-        Gyroscope bias stability in rad/s. Defaults to 0.00005 rad/s (SMS Motion 2
-        noise level).
+        Gyroscope bias stability in rad/s. Defaults to
+        :const:`smsfusion.constants.GYRO_BIAS_STABILITY` (SMS Motion 2 noise level).
     gyro_bias_corr_time : float, optional
-        Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
+        Gyroscope bias correlation time in seconds. Defaults to
+        :const:`smsfusion.constants.GYRO_BIAS_CORR_TIME` (SMS Motion 2 noise level).
     g : float, optional
         The gravitational acceleration in m/s^2. Default is 'standard gravity' of
         9.80665 m/s^2.
@@ -297,10 +304,10 @@ class PVAMEKF:
         q0: ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg0: ArrayLike = (0.0, 0.0, 0.0),
         P0: ArrayLike = _P0,
-        acc_noise_density: float = 0.0007,
-        gyro_noise_density: float = 0.00005,
-        gyro_bias_stability: float = 0.00005,
-        gyro_bias_corr_time: float = 50.0,
+        acc_noise_density: float = ACC_NOISE_DENSITY,
+        gyro_noise_density: float = GYRO_NOISE_DENSITY,
+        gyro_bias_stability: float = GYRO_BIAS_STABILITY,
+        gyro_bias_corr_time: float = GYRO_BIAS_CORR_TIME,
         g: float = 9.80665,
         nav_frame: str = "NED",
         lever_arm: ArrayLike = (0.0, 0.0, 0.0),
