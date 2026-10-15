@@ -50,23 +50,22 @@ def test__yaw_gradient_finite_difference(roll, pitch, yaw):
 
 
 @pytest.mark.parametrize(
-    "angles",
+    "roll, pitch, yaw",  # degrees
     [
-        np.radians([0.0, 0.0, 35.0]),
-        np.radians([25.0, 180.0, -125.0]),
-        np.radians([10.0, 95.0, 1.0]),
+        (0.0, 0.0, 0.0),
+        (0.0, 0.0, 35.0),
+        (0.0, 0.0, -90.0),
+        (0.0, 0.0, 179.0),
+        (0.0, 0.0, -179.0),
+        (25.0, -60.0, -125.0),
+        (10.0, 85.0, 1.0),
+        (-170.0, 45.0, 150.0),
     ],
 )
-def test__yaw_from_quaternion(angles):
-    alpha, beta, gamma = np.radians((0.0, 0.0, 15.0))
-
-    quaternion = Rotation.from_euler(
-        "ZYX", (gamma, beta, alpha), degrees=False
-    ).as_quat()
-    quaternion = np.r_[quaternion[3], quaternion[:3]]
-
-    gamma_expect = _common._yaw_from_quaternion(quaternion)
-    assert gamma_expect == pytest.approx(gamma)
+def test__yaw_from_quaternion(roll, pitch, yaw):
+    q = quaternion_from_euler([roll, pitch, yaw], degrees=True)
+    yaw_out = _common._yaw_from_quaternion(q)
+    assert yaw_out == pytest.approx(np.radians(yaw))
 
 
 @pytest.mark.parametrize(
