@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from smsfusion.noise import (
+from smsfusion._noise import (
     IMUNoise,
     NoiseModel,
     allan_var,

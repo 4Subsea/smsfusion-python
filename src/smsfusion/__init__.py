@@ -1,4 +1,4 @@
-from . import benchmark, calibrate, constants, noise
+from . import _noise, benchmark, calibrate, constants
 from ._coning_sculling import ConingScullingAlg, ConingScullingAlgCalibrated
 from ._ins import (
     AMEKF,

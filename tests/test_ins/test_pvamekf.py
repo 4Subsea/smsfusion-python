@@ -334,7 +334,7 @@ class Test_PVAMEKF:
         vel_std = 0.01  # m/s
         head_std = np.radians(0.1)  # rad
         bg = np.array([0.01, -0.02, 0.03])  # rad/s
-        imu_noise = sf.noise.IMUNoise(seed=0)(fs_imu, len(t))
+        imu_noise = sf._noise.IMUNoise(seed=0)(fs_imu, len(t))
         acc_meas = acc_ref + imu_noise[:, :3]
         gyro_meas = gyro_ref + imu_noise[:, 3:] + bg
         pos_meas = pos_ref + np.random.normal(0.0, pos_std, pos_ref.shape)
@@ -433,7 +433,7 @@ class Test_PVAMEKF:
 
         # IMU and aiding measurements (with noise)
         bg = np.array([0.01, -0.02, 0.0])  # rad/s
-        imu_noise = sf.noise.IMUNoise(seed=0)(fs_imu, len(t))
+        imu_noise = sf._noise.IMUNoise(seed=0)(fs_imu, len(t))
         acc_meas = acc_ref + imu_noise[:, :3]
         gyro_meas = gyro_ref + imu_noise[:, 3:] + bg
 
