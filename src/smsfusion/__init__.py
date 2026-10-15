@@ -1,4 +1,5 @@
-from . import benchmark, calibrate, constants, noise
+from . import benchmark, calibrate, constants
+from ._allan import allan_var
 from ._coning_sculling import ConingScullingAlg, ConingScullingAlgCalibrated
 from ._ins import (
     AMEKF,
@@ -8,6 +9,7 @@ from ._ins import (
     FixedNED,
     gravity,
 )
+from ._noise import IMUNoise
 from ._transforms import quaternion_from_euler
 
 __all__ = [
@@ -18,10 +20,11 @@ __all__ = [
     "ConingScullingAlgCalibrated",
     "FixedIntervalSmoother",
     "FixedNED",
+    "IMUNoise",
+    "allan_var",
     "benchmark",
     "calibrate",
     "constants",
     "gravity",
-    "noise",
     "quaternion_from_euler",
 ]

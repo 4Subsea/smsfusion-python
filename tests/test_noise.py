@@ -5,13 +5,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from smsfusion.noise import (
-    IMUNoise,
-    NoiseModel,
-    allan_var,
-    gauss_markov,
-    random_walk,
-    white_noise,
+from smsfusion import IMUNoise, allan_var
+from smsfusion._noise import (
+    _gauss_markov,
+    _NoiseModel,
+    _random_walk,
+    _white_noise,
 )
 
 TEST_PATH = Path(__file__).parent
@@ -19,7 +18,7 @@ TEST_PATH = Path(__file__).parent
 
 def test_white_noise():
     N, fs, n = 3, 10.0, 100_000
-    wn_out = white_noise(N, fs, n, seed=123)
+    wn_out = _white_noise(N, fs, n, seed=123)
 
     wn_expect = pd.read_csv(
         TEST_PATH / "testdata" / "white_noise.csv", index_col=0
@@ -30,7 +29,7 @@ def test_white_noise():
 
 def test_random_walk():
     K, fs, n = 3, 10.0, 100_000
-    rw_out = random_walk(K, fs, n, seed=123)
+    rw_out = _random_walk(K, fs, n, seed=123)
 
     rw_expect = pd.read_csv(
         TEST_PATH / "testdata" / "random_walk.csv", index_col=0
@@ -42,7 +41,7 @@ def test_random_walk():
 def test_gauss_markov():
     sigma, tau_c, fs, n = 3, 5, 10.0, 100_000
 
-    gm_out = gauss_markov(sigma, tau_c, fs, n, seed=123)
+    gm_out = _gauss_markov(sigma, tau_c, fs, n, seed=123)
 
     gm_expect = pd.read_csv(
         TEST_PATH / "testdata" / "gauss_markov.csv", index_col=0
@@ -53,7 +52,7 @@ def test_gauss_markov():
 
 class Test_NoiseModel:
     def test__init__(self):
-        noise = NoiseModel(1, 2, 3, 4, 5, 6, 7)
+        noise = _NoiseModel(1, 2, 3, 4, 5, 6, 7)
 
         assert noise._N == 1
         assert noise._B == 2
@@ -66,7 +65,7 @@ class Test_NoiseModel:
         )
 
     def test__init__default(self):
-        noise = NoiseModel(1, 2, 3)
+        noise = _NoiseModel(1, 2, 3)
 
         assert noise._N == 1
         assert noise._B == 2
@@ -83,7 +82,7 @@ class Test_NoiseModel:
         K = 3.0e-5
         tau_ck = 5e5  # Gauss-Markov (GM) drift model
         bc = 0.1
-        noise = NoiseModel(N, B, tau_cb, K, tau_ck, bc, seed=123)
+        noise = _NoiseModel(N, B, tau_cb, K, tau_ck, bc, seed=123)
         x_out = noise(10.24, 10_000)
 
         x_expect = pd.read_csv(
@@ -102,7 +101,7 @@ class Test_NoiseModel:
         K = 3.0e-5
         tau_ck = None  # Random walk (RW) drift model
         bc = 0.1
-        noise = NoiseModel(N, B, tau_cb, K, tau_ck, bc, seed=123)
+        noise = _NoiseModel(N, B, tau_cb, K, tau_ck, bc, seed=123)
         x_out = noise(10.24, 10_000)
 
         x_expect = pd.read_csv(
@@ -118,7 +117,7 @@ class Test_NoiseModel:
         K = None  # No drift
         tau_ck = None
         bc = 0.1
-        noise = NoiseModel(N, B, tau_cb, K, tau_ck, bc, seed=123)
+        noise = _NoiseModel(N, B, tau_cb, K, tau_ck, bc, seed=123)
         x_out = noise(10.24, 10_000)
 
         x_expect = pd.read_csv(
@@ -129,20 +128,20 @@ class Test_NoiseModel:
 
     def test__call__constant_bias(self):
         N, B, K, tau_cb, tau_ck, bc = 0.0, 0.0, 0.0, 10, None, 1.0
-        noise = NoiseModel(N, B, tau_cb, K, tau_ck, bc, 123)
+        noise = _NoiseModel(N, B, tau_cb, K, tau_ck, bc, 123)
         x_out = noise(10.24, 100)
 
         assert np.mean(x_out) == 1.0
 
     def test_multiple_calls_varying_output(self):
-        # Repeated calls to NoiseModel should yield different outputs
+        # Repeated calls to _NoiseModel should yield different outputs
         N = 4.0e-4
         B = 3.0e-4
         tau_cb = 10
         K = 3.0e-5
         tau_ck = None  # Random walk (RW) drift model
         bc = 0.1
-        noise = NoiseModel(N, B, tau_cb, K, tau_ck, bc, seed=123)
+        noise = _NoiseModel(N, B, tau_cb, K, tau_ck, bc, seed=123)
         num_samples = 100
         sampling_frequency = 10.24
         x_out1 = noise(sampling_frequency, num_samples)

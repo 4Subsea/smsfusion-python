@@ -13,7 +13,7 @@ from smsfusion.constants import (
 )
 
 
-def white_noise(
+def _white_noise(
     N: float,
     fs: float,
     n: int,
@@ -53,7 +53,7 @@ def white_noise(
 
     See Also
     --------
-    smsfusion.noise.gauss_markov, smsfusion.noise.random_walk
+    _gauss_markov, _random_walk
     """
     rng = np.random.default_rng(seed)
     sigma_wn = N * np.sqrt(fs)
@@ -61,7 +61,7 @@ def white_noise(
     return wn
 
 
-def random_walk(
+def _random_walk(
     K: float, fs: float, n: int, seed: int | np.random.Generator | None = None
 ) -> NDArray[np.float64]:
     """
@@ -105,7 +105,7 @@ def random_walk(
 
     See Also
     --------
-    smsfusion.noise.gauss_markov, smsfusion.noise.white_noise
+    _gauss_markov, _white_noise
     """
     rng = np.random.default_rng(seed)
 
@@ -119,7 +119,7 @@ def random_walk(
     return x
 
 
-def gauss_markov(
+def _gauss_markov(
     sigma: float,
     tau_c: float,
     fs: float,
@@ -175,7 +175,7 @@ def gauss_markov(
 
     See Also
     --------
-    smsfusion.noise.random_walk, smsfusion.noise.white_noise
+    _random_walk, _white_noise
     """
     rng = np.random.default_rng(seed)
 
@@ -193,7 +193,7 @@ def gauss_markov(
     return x
 
 
-class NoiseModel:
+class _NoiseModel:
     """
     Provides an interface for generating random sensor noise with the following
     contributions:
@@ -248,12 +248,6 @@ class NoiseModel:
         Constant bias given in the same units as the output noise. Defaults to 0.0.
     seed : int, optional
         A seed used to initialize the random number generator.
-
-    See Also
-    --------
-    smsfusion.noise.gauss_markov
-    smsfusion.noise.random_walk
-    smsfusion.noise.white_noise
     """
 
     def __init__(
@@ -299,17 +293,17 @@ class NoiseModel:
         bc = self._bc
 
         # White noise
-        wn = white_noise(self._N, fs, n, seed=self._rng)
+        wn = _white_noise(self._N, fs, n, seed=self._rng)
 
         # Flicker noise / pink noise
-        pn = gauss_markov(self._B, self._tau_cb, fs, n, seed=self._rng)
+        pn = _gauss_markov(self._B, self._tau_cb, fs, n, seed=self._rng)
 
         # Drift / Brownian noise
         if self._K and self._tau_ck:
             sigma = self._K * np.sqrt(self._tau_ck / 2.0)
-            bn = gauss_markov(sigma, self._tau_ck, fs, n, seed=self._rng)
+            bn = _gauss_markov(sigma, self._tau_ck, fs, n, seed=self._rng)
         elif self._K:
-            bn = random_walk(self._K, fs, n, seed=self._rng)
+            bn = _random_walk(self._K, fs, n, seed=self._rng)
         else:
             bn = np.zeros(n)
 
@@ -322,11 +316,7 @@ class IMUNoise:
 
     Generates random accelerometer and gyroscope measurement noise for each sensor
     axis (x, y, z). The noise for each axis is modeled as the sum of white noise,
-    flicker noise (bias instability), drift (Brownian noise) and a constant bias::
-
-        err[k] = bc + WN[k] + PN[k] + BN[k]
-
-    See :class:`~smsfusion.noise.NoiseModel` for details on the noise model.
+    flicker noise (bias instability), drift (Brownian noise) and a constant bias.
 
     All noise parameters can be given as a scalar (same value for all axes) or as
     an array-like of size 3 (per-axis values for x, y, z).
@@ -367,10 +357,6 @@ class IMUNoise:
         Gyroscope constant bias in rad/s. Defaults to 0.0.
     seed : int, optional
         A seed used to initialize a random number generator.
-
-    See Also
-    --------
-    smsfusion.noise.NoiseModel : Noise for a single sensor axis.
     """
 
     def __init__(
@@ -392,7 +378,6 @@ class IMUNoise:
     ) -> None:
         self._seed = seed
 
-        # Per-axis noise parameters (keys correspond to NoiseModel arguments)
         self._err_acc = {
             "N": self._full(acc_noise_density),
             "B": self._full(acc_bias_stability),
@@ -462,6 +447,6 @@ class IMUNoise:
         # Generate seeds for each noise component based on class seed
         seeds = np.random.SeedSequence(self._seed).generate_state(6, "uint64")
         x = np.column_stack(
-            [NoiseModel(**self._err_list[i], seed=seeds[i])(fs, n) for i in range(6)]
+            [_NoiseModel(**self._err_list[i], seed=seeds[i])(fs, n) for i in range(6)]
         )
         return x
