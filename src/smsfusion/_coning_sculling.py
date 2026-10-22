@@ -59,9 +59,9 @@ class ConingScullingAlg:
         self._delta_phi_prev = np.zeros(3, dtype=float)
 
         # Sculling params
-        self._vel = np.zeros(3, dtype=float)
-        self._dvel_scul = np.zeros(3, dtype=float)
-        self._dv_prev = np.zeros(3, dtype=float)
+        self.u = np.zeros(3, dtype=float)
+        self._del_v_scul = np.zeros(3, dtype=float)
+        self._delta_u_prev = np.zeros(3, dtype=float)
 
     def update(self, f: ArrayLike, w: ArrayLike, degrees: bool = False):
         """
@@ -89,32 +89,32 @@ class ConingScullingAlg:
         phi = self._phi
         del_phi = self._del_phi
         delta_phi_prev = self._delta_phi_prev
-        vel = self._vel
-        dvel_scul = self._dvel_scul
-        dv_prev = self._dv_prev
+        u = self.u
+        del_v_scul = self._del_v_scul
+        delta_u_prev = self._delta_u_prev
 
-        dv = f * self._dt  # backward Euler
+        delta_u = f * self._dt  # backward Euler
         delta_phi = w * self._dt  # backward Euler
 
         # Sculling update (2nd order)
         # See Eq. (7.2.2.2.2-15) in ref [2]_ and Eq. (56) in ref [1]_
-        dvel_scul += 0.5 * (
-            _cross(phi + (1.0 / 6.0) * delta_phi_prev, dv)
-            + _cross(vel + (1.0 / 6.0) * dv_prev, delta_phi)
+        del_v_scul += 0.5 * (
+            _cross(phi + (1.0 / 6.0) * delta_phi_prev, delta_u)
+            + _cross(u + (1.0 / 6.0) * delta_u_prev, delta_phi)
         )
-        vel += dv
+        u += delta_u
 
         # Coning update
         # See Eq. (26) in ref [1]_
         del_phi += 0.5 * _cross(phi + (1.0 / 6.0) * delta_phi_prev, delta_phi)
         phi += delta_phi
 
-        dv_prev[:] = dv
+        delta_u_prev[:] = delta_u
         delta_phi_prev[:] = delta_phi
 
     @property
-    def _dvel_rot(self):
-        return 0.5 * _cross(self._phi, self._vel)
+    def _delta_v_rot(self):
+        return 0.5 * _cross(self._phi, self.u)
 
     def _calc_dvel_dtheta(self, degrees=False):
         """
@@ -123,7 +123,7 @@ class ConingScullingAlg:
         delta_theta = self._phi + self._del_phi
         delta_theta = np.degrees(delta_theta) if degrees else delta_theta
         # Equation (7.2.2.2-23) in ref [2]_
-        dvel = self._vel + self._dvel_rot + self._dvel_scul
+        dvel = self.u + self._delta_v_rot + self._del_v_scul
 
         return dvel, delta_theta
 
@@ -154,8 +154,8 @@ class ConingScullingAlg:
 
         self._phi[:] = np.zeros(3, dtype=float)
         self._del_phi[:] = np.zeros(3, dtype=float)
-        self._dvel_scul[:] = np.zeros(3, dtype=float)
-        self._vel[:] = np.zeros(3, dtype=float)
+        self._del_v_scul[:] = np.zeros(3, dtype=float)
+        self.u[:] = np.zeros(3, dtype=float)
         return dvel, dtheta
 
 
@@ -235,5 +235,5 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
         delta_theta = self.W_w @ self._phi + self.cof_W @ self._del_phi
         delta_theta = np.degrees(delta_theta) if degrees else delta_theta
 
-        dvel = self.W_w @ self._vel + self.cof_W @ (self._dvel_rot + self._dvel_scul)
+        dvel = self.W_w @ self.u + self.cof_W @ (self._delta_v_rot + self._del_v_scul)
         return dvel, delta_theta
