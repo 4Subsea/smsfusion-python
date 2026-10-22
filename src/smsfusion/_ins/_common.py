@@ -25,7 +25,7 @@ def _yaw_gradient(q: NDArray[np.float64]) -> NDArray[np.float64]:
     Raises
     ------
     ValueError
-        If the absolute pitch angle exceeds 85 degrees (gimbal lock).
+        If the absolute pitch angle exceeds 85 degrees (near gimbal lock).
     """
     # TODO: add reference when the 3rd edition of Fossen's book is released
     qw, qx, qy, qz = q
@@ -35,7 +35,7 @@ def _yaw_gradient(q: NDArray[np.float64]) -> NDArray[np.float64]:
     cos2_pitch = r21**2 + r22**2
     if cos2_pitch <= _COS2_85_DEG:
         raise ValueError(
-            "The yaw gradient is undefined when the absolute pitch angle exceeds 85 degrees (gimbal lock)."
+            "Yaw gradient is ill-conditioned for |pitch| > 85 deg (near gimbal lock)."
         )
 
     dyawda = np.array([0.0, r21, r22]) / cos2_pitch
