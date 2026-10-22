@@ -71,10 +71,10 @@ class Test_ConingScullingAlg:
         assert alg._dt == 1.0 / 256.0
         np.testing.assert_allclose(alg._phi, np.zeros(3))
         np.testing.assert_allclose(alg._del_phi, np.zeros(3))
-        np.testing.assert_allclose(alg._delta_phi_prev, np.zeros(3))
+        np.testing.assert_allclose(alg._dphi_prev, np.zeros(3))
         np.testing.assert_allclose(alg.u, np.zeros(3))
         np.testing.assert_allclose(alg._del_v_scul, np.zeros(3))
-        np.testing.assert_allclose(alg._delta_u_prev, np.zeros(3))
+        np.testing.assert_allclose(alg._du_prev, np.zeros(3))
 
     @pytest.mark.parametrize(
         "algorithm", [sf.ConingScullingAlg, sf.ConingScullingAlgCalibrated]
