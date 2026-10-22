@@ -37,6 +37,12 @@ class ConingScullingAlg:
     The coning and sculling integrals are computed using a 2nd order algorithm as
     described in [1]_ and [2]_.
 
+    Notes
+    -----
+    When comparing to the theory manual, the symbol Δ appears in the code as `delta` and
+    δ as `del`, i.e., is Δθ written as `delta_theta` and δφ as `del_phi`.
+
+
     References
     ----------
     .. [1] Savage, Paul G., Strapdown System Algorithms, AD-P003 621, https://apps.dtic.mil/sti/tr/pdf/ADP003621.pdf
@@ -48,9 +54,9 @@ class ConingScullingAlg:
         self._dt = 1.0 / fs
 
         # Coning params
-        self._theta = np.zeros(3, dtype=float)
-        self._dtheta_con = np.zeros(3, dtype=float)
-        self._dtheta_prev = np.zeros(3, dtype=float)
+        self._phi = np.zeros(3, dtype=float)
+        self._del_phi = np.zeros(3, dtype=float)
+        self._delta_phi_prev = np.zeros(3, dtype=float)
 
         # Sculling params
         self._vel = np.zeros(3, dtype=float)
@@ -80,46 +86,46 @@ class ConingScullingAlg:
             w = (np.pi / 180.0) * w
 
         # View for readability
-        theta = self._theta
-        dtheta_con = self._dtheta_con
-        dtheta_prev = self._dtheta_prev
+        phi = self._phi
+        del_phi = self._del_phi
+        delta_phi_prev = self._delta_phi_prev
         vel = self._vel
         dvel_scul = self._dvel_scul
         dv_prev = self._dv_prev
 
         dv = f * self._dt  # backward Euler
-        dtheta = w * self._dt  # backward Euler
+        delta_phi = w * self._dt  # backward Euler
 
         # Sculling update (2nd order)
         # See Eq. (7.2.2.2.2-15) in ref [2]_ and Eq. (56) in ref [1]_
         dvel_scul += 0.5 * (
-            _cross(theta + (1.0 / 6.0) * dtheta_prev, dv)
-            + _cross(vel + (1.0 / 6.0) * dv_prev, dtheta)
+            _cross(phi + (1.0 / 6.0) * delta_phi_prev, dv)
+            + _cross(vel + (1.0 / 6.0) * dv_prev, delta_phi)
         )
         vel += dv
 
         # Coning update
         # See Eq. (26) in ref [1]_
-        dtheta_con += 0.5 * _cross(theta + (1.0 / 6.0) * dtheta_prev, dtheta)
-        theta += dtheta
+        del_phi += 0.5 * _cross(phi + (1.0 / 6.0) * delta_phi_prev, delta_phi)
+        phi += delta_phi
 
         dv_prev[:] = dv
-        dtheta_prev[:] = dtheta
+        delta_phi_prev[:] = delta_phi
 
     @property
     def _dvel_rot(self):
-        return 0.5 * _cross(self._theta, self._vel)
+        return 0.5 * _cross(self._phi, self._vel)
 
     def _calc_dvel_dtheta(self, degrees=False):
         """
         Calculate the coning and sculling corrected dvel and dtheta vectors.
         """
-        dtheta = self._theta + self._dtheta_con
-        dtheta = np.degrees(dtheta) if degrees else dtheta
+        delta_theta = self._phi + self._del_phi
+        delta_theta = np.degrees(delta_theta) if degrees else delta_theta
         # Equation (7.2.2.2-23) in ref [2]_
         dvel = self._vel + self._dvel_rot + self._dvel_scul
 
-        return dvel, dtheta
+        return dvel, delta_theta
 
     def flush(self, degrees=False):
         """
@@ -146,8 +152,8 @@ class ConingScullingAlg:
         """
         dvel, dtheta = self._calc_dvel_dtheta(degrees)
 
-        self._theta[:] = np.zeros(3, dtype=float)
-        self._dtheta_con[:] = np.zeros(3, dtype=float)
+        self._phi[:] = np.zeros(3, dtype=float)
+        self._del_phi[:] = np.zeros(3, dtype=float)
         self._dvel_scul[:] = np.zeros(3, dtype=float)
         self._vel[:] = np.zeros(3, dtype=float)
         return dvel, dtheta
@@ -226,8 +232,8 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
         super().update(f_adjusted, w_adjusted, degrees)
 
     def _calc_dvel_dtheta(self, degrees=False):
-        dtheta = self.W_w @ self._theta + self.cof_W @ self._dtheta_con
-        dtheta = np.degrees(dtheta) if degrees else dtheta
+        delta_theta = self.W_w @ self._phi + self.cof_W @ self._del_phi
+        delta_theta = np.degrees(delta_theta) if degrees else delta_theta
 
         dvel = self.W_w @ self._vel + self.cof_W @ (self._dvel_rot + self._dvel_scul)
-        return dvel, dtheta
+        return dvel, delta_theta
