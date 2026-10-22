@@ -60,7 +60,7 @@ class ConingScullingAlg:
 
         # Sculling params
         self.u = np.zeros(3, dtype=float)
-        self._del_v_scul = np.zeros(3, dtype=float)
+        self._dv_scul = np.zeros(3, dtype=float)
         self._du_prev = np.zeros(3, dtype=float)
 
     def update(self, f: ArrayLike, w: ArrayLike, degrees: bool = False):
@@ -90,7 +90,7 @@ class ConingScullingAlg:
         del_phi = self._del_phi
         dphi_prev = self._dphi_prev
         u = self.u
-        del_v_scul = self._del_v_scul
+        del_v_scul = self._dv_scul
         du_prev = self._du_prev
 
         du = f * self._dt  # backward Euler
@@ -123,7 +123,7 @@ class ConingScullingAlg:
         dtheta = self._phi + self._del_phi
         dtheta = np.degrees(dtheta) if degrees else dtheta
         # Equation (7.2.2.2-23) in ref [2]_
-        dv = self.u + self._dv_rot + self._del_v_scul
+        dv = self.u + self._dv_rot + self._dv_scul
 
         return dv, dtheta
 
@@ -154,7 +154,7 @@ class ConingScullingAlg:
 
         self._phi[:] = np.zeros(3, dtype=float)
         self._del_phi[:] = np.zeros(3, dtype=float)
-        self._del_v_scul[:] = np.zeros(3, dtype=float)
+        self._dv_scul[:] = np.zeros(3, dtype=float)
         self.u[:] = np.zeros(3, dtype=float)
         return dv, dtheta
 
@@ -235,5 +235,5 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
         dtheta = self.W_w @ self._phi + self.cof_W @ self._del_phi
         dtheta = np.degrees(dtheta) if degrees else dtheta
 
-        dv = self.W_w @ self.u + self.cof_W @ (self._dv_rot + self._del_v_scul)
+        dv = self.W_w @ self.u + self.cof_W @ (self._dv_rot + self._dv_scul)
         return dv, dtheta
