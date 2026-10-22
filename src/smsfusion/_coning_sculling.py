@@ -90,7 +90,7 @@ class ConingScullingAlg:
         del_phi = self._del_phi
         dphi_prev = self._dphi_prev
         u = self._u
-        del_v_scul = self._dv_scul
+        dv_scul = self._dv_scul
         du_prev = self._du_prev
 
         du = f * self._dt  # backward Euler
@@ -98,7 +98,7 @@ class ConingScullingAlg:
 
         # Sculling update (2nd order)
         # See Eq. (7.2.2.2.2-15) in ref [2]_ and Eq. (56) in ref [1]_
-        del_v_scul += 0.5 * (
+        dv_scul += 0.5 * (
             _cross(phi + (1.0 / 6.0) * dphi_prev, du)
             + _cross(u + (1.0 / 6.0) * du_prev, dphi)
         )
