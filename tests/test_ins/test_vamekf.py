@@ -81,7 +81,6 @@ def test_measurement_matrix_init():
     expect = np.zeros((7, 9))
     expect[0:3, 0:3] = np.eye(3)
     expect[3:6, 3:6] = _skew_symmetric(_gref_b_from_quat(q_nb, nz2vg))
-    expect[6:7, 3:6] = np.array([0.0, 0.0, 1.0])  # kappa -> zero due to unit quat
 
     np.testing.assert_array_equal(_measurement_matrix_init(q_nb, nz2vg), expect)
 
@@ -244,6 +243,29 @@ class Test_VAMEKF:
         mekf = VAMEKF(10.0)
         with pytest.raises(ValueError):
             mekf.update(dvel, dtheta)
+
+    @pytest.mark.parametrize("pitch", [-90.0, -89.9, -85.1, 85.1, 89.9, 90.0])
+    def test_update_head_raises_near_gimbal_lock(self, pitch):
+        q0 = sf.quaternion_from_euler([10.0, pitch, 30.0], degrees=True)
+        mekf = VAMEKF(10.0, q0=q0)
+        with pytest.raises(ValueError, match="gimbal lock"):
+            mekf.update((0.0, 0.0, -0.981), (0.0, 0.0, 0.0), head=1.0)
+
+    @pytest.mark.parametrize("pitch", [-90.0, 90.0])
+    def test_update_no_head_near_gimbal_lock(self, pitch):
+        q0 = sf.quaternion_from_euler([10.0, pitch, 30.0], degrees=True)
+        mekf = VAMEKF(10.0, q0=q0)
+        mekf.update((0.0, 0.0, -0.981), (0.0, 0.0, 0.0), head=None)
+        assert np.all(np.isfinite(mekf.quaternion()))
+        assert np.all(np.isfinite(mekf.P))
+
+    @pytest.mark.parametrize("pitch", [-84.9, -45.0, 0.0, 45.0, 84.9])
+    def test_update_head_below_pitch_limit(self, pitch):
+        q0 = sf.quaternion_from_euler([10.0, pitch, 30.0], degrees=True)
+        mekf = VAMEKF(10.0, q0=q0)
+        mekf.update((0.0, 0.0, -0.981), (0.0, 0.0, 0.0), head=1.0)
+        assert np.all(np.isfinite(mekf.quaternion()))
+        assert np.all(np.isfinite(mekf.P))
 
     @pytest.mark.parametrize(
         "benchmark_gen, gyro_degrees",
