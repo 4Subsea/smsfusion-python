@@ -9,25 +9,25 @@ class ConingScullingAlg:
     Coning and sculling algorithm.
 
     Integrates the specific force and angular rate measurements to coning and
-    sculling corrected velocity (dvel) and attitude (dtheta) changes.
+    sculling corrected velocity (delta_v) and attitude (delta_theta) changes.
 
     Can be used in a strapdown algorithm as:
 
-        vel[m+1] = vel[m] + R(q[m]) @ dvel[m+1] + dvel_corr
-        q[m+1] = q[m] ⊗ dq(dtheta[m+1])
+        v[m+1] = v[m] + R(q[m]) @ delta_v[m+1] + delta_v_corr
+        q[m+1] = q[m] ⊗ dq(delta_theta[m+1])
 
     where,
 
-        dvel_corr = [0, 0, g * dt] (if 'NED')
-        dvel_corr = [0, 0, -g * dt] (if 'ENU')
+        delta_v_corr = [0, 0, g * dt] (if 'NED')
+        delta_v_corr = [0, 0, -g * dt] (if 'ENU')
 
     and,
 
-    - dvel[m+1] is the sculling integral, i.e., the velocity vector change (no gravity
+    - delta_v[m+1] is the sculling integral, i.e., the velocity vector change (no gravity
       correction) from time step m to m+1.
-    - dtheta[m+1] is the coning integral, i.e., the rotation vector change from time
+    - delta_theta[m+1] is the coning integral, i.e., the rotation vector change from time
       step m to m+1.
-    - dq(dtheta[m+1]) is the unit quaternion representation of the rotation increment
+    - dq(delta_theta[m+1]) is the unit quaternion representation of the rotation increment
       over the interval [m, m+1].
     - R(q[m]) is the rotation matrix (body-to-nav) corresponding to the attitude
       quaternion q[m].
@@ -40,8 +40,8 @@ class ConingScullingAlg:
     Notes
     -----
     When comparing to the theory manual, the symbol Δ appears in the code as `delta` and
-    δ as `del`, i.e., is Δθ written as `delta_theta` and δφ as `del_phi`.
-
+    δ as `del`, i.e., is Δθ written as `delta_theta` and δφ as `del_phi`. ω is written as w,
+    while other greek letters are spelled out.
 
     References
     ----------
@@ -116,22 +116,22 @@ class ConingScullingAlg:
     def _delta_v_rot(self):
         return 0.5 * _cross(self._phi, self.u)
 
-    def _calc_dvel_dtheta(self, degrees=False):
+    def _calc_delta_v_delta_theta(self, degrees=False):
         """
-        Calculate the coning and sculling corrected dvel and dtheta vectors.
+        Calculate the coning and sculling corrected delta_v and delta_theta vectors.
         """
         delta_theta = self._phi + self._del_phi
         delta_theta = np.degrees(delta_theta) if degrees else delta_theta
         # Equation (7.2.2.2-23) in ref [2]_
-        dvel = self.u + self._delta_v_rot + self._del_v_scul
+        delta_v = self.u + self._delta_v_rot + self._del_v_scul
 
-        return dvel, delta_theta
+        return delta_v, delta_theta
 
     def flush(self, degrees=False):
         """
-        Return dvel (the accumulated specific force velocity change vector) and
-        dtheta (the accumulated 'body attitude change' vector), and reset the coning
-        (dtheta) and sculling (dvel) integrals to zero.
+        Return delta_v (the accumulated specific force velocity change vector) and
+        delta_theta (the accumulated 'body attitude change' vector), and reset the coning
+        (delta_theta) and sculling (delta_v) integrals to zero.
 
         Parameters
         ----------
@@ -141,22 +141,22 @@ class ConingScullingAlg:
 
         Returns
         -------
-        dvel : ndarray, shape (3,)
+        delta_v : ndarray, shape (3,)
             The accumulated specific force velocity change vector. I.e., the total change
             in velocity (no gravity correction) over all samples since initialization
             (or last reset).
-        dtheta : ndarray, shape (3,)
+        delta_theta : ndarray, shape (3,)
             The accumulated 'body attitude change' vector. I.e., the rotation vector
             describing the total rotation over all samples since initialization (or
             last reset).
         """
-        dvel, dtheta = self._calc_dvel_dtheta(degrees)
+        delta_v, delta_theta = self._calc_delta_v_delta_theta(degrees)
 
         self._phi[:] = np.zeros(3, dtype=float)
         self._del_phi[:] = np.zeros(3, dtype=float)
         self._del_v_scul[:] = np.zeros(3, dtype=float)
         self.u[:] = np.zeros(3, dtype=float)
-        return dvel, dtheta
+        return delta_v, delta_theta
 
 
 class ConingScullingAlgCalibrated(ConingScullingAlg):
@@ -231,9 +231,11 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
         w_adjusted = w + self.b_w_star
         super().update(f_adjusted, w_adjusted, degrees)
 
-    def _calc_dvel_dtheta(self, degrees=False):
+    def _calc_delta_v_delta_theta(self, degrees=False):
         delta_theta = self.W_w @ self._phi + self.cof_W @ self._del_phi
         delta_theta = np.degrees(delta_theta) if degrees else delta_theta
 
-        dvel = self.W_w @ self.u + self.cof_W @ (self._delta_v_rot + self._del_v_scul)
-        return dvel, delta_theta
+        delta_v = self.W_w @ self.u + self.cof_W @ (
+            self._delta_v_rot + self._del_v_scul
+        )
+        return delta_v, delta_theta
