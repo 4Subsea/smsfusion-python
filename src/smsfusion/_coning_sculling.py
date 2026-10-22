@@ -9,33 +9,38 @@ class ConingScullingAlg:
     Coning and sculling algorithm.
 
     Integrates the specific force and angular rate measurements to coning and
-    sculling corrected velocity (dvel) and attitude (dtheta) changes.
+    sculling corrected velocity (dv) and attitude (dtheta) changes.
 
     Can be used in a strapdown algorithm as:
 
-        vel[m+1] = vel[m] + R(q[m]) @ dvel[m+1] + dvel_corr
-        q[m+1] = q[m] ⊗ dq(dtheta[m+1])
+        v[k+1] = v[k] + R(q[k]) @ dv[k+1] + dv_corr
+        q[k+1] = q[k] ⊗ dq(dtheta[k+1])
 
     where,
 
-        dvel_corr = [0, 0, g * dt] (if 'NED')
-        dvel_corr = [0, 0, -g * dt] (if 'ENU')
+        dv_corr = [0, 0, g * dt] (if 'NED')
+        dv_corr = [0, 0, -g * dt] (if 'ENU')
 
     and,
 
-    - dvel[m+1] is the sculling integral, i.e., the velocity vector change (no gravity
-      correction) from time step m to m+1.
-    - dtheta[m+1] is the coning integral, i.e., the rotation vector change from time
-      step m to m+1.
-    - dq(dtheta[m+1]) is the unit quaternion representation of the rotation increment
-      over the interval [m, m+1].
-    - R(q[m]) is the rotation matrix (body-to-nav) corresponding to the attitude
-      quaternion q[m].
+    - dv[k+1] is the sculling integral, i.e., the velocity vector change (no gravity
+      correction) from time step k to k+1.
+    - dtheta[k+1] is the coning integral, i.e., the rotation vector change from time
+      step k to k+1.
+    - dq(dtheta[k+1]) is the unit quaternion representation of the rotation increment
+      over the interval [k, k+1].
+    - R(q[k]) is the rotation matrix (body-to-nav) corresponding to the attitude
+      quaternion q[k].
 
     Here, ⊗ denotes quaternion multiplication (Hamilton product).
 
     The coning and sculling integrals are computed using a 2nd order algorithm as
     described in [1]_ and [2]_.
+
+    Parameters
+    ----------
+    fs: float
+        Sampling frequency of the measurements in Hz.
 
     References
     ----------
@@ -43,23 +48,27 @@ class ConingScullingAlg:
     .. [2] Savage, Paul G., Strapdown Analytics, 2nd Edition, Part 1, 2007, https://strapdownassociates.com/Strapdown%20Analytics%20II%20Part%201.pdf
     """
 
+    # Notation: When comparing to the Theory Manual, the symbol Δ appears in the
+    # code as `d` and δ as `del_`, i.e., Δθ is written as `dtheta` and δφ as `del_phi`.
+    # ω is written as `w`, while other Greek letters are spelled out.
+
     def __init__(self, fs: float):
         self._fs = fs
         self._dt = 1.0 / fs
 
         # Coning params
-        self._theta = np.zeros(3, dtype=float)
-        self._dtheta_con = np.zeros(3, dtype=float)
-        self._dtheta_prev = np.zeros(3, dtype=float)
+        self._phi = np.zeros(3, dtype=float)
+        self._del_phi = np.zeros(3, dtype=float)
+        self._dphi_prev = np.zeros(3, dtype=float)
 
         # Sculling params
-        self._vel = np.zeros(3, dtype=float)
-        self._dvel_scul = np.zeros(3, dtype=float)
-        self._dv_prev = np.zeros(3, dtype=float)
+        self._u = np.zeros(3, dtype=float)
+        self._dv_scul = np.zeros(3, dtype=float)
+        self._du_prev = np.zeros(3, dtype=float)
 
     def update(self, f: ArrayLike, w: ArrayLike, degrees: bool = False):
         """
-        Update the coning (dtheta) and sculling (dvel) integrals using new measurements.
+        Update the coning (dtheta) and sculling (dv) integrals using new measurements.
 
         Parameters
         ----------
@@ -80,52 +89,52 @@ class ConingScullingAlg:
             w = (np.pi / 180.0) * w
 
         # View for readability
-        theta = self._theta
-        dtheta_con = self._dtheta_con
-        dtheta_prev = self._dtheta_prev
-        vel = self._vel
-        dvel_scul = self._dvel_scul
-        dv_prev = self._dv_prev
+        phi = self._phi
+        del_phi = self._del_phi
+        dphi_prev = self._dphi_prev
+        u = self._u
+        dv_scul = self._dv_scul
+        du_prev = self._du_prev
 
-        dv = f * self._dt  # backward Euler
-        dtheta = w * self._dt  # backward Euler
+        du = f * self._dt  # backward Euler
+        dphi = w * self._dt  # backward Euler
 
         # Sculling update (2nd order)
         # See Eq. (7.2.2.2.2-15) in ref [2]_ and Eq. (56) in ref [1]_
-        dvel_scul += 0.5 * (
-            _cross(theta + (1.0 / 6.0) * dtheta_prev, dv)
-            + _cross(vel + (1.0 / 6.0) * dv_prev, dtheta)
+        dv_scul += 0.5 * (
+            _cross(phi + (1.0 / 6.0) * dphi_prev, du)
+            + _cross(u + (1.0 / 6.0) * du_prev, dphi)
         )
-        vel += dv
+        u += du
 
         # Coning update
         # See Eq. (26) in ref [1]_
-        dtheta_con += 0.5 * _cross(theta + (1.0 / 6.0) * dtheta_prev, dtheta)
-        theta += dtheta
+        del_phi += 0.5 * _cross(phi + (1.0 / 6.0) * dphi_prev, dphi)
+        phi += dphi
 
-        dv_prev[:] = dv
-        dtheta_prev[:] = dtheta
+        du_prev[:] = du
+        dphi_prev[:] = dphi
 
     @property
-    def _dvel_rot(self):
-        return 0.5 * _cross(self._theta, self._vel)
+    def _dv_rot(self):
+        return 0.5 * _cross(self._phi, self._u)
 
-    def _calc_dvel_dtheta(self, degrees=False):
+    def _calc_dv_dtheta(self, degrees=False):
         """
-        Calculate the coning and sculling corrected dvel and dtheta vectors.
+        Calculate the coning and sculling corrected dv and dtheta vectors.
         """
-        dtheta = self._theta + self._dtheta_con
+        dtheta = self._phi + self._del_phi
         dtheta = np.degrees(dtheta) if degrees else dtheta
         # Equation (7.2.2.2-23) in ref [2]_
-        dvel = self._vel + self._dvel_rot + self._dvel_scul
+        dv = self._u + self._dv_rot + self._dv_scul
 
-        return dvel, dtheta
+        return dv, dtheta
 
     def flush(self, degrees=False):
         """
-        Return dvel (the accumulated specific force velocity change vector) and
+        Return dv (the accumulated specific force velocity change vector) and
         dtheta (the accumulated 'body attitude change' vector), and reset the coning
-        (dtheta) and sculling (dvel) integrals to zero.
+        (dtheta) and sculling (dv) integrals to zero.
 
         Parameters
         ----------
@@ -135,7 +144,7 @@ class ConingScullingAlg:
 
         Returns
         -------
-        dvel : ndarray, shape (3,)
+        dv : ndarray, shape (3,)
             The accumulated specific force velocity change vector. I.e., the total change
             in velocity (no gravity correction) over all samples since initialization
             (or last reset).
@@ -144,13 +153,13 @@ class ConingScullingAlg:
             describing the total rotation over all samples since initialization (or
             last reset).
         """
-        dvel, dtheta = self._calc_dvel_dtheta(degrees)
+        dv, dtheta = self._calc_dv_dtheta(degrees)
 
-        self._theta[:] = np.zeros(3, dtype=float)
-        self._dtheta_con[:] = np.zeros(3, dtype=float)
-        self._dvel_scul[:] = np.zeros(3, dtype=float)
-        self._vel[:] = np.zeros(3, dtype=float)
-        return dvel, dtheta
+        self._phi[:] = np.zeros(3, dtype=float)
+        self._del_phi[:] = np.zeros(3, dtype=float)
+        self._dv_scul[:] = np.zeros(3, dtype=float)
+        self._u[:] = np.zeros(3, dtype=float)
+        return dv, dtheta
 
 
 class ConingScullingAlgCalibrated(ConingScullingAlg):
@@ -172,7 +181,7 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
         Accelerometer bias vector (default: zero).
     bias_alt : bool, default False
         If set to ``True``, the bias definition of the alternative calibration model
-        is returned. See Notes.
+        is used. See Notes.
 
     Notes
     -----
@@ -189,7 +198,7 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
 
     def __init__(
         self,
-        fs,
+        fs: float,
         W_w: ArrayLike | None = None,
         W_f: ArrayLike | None = None,
         b_w: ArrayLike | None = None,
@@ -205,29 +214,31 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
         if W_w_det == 0:
             raise ValueError("W_w must be invertible")
         W_w_inv = adj_W_w / W_w_det
-        self.cof_W = W_w_inv.T * W_w_det
-        self.W_star = W_w_inv @ W_f
+        self._cof_W_w = W_w_inv.T * W_w_det
+        self._W_star = W_w_inv @ W_f
         if bias_alt:
-            self.b_f_star = b_f
-            self.b_w_star = b_w
+            self._b_f_star = b_f
+            self._b_w_star = b_w
         else:
             adj_W_f, W_f_det = _adjugate_and_det_3_by_3(W_f)
             if W_f_det == 0:
                 raise ValueError("W_f must be invertible.")
             W_f_inv = adj_W_f / W_f_det
-            self.b_f_star = W_f_inv @ b_f
-            self.b_w_star = W_w_inv @ b_w
-        self.W_w = W_w
+            self._b_f_star = W_f_inv @ b_f
+            self._b_w_star = W_w_inv @ b_w
+        self._W_w = W_w
         super().__init__(fs)
 
     def update(self, f, w, degrees=False):
-        f_adjusted = self.W_star @ (f + self.b_f_star)
-        w_adjusted = w + self.b_w_star
-        super().update(f_adjusted, w_adjusted, degrees)
+        f = np.asarray(f, dtype=float)
+        w = np.asarray(w, dtype=float)
+        f_star = self._W_star @ (f + self._b_f_star)
+        w_star = w + self._b_w_star
+        super().update(f_star, w_star, degrees)
 
-    def _calc_dvel_dtheta(self, degrees=False):
-        dtheta = self.W_w @ self._theta + self.cof_W @ self._dtheta_con
+    def _calc_dv_dtheta(self, degrees=False):
+        dtheta = self._W_w @ self._phi + self._cof_W_w @ self._del_phi
         dtheta = np.degrees(dtheta) if degrees else dtheta
 
-        dvel = self.W_w @ self._vel + self.cof_W @ (self._dvel_rot + self._dvel_scul)
-        return dvel, dtheta
+        dv = self._W_w @ self._u + self._cof_W_w @ (self._dv_rot + self._dv_scul)
+        return dv, dtheta
