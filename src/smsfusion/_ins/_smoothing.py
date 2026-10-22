@@ -212,7 +212,7 @@ class FixedIntervalSmoother:
         return self._P.copy()
 
 
-@njit  # type: ignore[misc]
+@njit
 def _rts_backward_sweep(
     p_n: NDArray[np.float64],
     v_n: NDArray[np.float64],

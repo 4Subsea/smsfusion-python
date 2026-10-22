@@ -32,7 +32,7 @@ _P0 = (
 )
 
 
-@njit  # type: ignore[misc]
+@njit
 def _state_transition_matrix_init(
     dt: float,
     dtheta: NDArray[np.float64],
@@ -62,7 +62,7 @@ def _state_transition_matrix_init(
     return phi
 
 
-@njit  # type: ignore[misc]
+@njit
 def _state_transition_matrix_update(
     phi: NDArray[np.float64],
     dtheta: NDArray[np.float64],
@@ -88,7 +88,7 @@ def _state_transition_matrix_update(
     phi[2, 1] = -dtx
 
 
-@njit  # type: ignore[misc]
+@njit
 def _process_noise_covariance_matrix(
     dt: float, arw: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
@@ -143,7 +143,7 @@ def _measurement_matrix_init(
     return H
 
 
-@njit  # type: ignore[misc]
+@njit
 def _reset(
     dx: NDArray[np.float64], q_nb: NDArray[np.float64], bg_b: NDArray[np.float64]
 ) -> None:
@@ -252,14 +252,14 @@ class AMEKF:
             Euler angles (roll, pitch, yaw).
         """
 
-        theta = _euler_from_quaternion(self._q_nb)
+        theta: NDArray[np.float64] = _euler_from_quaternion(self._q_nb)
 
         if degrees:
             theta = (180.0 / np.pi) * theta
 
         return theta
 
-    def bias_gyro(self, degrees=False) -> NDArray[np.float64]:
+    def bias_gyro(self, degrees: bool = False) -> NDArray[np.float64]:
         """
         Copy of the gyroscope bias estimate in rad/s or deg/s depending on the
         ``degrees`` flag.
@@ -269,7 +269,7 @@ class AMEKF:
         degrees : bool, optional
             Whether to return the bias in deg/s or rad/s. Defaults to rad/s.
         """
-        bg_b = self._bg_b.copy()
+        bg_b: NDArray[np.float64] = self._bg_b.copy()
         if degrees:
             bg_b = (180.0 / np.pi) * bg_b
         return bg_b

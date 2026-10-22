@@ -7,7 +7,7 @@ from smsfusion._vectorops import _normalize
 _COS2_85_DEG = np.cos(np.radians(85.0)) ** 2  # heading aiding pitch limit
 
 
-@njit  # type: ignore[misc]
+@njit
 def _yaw_gradient(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute yaw/heading angle gradient wrt. the attitude error (scaled Gibbs vector).
@@ -43,7 +43,7 @@ def _yaw_gradient(q: NDArray[np.float64]) -> NDArray[np.float64]:
     return dyawda  # type: ignore[no-any-return]
 
 
-@njit  # type: ignore[misc]
+@njit
 def _yaw_from_quaternion(q: NDArray[np.float64]) -> float:
     """
     Compute yaw/heading angle from unit quaternion.
@@ -72,7 +72,7 @@ def _yaw_from_quaternion(q: NDArray[np.float64]) -> float:
     return np.arctan2(u_y, u_x)  # type: ignore[no-any-return]
 
 
-@njit  # type: ignore[misc]
+@njit
 def _signed_smallest_angle(angle: float, degrees: bool = False) -> float:
     """
     Convert the given angle to the smallest angle between [-pi, pi) radians or [-180, 180)
@@ -91,13 +91,13 @@ def _signed_smallest_angle(angle: float, degrees: bool = False) -> float:
         The smallest angle between [-pi, pi) radians or [-180, 180) degrees.
     """
     base = 180.0 if degrees else np.pi
-    return (angle + base) % (2.0 * base) - base  # type: ignore[no-any-return]
+    return (angle + base) % (2.0 * base) - base
 
 
-@njit  # type: ignore[misc]
+@njit
 def _update_quaternion_with_rotvec(
     q: NDArray[np.float64], dtheta: NDArray[np.float64]
-) -> NDArray[np.float64]:
+) -> None:
     """
     Update (in place) a unit quaternion, q, with a small attitude increment, dtheta,
     parameterized as a rotation vector.
@@ -137,7 +137,7 @@ def _update_quaternion_with_rotvec(
     q[:] = _normalize(q)
 
 
-@njit  # type: ignore[misc]
+@njit
 def _update_quaternion_with_gibbs2(
     q: NDArray[np.float64], da: NDArray[np.float64]
 ) -> None:
@@ -172,7 +172,7 @@ def _update_quaternion_with_gibbs2(
     q[:] = _normalize(q)
 
 
-@njit  # type: ignore[misc]
+@njit
 def _kalman_gain(
     P: NDArray[np.float64], h: NDArray[np.float64], r: float
 ) -> NDArray[np.float64]:
@@ -202,10 +202,10 @@ def _kalman_gain(
     # Kalman gain
     k = Ph / s
 
-    return k
+    return k  # type: ignore[no-any-return]
 
 
-@njit  # type: ignore[misc]
+@njit
 def _covariance_update(
     P: NDArray[np.float64],
     k: NDArray[np.float64],
@@ -236,7 +236,7 @@ def _covariance_update(
     return P
 
 
-@njit  # type: ignore[misc]
+@njit
 def _kalman_update_scalar(
     x: NDArray[np.float64],
     P: NDArray[np.float64],
@@ -271,7 +271,7 @@ def _kalman_update_scalar(
     P[:, :] = _covariance_update(P, k, h, r)
 
 
-@njit  # type: ignore[misc]
+@njit
 def _kalman_update_sequential(
     x: NDArray[np.float64],
     P: NDArray[np.float64],
@@ -300,7 +300,7 @@ def _kalman_update_sequential(
         _kalman_update_scalar(x, P, z[i], var[i], H[i])
 
 
-@njit  # type: ignore[misc]
+@njit
 def _project_covariance_ahead(
     P: NDArray[np.float64], phi: NDArray[np.float64], Q: NDArray[np.float64]
 ) -> None:
@@ -319,7 +319,7 @@ def _project_covariance_ahead(
     P[:, :] = phi @ P @ phi.T + Q
 
 
-@njit  # type: ignore[misc]
+@njit
 def _nz2vg(nav_frame: str) -> float:
     """
     Gravity direction along the navigation frame's z-axis. Transforms the z-axis
@@ -344,7 +344,7 @@ def _nz2vg(nav_frame: str) -> float:
         raise ValueError(f"Unknown navigation frame: {nav_frame}.")
 
 
-@njit  # type: ignore[misc]
+@njit
 def _gref_b_from_quat(
     q_nb: NDArray[np.float64], nav_frame_factor: float = 1.0
 ) -> NDArray[np.float64]:

@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.typing import ArrayLike
+from numpy.typing import ArrayLike, NDArray
 
 from smsfusion._vectorops import _adjugate_and_det_3_by_3, _cross
 
@@ -66,7 +66,7 @@ class ConingScullingAlg:
         self._dv_scul = np.zeros(3, dtype=float)
         self._du_prev = np.zeros(3, dtype=float)
 
-    def update(self, f: ArrayLike, w: ArrayLike, degrees: bool = False):
+    def update(self, f: ArrayLike, w: ArrayLike, degrees: bool = False) -> None:
         """
         Update the coning (dtheta) and sculling (dv) integrals using new measurements.
 
@@ -116,10 +116,12 @@ class ConingScullingAlg:
         dphi_prev[:] = dphi
 
     @property
-    def _dv_rot(self):
-        return 0.5 * _cross(self._phi, self._u)
+    def _dv_rot(self) -> NDArray[np.float64]:
+        return 0.5 * _cross(self._phi, self._u)  # type: ignore[no-any-return]
 
-    def _calc_dv_dtheta(self, degrees=False):
+    def _calc_dv_dtheta(
+        self, degrees: bool = False
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         """
         Calculate the coning and sculling corrected dv and dtheta vectors.
         """
@@ -130,7 +132,9 @@ class ConingScullingAlg:
 
         return dv, dtheta
 
-    def flush(self, degrees=False):
+    def flush(
+        self, degrees: bool = False
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         """
         Return dv (the accumulated specific force velocity change vector) and
         dtheta (the accumulated 'body attitude change' vector), and reset the coning
@@ -229,14 +233,16 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
         self._W_w = W_w
         super().__init__(fs)
 
-    def update(self, f, w, degrees=False):
+    def update(self, f: ArrayLike, w: ArrayLike, degrees: bool = False) -> None:
         f = np.asarray(f, dtype=float)
         w = np.asarray(w, dtype=float)
         f_star = self._W_star @ (f + self._b_f_star)
         w_star = w + self._b_w_star
         super().update(f_star, w_star, degrees)
 
-    def _calc_dv_dtheta(self, degrees=False):
+    def _calc_dv_dtheta(
+        self, degrees: bool = False
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         dtheta = self._W_w @ self._phi + self._cof_W_w @ self._del_phi
         dtheta = np.degrees(dtheta) if degrees else dtheta
 

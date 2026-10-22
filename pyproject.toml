@@ -102,6 +102,7 @@ directory = "coverage_html_report"
 files = ["src/smsfusion"]
 strict = true
 ignore_missing_imports = true
+disallow_untyped_decorators = false  # numba's @njit is untyped
 
 [tool.black]
 target-version = ["py314"]
