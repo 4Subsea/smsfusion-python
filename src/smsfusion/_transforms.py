@@ -99,7 +99,7 @@ def _inv_angular_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.flo
     return T_inv
 
 
-@njit  # type: ignore[misc]
+@njit  # type: ignore[untyped-decorator]
 def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the rotation matrix from a unit quaternion.
@@ -152,7 +152,7 @@ def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     return rot
 
 
-@njit  # type: ignore[misc]
+@njit  # type: ignore[untyped-decorator]
 def _euler_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the Euler angles (ZYX convention) from a unit quaternion.
@@ -180,7 +180,7 @@ def _euler_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     return np.array([alpha, beta, gamma])
 
 
-@njit  # type: ignore[misc]
+@njit  # type: ignore[untyped-decorator]
 def _gamma_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the yaw Euler angle (ZYX convention) from a unit quaternion.
@@ -202,7 +202,7 @@ def _gamma_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     return gamma  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
 
 
-@njit  # type: ignore[misc]
+@njit  # type: ignore[untyped-decorator]
 def _angular_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute angular transformation matrix, **T**, from a unit quaternion.
@@ -227,7 +227,7 @@ def _angular_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float6
     )
 
 
-@njit  # type: ignore[misc]
+@njit  # type: ignore[untyped-decorator]
 def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the rotation matrix (from-body-to-origin) from Euler angles.
@@ -280,7 +280,7 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     return rot
 
 
-@njit  # type: ignore[misc]
+@njit  # type: ignore[untyped-decorator]
 def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the unit quaternion (representing transformation from-body-to-origin)
@@ -328,7 +328,9 @@ def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     return _normalize(np.array([q_w, q_x, q_y, q_z]))  # type: ignore[no-any-return]  # see _normalize
 
 
-def quaternion_from_euler(euler: ArrayLike, degrees=False):
+def quaternion_from_euler(
+    euler: ArrayLike, degrees: bool = False
+) -> NDArray[np.float64]:
     """
     Compute the unit quaternion (representing transformation
     from-body-to-navigation-frame) from Euler angles using the ZYX convention,
@@ -379,4 +381,4 @@ def quaternion_from_euler(euler: ArrayLike, degrees=False):
 
     if degrees:
         euler_ = (np.pi / 180.0) * euler_
-    return _quaternion_from_euler(euler_)
+    return _quaternion_from_euler(euler_)  # type: ignore[no-any-return]

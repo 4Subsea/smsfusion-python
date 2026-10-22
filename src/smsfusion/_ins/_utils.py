@@ -1,9 +1,12 @@
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 
 from ._common import _signed_smallest_angle
 
 
-def euler_from_acc(f, nav_frame, yaw=0.0, degrees=False):
+def euler_from_acc(
+    f: ArrayLike, nav_frame: str, yaw: float = 0.0, degrees: bool = False
+) -> NDArray[np.float64]:
     """
     Estimate roll and pitch angles from specific force (i.e., accelerometer) measurement.
     As yaw cannot be determined from specific force alone, the keyword argument ``yaw``
@@ -26,7 +29,7 @@ def euler_from_acc(f, nav_frame, yaw=0.0, degrees=False):
     numpy.ndarray, shape (3,)
         Euler angles (roll, pitch, yaw).
     """
-    fx, fy, fz = f
+    fx, fy, fz = np.asarray(f, dtype=float)
 
     if nav_frame.lower() == "ned":
         roll = np.arctan2(-fy, -fz)

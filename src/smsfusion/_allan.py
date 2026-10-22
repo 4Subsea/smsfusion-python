@@ -56,7 +56,7 @@ def allan_var(
     m = np.unique(np.logspace(0, np.log10(m_max), num, dtype=np.int64))
 
     tau_0 = 1.0 / fs
-    tau = m * tau_0
+    tau = m.astype(np.float64) * tau_0
 
     x = np.cumsum(y, axis=0) / fs
     avar = np.zeros((len(tau), M))

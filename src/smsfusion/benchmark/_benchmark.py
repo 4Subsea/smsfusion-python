@@ -99,8 +99,8 @@ class BeatSignal(_Signal):
         """
         main = np.cos(self._f_main * t + phase)
         beat = np.sin(self._f_beat / 2.0 * t)
-        y = beat * main
-        return y  # type: ignore[no-any-return]
+        y: NDArray[np.float64] = beat * main
+        return y
 
     def _dydt(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         """
@@ -111,8 +111,8 @@ class BeatSignal(_Signal):
         dmain = -self._f_main * np.sin(self._f_main * t + phase)
         dbeat = self._f_beat / 2.0 * np.cos(self._f_beat / 2.0 * t)
 
-        dydt = dbeat * main + beat * dmain
-        return dydt  # type: ignore[no-any-return]
+        dydt: NDArray[np.float64] = dbeat * main + beat * dmain
+        return dydt
 
     def _d2ydt2(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         """
@@ -125,9 +125,11 @@ class BeatSignal(_Signal):
         d2main = -((self._f_main) ** 2) * np.cos(self._f_main * t + phase)
         d2beat = -((self._f_beat / 2.0) ** 2) * np.sin(self._f_beat / 2.0 * t)
 
-        d2ydt2 = dbeat * dmain + d2beat * main + beat * d2main + dbeat * dmain
+        d2ydt2: NDArray[np.float64] = (
+            dbeat * dmain + d2beat * main + beat * d2main + dbeat * dmain
+        )
 
-        return d2ydt2  # type: ignore[no-any-return]
+        return d2ydt2
 
 
 class ChirpSignal(_Signal):
@@ -170,7 +172,7 @@ class ChirpSignal(_Signal):
         """
         phi = 2.0 * self._f_max / self._f_os * np.sin(self._f_os / 2.0 * t)
         y = np.sin(phi + phase)
-        return y  # type: ignore[no-any-return]
+        return y
 
     def _dydt(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         """
@@ -179,8 +181,8 @@ class ChirpSignal(_Signal):
         """
         phi = 2.0 * self._f_max / self._f_os * np.sin(self._f_os / 2.0 * t)
         dphi = self._f_max * np.cos(self._f_os / 2.0 * t)
-        dydt = dphi * np.cos(phi + phase)
-        return dydt  # type: ignore[no-any-return]
+        dydt: NDArray[np.float64] = dphi * np.cos(phi + phase)
+        return dydt
 
     def _d2ydt2(self, t: NDArray[np.float64], phase: float) -> NDArray[np.float64]:
         """
@@ -190,8 +192,10 @@ class ChirpSignal(_Signal):
         phi = 2.0 * self._f_max / self._f_os * np.sin(self._f_os / 2.0 * t)
         dphi = self._f_max * np.cos(self._f_os / 2.0 * t)
         d2phi = -self._f_max * self._f_os / 2.0 * np.sin(self._f_os / 2.0 * t)
-        d2ydt2 = -(dphi**2) * np.sin(phi + phase) + d2phi * np.cos(phi + phase)
-        return d2ydt2  # type: ignore[no-any-return]
+        d2ydt2: NDArray[np.float64] = -(dphi**2) * np.sin(
+            phi + phase
+        ) + d2phi * np.cos(phi + phase)
+        return d2ydt2
 
 
 def _benchmark_helper(
@@ -283,7 +287,7 @@ def _benchmark_helper(
     Passive rotations mean that the frame itself is rotating, not the object
     within the frame.
     """
-    t = np.arange(0.0, duration, 1.0 / fs)
+    t = np.arange(0.0, duration, 1.0 / fs, dtype=np.float64)
 
     amp_x, amp_y, amp_z, amp_roll, amp_pitch, amp_yaw = amplitude
     mean_x, mean_y, mean_z, mean_roll, mean_pitch, mean_yaw = mean

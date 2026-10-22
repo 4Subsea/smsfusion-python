@@ -3,7 +3,7 @@ from numba import njit
 from numpy.typing import NDArray
 
 
-@njit  # type: ignore[misc]
+@njit  # type: ignore[untyped-decorator]
 def _normalize(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     L2-normalize a vector.
@@ -21,7 +21,7 @@ def _normalize(q: NDArray[np.float64]) -> NDArray[np.float64]:
     return q / np.sqrt((q * q).sum())  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
 
 
-@njit  # type: ignore[misc]
+@njit  # type: ignore[untyped-decorator]
 def _cross(a: NDArray[np.float64], b: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Calculate the cross product of two vectors.
@@ -45,7 +45,7 @@ def _cross(a: NDArray[np.float64], b: NDArray[np.float64]) -> NDArray[np.float64
     )
 
 
-@njit  # type: ignore[misc]
+@njit  # type: ignore[untyped-decorator]
 def _quaternion_product(
     qa: NDArray[np.float64], qb: NDArray[np.float64]
 ) -> NDArray[np.float64]:
@@ -73,7 +73,7 @@ def _quaternion_product(
     )
 
 
-@njit  # type: ignore[misc]
+@njit  # type: ignore[untyped-decorator]
 def _skew_symmetric(a: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the cross product equivalent skew symmetric matrix.
@@ -92,7 +92,7 @@ def _skew_symmetric(a: NDArray[np.float64]) -> NDArray[np.float64]:
     return np.array([[0.0, -a[2], a[1]], [a[2], 0.0, -a[0]], [-a[1], a[0], 0.0]])
 
 
-@njit  # type: ignore[misc]
+@njit  # type: ignore[untyped-decorator]
 def _adjugate_and_det_3_by_3(
     m: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], float]:

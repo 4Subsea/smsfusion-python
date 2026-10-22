@@ -12,7 +12,7 @@ from ._common import (
 )
 
 
-@njit  # type: ignore[misc]
+@njit  # type: ignore[untyped-decorator]
 def _aiding_update_pos(
     dx: NDArray[np.float64],
     P: NDArray[np.float64],
@@ -36,7 +36,7 @@ def _aiding_update_pos(
     _kalman_update_sequential(dx, P, dz, pos_var, H)  # -> update dx and P (in place)
 
 
-@njit  # type: ignore[misc]
+@njit  # type: ignore[untyped-decorator]
 def _aiding_update_vel(
     dx: NDArray[np.float64],
     P: NDArray[np.float64],
@@ -53,7 +53,7 @@ def _aiding_update_vel(
     _kalman_update_sequential(dx, P, dz, vel_var, H)
 
 
-@njit  # type: ignore[misc]
+@njit  # type: ignore[untyped-decorator]
 def _aiding_update_head(
     dx: NDArray[np.float64],
     P: NDArray[np.float64],
@@ -76,7 +76,7 @@ def _aiding_update_head(
     _kalman_update_scalar(dx, P, dz, head_var, H)  # -> update dx and P (in place)
 
 
-@njit  # type: ignore[misc]
+@njit  # type: ignore[untyped-decorator]
 def _aiding_update_gref(
     dx: NDArray[np.float64],
     P: NDArray[np.float64],

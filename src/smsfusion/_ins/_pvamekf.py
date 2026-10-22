@@ -82,7 +82,7 @@ def _state_transition_matrix_init(
     return phi
 
 
-@njit  # type: ignore[misc]
+@njit  # type: ignore[untyped-decorator]
 def _state_transition_matrix_update(
     phi: NDArray[np.float64],
     dvel: NDArray[np.float64],
@@ -194,7 +194,7 @@ def _measurement_matrix_init(
     return H
 
 
-@njit  # type: ignore[misc]
+@njit  # type: ignore[untyped-decorator]
 def _reset(
     dx: NDArray[np.float64],
     p_n: NDArray[np.float64],
@@ -226,7 +226,7 @@ def _reset(
     dx[:] = 0.0
 
 
-@njit  # type: ignore[misc]
+@njit  # type: ignore[untyped-decorator]
 def _project_state_ahead(
     p_n: NDArray[np.float64],
     v_n: NDArray[np.float64],
@@ -385,14 +385,14 @@ class PVAMEKF:
             Euler angles (roll, pitch, yaw).
         """
 
-        theta = _euler_from_quaternion(self._q_nb)
+        theta: NDArray[np.float64] = _euler_from_quaternion(self._q_nb)
 
         if degrees:
             theta = (180.0 / np.pi) * theta
 
         return theta
 
-    def bias_gyro(self, degrees=False) -> NDArray[np.float64]:
+    def bias_gyro(self, degrees: bool = False) -> NDArray[np.float64]:
         """
         Copy of the gyroscope bias estimate in rad/s or deg/s depending on the
         ``degrees`` flag.
@@ -402,7 +402,7 @@ class PVAMEKF:
         degrees : bool, optional
             Whether to return the bias in deg/s or rad/s. Defaults to rad/s.
         """
-        bg_b = self._bg_b.copy()
+        bg_b: NDArray[np.float64] = self._bg_b.copy()
         if degrees:
             bg_b = (180.0 / np.pi) * bg_b
         return bg_b
