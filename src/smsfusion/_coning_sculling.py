@@ -13,8 +13,8 @@ class ConingScullingAlg:
 
     Can be used in a strapdown algorithm as:
 
-        v[m+1] = v[m] + R(q[m]) @ dv[m+1] + dv_corr
-        q[m+1] = q[m] ⊗ del_q(dtheta[m+1])
+        v[k+1] = v[k] + R(q[k]) @ dv[k+1] + dv_corr
+        q[k+1] = q[k] ⊗ del_q(dtheta[k+1])
 
     where,
 
@@ -23,14 +23,14 @@ class ConingScullingAlg:
 
     and,
 
-    - dv[m+1] is the sculling integral, i.e., the velocity vector change (no gravity
+    - dv[k+1] is the sculling integral, i.e., the velocity vector change (no gravity
       correction) from time step m to m+1.
-    - dtheta[m+1] is the coning integral, i.e., the rotation vector change from time
-      step m to m+1.
-    - del_q(dtheta[m+1]) is the unit quaternion representation of the rotation increment
-      over the interval [m, m+1].
-    - R(q[m]) is the rotation matrix (body-to-nav) corresponding to the attitude
-      quaternion q[m].
+    - dtheta[k+1] is the coning integral, i.e., the rotation vector change from time
+      step k to k+1.
+    - del_q(dtheta[k+1]) is the unit quaternion representation of the rotation increment
+      over the interval [k, k+1].
+    - R(q[k]) is the rotation matrix (body-to-nav) corresponding to the attitude
+      quaternion q[k].
 
     Here, ⊗ denotes quaternion multiplication (Hamilton product).
 
