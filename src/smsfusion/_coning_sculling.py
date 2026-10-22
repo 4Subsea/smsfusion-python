@@ -37,6 +37,11 @@ class ConingScullingAlg:
     The coning and sculling integrals are computed using a 2nd order algorithm as
     described in [1]_ and [2]_.
 
+    Parameters
+    ----------
+    fs: float
+        Sampling frequency of the measurements in Hz.
+
     Notes
     -----
     When comparing to the theory manual, the symbol Δ appears in the code as `d` and
@@ -178,7 +183,7 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
         Accelerometer bias vector (default: zero).
     bias_alt : bool, default False
         If set to ``True``, the bias definition of the alternative calibration model
-        is returned. See Notes.
+        is used. See Notes.
 
     Notes
     -----
@@ -195,7 +200,7 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
 
     def __init__(
         self,
-        fs,
+        fs: float,
         W_w: ArrayLike | None = None,
         W_f: ArrayLike | None = None,
         b_w: ArrayLike | None = None,
@@ -227,6 +232,8 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
         super().__init__(fs)
 
     def update(self, f, w, degrees=False):
+        f = np.asarray(f, dtype=float)
+        w = np.asarray(w, dtype=float)
         f_star = self._W_star @ (f + self._b_f_star)
         w_star = w + self._b_w_star
         super().update(f_star, w_star, degrees)
