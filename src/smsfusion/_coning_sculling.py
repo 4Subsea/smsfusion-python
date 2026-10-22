@@ -14,7 +14,7 @@ class ConingScullingAlg:
     Can be used in a strapdown algorithm as:
 
         v[k+1] = v[k] + R(q[k]) @ dv[k+1] + dv_corr
-        q[k+1] = q[k] ⊗ del_q(dtheta[k+1])
+        q[k+1] = q[k] ⊗ dq(dtheta[k+1])
 
     where,
 
@@ -27,7 +27,7 @@ class ConingScullingAlg:
       correction) from time step k to k+1.
     - dtheta[k+1] is the coning integral, i.e., the rotation vector change from time
       step k to k+1.
-    - del_q(dtheta[k+1]) is the unit quaternion representation of the rotation increment
+    - dq(dtheta[k+1]) is the unit quaternion representation of the rotation increment
       over the interval [k, k+1].
     - R(q[k]) is the rotation matrix (body-to-nav) corresponding to the attitude
       quaternion q[k].
