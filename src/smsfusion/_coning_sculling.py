@@ -24,7 +24,7 @@ class ConingScullingAlg:
     and,
 
     - dv[k+1] is the sculling integral, i.e., the velocity vector change (no gravity
-      correction) from time step m to m+1.
+      correction) from time step k to k+1.
     - dtheta[k+1] is the coning integral, i.e., the rotation vector change from time
       step k to k+1.
     - del_q(dtheta[k+1]) is the unit quaternion representation of the rotation increment
