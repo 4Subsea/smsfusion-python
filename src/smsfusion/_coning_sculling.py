@@ -40,7 +40,7 @@ class ConingScullingAlg:
     Notes
     -----
     When comparing to the theory manual, the symbol Δ appears in the code as `d` and
-    δ as `del_`, i.e., is Δθ written as `dtheta` and δφ as `del_phi`. ω is written as w,
+    δ as `del_`, i.e., Δθ is written as `dtheta` and δφ as `del_phi`. ω is written as w,
     while other greek letters are spelled out.
 
     References
@@ -65,7 +65,7 @@ class ConingScullingAlg:
 
     def update(self, f: ArrayLike, w: ArrayLike, degrees: bool = False):
         """
-        Update the coning (dtheta) and sculling (dvel) integrals using new measurements.
+        Update the coning (dtheta) and sculling (dv) integrals using new measurements.
 
         Parameters
         ----------
@@ -211,7 +211,7 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
         if W_w_det == 0:
             raise ValueError("W_w must be invertible")
         W_w_inv = adj_W_w / W_w_det
-        self.cof_W = W_w_inv.T * W_w_det
+        self.cof_W_w = W_w_inv.T * W_w_det
         self.W_star = W_w_inv @ W_f
         if bias_alt:
             self.b_f_star = b_f
@@ -232,8 +232,8 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
         super().update(f_adjusted, w_adjusted, degrees)
 
     def _calc_dv_dtheta(self, degrees=False):
-        dtheta = self.W_w @ self._phi + self.cof_W @ self._del_phi
+        dtheta = self.W_w @ self._phi + self.cof_W_w @ self._del_phi
         dtheta = np.degrees(dtheta) if degrees else dtheta
 
-        dv = self.W_w @ self._u + self.cof_W @ (self._dv_rot + self._dv_scul)
+        dv = self.W_w @ self._u + self.cof_W_w @ (self._dv_rot + self._dv_scul)
         return dv, dtheta
