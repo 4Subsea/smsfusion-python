@@ -227,9 +227,9 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
         super().__init__(fs)
 
     def update(self, f, w, degrees=False):
-        f_adjusted = self.W_star @ (f + self.b_f_star)
-        w_adjusted = w + self.b_w_star
-        super().update(f_adjusted, w_adjusted, degrees)
+        f_star = self.W_star @ (f + self.b_f_star)
+        w_star = w + self.b_w_star
+        super().update(f_star, w_star, degrees)
 
     def _calc_dv_dtheta(self, degrees=False):
         dtheta = self.W_w @ self._phi + self.cof_W_w @ self._del_phi
