@@ -72,7 +72,7 @@ class Test_ConingScullingAlg:
         np.testing.assert_allclose(alg._phi, np.zeros(3))
         np.testing.assert_allclose(alg._del_phi, np.zeros(3))
         np.testing.assert_allclose(alg._dphi_prev, np.zeros(3))
-        np.testing.assert_allclose(alg.u, np.zeros(3))
+        np.testing.assert_allclose(alg._u, np.zeros(3))
         np.testing.assert_allclose(alg._dv_scul, np.zeros(3))
         np.testing.assert_allclose(alg._du_prev, np.zeros(3))
 
