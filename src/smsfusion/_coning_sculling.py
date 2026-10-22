@@ -42,17 +42,15 @@ class ConingScullingAlg:
     fs: float
         Sampling frequency of the measurements in Hz.
 
-    Notes
-    -----
-    When comparing to the theory manual, the symbol Δ appears in the code as `d` and
-    δ as `del_`, i.e., Δθ is written as `dtheta` and δφ as `del_phi`. ω is written as w,
-    while other greek letters are spelled out.
-
     References
     ----------
     .. [1] Savage, Paul G., Strapdown System Algorithms, AD-P003 621, https://apps.dtic.mil/sti/tr/pdf/ADP003621.pdf
     .. [2] Savage, Paul G., Strapdown Analytics, 2nd Edition, Part 1, 2007, https://strapdownassociates.com/Strapdown%20Analytics%20II%20Part%201.pdf
     """
+
+    # Notation: When comparing to the Theory Manual, the symbol Δ appears in the
+    # code as `d` and δ as `del_`, i.e., Δθ is written as `dtheta` and δφ as `del_phi`.
+    # ω is written as `w`, while other Greek letters are spelled out.
 
     def __init__(self, fs: float):
         self._fs = fs
