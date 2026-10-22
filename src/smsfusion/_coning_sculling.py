@@ -211,29 +211,29 @@ class ConingScullingAlgCalibrated(ConingScullingAlg):
         if W_w_det == 0:
             raise ValueError("W_w must be invertible")
         W_w_inv = adj_W_w / W_w_det
-        self.cof_W_w = W_w_inv.T * W_w_det
-        self.W_star = W_w_inv @ W_f
+        self._cof_W_w = W_w_inv.T * W_w_det
+        self._W_star = W_w_inv @ W_f
         if bias_alt:
-            self.b_f_star = b_f
-            self.b_w_star = b_w
+            self._b_f_star = b_f
+            self._b_w_star = b_w
         else:
             adj_W_f, W_f_det = _adjugate_and_det_3_by_3(W_f)
             if W_f_det == 0:
                 raise ValueError("W_f must be invertible.")
             W_f_inv = adj_W_f / W_f_det
-            self.b_f_star = W_f_inv @ b_f
-            self.b_w_star = W_w_inv @ b_w
-        self.W_w = W_w
+            self._b_f_star = W_f_inv @ b_f
+            self._b_w_star = W_w_inv @ b_w
+        self._W_w = W_w
         super().__init__(fs)
 
     def update(self, f, w, degrees=False):
-        f_star = self.W_star @ (f + self.b_f_star)
-        w_star = w + self.b_w_star
+        f_star = self._W_star @ (f + self._b_f_star)
+        w_star = w + self._b_w_star
         super().update(f_star, w_star, degrees)
 
     def _calc_dv_dtheta(self, degrees=False):
-        dtheta = self.W_w @ self._phi + self.cof_W_w @ self._del_phi
+        dtheta = self._W_w @ self._phi + self._cof_W_w @ self._del_phi
         dtheta = np.degrees(dtheta) if degrees else dtheta
 
-        dv = self.W_w @ self._u + self.cof_W_w @ (self._dv_rot + self._dv_scul)
+        dv = self._W_w @ self._u + self._cof_W_w @ (self._dv_rot + self._dv_scul)
         return dv, dtheta
