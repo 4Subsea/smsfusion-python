@@ -48,6 +48,31 @@ class Test__yaw_gradient:
 
         np.testing.assert_allclose(dyawda_out, dyawda_expect, atol=1e-6)
 
+    @pytest.mark.parametrize(
+        "roll, pitch, yaw",  # degrees
+        [
+            (0.0, 85.1, 0.0),
+            (30.0, -85.1, -60.0),
+            (0.0, 89.9, 0.0),
+            (0.0, 90.0, 0.0),
+            (45.0, -90.0, 120.0),
+        ],
+    )
+    def test_raises_near_gimbal_lock(self, roll, pitch, yaw):
+        q = quaternion_from_euler([roll, pitch, yaw], degrees=True)
+        with pytest.raises(ValueError, match="gimbal lock"):
+            _common._yaw_gradient(q)
+
+    @pytest.mark.parametrize("pitch", [-84.9, 84.9])
+    def test_below_pitch_limit(self, pitch):
+        q = quaternion_from_euler([10.0, pitch, 30.0], degrees=True)
+        dyawda_out = _common._yaw_gradient(q)
+        dyawda_expect = np.array(
+            [0.0, np.sin(np.radians(10.0)), np.cos(np.radians(10.0))]
+        )
+        dyawda_expect /= np.cos(np.radians(pitch))
+        np.testing.assert_allclose(dyawda_out, dyawda_expect)
+
 
 @pytest.mark.parametrize(
     "roll, pitch, yaw",  # degrees

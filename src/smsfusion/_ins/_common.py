@@ -4,6 +4,8 @@ from numpy.typing import NDArray
 
 from smsfusion._vectorops import _normalize
 
+_COS2_85_DEG = np.cos(np.radians(85.0)) ** 2  # heading aiding pitch limit
+
 
 @njit  # type: ignore[misc]
 def _yaw_gradient(q: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -19,13 +21,24 @@ def _yaw_gradient(q: NDArray[np.float64]) -> NDArray[np.float64]:
     -------
     numpy.ndarray, shape (3,)
         Yaw angle gradient.
+
+    Raises
+    ------
+    ValueError
+        If the absolute pitch angle exceeds 85 degrees (near gimbal lock).
     """
     # TODO: add reference when the 3rd edition of Fossen's book is released
     qw, qx, qy, qz = q
     r21 = 2.0 * (qy * qz + qx * qw)
     r22 = 1.0 - 2.0 * (qx**2 + qy**2)
 
-    dyawda = np.array([0.0, r21, r22]) / (r21**2 + r22**2)
+    cos2_pitch = r21**2 + r22**2
+    if cos2_pitch <= _COS2_85_DEG:
+        raise ValueError(
+            "Yaw gradient is ill-conditioned for |pitch| > 85 deg (near gimbal lock)."
+        )
+
+    dyawda = np.array([0.0, r21, r22]) / cos2_pitch
 
     return dyawda  # type: ignore[no-any-return]
 

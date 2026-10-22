@@ -175,7 +175,7 @@ def _measurement_matrix_init(
     H = np.zeros((7, 9))
     H[0:3, 0:3] = np.eye(3)  # velocity
     H[3:6, 3:6] = _skew_symmetric(vg_b)  # gravity reference vector
-    H[6:7, 3:6] = _yaw_gradient(q_nb)  # heading
+    # Heading row is computed at each heading aiding update
     return H
 
 
@@ -412,7 +412,9 @@ class VAMEKF:
             Heading measurement in radians or degrees depending on the ``head_degrees``
             flag. I.e., the yaw angle of the 'body' frame relative to the assumed
             'navigation' frame ('NED' or 'ENU') specified during initialization.
-            If ``None``, compass aiding is not used.
+            If ``None``, compass aiding is not used. Heading aiding is not available
+            when the absolute pitch angle exceeds 85 degrees, since the heading is
+            undefined at pitch = ±90 degrees (gimbal lock).
         head_var : float, optional
             Variance of heading measurement noise in radians^2 or degrees^2 depending
             on the ``head_degrees`` flag. Ignored if ``head`` is ``None``. Defaults
